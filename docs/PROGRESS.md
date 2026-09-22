@@ -1219,3 +1219,16 @@ Linux 首选路径：
   `System.Security.AccessControl.RegistryRights`，重新通过 parser、包校验并更新发布 ZIP。
 - 已通过 ZIP 完整性、manifest 哈希、`SHA256SUMS`、PowerShell 语法、账户边界检查和 MinGW
   x86_64 交叉编译验证。该包不包含 USB/IP 安装器；USB 优先依赖宿主官方 SPICE/USB 重定向。
+
+## Step 128：允许离线包在设备尚未出现时完成安装
+
+- Windows 实机返回 `pnputil /add-driver ... /install` 退出码 259，含义是当前没有匹配的设备，
+  不是 INF 损坏。安装器已改为先把每个允许的 INF 加入 Driver Store，再尝试绑定；259 只记为
+  非致命结果，安装继续执行。
+- 硬件探测从硬失败改为提示：会继续处理 `qxldod`、`viogpudo`、`vioinput`、`vioser`，但画面、
+  鼠标键盘和 SPICE 剪贴板能否工作仍取决于宿主是否暴露对应 QXL/VirtIO 设备。
+- `windows/README.md` 已补充 GPU 安装教程：离线包内含两套 GPU 驱动，QXL 使用 `qxldod.inf`，
+  VirtIO GPU 使用 `viogpudo.inf`，重启后由 Windows 按 PCI 设备选择绑定。
+- 重新生成离线发布包：`release/ydyun-windows-open-source-w10.zip`，SHA-256 为
+  `c97c0d75debdafc07b38b92afe8513e66fc3571a07e4391cb869888f15a3abd2`；包内 33 个文件，
+  无需联网下载驱动。
