@@ -1,0 +1,22 @@
+[Unit]
+Description=YDYUN local USB/IP export controller
+Documentation=file:/usr/share/doc/ydyun-usbctl/README.md
+After=systemd-modules-load.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ydyun-usbctl --config /etc/ydyun-usb/ydyun-usb.conf export-watch
+Restart=on-failure
+RestartSec=5s
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/run
+CapabilityBoundingSet=CAP_SYS_MODULE CAP_SYS_ADMIN CAP_DAC_READ_SEARCH
+AmbientCapabilities=CAP_SYS_MODULE CAP_SYS_ADMIN CAP_DAC_READ_SEARCH
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

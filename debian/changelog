@@ -1,0 +1,303 @@
+ydyun-usbctl (0.2.51-1) UNRELEASED; urgency=medium
+
+  * Add KDE Plasma Wayland KScreen adaptation for spice-vdagent monitor
+    configuration and document the official full-screen/restore behavior.
+  * Make KScreen parsing robust against Qt platform selection and ANSI CSI
+    output, and record the live Debian trixie Wayland verification.
+  * Publish reproducible Debian trixie build, USB/IP, SPICE and security-scope
+    documentation without bundling vendor security or monitoring runtimes.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 10:30:00 +0800
+
+ydyun-usbctl (0.2.49-1) UNRELEASED; urgency=medium
+
+  * Record the live logged-in UOS display/input path and its separate USB
+    session endpoint; verify that the vendor viewer listener is not a raw
+    standard SPICE endpoint.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 16:45:00 +0800
+
+ydyun-usbctl (0.2.48-1) UNRELEASED; urgency=medium
+
+  * Record the real official-client virtual Mass Storage import through the
+    vendor proxy preamble and standard USB/IP DEVLIST/IMPORT/URB sequence.
+  * Add a narrow, session-free serializer for the observed 0x74-byte proxy
+    preamble; keep authentication, private import payloads, QoE, monitoring,
+    and security components outside the default runtime.
+  * Document the recovered chuanyun-redirect IPC frontend and libusbipd
+    configuration/JWAE boundary without importing the vendor policy daemon.
+  * Load the opt-in official USB ABI lazily so USB-only enumeration does not
+    require unrelated vendor video-encoder symbols at process startup.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 16:10:00 +0800
+
+ydyun-usbctl (0.2.45-1) UNRELEASED; urgency=medium
+
+  * Record the verified local USB IPC header and vendor proxy preamble
+    boundary, and add a loopback-only metadata parser regression.
+  * Keep the private session preamble out of the clean runtime while
+    documenting the standard USB/IP DEVLIST/IMPORT/URB data path.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 15:45:00 +0800
+
+ydyun-usbctl (0.2.44-1) UNRELEASED; urgency=medium
+
+  * Record the authorized live Debian session: H.264/SPICE first frame,
+    cursor and keyboard input, plus the independent USB IPC/3246 channel.
+  * Keep the vendor security, QoE, trace, monitoring, and usbredirect
+    services outside the clean package and disabled during validation.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 15:25:00 +0800
+
+ydyun-usbctl (0.2.43-1) UNRELEASED; urgency=medium
+
+  * Record the live Chrome download verification and current UOS package
+    fingerprint while keeping vendor security, QoE, trace, and policy paths
+    outside the clean Debian data plane.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 15:05:00 +0800
+
+ydyun-usbctl (0.2.42-1) UNRELEASED; urgency=medium
+
+  * Document the official usbredirect USB/IP URB data plane separately from
+    its security, QoE, trace, SUID, and HID deny-list policy paths.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 14:40:00 +0800
+
+ydyun-usbctl (0.2.41-1) UNRELEASED; urgency=medium
+
+  * Add an isolated dummy_hcd usbip-host export regression for local USB
+    storage and HID forwarding without touching physical devices.
+  * Document the ordinary usbipd server mode required by usbip-host exports.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 14:10:00 +0800
+
+ydyun-usbctl (0.2.40-1) UNRELEASED; urgency=medium
+
+  * Complete the opt-in backward bridge configuration while keeping its
+    systemd unit disabled and loopback-bound by default.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 13:50:00 +0800
+
+ydyun-usbctl (0.2.39-1) UNRELEASED; urgency=medium
+
+  * Add a root-only local end-to-end regression for the validated backward
+    USB control frame and the standard USB/IP data path.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 13:35:00 +0800
+
+ydyun-usbctl (0.2.38-1) UNRELEASED; urgency=medium
+
+  * Ship the opt-in standard SPICE GTK display and desktop-input viewer.
+  * Keep vendor JWAE/SCG, security, monitoring, and telemetry runtimes out of
+    the Debian package while exposing the verified viewer URL boundary.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 13:15:00 +0800
+
+ydyun-usbctl (0.2.37-1) UNRELEASED; urgency=medium
+
+  * Document the official root USB redirect policy frontend and keep its
+    udev, SysV queue, deny-list, state-reporting, and monitoring paths out of
+    the clean Debian data plane.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 12:45:00 +0800
+
+ydyun-usbctl (0.2.36-1) UNRELEASED; urgency=medium
+
+  * Add a secure owner-only bridge from decoded authorized session JSON to
+    the opt-in public Chuanyun SDK loader configuration.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 12:20:00 +0800
+
+ydyun-usbctl (0.2.35-1) UNRELEASED; urgency=medium
+
+  * Document and validate the official viewer URL boundary in the
+    experimental standard-SPICE GTK harness.
+  * Record the Electron native-addon and viewer parseURL field evidence.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 11:55:00 +0800
+
+ydyun-usbctl (0.2.34-1) UNRELEASED; urgency=medium
+
+  * Add a bounded, redacted parser for the verified Chuanyun viewer
+    spice://host:port+opaque-session URL boundary.
+  * Document the official libchuanyun-to-chuanyun-view launch path and the
+    standard SPICE display/input data-plane boundary.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 10:45:00 +0800
+
+ydyun-usbctl (0.2.33-1) UNRELEASED; urgency=medium
+
+  * Correct the public cdp_usbip_start_service callback ABI in the opt-in
+    Chuanyun USB loader and its regression fixture.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 10:20:00 +0800
+
+ydyun-usbctl (0.2.32-1) UNRELEASED; urgency=medium
+
+  * Document the verified public drive-map ABI in the installed client ABI
+    reference.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 10:00:00 +0800
+
+ydyun-usbctl (0.2.31-1) UNRELEASED; urgency=medium
+
+  * Add the verified public mass-storage drive-map and drive-unmap ABI to
+    the explicit Chuanyun USB loader.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 09:45:00 +0800
+
+ydyun-usbctl (0.2.30-1) UNRELEASED; urgency=medium
+
+  * Restore already-released interfaces when a composite USB export fails
+    part-way through driver unbinding.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 09:20:00 +0800
+
+ydyun-usbctl (0.2.29-1) UNRELEASED; urgency=medium
+
+  * Add the official USB/IP link-init probe and document the peer-driven
+    pre-import forwarding state machine.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 09:00:00 +0800
+
+ydyun-usbctl (0.2.28-1) UNRELEASED; urgency=medium
+
+  * Add repeatable package-content and service-start auditing to the build path.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 08:00:00 +0800
+
+ydyun-usbctl (0.2.27-1) UNRELEASED; urgency=medium
+
+  * Make build-deb.sh delegate to the authoritative Debian packaging rules.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 07:30:00 +0800
+
+ydyun-usbctl (0.2.26-1) UNRELEASED; urgency=medium
+
+  * Document the ZIME QUIC/SCTP/FEC vendor transport boundary.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 07:00:00 +0800
+
+ydyun-usbctl (0.2.25-1) UNRELEASED; urgency=medium
+
+  * Document ZTE SPICE display/input symbols and exclude its security/QoE runtime.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 06:30:00 +0800
+
+ydyun-usbctl (0.2.24-1) UNRELEASED; urgency=medium
+
+  * Include the final runtime dependency and service-start audit in package docs.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 06:00:00 +0800
+
+ydyun-usbctl (0.2.23-1) UNRELEASED; urgency=medium
+
+  * Record verification of the official download API in a real Chrome session.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 05:35:00 +0800
+
+ydyun-usbctl (0.2.22-1) UNRELEASED; urgency=medium
+
+  * Keep USB control, backward bridge, and local export services disabled by default.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 05:20:00 +0800
+
+ydyun-usbctl (0.2.21-1) UNRELEASED; urgency=medium
+
+  * Record the official Linux viewer, USB/IP, SPICE, and JWAE boundary analysis.
+  * Exclude JWAE monitoring, QoE, trace, side-channel, and private policy paths.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 05:10:00 +0800
+
+ydyun-usbctl (0.2.17-1) UNRELEASED; urgency=medium
+
+  * Document use of the opt-in Linux Chuanyun SDK ABI loader.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 04:40:00 +0800
+
+ydyun-usbctl (0.2.12-1) UNRELEASED; urgency=medium
+
+  * Document the verified USB/IP compression call graph and stream boundary.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 04:25:00 +0800
+
+ydyun-usbctl (0.2.11-1) UNRELEASED; urgency=medium
+
+  * Add explicit-off-by-default translation for the statically recovered LZ4 USB wrapper.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 04:05:00 +0800
+
+ydyun-usbctl (0.2.10-1) UNRELEASED; urgency=medium
+
+  * Document core versus telemetry and peripheral connection fields.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 03:50:00 +0800
+
+ydyun-usbctl (0.2.9-1) UNRELEASED; urgency=medium
+
+  * Record the statically recovered vendor SPICE connection ABI from DWARF.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 03:40:00 +0800
+
+ydyun-usbctl (0.2.8-1) UNRELEASED; urgency=medium
+
+  * Add read-only doctor checks for Debian deployment state.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 03:15:00 +0800
+
+ydyun-usbctl (0.2.7-1) UNRELEASED; urgency=medium
+
+  * Document the closed JWAE ABI boundary without shipping guessed calls.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 02:55:00 +0800
+
+ydyun-usbctl (0.2.6-1) UNRELEASED; urgency=medium
+
+  * Preserve optional IPv6 CAG routing in the redacted session descriptor.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 02:35:00 +0800
+
+ydyun-usbctl (0.2.5-1) UNRELEASED; urgency=medium
+
+  * Reject USB hub devices before local USB/IP export changes kernel bindings.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 02:15:00 +0800
+
+ydyun-usbctl (0.2.4-1) UNRELEASED; urgency=medium
+
+  * Add a documented, non-production standard SPICE GTK harness build.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 01:45:00 +0800
+
+ydyun-usbctl (0.2.3-1) UNRELEASED; urgency=medium
+
+  * Extend the analysis docs with the validated display-sample boundary.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 01:20:00 +0800
+
+ydyun-usbctl (0.2.2-1) UNRELEASED; urgency=medium
+
+  * Add bounded offline extraction of standard SPICE display samples.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 01:00:00 +0800
+
+ydyun-usbctl (0.2.1-1) UNRELEASED; urgency=medium
+
+  * Add an offline redacted validator for decoded vendor session responses.
+  * Document the official client session-to-SPICE display boundary.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 00:30:00 +0800
+
+ydyun-usbctl (0.2.0-1) UNRELEASED; urgency=medium
+
+  * Add explicit local USB/IP export with class-driver release and reprobe.
+  * Add disabled systemd export unit and official client reverse-analysis report.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 00:10:00 +0800
+
+ydyun-usbctl (0.1.0-1) UNRELEASED; urgency=medium
+
+  * Add initial Debian USB/IP controller based on vhci-hcd.
+
+ -- YDYUN Linux Adapter <root@localhost>  Mon, 21 Sep 2026 00:00:00 +0800

@@ -1,0 +1,26 @@
+[Unit]
+Description=YDYUN ZTE backward-link USB/IP bridge
+Documentation=file:/usr/share/doc/ydyun-usbctl/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/sbin/modprobe usbip-core
+ExecStartPre=/sbin/modprobe vhci-hcd
+ExecStart=/usr/bin/ydyun-usbctl --config /etc/ydyun-usb/ydyun-usb.conf backward
+Restart=on-failure
+RestartSec=5s
+User=root
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=no
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/run
+
+[Install]
+WantedBy=multi-user.target

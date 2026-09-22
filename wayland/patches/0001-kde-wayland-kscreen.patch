@@ -1,0 +1,362 @@
+--- a/src/vdagent/display.c	2022-02-14 18:24:36.000000000 +0800
++++ b/src/vdagent/display.c	2026-09-22 10:44:31.562559611 +0800
+@@ -22,6 +22,8 @@
+ #include <config.h>
+ 
+ #include <glib.h>
++#include <gio/gio.h>
++#include <stdlib.h>
+ #ifdef WITH_GTK
+ #include <gdk/gdk.h>
+ #include <gtk/gtk.h>    // for GTK_CHECK_VERSION
+@@ -63,6 +65,310 @@
+     VDAgentMutterDBus *mutter;
+ };
+ 
++/*
++ * KDE Plasma Wayland does not provide Mutter's private
++ * org.gnome.Mutter.DisplayConfig interface.  KScreen is the stable KDE
++ * desktop-facing control point, and kscreen-doctor is deliberately invoked
++ * without a shell so the monitor name never becomes executable input.
++ *
++ * This keeps the existing vdagent transport, capability negotiation and
++ * input/audio paths intact.  Only the monitor query/set operation is
++ * redirected when the active login session is Wayland.
++ */
++static gboolean vdagent_is_wayland_session(void)
++{
++    const gchar *session_type = g_getenv("XDG_SESSION_TYPE");
++    const gchar *wayland_display = g_getenv("WAYLAND_DISPLAY");
++
++    return g_strcmp0(session_type, "wayland") == 0 ||
++           (wayland_display != NULL && wayland_display[0] != '\0');
++}
++
++static gboolean vdagent_kscreen_run(gchar **output, gchar **error_output,
++                                    const gchar *argument)
++{
++    const gchar *argv[] = { "kscreen-doctor", argument, NULL };
++    gchar **environment;
++    GError *error = NULL;
++    gint status = -1;
++    gboolean ok;
++
++    environment = g_get_environ();
++    environment = g_environ_setenv(environment, "QT_QPA_PLATFORM", "wayland", TRUE);
++    environment = g_environ_setenv(environment, "TERM", "dumb", TRUE);
++    ok = g_spawn_sync(NULL, (gchar **)argv, environment, G_SPAWN_SEARCH_PATH,
++                      NULL, NULL, output, error_output, &status, &error);
++    g_strfreev(environment);
++    if (!ok) {
++        syslog(LOG_WARNING, "KScreen command failed to start: %s",
++               error != NULL ? error->message : "unknown error");
++        g_clear_error(&error);
++        return FALSE;
++    }
++    if (!g_spawn_check_wait_status(status, &error)) {
++        syslog(LOG_WARNING, "KScreen command failed: %s",
++               error != NULL ? error->message : "unknown error");
++        g_clear_error(&error);
++        return FALSE;
++    }
++    return TRUE;
++}
++
++static gboolean vdagent_kscreen_valid_name(const gchar *name)
++{
++    if (name == NULL || name[0] == '\0')
++        return FALSE;
++
++    for (const gchar *p = name; *p != '\0'; p++) {
++        if (!(g_ascii_isalnum(*p) || *p == '-' || *p == '_' || *p == '.'))
++            return FALSE;
++    }
++    return TRUE;
++}
++
++/* kscreen-doctor emits color escapes even when TERM=dumb.  Remove CSI
++ * sequences before parsing its human-readable output. */
++static void vdagent_kscreen_strip_ansi(gchar *text)
++{
++    gchar *read = text;
++    gchar *write = text;
++
++    while (read != NULL && *read != '\0') {
++        if ((guchar)*read == 0x1b && read[1] == '[') {
++            read += 2;
++            while (*read != '\0' && !g_ascii_isalpha((guchar)*read))
++                read++;
++            if (*read != '\0')
++                read++;
++            continue;
++        }
++        *write++ = *read++;
++    }
++    if (write != NULL)
++        *write = '\0';
++}
++
++static gboolean vdagent_kscreen_find_output(const gchar *text,
++                                            gchar **name_out,
++                                            guint *mode_id_out,
++                                            guint *mode_width_out,
++                                            guint *mode_height_out,
++                                            gint *x_out, gint *y_out,
++                                            guint *width_out, guint *height_out)
++{
++    gchar **lines;
++    gchar *output_name = NULL;
++    gboolean connected = FALSE;
++    gboolean found = FALSE;
++    guint best_id = 0, best_width = 0, best_height = 0;
++    gint output_x = 0, output_y = 0;
++    guint output_width = 0, output_height = 0;
++
++    lines = g_strsplit(text != NULL ? text : "", "\n", -1);
++    for (guint i = 0; lines[i] != NULL; i++) {
++        vdagent_kscreen_strip_ansi(lines[i]);
++        gchar *line = g_strstrip(lines[i]);
++        guint output_id;
++        gchar candidate[128];
++
++        if (sscanf(line, "Output: %u %127s", &output_id, candidate) == 2) {
++            g_free(output_name);
++            output_name = g_strdup(candidate);
++            connected = FALSE;
++            continue;
++        }
++        if (output_name == NULL)
++            continue;
++        if (g_strstr_len(line, -1, "connected") != NULL)
++            connected = TRUE;
++
++        gint x, y;
++        guint width, height;
++        if (connected && sscanf(line, " Geometry: %d,%d %ux%u",
++                                &x, &y, &width, &height) == 4) {
++            output_x = x;
++            output_y = y;
++            output_width = width;
++            output_height = height;
++        }
++
++        if (connected && g_str_has_prefix(line, "Modes:")) {
++            gchar **tokens = g_strsplit_set(line + 6, " \t", -1);
++            for (guint t = 0; tokens[t] != NULL; t++) {
++                guint id, mode_width, mode_height, refresh;
++                gchar marker[2] = { 0, 0 };
++                if (sscanf(tokens[t], "%u:%ux%u@%u%1[*!]", &id,
++                           &mode_width, &mode_height, &refresh, marker) < 4)
++                    continue;
++                if (!found || (marker[0] == '*' && best_id != id)) {
++                    best_id = id;
++                    best_width = mode_width;
++                    best_height = mode_height;
++                    found = TRUE;
++                }
++            }
++            g_strfreev(tokens);
++        }
++        (void)output_id;
++    }
++
++    if (!connected || !vdagent_kscreen_valid_name(output_name) || !found) {
++        g_free(output_name);
++        g_strfreev(lines);
++        return FALSE;
++    }
++
++    *name_out = output_name;
++    *mode_id_out = best_id;
++    *mode_width_out = best_width;
++    *mode_height_out = best_height;
++    *x_out = output_x;
++    *y_out = output_y;
++    *width_out = output_width;
++    *height_out = output_height;
++    g_strfreev(lines);
++    return TRUE;
++}
++
++static GArray *vdagent_kscreen_get_resolutions(VDAgentDisplay *display,
++                                                int *width, int *height,
++                                                int *screen_count)
++{
++    gchar *output = NULL;
++    gchar *error_output = NULL;
++    gchar *name = NULL;
++    guint mode_id, mode_width, mode_height, current_width, current_height;
++    gint x, y;
++    GArray *resolutions;
++
++    if (!vdagent_is_wayland_session())
++        return NULL;
++    if (!vdagent_kscreen_run(&output, &error_output, "-o"))
++        goto fail;
++    if (!vdagent_kscreen_find_output(output, &name, &mode_id, &mode_width,
++                                     &mode_height, &x, &y, &current_width,
++                                     &current_height))
++        goto fail;
++
++    resolutions = g_array_new(FALSE, FALSE,
++                              sizeof(struct vdagentd_guest_xorg_resolution));
++    struct vdagentd_guest_xorg_resolution resolution = {
++        .width = current_width != 0 ? (int)current_width : (int)mode_width,
++        .height = current_height != 0 ? (int)current_height : (int)mode_height,
++        .x = x,
++        .y = y,
++        .display_id = 0,
++    };
++    gpointer value;
++    if (g_hash_table_lookup_extended(display->connector_mapping, name, NULL,
++                                     &value))
++        resolution.display_id = GPOINTER_TO_UINT(value);
++    g_array_append_val(resolutions, resolution);
++    *width = resolution.x + resolution.width;
++    *height = resolution.y + resolution.height;
++    *screen_count = 1;
++    syslog(LOG_INFO, "KScreen current %s %ux%u+%d+%d", name,
++           resolution.width, resolution.height, resolution.x, resolution.y);
++    g_free(name);
++    g_free(output);
++    g_free(error_output);
++    (void)mode_id;
++    return resolutions;
++
++fail:
++    if (error_output != NULL && error_output[0] != '\0')
++        syslog(LOG_WARNING, "KScreen output query: %s", error_output);
++    g_free(name);
++    g_free(output);
++    g_free(error_output);
++    return NULL;
++}
++
++static gboolean vdagent_kscreen_set_monitor_config(VDAgentDisplay *display,
++                                                    VDAgentMonitorsConfig *config)
++{
++    gchar *output = NULL;
++    gchar *error_output = NULL;
++    gchar *name = NULL;
++    gchar *command = NULL;
++    guint current_id, current_mode_width, current_mode_height;
++    guint current_width, current_height;
++    gint current_x, current_y;
++    VDAgentMonConfig *monitor;
++    gboolean ok;
++
++    if (!vdagent_is_wayland_session() || config == NULL ||
++        config->num_of_monitors == 0 || config->num_of_monitors > 32)
++        return FALSE;
++
++    monitor = &config->monitors[0];
++    if (monitor->width < 320 || monitor->height < 200 ||
++        monitor->width > 16384 || monitor->height > 16384)
++        return FALSE;
++    if (!vdagent_kscreen_run(&output, &error_output, "-o") ||
++        !vdagent_kscreen_find_output(output, &name, &current_id,
++                                      &current_mode_width, &current_mode_height,
++                                      &current_x, &current_y, &current_width,
++                                      &current_height)) {
++        g_free(output);
++        g_free(error_output);
++        return FALSE;
++    }
++
++    /* Prefer an exact DRM/KScreen mode; otherwise keep the closest advertised
++     * mode instead of asking KWin for a mode that the QXL output cannot drive. */
++    guint target_mode = current_id;
++    guint target_width = current_mode_width;
++    guint target_height = current_mode_height;
++    gchar **lines = g_strsplit(output, "\n", -1);
++    for (guint i = 0; lines[i] != NULL; i++) {
++        vdagent_kscreen_strip_ansi(lines[i]);
++        gchar *line = g_strstrip(lines[i]);
++        if (!g_str_has_prefix(line, "Modes:"))
++            continue;
++        gchar **tokens = g_strsplit_set(line + 6, " \t", -1);
++        guint best_score = G_MAXUINT;
++        for (guint t = 0; tokens[t] != NULL; t++) {
++            guint id, width, height, refresh;
++            if (sscanf(tokens[t], "%u:%ux%u@%u", &id, &width, &height,
++                       &refresh) != 4)
++                continue;
++            guint score = (guint)abs((int)width - (int)monitor->width) +
++                          (guint)abs((int)height - (int)monitor->height);
++            if (width == monitor->width && height == monitor->height)
++                score = 0;
++            if (score < best_score) {
++                best_score = score;
++                target_mode = id;
++                target_width = width;
++                target_height = height;
++            }
++        }
++        g_strfreev(tokens);
++        break;
++    }
++    g_strfreev(lines);
++
++    g_free(error_output);
++    error_output = NULL;
++    command = g_strdup_printf("output.%s.mode.%u", name, target_mode);
++    ok = vdagent_kscreen_run(NULL, &error_output, command);
++    if (!ok) {
++        syslog(LOG_WARNING, "KScreen could not set %s to %ux%u: %s", name,
++               target_width, target_height,
++               error_output != NULL ? error_output : "unknown error");
++    } else {
++        syslog(LOG_INFO, "KScreen set %s to %ux%u for requested %ux%u", name,
++               target_width, target_height, monitor->width, monitor->height);
++    }
++    g_free(command);
++    g_free(name);
++    g_free(output);
++    g_free(error_output);
++    (void)display;
++    return ok;
++}
++
+ static gint vdagent_guest_xorg_resolution_compare(gconstpointer a, gconstpointer b)
+ {
+     struct vdagentd_guest_xorg_resolution *ptr_a, *ptr_b;
+@@ -163,6 +469,14 @@
+     GArray *res_array;
+     int width = 0, height = 0, screen_count = 0;
+ 
++    // KDE Plasma Wayland uses KScreen.  It must be attempted before Mutter
++    // and GTK because those APIs either do not exist in KDE or only expose
++    // compositor-owned logical monitors.
++    res_array = vdagent_kscreen_get_resolutions(display, &width, &height,
++                                                 &screen_count);
++    if (res_array != NULL)
++        goto have_resolutions;
++
+     // Try various backends one after the other.
+     // We try Mutter first, because it has a bigger probability of being available.
+     // Second GTK, because if/when we build with GTK4, this is the one that will work best.
+@@ -181,6 +495,8 @@
+         return;
+     }
+ 
++have_resolutions:
++
+     if (res_array->len < g_hash_table_size(display->connector_mapping)) {
+         // Complete the array with disabled displays.
+         // We need to send 0x0 resolution to let the daemon know the display is not there anymore.
+@@ -477,6 +793,15 @@
+ void vdagent_display_set_monitor_config(VDAgentDisplay *display, VDAgentMonitorsConfig *mon_config,
+         int fallback)
+ {
++    if (vdagent_is_wayland_session()) {
++        if (!vdagent_kscreen_set_monitor_config(display, mon_config))
++            syslog(LOG_WARNING, "KScreen did not apply Wayland monitor config");
++        /* Give KWin/KScreen a short opportunity to commit the mode before
++         * reporting the current geometry back through vdagentd. */
++        g_usleep(100000);
++        vdagent_display_send_daemon_guest_res(display, TRUE);
++        return;
++    }
+ #ifdef USE_GTK_FOR_MONITORS
+     if (GDK_IS_WAYLAND_DISPLAY(gdk_display_get_default())) {
+         // FIXME: there is no equivalent call to set the monitor config under wayland

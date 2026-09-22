@@ -1,0 +1,32 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) -C linux check
+
+override_dh_auto_install:
+	$(MAKE) -C linux install DESTDIR=$(CURDIR)/debian/ydyun-usbctl
+	install -Dm0644 linux/etc/ydyun-usb.conf debian/ydyun-usbctl/etc/ydyun-usb/ydyun-usb.conf
+	install -Dm0644 linux/etc/ydyun-usb-bridge.conf debian/ydyun-usbctl/etc/ydyun-usb/ydyun-usb-bridge.conf
+	install -Dm0644 linux/etc/systemd/ydyun-usbctl.service debian/ydyun-usbctl/lib/systemd/system/ydyun-usbctl.service
+	install -Dm0644 linux/etc/systemd/ydyun-usbctl-backward.service debian/ydyun-usbctl/lib/systemd/system/ydyun-usbctl-backward.service
+	install -Dm0644 linux/etc/systemd/ydyun-usb-export.service debian/ydyun-usbctl/lib/systemd/system/ydyun-usb-export.service
+	install -Dm0644 linux/README.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/README.md
+	install -Dm0644 docs/ANALYSIS.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/ANALYSIS.md
+	install -Dm0644 docs/ICE-PROTOCOL.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/ICE-PROTOCOL.md
+	install -Dm0644 docs/PORT-PROBE.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/PORT-PROBE.md
+	install -Dm0644 docs/CLIENT-ANALYSIS.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/CLIENT-ANALYSIS.md
+	install -Dm0644 docs/CLIENT-ABI.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/CLIENT-ABI.md
+	install -Dm0644 docs/CHROME-VERIFICATION.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/CHROME-VERIFICATION.md
+	install -Dm0644 linux/experimental/README.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/SPICE-VIEWER.md
+	install -Dm0644 docs/WAYLAND-RESOLUTION.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/WAYLAND-RESOLUTION.md
+	install -Dm0644 wayland/README.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/WAYLAND.md
+	install -Dm0644 wayland/patches/0001-kde-wayland-kscreen.patch debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/wayland/0001-kde-wayland-kscreen.patch
+
+override_dh_auto_test:
+	python3 -m unittest discover -s linux/tests -v
+
+override_dh_installsystemd:
+	dh_installsystemd --no-enable --no-start

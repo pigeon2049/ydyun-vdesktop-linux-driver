@@ -1,0 +1,16 @@
+Source: ydyun-usbctl
+Section: admin
+Priority: optional
+Maintainer: YDYUN Linux Adapter <root@localhost>
+Standards-Version: 4.7.0
+Build-Depends: debhelper-compat (= 13), python3, pkg-config, libspice-client-gtk-3.0-dev
+Rules-Requires-Root: binary-targets
+
+Package: ydyun-usbctl
+Architecture: amd64
+Depends: ${misc:Depends}, python3, usbip, libspice-client-gtk-3.0-5
+Description: least-privilege YDYUN USB/IP guest controller
+ User-space controller for attaching approved remote USB/IP devices to
+ Debian's vhci-hcd. USB storage and HID devices use the Linux kernel's
+ native drivers. Vendor security, monitoring, QoE and telemetry agents
+ from the Windows bundle are intentionally not included.
