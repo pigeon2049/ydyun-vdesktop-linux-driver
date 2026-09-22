@@ -15,8 +15,9 @@
 
 ## 最快安装方式：从 DD Debian 13 到完成
 
-以下命令适用于刚刚 DD 完成、可以 SSH 登录的 Debian 13 x86_64 云电脑。建议使用 root
-账号执行系统安装步骤。
+以下命令适用于刚刚 DD 完成、可以 SSH 登录的 Debian 13 x86_64 云电脑。DD 完成后的系统
+最初只有 SSH/命令行，没有 KDE 图形画面，这是正常现象；必须先通过 SSH 安装内核、KDE
+和本项目的两个 `.deb`，重启后官方云电脑窗口才会显示桌面。建议使用 root 执行系统安装。
 
 ### 0. 重装完成后优先设置 Tailscale
 
@@ -74,7 +75,8 @@ apt install -y linux-image-amd64 linux-headers-amd64 firmware-linux-free
 reboot
 ```
 
-重启后确认已进入新内核，并且 QXL 和 DRM 设备存在：
+执行 `reboot` 后 SSH 会断开。等待约 1～3 分钟，再使用公网或 Tailscale SSH 重新连接；
+确认已进入新内核，并且 QXL 和 DRM 设备存在：
 
 ```sh
 uname -r
@@ -104,7 +106,7 @@ usermod -aG audio,video,render cloud
 用户，跳过 `adduser`，将下面命令中的 `cloud` 替换为已有用户名即可。不要把 KDE 用户加入
 `input` 或 `root` 组。
 
-### 4. 安装 KDE Plasma、音频和基础转发依赖
+### 4. 通过 SSH 安装 KDE Plasma、中文环境和基础转发依赖
 
 ```sh
 apt update
@@ -128,7 +130,8 @@ systemctl enable sddm qemu-guest-agent
 reboot
 ```
 
-这里使用 Debian 的 `task-kde-desktop` 安装完整 KDE Plasma 桌面，使用 `task-chinese-s`
+这一步必须通过 SSH 执行；在安装和重启前，官方客户端仍然可能只显示命令行。这里使用
+Debian 的 `task-kde-desktop` 安装完整 KDE Plasma 桌面，使用 `task-chinese-s`
 和 Noto CJK 字体提供简体中文界面与中文字形，使用 Fcitx5 + 拼音插件提供中文输入。
 
 重启后，在登录界面选择普通用户 `cloud`，再选择会话 `Plasma (Wayland)`。不要选择 root
@@ -176,14 +179,23 @@ sha256sum -c SHA256SUMS
 它不是另外抢占 virtio 通道的守护进程，而是对 Debian `spice-vdagent` 的显示模式处理
 做了 KScreen 适配。
 
-### 7. 安装 Release 包
+### 7. 通过 SSH 安装 Release 包，完成后才有图形画面
+
+仍然在 SSH 终端中执行：
 
 ```sh
 apt install -y ./spice-vdagent_0.22.1-4.1_amd64.deb ./ydyun-usbctl_0.2.51-1_amd64.deb
 systemctl restart spice-vdagentd
 ```
 
-然后注销 KDE，再重新登录一次。也可以在已经登录的 KDE 终端中执行：
+安装完成后重启：
+
+```sh
+reboot
+```
+
+等待 SSH 恢复后，官方云电脑客户端才应出现 KDE 图形桌面。第一次进入 KDE 后，再在桌面
+终端中执行下面的用户级命令；不要在 root SSH 会话中执行 `systemctl --user`：
 
 ```sh
 systemctl --user restart spice-vdagent.service
