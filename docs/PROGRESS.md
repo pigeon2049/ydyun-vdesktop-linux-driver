@@ -1254,3 +1254,14 @@ Linux 首选路径：
 - 已确认离线包中的 `qxldod.inf` 只声明 `PCI\VEN_1B36&DEV_0100&SUBSYS_11001AF4`，与实机
   QXL 子系统不匹配。下一步应单独解决 QXL INF/签名/宿主子系统匹配；不能用安装 MTT 压缩包
   冒充 QXL 分辨率修复。
+
+## Step 131：生成 MTT Windows WDDM 临时测试包
+
+- 从用户提供的 `MooreThreads.zip` 仅提取 `PES/Files/drivers/wddm/fre_win10_amd64`，生成
+  `mtt-driver-package-windows-wddm.zip`，大小约 81 MiB，包含两个 INF、`MTGPU.cat`、
+  MTT WDDM 内核驱动和用户态库，不包含 PES、`vgpu_daemon`、恢复程序或 `.vgpu_recovery`。
+- 包内 `MT-VGPU-FW-ENCODE-REL.inf` 精确匹配实机 `1ED5:0222 / 11011ED5`，并会注册
+  `mtkm64`、`mtvpukm64`、`mtdispkm64`；因此它仍是闭源厂商图形栈，不属于开源 Release。
+- 使用 `gh` 创建 Issue #2 记录安装方法、检查命令、回滚建议和再分发限制；因未找到明确的
+  厂商再分发许可，未将二进制包上传到公开仓库。包 SHA-256：
+  `8dd4d7eddf5eb426550f6858ea35c01d60eacd2dddb5cf974364e61abc89c8eb`。

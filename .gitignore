@@ -19,3 +19,5 @@ linux/tests/__pycache__/
 authorized-*.conf
 *.pcap
 *.es
+mtt-driver-package/
+mtt-driver-package-windows-wddm.zip
