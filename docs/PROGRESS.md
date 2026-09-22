@@ -1060,3 +1060,13 @@ Linux 首选路径：
   这些属于厂商私有协议边界，补丁明确不猜测、不执行；标准 monitor config 由 KScreen 分支
   处理。最终包 SHA-256：
   `8e1d4dc9ddc33dbfbc92b17eefd6560e77bc6354e358f674699221ca8bff2e58`。
+
+## Step 117：Debian 13 一键教程与 v0.2.51 Release
+
+- 将仓库首页 README 改为从 DD Debian 13 开始的线性教程：确认架构、安装 Debian 通用内核
+  和 QXL/DRM、安装 KDE Plasma/Wayland/PipeWire/USB/IP 依赖、下载并校验 Release、安装
+  两个 `.deb`、验证画面/分辨率/键鼠/声音和 USB。
+- 创建 Git tag `v0.2.51` 并发布公开 Release，资产包括 `ydyun-usbctl_0.2.51-1_amd64.deb`、
+  KDE Wayland 版 `spice-vdagent_0.22.1-4.1_amd64.deb` 和 `SHA256SUMS`。
+- Release 中的两个 Debian 包均从本地已通过测试的构建产物上传；下载后校验通过，仓库
+  工作树保持干净。官方登录、云端认证和私有 USB 控制面仍不被教程伪装成本地标准服务。
