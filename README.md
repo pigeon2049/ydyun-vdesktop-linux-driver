@@ -55,7 +55,21 @@ find "/lib/modules/$(uname -r)" -name 'qxl.ko*'
 
 当前 Release 的实机验证内核为 Debian 13 通用 `6.12.107+deb13-amd64`。
 
-### 3. 安装 KDE Plasma、音频和基础转发依赖
+### 3. 单独创建 KDE 普通用户（必须执行）
+
+不要用 root 登录或启动 KDE Plasma。请先单独执行下面的命令创建普通桌面用户；不要把这一段
+和后面的 KDE 安装命令合并复制：
+
+```sh
+adduser cloud
+usermod -aG audio,video,render cloud
+```
+
+`adduser cloud` 会交互式要求设置密码和基本信息。`cloud` 只是示例用户名，如果已有普通
+用户，跳过 `adduser`，将下面命令中的 `cloud` 替换为已有用户名即可。不要把 KDE 用户加入
+`input` 或 `root` 组。
+
+### 4. 安装 KDE Plasma、音频和基础转发依赖
 
 ```sh
 apt update
@@ -74,11 +88,6 @@ locale-gen
 update-locale LANG=zh_CN.UTF-8 LANGUAGE=zh_CN:zh:en_US:en LC_CTYPE=zh_CN.UTF-8
 timedatectl set-timezone Asia/Shanghai
 
-# KDE 必须使用普通用户登录，不要用 root 启动 Plasma。
-# adduser 会交互式要求设置该用户密码和基本信息。
-adduser cloud
-usermod -aG audio,video,render cloud
-
 systemctl set-default graphical.target
 systemctl enable sddm qemu-guest-agent
 reboot
@@ -86,8 +95,6 @@ reboot
 
 这里使用 Debian 的 `task-kde-desktop` 安装完整 KDE Plasma 桌面，使用 `task-chinese-s`
 和 Noto CJK 字体提供简体中文界面与中文字形，使用 Fcitx5 + 拼音插件提供中文输入。
-`cloud` 是示例普通桌面用户；如果已经存在普通用户，不要重复执行 `adduser`，将下面命令
-中的 `cloud` 替换为现有用户名即可。不要把 KDE 用户加入 `input` 或 `root` 组。
 
 重启后，在登录界面选择普通用户 `cloud`，再选择会话 `Plasma (Wayland)`。不要选择 root
 登录 KDE。首次进入 KDE 后，以普通桌面用户执行下面的命令，把当前用户界面切换为简体中文，
@@ -116,7 +123,7 @@ kscreen-doctor -o
 如果暂时选择 Plasma X11，USB 和标准 SPICE 功能仍可验证；Wayland 分辨率补丁只有在
 `XDG_SESSION_TYPE=wayland` 时生效。
 
-### 4. 下载 Release 中已经编译好的 Debian 包
+### 6. 下载 Release 中已经编译好的 Debian 包
 
 不要在目标云电脑上重新编译。直接下载本项目的 Release 包：
 
@@ -134,7 +141,7 @@ sha256sum -c SHA256SUMS
 它不是另外抢占 virtio 通道的守护进程，而是对 Debian `spice-vdagent` 的显示模式处理
 做了 KScreen 适配。
 
-### 5. 安装 Release 包
+### 7. 安装 Release 包
 
 ```sh
 apt install -y ./spice-vdagent_0.22.1-4.1_amd64.deb ./ydyun-usbctl_0.2.51-1_amd64.deb
@@ -155,7 +162,7 @@ systemctl is-active spice-vdagentd
 systemctl --user is-active spice-vdagent.service
 ```
 
-### 6. 验证画面、分辨率、鼠标、键盘和声音
+### 8. 验证画面、分辨率、鼠标、键盘和声音
 
 先看 Wayland 输出和 agent 日志：
 
@@ -179,7 +186,7 @@ KScreen current Virtual-1 1920x1080+0+0
    通常是 `1024x768`。
 4. 鼠标、键盘和声音不因切换分辨率失效。
 
-### 7. 验证 USB 转发
+### 9. 验证 USB 转发
 
 ```sh
 modprobe usbip-core vhci-hcd
