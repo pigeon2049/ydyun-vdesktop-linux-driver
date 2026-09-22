@@ -1070,3 +1070,37 @@ Linux 首选路径：
   KDE Wayland 版 `spice-vdagent_0.22.1-4.1_amd64.deb` 和 `SHA256SUMS`。
 - Release 中的两个 Debian 包均从本地已通过测试的构建产物上传；下载后校验通过，仓库
   工作树保持干净。官方登录、云端认证和私有 USB 控制面仍不被教程伪装成本地标准服务。
+
+## Step 118：目标 Debian 13 实机内核、驱动和 KDE 美化
+
+- 使用普通用户 `zgl` + `sudo` 连接目标机；确认 root SSH 被镜像默认禁用，不再把 root 远程
+  登录作为教程前提。Tailscale 地址恢复正常，目标系统为 Debian 13 trixie x86_64。
+- 安装并启动 Debian 通用内核 `6.12.107+deb13-amd64`。cloud 内核在运行中不能删除，先通过
+  GRUB 一次性启动通用内核，确认 `qxl` 已加载并出现 `/dev/dri/card0` 后，再清理旧 cloud
+  内核并重新生成 GRUB；最终 `/boot` 只保留通用内核。
+- 目标机安装 `task-kde-desktop`、中文 locale、Noto CJK、Fcitx5、PipeWire、USBIP、QXL/Xorg、
+  SDDM，以及 Release `v0.2.51` 的 `spice-vdagent 0.22.1-4.1` 和 `ydyun-usbctl 0.2.51-1`。
+  SDDM、qemu-guest-agent、tailscaled active，SPICE agent socket active。
+- 按用户提供的 KDE 美化文章落地 Debian 兼容方案：Breeze Dark、Papirus-Dark、Noto Sans/
+  Cantarell、24px Breeze 光标、48px 悬浮底部面板；Panel Colorizer v8.0.0 以普通用户安装并
+  加入面板，不安装有 Plasma 更新重建风险的 C++ 扩展。
+- 当前 `zgl` 的 Plasma Wayland 会话已 active，`kwin_wayland`、`plasmashell`、PipeWire、
+  WirePlumber 和用户态 `spice-vdagent` 均在运行。已创建文章中的上下双面板布局：顶部启动器/
+  全局菜单/时钟/托盘使用 `ChromeOS` 预设，底部任务栏使用 `Translucent` 预设；QXL、声音、
+  输入法和远程 agent 服务仍保持 active。不安装暂缓的 Linux 官方客户端控制面。
+
+## Step 119：v0.2.52 独立补丁版本和更新保护
+
+- 查明旧补丁包与 Debian 官方包均使用 `0.22.1-4.1`，依赖元数据却不同，APT 会把官方构建
+  列为同版本更新。构建脚本现固定源码基线，生成 `0.22.1-4.1+ydyun1`，并加入 `kscreen` 依赖。
+- 补丁包拥有 `/etc/apt/preferences.d/ydyun-spice-vdagent.pref`：匹配 `+ydyun` 加数字的版本
+  优先级为 990，其他版本为 -1；无永久 hold、不影响其他软件包，后续通过 Release 手动更新。
+  官方安全修复需要维护者审阅、重应用补丁并发布，规则本身不会自动合并更新。
+- 真实 APT 隔离测试覆盖旧包迁移、高版本官方包拦截、下一版补丁升级、其他包正常更新以及
+  撤销规则后恢复官方版本。补丁包的 3 项上游测试、控制器的 54 项 Python 测试和构建通过。
+- 目标机已从 v0.2.51 升至 `spice-vdagent 0.22.1-4.1+ydyun1`、`ydyun-usbctl 0.2.52-1`；
+  文件校验通过，APT 候选为新补丁版，官方包优先级 -1，`apt-get -s upgrade` 显示无升级项。
+  重启 guest agent 后，KDE Wayland、PipeWire/WirePlumber 服务仍正常，KScreen 输出 1920×1080。
+- Discover 使用的 PackageKit 后端查询也返回无可用更新；新版 agent 日志出现
+  `KScreen current Virtual-1 1920x1080+0+0`，确认实际运行补丁代码。
+- 新增 `docs/UPDATES.md`，覆盖安装迁移、手动更新、上游安全更新维护责任和恢复官方包步骤。

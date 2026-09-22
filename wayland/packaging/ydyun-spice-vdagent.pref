@@ -1,0 +1,9 @@
+# Preserve the KDE KScreen patch. Only spice-vdagent is affected.
+# Install newer reviewed +ydyun builds from the project's GitHub Releases.
+Package: spice-vdagent
+Pin: version /[+]ydyun[0-9]+$/
+Pin-Priority: 990
+
+Package: spice-vdagent
+Pin: version *
+Pin-Priority: -1

@@ -17,7 +17,9 @@
 
 以下命令适用于刚刚 DD 完成、可以 SSH 登录的 Debian 13 x86_64 云电脑。DD 完成后的系统
 最初只有 SSH/命令行，没有 KDE 图形画面，这是正常现象；必须先通过 SSH 安装内核、KDE
-和本项目的两个 `.deb`，重启后官方云电脑窗口才会显示桌面。建议使用 root 执行系统安装。
+和本项目的两个 `.deb`，重启后官方云电脑窗口才会显示桌面。不要假设 root 可以 SSH：很多
+DD 镜像默认禁止 root 远程登录。请使用镜像创建的普通用户登录，再执行 `sudo -i`；后文的
+系统级命令均假设已经进入 root shell。
 
 ### 0. 重装完成后优先设置 Tailscale
 
@@ -39,12 +41,16 @@ tailscale ip -4
 tailscale status
 ```
 
-之后使用类似下面的命令连接，替换为 `tailscale ip -4` 输出的地址；如果当前环境没有公网，
+之后使用普通用户连接，替换为 `tailscale ip -4` 输出的地址；如果当前环境没有公网，
 仍然使用云厂商内网、控制台或其他已连通 Tailscale 的机器访问：
 
 ```sh
-ssh root@100.x.y.z
+ssh <普通用户名>@100.x.y.z
+sudo -i
 ```
+
+不要使用 `ssh root@...` 作为默认方案；如果镜像只允许控制台登录 root，先在控制台创建或
+启用一个具备 sudo 权限的普通用户，再从 SSH 继续。
 
 如果 `tun` 模块不存在，先执行：
 
@@ -85,6 +91,21 @@ uname -r
 modprobe qxl
 ls -l /dev/dri/card0
 ```
+
+如果 `uname -r` 仍然以 `-cloud-amd64` 结尾，在 GRUB 的 `Advanced options for Debian`
+中先选择不带 `-cloud` 的通用内核启动；确认 `uname -r` 已变成 `+deb13-amd64`、`/dev/dri/card0`
+已存在后，再清理旧 cloud 内核，避免 GRUB 每次默认回到不含 QXL 的内核：
+
+```sh
+cloud_pkgs="$(dpkg-query -W -f='${db:Status-Status} ${binary:Package}\n' \
+  'linux-image-*cloud*' 2>/dev/null | awk '$1 == "installed" {print $2}')"
+if [ -n "$cloud_pkgs" ]; then
+  apt purge -y $cloud_pkgs
+  update-grub
+fi
+```
+
+不要在仍运行 cloud 内核时直接删除它；内核包会拒绝该操作。通用内核启动成功后再清理。
 
 如果 `modprobe qxl` 报模块不存在，先检查当前内核：
 
@@ -163,6 +184,45 @@ kscreen-doctor -o
 如果暂时选择 Plasma X11，USB 和标准 SPICE 功能仍可验证；Wayland 分辨率补丁只有在
 `XDG_SESSION_TYPE=wayland` 时生效。
 
+### 5. 参考 KDE 美化方案（可选）
+
+本项目参考了[我的 KDE Plasma 6 美化方案分享](https://blog.sotkg.com/2025/08/kde-customization)
+的上下布局、悬浮面板、透明效果和深色配色思路。Debian 没有 Fedora/Moe 全局主题，因此目标
+机采用兼容性更好的 Breeze Dark + Papirus-Dark + Noto Sans/Cantarell 等价组合，不修改 QXL、
+Wayland、PipeWire 或输入法链路：
+
+```sh
+# 系统级安装，仍在 sudo -i 的 root shell 中执行
+apt install -y papirus-icon-theme fonts-cantarell plasma-widgets-addons
+```
+
+然后以普通 KDE 用户执行：
+
+```sh
+kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark
+kwriteconfig6 --file kdeglobals --group General --key font \
+  'Noto Sans,10,-1,5,50,0,0,0,0,0'
+kwriteconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage org.kde.breezedark.desktop
+kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus-Dark
+kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Breeze
+kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme breeze_cursors
+kwriteconfig6 --file kcminputrc --group Mouse --key cursorSize 24
+kwriteconfig6 --file plasmashellrc --group PlasmaViews --group 'Panel 2' \
+  --group Defaults --key thickness 48
+```
+
+Panel Colorizer 可以从 KDE 商店安装；也可以下载 Plasma 6 的 `.plasmoid` 包后由普通用户
+安装。目标机已安装 v8.0.0 并加入底部面板：
+
+```sh
+kpackagetool6 --type Plasma/Applet --install plasmoid-panel-colorizer-v8.0.0.plasmoid
+```
+
+登录桌面后右键面板 → Panel colorizer → 预设，底部面板建议选择 `Translucent` 或 `Dock`，
+上方面板如需新增可选择 `ChromeOS`。这里不安装 Panel Colorizer 的 C++ 扩展；该扩展可能在
+Plasma 更新后需要重新编译，远程桌面优先保持可恢复性。插件的运行时依赖和更新注意事项见
+[Panel Colorizer 安装说明](https://github.com/luisbocanegra/plasma-panel-colorizer#installation)。
+
 ### 6. 下载 Release 中已经编译好的 Debian 包
 
 不要在目标云电脑上重新编译。直接下载本项目的 Release 包：
@@ -171,13 +231,16 @@ kscreen-doctor -o
 mkdir -p ~/ydyun-release
 cd ~/ydyun-release
 
-curl -fLO https://github.com/pigeon2049/ydyun-vdesktop-linux-driver/releases/download/v0.2.51/ydyun-usbctl_0.2.51-1_amd64.deb
-curl -fLO https://github.com/pigeon2049/ydyun-vdesktop-linux-driver/releases/download/v0.2.51/spice-vdagent_0.22.1-4.1_amd64.deb
-curl -fLO https://github.com/pigeon2049/ydyun-vdesktop-linux-driver/releases/download/v0.2.51/SHA256SUMS
+curl -fLO https://github.com/pigeon2049/ydyun-vdesktop-linux-driver/releases/download/v0.2.52/ydyun-usbctl_0.2.52-1_amd64.deb
+curl -fLO https://github.com/pigeon2049/ydyun-vdesktop-linux-driver/releases/download/v0.2.52/spice-vdagent_0.22.1-4.1+ydyun1_amd64.deb
+curl -fLO https://github.com/pigeon2049/ydyun-vdesktop-linux-driver/releases/download/v0.2.52/SHA256SUMS
 sha256sum -c SHA256SUMS
 ```
 
-`spice-vdagent_0.22.1-4.1_amd64.deb` 是本项目针对 KDE Plasma Wayland 编译的版本；
+旧版用户请先阅读[升级与更新策略](docs/UPDATES.md)。v0.2.52 起的补丁包有独立 `+ydyun1`
+版本号，并自带 APT 规则防止官方包覆盖 KScreen 补丁；普通系统更新不受影响。
+
+`spice-vdagent_0.22.1-4.1+ydyun1_amd64.deb` 是本项目针对 KDE Plasma Wayland 编译的版本；
 它不是另外抢占 virtio 通道的守护进程，而是对 Debian `spice-vdagent` 的显示模式处理
 做了 KScreen 适配。
 
@@ -186,9 +249,13 @@ sha256sum -c SHA256SUMS
 仍然在 SSH 终端中执行：
 
 ```sh
-apt install -y ./spice-vdagent_0.22.1-4.1_amd64.deb ./ydyun-usbctl_0.2.51-1_amd64.deb
+apt install -y ./spice-vdagent_0.22.1-4.1+ydyun1_amd64.deb ./ydyun-usbctl_0.2.52-1_amd64.deb
 systemctl restart spice-vdagentd
 ```
+
+如果此前设置过 `apt-mark hold spice-vdagent`，安装前先执行 `apt-mark unhold spice-vdagent`。
+后续补丁从 GitHub Releases 手动安装；上游安全更新需要合并补丁后重新发布。
+安装后可用 `apt-cache policy spice-vdagent` 检查：官方包优先级应为 `-1`，候选版应带 `+ydyun`。
 
 安装完成后重启：
 
@@ -207,7 +274,7 @@ systemctl --user restart spice-vdagent.service
 
 ```sh
 pgrep -a spice-vdagent
-systemctl is-active spice-vdagentd
+systemctl is-active spice-vdagentd.socket
 systemctl --user is-active spice-vdagent.service
 ```
 
@@ -285,7 +352,7 @@ USB 存储由 Linux `usb-storage`/`uas` 驱动接管，键盘鼠标由 `usbhid` 
 - `spice-vdagent_<version>_amd64.deb`：KDE Plasma Wayland KScreen 适配版。
 - `SHA256SUMS`：下载后用于校验完整性。
 
-本次 `v0.2.51` 已在 Debian 13 x86_64 上完成 54 项 Python 测试、C 构建、Debian 打包、
+本次 `v0.2.52` 已在 Debian 13 x86_64 上完成 54 项 Python 测试、C 构建、Debian 打包、
 包内容审计和 Wayland 实机启动验证。
 
 ## 从源码构建

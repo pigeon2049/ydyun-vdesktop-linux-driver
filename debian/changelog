@@ -1,3 +1,12 @@
+ydyun-usbctl (0.2.52-1) trixie; urgency=medium
+
+  * Release spice-vdagent with an independent +ydyun version and scoped
+    APT preferences to prevent replacement by unpatched distribution builds.
+  * Document migration, downstream update policy and upstream recovery.
+  * Include the verified reinstall, normal-user SSH and desktop setup notes.
+
+ -- YDYUN Linux Adapter <root@localhost>  Tue, 22 Sep 2026 22:00:00 +0800
+
 ydyun-usbctl (0.2.51-1) UNRELEASED; urgency=medium
 
   * Add KDE Plasma Wayland KScreen adaptation for spice-vdagent monitor

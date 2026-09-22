@@ -22,6 +22,7 @@ override_dh_auto_install:
 	install -Dm0644 docs/CHROME-VERIFICATION.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/CHROME-VERIFICATION.md
 	install -Dm0644 linux/experimental/README.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/SPICE-VIEWER.md
 	install -Dm0644 docs/WAYLAND-RESOLUTION.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/WAYLAND-RESOLUTION.md
+	install -Dm0644 docs/UPDATES.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/UPDATES.md
 	install -Dm0644 wayland/README.md debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/WAYLAND.md
 	install -Dm0644 wayland/patches/0001-kde-wayland-kscreen.patch debian/ydyun-usbctl/usr/share/doc/ydyun-usbctl/wayland/0001-kde-wayland-kscreen.patch
 

@@ -15,3 +15,13 @@ Debian trixie 的 `spice-vdagent 0.22.1` 原生支持 X11/XRandR；其 Wayland �
 它目前针对云电脑常见的单个 QXL 输出；多输出映射需要继续把 SPICE display ID 与
 KScreen connector 做完整映射。补丁不会启动额外 root 守护进程，不会读取认证信息，
 也不会修改安全、监控和 QoE 组件。
+
+补丁包使用独立版本 `0.22.1-4.1+ydyun1`，构建脚本固定 Debian 源码版本，自动加入 `kscreen`
+依赖和只针对此包的 APT 更新保护规则。完整升级、后续维护和恢复官方包的方法见
+[更新策略](../docs/UPDATES.md)。规则不提供自动下载或自动合并安全更新的能力。
+
+更新策略回归（使用 `build/` 内的隔离 APT 目录，不修改宿主机源或已安装包）：
+
+```sh
+python3 wayland/scripts/test-update-policy.py
+```
