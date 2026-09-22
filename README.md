@@ -18,6 +18,41 @@
 以下命令适用于刚刚 DD 完成、可以 SSH 登录的 Debian 13 x86_64 云电脑。建议使用 root
 账号执行系统安装步骤。
 
+### 0. 重装完成后优先设置 Tailscale
+
+Tailscale 的安装状态保存在当前系统盘中，执行 DD 后不会保留。因此它不能保证 DD 写盘
+过程中不断线；DD 期间请保留云厂商控制台、VNC 或公网 SSH 作为救援入口。新 Debian 第一次
+恢复 SSH 后，先安装并登录 Tailscale，后续安装 KDE 和驱动优先使用 Tailscale 地址操作：
+
+```sh
+curl -fsSL https://tailscale.com/install.sh | sh
+systemctl enable --now tailscaled
+tailscale up
+```
+
+`tailscale up` 会输出登录链接，请在浏览器完成授权。授权完成后记录 Tailscale 地址：
+
+```sh
+tailscale ip -4
+tailscale status
+```
+
+之后使用类似下面的命令连接，替换为 `tailscale ip -4` 输出的地址：
+
+```sh
+ssh root@100.x.y.z
+```
+
+如果 `tun` 模块不存在，先执行：
+
+```sh
+modprobe tun
+printf 'tun\n' >/etc/modules-load.d/tun.conf
+systemctl restart tailscaled
+```
+
+官方安装方式和 Debian 支持范围见 [Tailscale Linux 安装文档](https://tailscale.com/docs/install/linux)。
+
 ### 1. 确认系统版本和架构
 
 ```sh
