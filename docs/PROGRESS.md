@@ -1212,8 +1212,10 @@ Linux 首选路径：
   和一个 `resources` 目录，包内包含开源显示、
   鼠标键盘、VirtIO serial 驱动、SPICE agent、诊断工具、PowerShell 安装脚本、键盘可操作的
   `.bat` 安装入口和校验清单。
-- ZIP SHA-256：`35c1adc59224b7500ec88317223b1db24c046fc4c79fc0154aa9c7c992663902`。
+- ZIP SHA-256：`28173be72236be9524d898f94d0ca8f1f9f3bd9a8ea57efaf91c2a8ac7ab1f9a`。
 - 复核时发现 Windows PowerShell 5.1 对无 BOM UTF-8 脚本兼容性不足；已把包内两个 `.ps1` 转为
   UTF-8 BOM + CRLF，并重新通过 PowerShell parser 和哈希校验。
+- 实机验证发现 `RegistryRights` 命名空间错误，已改为
+  `System.Security.AccessControl.RegistryRights`，重新通过 parser、包校验并更新发布 ZIP。
 - 已通过 ZIP 完整性、manifest 哈希、`SHA256SUMS`、PowerShell 语法、账户边界检查和 MinGW
   x86_64 交叉编译验证。该包不包含 USB/IP 安装器；USB 优先依赖宿主官方 SPICE/USB 重定向。

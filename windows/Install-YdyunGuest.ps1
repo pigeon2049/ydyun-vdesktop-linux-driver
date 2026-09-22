@@ -248,9 +248,9 @@ function Protect-WinlogonFromSpiceAgent {
     Invoke-NativeChecked -FilePath "$env:SystemRoot\System32\sc.exe" `
         -ArgumentList @('sidtype', 'spice-agent', 'unrestricted')
     $identity = [Security.Principal.NTAccount]::new('NT SERVICE', 'spice-agent')
-    $rights = [Microsoft.Win32.RegistryRights]::SetValue -bor
-        [Microsoft.Win32.RegistryRights]::CreateSubKey -bor
-        [Microsoft.Win32.RegistryRights]::Delete
+    $rights = [System.Security.AccessControl.RegistryRights]::SetValue -bor
+        [System.Security.AccessControl.RegistryRights]::CreateSubKey -bor
+        [System.Security.AccessControl.RegistryRights]::Delete
     $rule = [Security.AccessControl.RegistryAccessRule]::new(
         $identity, $rights,
         [Security.AccessControl.InheritanceFlags]::ContainerInherit,
