@@ -60,21 +60,56 @@ find "/lib/modules/$(uname -r)" -name 'qxl.ko*'
 ```sh
 apt update
 apt install -y \
-  kde-plasma-desktop sddm \
+  task-kde-desktop task-chinese-s sddm \
+  locales fonts-noto-cjk fonts-noto-cjk-extra \
   pipewire pipewire-pulse wireplumber \
-  spice-vdagent qemu-guest-agent kscreen \
-  usbip python3 curl ca-certificates
+  qemu-guest-agent kscreen \
+  usbip python3 curl ca-certificates \
+  fcitx5 fcitx5-chinese-addons fcitx5-frontend-all \
+  kde-config-fcitx5 im-config
+
+# 生成简体中文 locale，并设置系统默认语言。
+sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
+locale-gen
+update-locale LANG=zh_CN.UTF-8 LANGUAGE=zh_CN:zh:en_US:en LC_CTYPE=zh_CN.UTF-8
+timedatectl set-timezone Asia/Shanghai
+
+# KDE 必须使用普通用户登录，不要用 root 启动 Plasma。
+# adduser 会交互式要求设置该用户密码和基本信息。
+adduser cloud
+usermod -aG audio,video,render cloud
 
 systemctl set-default graphical.target
 systemctl enable sddm qemu-guest-agent
 reboot
 ```
 
-在登录界面选择 `Plasma (Wayland)`。登录后确认：
+这里使用 Debian 的 `task-kde-desktop` 安装完整 KDE Plasma 桌面，使用 `task-chinese-s`
+和 Noto CJK 字体提供简体中文界面与中文字形，使用 Fcitx5 + 拼音插件提供中文输入。
+`cloud` 是示例普通桌面用户；如果已经存在普通用户，不要重复执行 `adduser`，将下面命令
+中的 `cloud` 替换为现有用户名即可。不要把 KDE 用户加入 `input` 或 `root` 组。
+
+重启后，在登录界面选择普通用户 `cloud`，再选择会话 `Plasma (Wayland)`。不要选择 root
+登录 KDE。首次进入 KDE 后，以普通桌面用户执行下面的命令，把当前用户界面切换为简体中文，
+并设置 Fcitx5：
+
+```sh
+kwriteconfig6 --file plasma-localerc --group Formats \
+  --key LANG zh_CN.UTF-8
+kwriteconfig6 --file plasma-localerc --group Translations \
+  --key LANGUAGE zh_CN
+im-config -n fcitx5
+```
+
+注销 KDE 并重新登录后语言设置生效。也可以打开“系统设置 → 区域和语言”，确认首选语言
+为“简体中文”，键盘输入法中添加“拼音”。
+
+登录后确认桌面、语言和 Wayland：
 
 ```sh
 echo "$XDG_SESSION_TYPE"       # 应为 wayland
 echo "$WAYLAND_DISPLAY"        # 通常为 wayland-0
+locale | sed -n '1,8p'          # LANG 应为 zh_CN.UTF-8
 kscreen-doctor -o
 ```
 
