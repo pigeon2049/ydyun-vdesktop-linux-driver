@@ -1241,3 +1241,16 @@ Linux 首选路径：
   未定义时按 0 处理，不再出现“检索不到变量 `$LASTEXITCODE`”。
 - 已通过 PowerShell parser、账户边界测试、CMake 构建和 ZIP 完整性检查；最新包 SHA-256 为
   `db4235076f522467f8f52971b8b2c4b32054e70239ee0e9b8186ac852cf93246`。
+
+## Step 130：Windows 实机 GPU 设备匹配结果
+
+- 实机枚举到 QXL `PCI\VEN_1B36&DEV_0100&SUBSYS_00880088`，但设备使用的是 Microsoft Basic
+  Display Adapter；因此当前全屏/窗口分辨率不会获得 QXL DOD 的完整动态模式支持。
+- 实机同时枚举到摩尔线程 `PCI\VEN_1ED5&DEV_0222&SUBSYS_11011ED5`，状态为 Error。用户提供的
+  `MooreThreads.zip` 中 `MT-VGPU-ENCODE.inf` 精确包含该硬件 ID，说明它是匹配的 MTT Guest
+  驱动入口，但属于闭源厂商驱动路线，不应混入纯开源安装包。
+- `PCI\VEN_1AF4&DEV_1002` 是 VirtIO balloon 设备，不是 VirtIO GPU；当前没有看到
+  `VEN_1AF4&DEV_1050`。
+- 已确认离线包中的 `qxldod.inf` 只声明 `PCI\VEN_1B36&DEV_0100&SUBSYS_11001AF4`，与实机
+  QXL 子系统不匹配。下一步应单独解决 QXL INF/签名/宿主子系统匹配；不能用安装 MTT 压缩包
+  冒充 QXL 分辨率修复。
