@@ -57,6 +57,11 @@ if ($EnableUsbIp) {
 }
 
 & $installer @arguments
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
+$installerExitCode = 0
+$lastExitCodeVariable = Get-Variable -Name LASTEXITCODE -ErrorAction SilentlyContinue
+if ($null -ne $lastExitCodeVariable) {
+    $installerExitCode = [int]$lastExitCodeVariable.Value
+}
+if ($installerExitCode -ne 0) {
+    exit $installerExitCode
 }
