@@ -1232,3 +1232,12 @@ Linux 首选路径：
 - 重新生成离线发布包：`release/ydyun-windows-open-source-w10.zip`，SHA-256 为
   `c97c0d75debdafc07b38b92afe8513e66fc3571a07e4391cb869888f15a3abd2`；包内 33 个文件，
   无需联网下载驱动。
+
+## Step 129：修复 PowerShell 入口的未初始化退出码
+
+- Windows PowerShell 5.1 在子脚本成功返回且没有执行外部命令时，`$LASTEXITCODE` 可能不存在；
+  入口脚本在严格模式下直接读取它会在安装成功后误报失败。
+- `Install-YdyunOpenGuest.ps1` 现在通过 `Get-Variable -ErrorAction SilentlyContinue` 读取退出码，
+  未定义时按 0 处理，不再出现“检索不到变量 `$LASTEXITCODE`”。
+- 已通过 PowerShell parser、账户边界测试、CMake 构建和 ZIP 完整性检查；最新包 SHA-256 为
+  `db4235076f522467f8f52971b8b2c4b32054e70239ee0e9b8186ac852cf93246`。
