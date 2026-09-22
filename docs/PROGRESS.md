@@ -1265,3 +1265,15 @@ Linux 首选路径：
 - 使用 `gh` 创建 Issue #2 记录安装方法、检查命令、回滚建议和再分发限制；因未找到明确的
   厂商再分发许可，未将二进制包上传到公开仓库。包 SHA-256：
   `8dd4d7eddf5eb426550f6858ea35c01d60eacd2dddb5cf974364e61abc89c8eb`。
+
+## Step 132：MTT VDisplay 已接管 Windows 虚拟显示器
+
+- Windows 截图确认显示器 2 为 `MT VDisplay`，连接到 `Moore Threads S3000 MTvGPU-1101`，
+  当前桌面模式和活动信号模式均为 `1920x1080 @ 60 Hz`。因此 MTT 驱动识别和固定 Full HD
+  输出已经成功。
+- 截图中的“可变刷新频率：不支持”不是分辨率错误；当前剩余问题是官方客户端全屏/还原是否
+  能动态改变 MTT VDisplay 的显示模式。若客户端只缩放窗口而不改变 Windows 模式，保持
+  `1920x1080` 是预期现象。
+- `MooreThreads.zip` 中的 `vgpu_daemon.exe` 是 PyInstaller 打包的 Python Windows service，
+  可见 `vgpu_daemon.winservice`、named pipe 和日志相关组件，但静态字符串未证明它就是
+  分辨率控制必需项；暂不启用，避免把厂商守护/管理面引入纯驱动测试。
