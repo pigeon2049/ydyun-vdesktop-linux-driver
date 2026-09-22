@@ -10,8 +10,8 @@
 | 声音 | Windows inbox HDA/AC97 | 宿主暴露的虚拟声卡；VirtIO-Win 当前没有 Windows virtio-snd 驱动 |
 | USB | SPICE usbredir，或可选 `usbip-win2` | 宿主 USB 重定向通道或授权的 USB/IP endpoint |
 
-客体软件不能凭空创建宿主没有提供的 QXL、VirtIO serial、虚拟声卡或 USB 通道。安装器先检查
-硬件 ID；缺少关键设备时直接停止，不回退原厂组件。
+客体软件不能凭空创建宿主没有提供的 QXL、VirtIO serial、虚拟声卡或 USB 通道。安装器会检查
+硬件 ID 并给出提示；缺少关键设备时仍会把允许的 INF 加入 Driver Store，不回退原厂组件。
 
 ## Proxmox VirtIO 驱动能不能用？
 
@@ -105,8 +105,9 @@ Get-CimInstance Win32_PnPEntity |
   Select-String 'VEN_1B36&DEV_0100|VEN_1AF4&DEV_1050|VEN_1AF4&DEV_1003|VEN_1AF4&DEV_1043|HDAUDIO'
 ```
 
-至少应看到一种显示设备、一种 VirtIO serial 设备和标准 HDA/AC97 声卡。如果没有，停止：这
-不是换一个 INF 能解决的问题，必须由云平台宿主暴露对应设备。
+最好能看到一种显示设备、一种 VirtIO serial 设备和标准 HDA/AC97 声卡。缺少设备时安装器仍会
+把驱动加入 Windows Driver Store，并尝试绑定；`pnputil` 返回 259 只表示当前没有匹配设备，
+不会让安装失败。画面、剪贴板、自动分辨率和声音最终仍需要云平台宿主暴露对应设备。
 
 ## 安装
 
@@ -161,7 +162,23 @@ $spiceHash = (Get-FileHash $spiceMsi -Algorithm SHA256).Hash
   -SpiceAgentSha256 $spiceHash
 ```
 
-安装器递归查找对应 `w10\amd64` 文件，只安装允许列表。Windows 11 改为 `-OsFamily w11`。
+安装器递归查找对应 `w10\amd64` 文件，只安装允许列表。每个 INF 会先加入 Driver Store，再尝试
+绑定到当前设备；如果 `pnputil /install` 返回 259，表示当前没有匹配的宿主设备，安装继续完成。
+Windows 11 改为 `-OsFamily w11`。
+
+### GPU 驱动怎么装
+
+离线包已经包含 `qxldod` 和 `viogpudo` 两套显示驱动（以及 `vioinput`、`vioser`）。执行 BAT
+或 PowerShell 安装入口即可，不需要另行下载 GPU 驱动：
+
+```bat
+Install-YdyunOpenGuest.bat
+```
+
+实际使用哪一套由宿主暴露的 PCI 设备决定：QXL 使用 `qxldod.inf`，VirtIO GPU 使用
+`viogpudo.inf`。安装后重启；若设备是在重启后才出现，可再次执行 BAT，或在设备管理器中扫描硬件
+改动。安装器不能凭空创建显卡，最终画面仍要求云平台提供 QXL `1b36:0100` 或 VirtIO GPU
+`1af4:1050`。
 
 如果已经确认需要 USB/IP，且系统 build 不低于 18362：
 

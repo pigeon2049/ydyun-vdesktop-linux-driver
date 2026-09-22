@@ -128,7 +128,13 @@ function Get-ConnectedHardwareText {
 }
 
 function Assert-OpenSourceHardware {
-    $devices = Get-ConnectedHardwareText
+    try {
+        $devices = Get-ConnectedHardwareText
+    }
+    catch {
+        Write-Warning "无法读取当前 PnP 设备列表，将继续把开源驱动加入 Driver Store：$($_.Exception.Message)"
+        $devices = ''
+    }
     $script:HasQxl = $devices -match 'PCI\\VEN_1B36&DEV_0100'
     $script:HasVirtioGpu = $devices -match 'PCI\\VEN_1AF4&DEV_1050'
     $script:HasVirtioInput = $devices -match 'PCI\\VEN_1AF4&DEV_(1005|1052)'
@@ -136,28 +142,19 @@ function Assert-OpenSourceHardware {
     $hasAudio = $devices -match '(HDAUDIO\\|PCI\\VEN_8086&DEV_(2415|2668|293E|293F))'
 
     if (-not ($script:HasQxl -or $script:HasVirtioGpu)) {
-        throw '未发现 QXL (1B36:0100) 或 VirtIO GPU (1AF4:1050)。客体软件不能凭空创建宿主虚拟显卡。'
+        Write-Warning '当前未发现 QXL/VirtIO GPU；仍会安装显示驱动包，待宿主设备出现后再绑定。'
     }
     if (-not $hasSerial) {
-        throw '未发现 VirtIO serial (1AF4:1003/1043)。没有宿主提供的 SPICE port，剪贴板和自动分辨率无法工作。'
+        Write-Warning '当前未发现 VirtIO serial；仍会安装 vioser，SPICE 剪贴板和自动分辨率需宿主提供 SPICE port。'
     }
     if (-not $hasAudio) {
-        throw '未发现标准 HDA/AC97 声卡。VirtIO-Win 没有 Windows virtio-snd 驱动，必须由宿主暴露标准虚拟声卡。'
+        Write-Warning '当前未发现标准 HDA/AC97 声卡；声音需要宿主暴露标准虚拟声卡。'
     }
 }
 
 function Resolve-AllowedDrivers {
     $resolved = @()
     foreach ($entry in $allowedDrivers.GetEnumerator()) {
-        if ($entry.Key -eq 'qxldod.inf' -and -not $script:HasQxl) {
-            continue
-        }
-        if ($entry.Key -eq 'viogpudo.inf' -and -not $script:HasVirtioGpu) {
-            continue
-        }
-        if ($entry.Key -eq 'vioinput.inf' -and -not $script:HasVirtioInput) {
-            continue
-        }
         $matches = @(Get-ChildItem -LiteralPath $driverSource -Filter $entry.Key `
             -File -Recurse -ErrorAction Stop | Where-Object {
                 $_.FullName -match "[\\/]$([regex]::Escape($OsFamily))[\\/]amd64[\\/]"
@@ -281,7 +278,10 @@ foreach ($driver in $drivers) {
     if ($script:InstallerCmdlet.ShouldProcess($driver.Path, 'pnputil /add-driver /install')) {
         $quoted = '"{0}"' -f $driver.Path
         Invoke-NativeChecked -FilePath "$env:SystemRoot\System32\pnputil.exe" `
-            -ArgumentList @('/add-driver', $quoted, '/install')
+            -ArgumentList @('/add-driver', $quoted)
+        Invoke-NativeChecked -FilePath "$env:SystemRoot\System32\pnputil.exe" `
+            -ArgumentList @('/add-driver', $quoted, '/install') `
+            -SuccessExitCode @(0, 259)
     }
 }
 
