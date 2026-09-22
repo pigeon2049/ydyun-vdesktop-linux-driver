@@ -1104,3 +1104,116 @@ Linux 首选路径：
 - Discover 使用的 PackageKit 后端查询也返回无可用更新；新版 agent 日志出现
   `KScreen current Virtual-1 1920x1080+0+0`，确认实际运行补丁代码。
 - 新增 `docs/UPDATES.md`，覆盖安装迁移、手动更新、上游安全更新维护责任和恢复官方包步骤。
+
+## Step 120：MTT S3000 vGPU 安装前调查
+
+- SSH 只读确认目标机存在 `1ed5:0222` / subsystem `1ed5:1101` 摩尔线程设备，但没有驱动绑定。
+  当前 Plasma Wayland 由 QXL 输出，KWin 实测为 llvmpipe CPU 渲染，无 DRM render 节点。
+- 区分 PCI BAR 的 16G 地址窗口和实际显存：根据 1101 命名推测 1 GiB 档位，仍需 GMI/平台确认。
+- 查阅官方 S3000 服务器指南、MT vGPU 2.9.2 Guest 指南/兼容说明，以及 MTCapture 文档。
+  应取得匹配 Host 的 Linux Guest 包；Debian 13/6.12 未被本次查询的 Guest 支持清单覆盖。
+- 新增 `docs/MTT-VGPU.md`，记录证据、获取渠道、安装前检查、回退原则和分层性能验收。
+  GPU 渲染与官方客户端抓屏编码分别验证；尚未获取匹配包，没有安装驱动、重启或改变 QXL。
+
+## Step 121：GitHub 摩尔线程驱动检索
+
+- 找到 cl91、elysia-best、dixyes 的 mtgpu 内核代码仓库，并克隆到工作区
+  `driver/doc/gpu-research/` 静态检查，未执行第三方安装脚本或操作目标机。
+- dixyes 的 `2.7.1-6.12` 分支明确记录 6.12 适配，含 S3000/Guest 定义；这是新增适配参考。
+  仓库已归档且依赖预编译核心，不能误称为完整开源 Guest 驱动或现成 Debian 包。
+- 三个候选仓库均无 Release；没有找到经过本平台验证的完整 Linux Guest DEB。
+  `docs/MTT-VGPU.md` 已补充链接、提交号、依赖缺口和检索边界。
+
+## Step 122：目标机 mtgpu 编译和 Guest 模式实测
+
+- 在目标机普通用户目录构建 dixyes `2.7.1-6.12` / `099f7ea`，原始代码因 Debian
+  `6.12.107` 的 `pci_resize_resource` 四参数接口失败；补上参数后生成匹配 vermagic 的模块。
+- 构建存在预编译核心 objtool/ENDBR 警告。源码配置 `RGX_NUM_OS_SUPPORTED=1` 只接受 Native；
+  未绕过检查、未禁用内核保护，也未让 Native 驱动接管云端 vGPU。
+- 实机以 `disable_driver=1` 成功临时加载；加 Guest 参数后内核明确拒绝 `mtgpu_driver_mode=1`。
+  这是模块层验证，不是 GPU 硬件加速验证。已卸载实验模块和新增辅助模块。
+- 保留 QXL/Wayland 1920×1080 和正常的 SSH/SPICE/PipeWire 服务，没有永久安装、配置自启或重启。
+  树外未签名模块留下本次启动 O/E taint 标志；日志和模块已存本地工作区，不发布为驱动成品。
+- 文档补充实测结果；后续需要匹配的 Guest 核心和用户态栈，不能只改宏混用 Native 二进制。
+
+## Step 123：下载并审计官方 MUSA SDK 4.0.1 随附驱动
+
+- 使用用户提供的官方限时链接下载 1.7 GiB SDK ZIP，保存在工作区
+  `driver/doc/gpu-research/downloads/`；仅提取驱动到 `sdk-4.0.1/`，未执行安装程序。
+- 找到完整的 `musa_3.0.0_amd64.deb`，实际包版本
+  `2025.03.26-33122-Ubuntu+9f9ebc2c1`，含固件、图形用户态库、GMI 和抓屏编码示例。
+- 实际源码配置仍为 Desktop、`RGX_NUM_OS_SUPPORTED=1`，模式检查只接受 Native。
+  静态证据说明该包不是所需 Guest 构建；没有为重复验证而向目标机安装或加载。
+- 审计维护脚本会触发 DKMS、模块加载、系统配置及 initramfs 更新；因此不盲装此包。
+- `docs/MTT-VGPU.md` 第 8 节记录包摘要、关键代码位置、下载来源和未完成事项，
+  不保存限时签名或访问凭据，不将此 Native 包作为本项目 Release 发布。
+
+## Step 124：SDK 4.3.0.CC2.1 与 KUAE 2.1.0 下载审计
+
+- 两个用户提供的官方包均下载到工作区，通过 ZIP CRC 检查，记录本地 SHA-256。
+- SDK 中确有 `musa_3.3.0-server_amd64.deb`，包版本 `3.3.0-server`，内置文件 MD5 校验通过。
+  但 DKMS 配置仍为 `RGX_NUM_OS_SUPPORTED=1`，模式校验只接受 Native，不是 Guest 包。
+- KUAE ZIP 提供 Container Toolkit、MTML、sGPU DKMS、GPU Operator；容器文档要求显卡驱动先就绪。
+  sGPU 源码依赖已有 mtgpu 节点/符号。Operator 的 vGPU/KubeVirt 功能属于宿主/集群管理，
+  驱动仍需从配置来源另外获取，ZIP 未附 Linux Guest 安装包。
+- 第 9 节记录证据和区别；未安装、未向目标机部署、未执行镜像同步或集群配置脚本。
+
+## Step 125：Windows GuestOS 最小实现与账户边界
+
+- 基于 `ZTEGuestOS V7.26.20SP2` 和 Windows 驱动备份建立 `windows/` 实现，仅允许安装 ICE
+  显示、输入、声音、隧道以及 USB/IP 驱动和服务；闭源二进制不进入 Git 仓库。
+- 静态确认厂商 `vdservice/Vdagent.exe` 导入账户创建、密码设置和本地组成员管理 API，并包含
+  自动登录逻辑。因此将 `Vdservice/Vdagent`、Credential Provider、AdAs、ZProcessMonitor、
+  sysguard、QoE、重定向和遥测组件列入永久拒装清单。
+- 剪贴板和自动分辨率改用源码可审计的上游 Windows SPICE agent，安装时要求有效 Authenticode
+  签名或调用者固定 SHA-256；不接受厂商同名代理替换。
+- 新增 `Install-YdyunGuest.ps1`：按允许列表复制和安装组件，禁用标准远程账户管理入口，清除
+  自动登录状态，限制 GuestOS 服务写入 Winlogon，并在安装前后比较本地用户、密码最后修改时间
+  和本地组成员。任何变化都立即失败。
+- 新增 `Test-AccountBoundary.ps1` 和 `ydyun-guestctl`：源码及 PE 导入表拒绝账户变更 API；控制器
+  只提供诊断、允许列表驱动安装及服务启停，不提供用户、密码、组、远程命令或监控功能。
+- 新增 `windows/README.md`，记录输入目录、SPICE agent 信任要求、安装、构建、验证和回滚流程。
+  Windows 实机加载及官方客户端端到端验收尚待重装后的快照环境执行。
+
+## Step 126：需求改为 Windows 端 100% 开源组件
+
+- 用户明确否决全部原厂二进制。Step 125 中复用 ICE 显示/输入/声音/USB 服务的方案作废，
+  `windows/` 已重写为 QXL/VirtIO + 开源 SPICE agent + 可选 usbip-win2，不存在原厂回退路径。
+- 备份证据显示旧 Windows 已安装 Red Hat `balloon/vioser/vioinput/vioscsi/viostor/netkvm`，Linux
+  实机也能使用 QXL；因此 Proxmox 文档所指向的 Fedora/Red Hat VirtIO-Win ISO 可作为驱动来源。
+  先检查 QXL/VirtIO GPU 和 VirtIO serial 硬件 ID，宿主未暴露时直接停止。
+- 安装器只接受 `qxldod`、`viogpudo`、`vioser`、`vioinput` 四种 INF，拒绝路径或 INF 内容带
+  ZTE/ICE 标记的重签名包。QEMU Guest Agent、balloon service、WebDAV、共享目录、监控和远程
+  命令组件均不安装。
+- SPICE agent 固定为 `nefarius/vd_agent`，USB/IP 可选 `vadimgrn/usbip-win2`；新增
+  `dependencies.lock.json` 固定仓库、提交、许可证和最低 Windows 版本，所有安装包必须固定哈希。
+- 账户安全规则继续有效：不创建用户、不改密码、不改组，安装前后快照必须一致，自动登录关闭，
+  SPICE agent 被拒绝写入 Winlogon。检测到任何 ICE/ZTE 服务或驱动时拒绝混装。
+- 当前 VirtIO-Win 没有 Windows virtio-snd 驱动。诊断工具要求宿主暴露 Windows inbox 可驱动的
+  HDA/AC97 声卡；若缺失必须由宿主补设备，不能使用原厂虚拟声卡。
+- `ydyun-guestctl.exe` 已在 Debian 13 用 MinGW x86_64 严格告警交叉编译通过，导入表仅包含
+  ADVAPI32、KERNEL32、MSVCRT、SETUPAPI，不含账户/组/密码 API。Windows 实机验收仍待执行。
+- 已把四个锁定提交克隆到主仓库外的 `driver/doc/reference/windows-open-source/`，扫描账户、密码、
+  本地组和自动登录相关 API/命令，四个源码树均为零匹配；新增
+  `docs/WINDOWS-OPEN-SOURCE-AUDIT.md` 保存证据、排除项和剩余实机验收清单。
+- 使用 PowerShell 7.6.6 parser 对两个 `.ps1` 完成语法解析，`Test-AccountBoundary.ps1` 源码边界
+  测试通过；依赖锁 JSON、Git diff whitespace 检查和 MinGW/CMake 双路径构建均通过。
+- 新增 `Build-OpenSourcePackage.ps1` 和 `Install-YdyunOpenGuest.ps1`：可从 VirtIO-Win ISO、固定
+  哈希的开源 SPICE agent（以及可选 usbip-win2）生成带 `manifest.json`、`SHA256SUMS` 和诊断工具
+  的单一 ZIP 包；安装时不联网、不包含原厂文件、不覆盖既有输出目录。
+
+## Step 127：生成离线 Windows 救援安装包
+
+- 下载并校验 Fedora 镜像中的 `virtio-win-0.1.302.iso`，只抽取 `qxldod`、`viogpudo`、`vioinput`
+  和 `vioser` 的 Windows 10 x86_64 payload；扫描确认 payload 中无 ZTE/ICE 标记。
+- 下载 `nefarius/vd_agent` `v0.13.0` x64 MSI，SHA-256 为
+  `01ece947b86b83c7f777ef9548b4bc61cfd783d0bd2ed99160cdee77686b62de`。
+- 生成离线包 `dist/ydyun-windows-open-source-w10.zip`，大小约 5.2 MiB；根目录仅有一个 BAT
+  和一个 `resources` 目录，包内包含开源显示、
+  鼠标键盘、VirtIO serial 驱动、SPICE agent、诊断工具、PowerShell 安装脚本、键盘可操作的
+  `.bat` 安装入口和校验清单。
+- ZIP SHA-256：`35c1adc59224b7500ec88317223b1db24c046fc4c79fc0154aa9c7c992663902`。
+- 复核时发现 Windows PowerShell 5.1 对无 BOM UTF-8 脚本兼容性不足；已把包内两个 `.ps1` 转为
+  UTF-8 BOM + CRLF，并重新通过 PowerShell parser 和哈希校验。
+- 已通过 ZIP 完整性、manifest 哈希、`SHA256SUMS`、PowerShell 语法、账户边界检查和 MinGW
+  x86_64 交叉编译验证。该包不包含 USB/IP 安装器；USB 优先依赖宿主官方 SPICE/USB 重定向。

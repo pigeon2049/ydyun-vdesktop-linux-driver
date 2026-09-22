@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "generated_at": "2026-09-22",
+  "policy": "Only source-available components pinned here may be used. Release binaries require a recorded SHA-256 and valid Windows driver/signing policy.",
+  "components": [
+    {
+      "name": "virtio-win",
+      "repository": "https://github.com/virtio-win/kvm-guest-drivers-windows.git",
+      "commit": "233a5895364a90278a69710f3ce0f2a21b1caa4b",
+      "license": "BSD-3-Clause",
+      "use": ["vioser", "vioinput", "viogpudo"]
+    },
+    {
+      "name": "qxl-wddm-dod",
+      "repository": "https://github.com/vrozenfe/qxl-dod.git",
+      "commit": "dd8fc1a4520006f648ea9ec02bc646eda392cbee",
+      "license": "Apache-2.0",
+      "use": ["qxldod"]
+    },
+    {
+      "name": "vd_agent",
+      "repository": "https://github.com/nefarius/vd_agent.git",
+      "commit": "2d77558aed4acb841c23f049ea31c2603e0f882e",
+      "license": "GPL-2.0-or-later",
+      "use": ["clipboard", "display-resize", "mouse-integration"]
+    },
+    {
+      "name": "usbip-win2",
+      "repository": "https://github.com/vadimgrn/usbip-win2.git",
+      "commit": "83bd1f781d57ed6efdf15530c55710cf5d4482bc",
+      "tag": "v.0.9.8.0",
+      "license": "BSD-2-Clause",
+      "optional": true,
+      "minimum_windows_build": 18362,
+      "use": ["usbip-client"]
+    }
+  ]
+}

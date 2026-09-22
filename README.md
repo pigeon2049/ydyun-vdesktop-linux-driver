@@ -13,6 +13,16 @@
 本项目不打包 Windows `.sys` 驱动，也不引入官方客户端中的安全策略、监控、QoE、trace、
 进程守护和厂商 root 策略服务。官方登录和云端认证仍由合法的官方控制面完成。
 
+Windows GuestOS 的 100% 开源实现、账户安全边界和安装步骤见
+[Windows 开源 GuestOS 实现](windows/README.md)。它完全拒绝 ZTE/ICE 原厂二进制，使用
+QXL/VirtIO、开源 SPICE agent 和可选 usbip-win2；任何新增用户、改密码、修改管理员组或启用
+自动登录的行为都会使安装失败。
+
+Windows 端不是把大体积 ISO/MSI 直接提交进仓库；在 Windows 构建机执行
+`windows/Build-OpenSourcePackage.ps1` 会生成唯一的
+`dist\ydyun-windows-open-source.zip`，目标机只需运行包内的
+`windows\Install-YdyunOpenGuest.ps1`。
+
 ## 最快安装方式：从 DD Debian 13 到完成
 
 以下命令适用于刚刚 DD 完成、可以 SSH 登录的 Debian 13 x86_64 云电脑。DD 完成后的系统
@@ -386,6 +396,7 @@ apt install -y devscripts libasound2-dev libdbus-1-dev libdrm-dev libgtk-3-dev \
 
 - `linux/`：USB/IP、VHCI、标准 SPICE viewer、协议探针和测试。
 - `wayland/`：KDE Plasma Wayland 的 `spice-vdagent` KScreen 补丁和构建脚本。
+- `windows/`：100% 开源的 Windows GuestOS 安装器、控制程序和账户边界审计。
 - `docs/`：客户端行为、画面转发、USB 协议、分辨率和每一步进度记录。
 
 详细资料：
@@ -394,4 +405,6 @@ apt install -y devscripts libasound2-dev libdbus-1-dev libdrm-dev libgtk-3-dev \
 - [USB 适配说明](linux/README.md)
 - [客户端行为分析](docs/CLIENT-ANALYSIS.md)
 - [安全范围](docs/SECURITY-SCOPE.md)
+- [Windows 开源 GuestOS 实现](windows/README.md)
+- [Windows 开源组件审计](docs/WINDOWS-OPEN-SOURCE-AUDIT.md)
 - [总体进度](docs/PROGRESS.md)

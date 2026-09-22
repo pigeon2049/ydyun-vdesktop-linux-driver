@@ -1,4 +1,6 @@
 build/
+build-windows*/
+dist/
 build-*.log
 *.deb
 *.buildinfo
