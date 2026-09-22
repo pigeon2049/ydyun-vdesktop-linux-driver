@@ -22,8 +22,9 @@
 ### 0. 重装完成后优先设置 Tailscale
 
 Tailscale 的安装状态保存在当前系统盘中，执行 DD 后不会保留。因此它不能保证 DD 写盘
-过程中不断线；DD 期间请保留云厂商控制台、VNC 或公网 SSH 作为救援入口。新 Debian 第一次
-恢复 SSH 后，先安装并登录 Tailscale，后续安装 KDE 和驱动优先使用 Tailscale 地址操作：
+过程中不断线；DD 期间请保留云厂商官方控制台、VNC 或当前可达的管理网络作为救援入口。
+新 Debian 第一次恢复 SSH 后，先安装并登录 Tailscale，后续安装 KDE 和驱动优先使用
+Tailscale 地址操作：
 
 ```sh
 curl -fsSL https://tailscale.com/install.sh | sh
@@ -38,7 +39,8 @@ tailscale ip -4
 tailscale status
 ```
 
-之后使用类似下面的命令连接，替换为 `tailscale ip -4` 输出的地址：
+之后使用类似下面的命令连接，替换为 `tailscale ip -4` 输出的地址；如果当前环境没有公网，
+仍然使用云厂商内网、控制台或其他已连通 Tailscale 的机器访问：
 
 ```sh
 ssh root@100.x.y.z
@@ -75,7 +77,7 @@ apt install -y linux-image-amd64 linux-headers-amd64 firmware-linux-free
 reboot
 ```
 
-执行 `reboot` 后 SSH 会断开。等待约 1～3 分钟，再使用公网或 Tailscale SSH 重新连接；
+执行 `reboot` 后 SSH 会断开。等待约 1～3 分钟，再使用官方控制台或当前可达管理网络重新连接；
 确认已进入新内核，并且 QXL 和 DRM 设备存在：
 
 ```sh
