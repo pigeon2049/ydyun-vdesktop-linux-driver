@@ -11,7 +11,7 @@
 - KDE Plasma Wayland 下的全屏/还原分辨率调整
 
 当前只测试过和家亲公众版（非政企云）debian 13 kde
-windows版本还存在问题待修复
+
 
 ## 最快安装方式：从 DD Debian 13 到完成
 
@@ -353,7 +353,6 @@ apt install -y devscripts libasound2-dev libdbus-1-dev libdrm-dev libgtk-3-dev \
 
 - `linux/`：USB/IP、VHCI、标准 SPICE viewer、协议探针和测试。
 - `wayland/`：KDE Plasma Wayland 的 `spice-vdagent` KScreen 补丁和构建脚本。
-- `windows/`：100% 开源的 Windows GuestOS 安装器、控制程序和账户边界审计。(存在未修复问题)
 - `docs/`：客户端行为、画面转发、USB 协议、分辨率和每一步进度记录。
 
 详细资料：
@@ -362,6 +361,4 @@ apt install -y devscripts libasound2-dev libdbus-1-dev libdrm-dev libgtk-3-dev \
 - [USB 适配说明](linux/README.md)
 - [客户端行为分析](docs/CLIENT-ANALYSIS.md)
 - [安全范围](docs/SECURITY-SCOPE.md)
-- [Windows 开源 GuestOS 实现](windows/README.md)
-- [Windows 开源组件审计](docs/WINDOWS-OPEN-SOURCE-AUDIT.md)
 - [总体进度](docs/PROGRESS.md)
