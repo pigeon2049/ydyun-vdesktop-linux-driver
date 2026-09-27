@@ -187,7 +187,8 @@ sha256sum -c SHA256SUMS
 usbctl可能会报缺少依赖，使用
 apt --fix-broken install
 修复
-### 7. 通过 SSH 安装 Release 包，完成后才有图形画面
+
+### 6. 通过 SSH 安装 Release 包，完成后才有图形画面
 
 仍然在 SSH 终端中执行：
 
@@ -221,7 +222,7 @@ systemctl is-active spice-vdagentd.socket
 systemctl --user is-active spice-vdagent.service
 ```
 
-### 8. 验证画面、分辨率、鼠标、键盘和声音
+### 7. 验证画面、分辨率、鼠标、键盘和声音
 
 先看 Wayland 输出和 agent 日志：
 
@@ -245,7 +246,30 @@ KScreen current Virtual-1 1920x1080+0+0
    通常是 `1024x768`。
 4. 鼠标、键盘和声音不因切换分辨率失效。
 
-### 9. 验证 USB 转发
+
+### 8. 杂项优化
+
+以 KDE 用户登录后，关闭自动挂起并将电源键设为无操作：
+
+```
+for profile in AC Battery LowBattery; do
+  kwriteconfig6 --file ~/.config/powerdevilrc --group "$profile" --group SuspendAndShutdown --key AutoSuspendIdleTimeoutSec --notify 0
+  kwriteconfig6 --file ~/.config/powerdevilrc --group "$profile" --group SuspendAndShutdown --key PowerButtonAction --notify 0
+done
+systemctl --user restart plasma-powerdevil.service
+```
+
+以 root 启用 NTP 时间同步：
+```
+apt-get install -y systemd-timesyncd
+systemctl enable --now systemd-timesyncd
+timedatectl set-ntp true
+timedatectl status
+```
+
+确认 System clock synchronized: yes 且 NTP service: active，表示同步正常。
+
+### 9. USB 转发
 
 ```sh
 modprobe usbip-core vhci-hcd
