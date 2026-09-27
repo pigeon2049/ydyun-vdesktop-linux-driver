@@ -34,32 +34,7 @@ systemctl enable --now tailscaled
 tailscale up
 ```
 
-`tailscale up` 会输出登录链接，请在浏览器完成授权。授权完成后记录 Tailscale 地址：
-
-```sh
-tailscale ip -4
-tailscale status
-```
-
-之后使用普通用户连接，替换为 `tailscale ip -4` 输出的地址；如果当前环境没有公网，
-仍然使用云厂商内网、控制台或其他已连通 Tailscale 的机器访问：
-
-```sh
-ssh <普通用户名>@100.x.y.z
-sudo -i
-```
-
-不要使用 `ssh root@...` 作为默认方案；如果镜像只允许控制台登录 root，先在控制台创建或
-启用一个具备 sudo 权限的普通用户，再从 SSH 继续。
-
-如果 `tun` 模块不存在，先执行：
-
-```sh
-modprobe tun
-printf 'tun\n' >/etc/modules-load.d/tun.conf
-systemctl restart tailscaled
-```
-
+`tailscale up` 会输出登录链接，请在浏览器完成授权。
 官方安装方式和 Debian 支持范围见 [Tailscale Linux 安装文档](https://tailscale.com/docs/install/linux)。
 
 ### 1. 确认系统版本和架构
@@ -83,6 +58,9 @@ apt install -y linux-image-amd64 linux-headers-amd64 firmware-linux-free
 reboot
 ```
 
+在 GRUB 的 `Advanced options for Debian`
+中先选择不带 `-cloud` 的通用内核启动；
+
 执行 `reboot` 后 SSH 会断开。等待约 1～3 分钟，再使用官方控制台或当前可达管理网络重新连接；
 确认已进入新内核，并且 QXL 和 DRM 设备存在：
 
@@ -92,8 +70,7 @@ modprobe qxl
 ls -l /dev/dri/card0
 ```
 
-如果 `uname -r` 仍然以 `-cloud-amd64` 结尾，在 GRUB 的 `Advanced options for Debian`
-中先选择不带 `-cloud` 的通用内核启动；确认 `uname -r` 已变成 `+deb13-amd64`、`/dev/dri/card0`
+如果 `uname -r` 仍然以 `-cloud-amd64` 结尾，确认 `uname -r` 已变成 `+deb13-amd64`、`/dev/dri/card0`
 已存在后，再清理旧 cloud 内核，避免 GRUB 每次默认回到不含 QXL 的内核：
 
 ```sh
@@ -352,7 +329,7 @@ apt install -y devscripts libasound2-dev libdbus-1-dev libdrm-dev libgtk-3-dev \
 
 - `linux/`：USB/IP、VHCI、标准 SPICE viewer、协议探针和测试。
 - `wayland/`：KDE Plasma Wayland 的 `spice-vdagent` KScreen 补丁和构建脚本。
-- `windows/`：100% 开源的 Windows GuestOS 安装器、控制程序和账户边界审计。
+- `windows/`：100% 开源的 Windows GuestOS 安装器、控制程序和账户边界审计。(存在未修复问题)
 - `docs/`：客户端行为、画面转发、USB 协议、分辨率和每一步进度记录。
 
 详细资料：
