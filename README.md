@@ -1,6 +1,6 @@
-# YDYUN vDesktop Linux Driver
+# 移动云 vDesktop Linux Driver
 
-这是一个面向 Debian 13 trixie、x86_64 云电脑的安装教程和适配代码。
+这是一个面向 Debian 13 trixie、x86_64 移动云电脑的安装教程和适配代码。
 
 目标是让 Linux 虚拟机能够通过官方云电脑会话正常使用：
 
@@ -10,18 +10,8 @@
 - USB 存储、USB 键盘和 USB 鼠标转发
 - KDE Plasma Wayland 下的全屏/还原分辨率调整
 
-本项目不打包 Windows `.sys` 驱动，也不引入官方客户端中的安全策略、监控、QoE、trace、
-进程守护和厂商 root 策略服务。官方登录和云端认证仍由合法的官方控制面完成。
-
-Windows GuestOS 的 100% 开源实现、账户安全边界和安装步骤见
-[Windows 开源 GuestOS 实现](windows/README.md)。它完全拒绝 ZTE/ICE 原厂二进制，使用
-QXL/VirtIO、开源 SPICE agent 和可选 usbip-win2；任何新增用户、改密码、修改管理员组或启用
-自动登录的行为都会使安装失败。
-
-Windows 端不是把大体积 ISO/MSI 直接提交进仓库；在 Windows 构建机执行
-`windows/Build-OpenSourcePackage.ps1` 会生成唯一的
-`dist\ydyun-windows-open-source.zip`，目标机只需运行包内的
-`windows\Install-YdyunOpenGuest.ps1`。
+当前只测试过和家亲公众版（非政企云）debian 13 kde
+windows版本还存在问题待修复
 
 ## 最快安装方式：从 DD Debian 13 到完成
 
@@ -194,46 +184,8 @@ kscreen-doctor -o
 如果暂时选择 Plasma X11，USB 和标准 SPICE 功能仍可验证；Wayland 分辨率补丁只有在
 `XDG_SESSION_TYPE=wayland` 时生效。
 
-### 5. 参考 KDE 美化方案（可选）
 
-本项目参考了[我的 KDE Plasma 6 美化方案分享](https://blog.sotkg.com/2025/08/kde-customization)
-的上下布局、悬浮面板、透明效果和深色配色思路。Debian 没有 Fedora/Moe 全局主题，因此目标
-机采用兼容性更好的 Breeze Dark + Papirus-Dark + Noto Sans/Cantarell 等价组合，不修改 QXL、
-Wayland、PipeWire 或输入法链路：
-
-```sh
-# 系统级安装，仍在 sudo -i 的 root shell 中执行
-apt install -y papirus-icon-theme fonts-cantarell plasma-widgets-addons
-```
-
-然后以普通 KDE 用户执行：
-
-```sh
-kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark
-kwriteconfig6 --file kdeglobals --group General --key font \
-  'Noto Sans,10,-1,5,50,0,0,0,0,0'
-kwriteconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage org.kde.breezedark.desktop
-kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus-Dark
-kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Breeze
-kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme breeze_cursors
-kwriteconfig6 --file kcminputrc --group Mouse --key cursorSize 24
-kwriteconfig6 --file plasmashellrc --group PlasmaViews --group 'Panel 2' \
-  --group Defaults --key thickness 48
-```
-
-Panel Colorizer 可以从 KDE 商店安装；也可以下载 Plasma 6 的 `.plasmoid` 包后由普通用户
-安装。目标机已安装 v8.0.0 并加入底部面板：
-
-```sh
-kpackagetool6 --type Plasma/Applet --install plasmoid-panel-colorizer-v8.0.0.plasmoid
-```
-
-登录桌面后右键面板 → Panel colorizer → 预设，底部面板建议选择 `Translucent` 或 `Dock`，
-上方面板如需新增可选择 `ChromeOS`。这里不安装 Panel Colorizer 的 C++ 扩展；该扩展可能在
-Plasma 更新后需要重新编译，远程桌面优先保持可恢复性。插件的运行时依赖和更新注意事项见
-[Panel Colorizer 安装说明](https://github.com/luisbocanegra/plasma-panel-colorizer#installation)。
-
-### 6. 下载 Release 中已经编译好的 Debian 包
+### 5. 下载 Release 中已经编译好的 Debian 包
 
 不要在目标云电脑上重新编译。直接下载本项目的 Release 包：
 
@@ -254,6 +206,10 @@ sha256sum -c SHA256SUMS
 它不是另外抢占 virtio 通道的守护进程，而是对 Debian `spice-vdagent` 的显示模式处理
 做了 KScreen 适配。
 
+或安装lrzsz 将deb下载好拖动过去安装
+usbctl可能会报缺少依赖，使用
+apt --fix-broken install
+修复
 ### 7. 通过 SSH 安装 Release 包，完成后才有图形画面
 
 仍然在 SSH 终端中执行：
