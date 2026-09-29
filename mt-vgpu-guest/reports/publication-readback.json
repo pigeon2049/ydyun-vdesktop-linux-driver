@@ -1,0 +1,7 @@
+{
+  "utc": "2026-09-27T17:20:20.632335+00:00",
+  "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000 expected_firmware_pa=0x771fef000 expected_firmware_bytes=0x800000\n",
+  "trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=8 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n",
+  "service": "irq=10 disabled=0 shared_status=0 acknowledgments=0 replies=0 rejected=0 request_head=6 request_tail=6 reply_head=6 reply_tail=2\n",
+  "publication_read_only": true
+}

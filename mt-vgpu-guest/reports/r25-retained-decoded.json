@@ -1,0 +1,172 @@
+{
+  "bytes": 8388608,
+  "sha256": "defd19804f27295aa47fbc6d373dc4c00b36c0953b950cf2729c79bd0b56958d",
+  "started": 1,
+  "queues": [
+    {
+      "dm": 0,
+      "ring": 0,
+      "head": 1,
+      "tail": 1,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 0,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 0,
+      "ring": 2,
+      "head": 1,
+      "tail": 1,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 1,
+      "ring": 0,
+      "head": 2,
+      "tail": 1,
+      "valid_cursors": true,
+      "pending": 1
+    },
+    {
+      "dm": 1,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 1,
+      "ring": 2,
+      "head": 2,
+      "tail": 1,
+      "valid_cursors": true,
+      "pending": 1,
+      "pending_events": [
+        [
+          0,
+          257,
+          2,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "dm": 2,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 2,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 2,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 3,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 3,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 3,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 4,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 4,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 4,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 5,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 5,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 5,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    }
+  ],
+  "snapshot": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/reports/r25-retained-firmware.bin",
+  "comparison": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/r23-live/tqx-after-trial_firmware",
+  "comparison_sha256": "defd19804f27295aa47fbc6d373dc4c00b36c0953b950cf2729c79bd0b56958d",
+  "identical": true,
+  "changed_dwords": 0,
+  "hardware_access": false
+}

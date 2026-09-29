@@ -1,0 +1,50 @@
+{
+  "reference": "1400266e0",
+  "cases": [
+    {
+      "enabled": 0,
+      "available": "0x0",
+      "trace": [
+        {
+          "query": 5,
+          "value": null
+        }
+      ]
+    },
+    {
+      "enabled": 1,
+      "available": "0x0",
+      "trace": [
+        {
+          "query": 5,
+          "value": null
+        },
+        {
+          "query": 6,
+          "value": "0x48809490d"
+        }
+      ]
+    },
+    {
+      "enabled": 1,
+      "available": "0x48809490e",
+      "trace": [
+        {
+          "query": 5,
+          "value": null
+        },
+        {
+          "query": 6,
+          "value": "0x48809490d"
+        },
+        {
+          "would_download": true
+        }
+      ]
+    }
+  ],
+  "passed": true,
+  "device_accessed": false,
+  "download_executed": false,
+  "difference": "Linux probe stops after metadata, including when a package is available"
+}

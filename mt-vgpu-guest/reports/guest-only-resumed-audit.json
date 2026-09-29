@@ -1,0 +1,68 @@
+{
+  "utc": "2026-09-28T00:42:21.712928+00:00",
+  "resumed_blocked_audit": true,
+  "same_blocker_consecutive_resumed_turns": 3,
+  "turns": [
+    {
+      "work": "Failed initialization cleanup",
+      "classification": "progress: new bounded original-instruction evidence",
+      "evidence": "failed-init-cleanup.md",
+      "blocker_unchanged": true
+    },
+    {
+      "work": "Display shared-page flags",
+      "classification": "progress: identified display-only callback context and ordering",
+      "evidence": "display-shared-flags.md",
+      "blocker_unchanged": true
+    },
+    {
+      "work": "Current live-state and alternatives audit",
+      "classification": "no progress: revalidation only",
+      "blocker_unchanged": true
+    }
+  ],
+  "blocker": "Firmware remains unstarted and does not consume the retained command ring; no evidenced Guest-only startup or resource-quiescence operation remains to execute.",
+  "host_operations_allowed": false,
+  "approval_pending": false,
+  "goal_complete": false,
+  "local_state": {
+    "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+    "rpc_service": "running=1 ready=1 irq=10 acknowledgments=17005 replies=17005 rejected=0",
+    "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0",
+    "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000"
+  },
+  "reset_interfaces": [],
+  "drm_nodes": [
+    "by-path",
+    "card0"
+  ],
+  "services": "active\nactive\nactive",
+  "alternatives": [
+    {
+      "candidate": "Repeat prior notifications or BusMaster trials",
+      "decision": "Already failed; no changed prerequisite or new evidence"
+    },
+    {
+      "candidate": "Failed-init platform teardown",
+      "decision": "Communication withdrawal is not firmware quiescence; already recovered communication"
+    },
+    {
+      "candidate": "Shared page +0x328",
+      "decision": "Display interrupt control after firmware initialization; not a startup prerequisite"
+    },
+    {
+      "candidate": "Force Guest0 / reuse old resources",
+      "decision": "No confirmation firmware has stopped referencing resources"
+    },
+    {
+      "candidate": "HWR/MPC request",
+      "decision": "Excluded by Guest-only scope"
+    },
+    {
+      "candidate": "Integrate post-connect context/DRM now",
+      "decision": "Cannot verify GPU work until firmware connection; not a remedy for current blocker"
+    }
+  ],
+  "unblock_evidence": "A matching Guest driver or protocol evidence establishing a Guest-only startup/recovery path, or independently changed device-session state. No Host access is requested.",
+  "limitations": "No claim that all conceivable Guest-only approaches are impossible. Offline tests do not establish live GPU execution."
+}

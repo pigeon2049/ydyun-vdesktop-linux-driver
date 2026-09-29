@@ -1,0 +1,23 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "table": "0x140baef10",
+  "slots": {
+    "0x478": "0x14011e768",
+    "0x480": "0x1400db49c",
+    "0x488": "0x1400dc894",
+    "0x490": "0x1400da520",
+    "0x498": "0x1400dad64",
+    "0x508": "0x14011b7c0",
+    "0x510": "0x1400dad24",
+    "0x520": "0x14011a62c",
+    "0x528": "0x14011a480",
+    "0x530": "0x14011d378",
+    "0x540": "0x1400db228",
+    "0x550": "0x1400db3c8",
+    "0x560": "0x1400dc638",
+    "0x30": "0x14011d6bc",
+    "0x38": "0x14011d758",
+    "0x3c0": "0x14004c138"
+  },
+  "scope": "Static table installed by 1400d9b08; constructor and selected initialization/emission/finalization callbacks now executed by tqx_stream_reference.py. Not every virtual method is validated."
+}

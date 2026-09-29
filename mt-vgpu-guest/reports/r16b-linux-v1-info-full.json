@@ -1,0 +1,69 @@
+{
+  "sha256": "8c84f7f45dc9b1900e1be5dede19af993b1282b1a82521efc1c99bd62cfdde6b",
+  "layout_source": "observed Linux v1 response with 24-byte typed segment records (r16b)",
+  "segment_stride_bytes": 24,
+  "input_size_bytes": 4096,
+  "version": 1,
+  "osid": 6,
+  "flags": "0x3d1",
+  "flag_bits": {
+    "enable_vpu": true,
+    "enable_iommu_dma": false,
+    "enable_iommu_irq": false,
+    "vpu_bar4": false,
+    "pb_shared": true
+  },
+  "vm_memory_size_bytes": 1073741824,
+  "vm_bar2_actual_memory_size_bytes": 1124073472,
+  "segments": {
+    "vgpu": {
+      "aggregate_size_bytes": 1054867456,
+      "count": 2,
+      "records": [
+        {
+          "index": 0,
+          "base_raw": "0x60f000000",
+          "size_bytes": 83886080,
+          "end_exclusive_raw": "0x614000000",
+          "flags_raw": "0x1"
+        },
+        {
+          "index": 1,
+          "base_raw": "0x1ae000000",
+          "size_bytes": 970981376,
+          "end_exclusive_raw": "0x1e7e00000",
+          "flags_raw": "0x3"
+        }
+      ]
+    },
+    "vvpu": {
+      "aggregate_size_bytes": 67108864,
+      "count": 1,
+      "records": [
+        {
+          "index": 0,
+          "base_raw": "0x769fef000",
+          "size_bytes": 67108864,
+          "end_exclusive_raw": "0x76dfef000",
+          "flags_raw": "0x4"
+        }
+      ]
+    }
+  },
+  "fw_heap_base_raw": "0x0",
+  "fw_heap_size_bytes": 0,
+  "mmu_heap_base_raw": "0x0",
+  "mmu_heap_size_bytes": 0,
+  "extension_size_bytes": 88,
+  "extension": {
+    "max_resolution_width": 2560,
+    "max_resolution_height": 1600,
+    "max_encode_instances": 3,
+    "max_decode_instances": 5,
+    "pb_free_list_device_address_raw": "0xa000e00000",
+    "pb_free_list_physical_address_raw": "0x56800000",
+    "pb_free_list_size_bytes": 2097152,
+    "mpc_core_count": 1
+  },
+  "address_domain_note": "Base fields are decoded as published. This tool does not infer a BAR2 offset, Guest-to-Host translation, or physical backing."
+}

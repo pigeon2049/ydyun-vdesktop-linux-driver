@@ -1,0 +1,155 @@
+{
+  "passed": true,
+  "hardware_access": false,
+  "root_sha256": "1e6334521f98b29d7fefc394822ee0899eb2cd9a12903f93baa2f13feddd248d",
+  "table_pages": 15,
+  "mapped_pages": 3335,
+  "ranges": [
+    {
+      "name": "PB",
+      "va": "0xa000e00000",
+      "bytes": 2097152,
+      "pages": 512,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "PDS",
+      "va": "0x81ffc00000",
+      "bytes": 1048576,
+      "pages": 256,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "YUV",
+      "va": "0x84ffe00000",
+      "bytes": 524288,
+      "pages": 128,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "kill",
+      "va": "0x84ffe80000",
+      "bytes": 524288,
+      "pages": 128,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "fence",
+      "va": "0x81ffd00000",
+      "bytes": 4096,
+      "pages": 1,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "paging-command",
+      "va": "0x81ff800000",
+      "bytes": 4194304,
+      "pages": 1024,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "pool-0",
+      "va": "0x81ffd03000",
+      "bytes": 2097152,
+      "pages": 512,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "pool-1",
+      "va": "0x84fff00000",
+      "bytes": 1048576,
+      "pages": 256,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "pool-2",
+      "va": "0xf0ffe00000",
+      "bytes": 2097152,
+      "pages": 512,
+      "pte_flags": 1,
+      "read_only": false,
+      "coherent": false,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "command",
+      "va": "0x40000000",
+      "bytes": 4096,
+      "pages": 1,
+      "pte_flags": 7,
+      "read_only": true,
+      "coherent": true,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "source",
+      "va": "0x40100000",
+      "bytes": 4096,
+      "pages": 1,
+      "pte_flags": 7,
+      "read_only": true,
+      "coherent": true,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "destination",
+      "va": "0x40200000",
+      "bytes": 4096,
+      "pages": 1,
+      "pte_flags": 7,
+      "read_only": true,
+      "coherent": true,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "DMA",
+      "va": "0x40010000",
+      "bytes": 8192,
+      "pages": 2,
+      "pte_flags": 7,
+      "read_only": true,
+      "coherent": true,
+      "candidate_guest_map_flags": 0
+    },
+    {
+      "name": "engine-state",
+      "va": "0x40020000",
+      "bytes": 4096,
+      "pages": 1,
+      "pte_flags": 7,
+      "read_only": true,
+      "coherent": true,
+      "candidate_guest_map_flags": 0
+    }
+  ],
+  "pte_flag_counts": {
+    "7": 6,
+    "1": 3329
+  },
+  "conclusion": "Only the six pages of five ordinary BOs have read-only/coherent PTEs. All 3329 shared pages already use writable default PTEs. r24 changes exactly those five ordinary binds.",
+  "limits": "Historical table coverage and permissions only. No post-reboot GPA validity, actual GPU TLB state, safe recovery or successful copy is established."
+}

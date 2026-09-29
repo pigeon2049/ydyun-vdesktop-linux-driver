@@ -1,0 +1,177 @@
+{
+  "boot_id": "cfb0c74d-c9e3-4804-bc5e-dbf1e7f07c0b",
+  "bytes": 8388608,
+  "sha256": "defd19804f27295aa47fbc6d373dc4c00b36c0953b950cf2729c79bd0b56958d",
+  "r23_bytes": 8388608,
+  "r23_sha256": "defd19804f27295aa47fbc6d373dc4c00b36c0953b950cf2729c79bd0b56958d",
+  "identical_r23": true,
+  "started": 1,
+  "dm0_start": [
+    "0x4d545946",
+    "0x0",
+    "0x0",
+    "0x46",
+    "0xc2781ccc",
+    "0x2026"
+  ],
+  "queues": [
+    {
+      "dm": 0,
+      "ring": 0,
+      "head": 1,
+      "tail": 1
+    },
+    {
+      "dm": 0,
+      "ring": 1,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 0,
+      "ring": 2,
+      "head": 1,
+      "tail": 1,
+      "event_at_tail": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "dm": 1,
+      "ring": 0,
+      "head": 2,
+      "tail": 1
+    },
+    {
+      "dm": 1,
+      "ring": 1,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 1,
+      "ring": 2,
+      "head": 2,
+      "tail": 1,
+      "event_at_tail": [
+        0,
+        257,
+        2,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "dm": 2,
+      "ring": 0,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 2,
+      "ring": 1,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 2,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "event_at_tail": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "dm": 3,
+      "ring": 0,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 3,
+      "ring": 1,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 3,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "event_at_tail": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "dm": 4,
+      "ring": 0,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 4,
+      "ring": 1,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 4,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "event_at_tail": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "dm": 5,
+      "ring": 0,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 5,
+      "ring": 1,
+      "head": 0,
+      "tail": 0
+    },
+    {
+      "dm": 5,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "event_at_tail": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "changed_dwords": 0,
+  "first_changed_offsets": []
+}

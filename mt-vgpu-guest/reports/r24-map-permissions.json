@@ -1,0 +1,77 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "guest_map_flags": 0,
+      "linux_protection_flags": 7,
+      "windows_pte": "0x61002f001",
+      "linux_pte_protection": "0x3c00000000000001",
+      "read_only": false,
+      "coherent": false
+    },
+    {
+      "guest_map_flags": 1,
+      "linux_protection_flags": 3,
+      "windows_pte": "0x61002f003",
+      "linux_pte_protection": "0x3c00000000000003",
+      "read_only": true,
+      "coherent": false
+    },
+    {
+      "guest_map_flags": 2,
+      "linux_protection_flags": 15,
+      "windows_pte": "0x61002f005",
+      "linux_pte_protection": "0x3c00000000000005",
+      "read_only": false,
+      "coherent": true
+    },
+    {
+      "guest_map_flags": 3,
+      "linux_protection_flags": 11,
+      "windows_pte": "0x61002f007",
+      "linux_pte_protection": "0x3c00000000000007",
+      "read_only": true,
+      "coherent": true
+    },
+    {
+      "guest_map_flags": 16,
+      "linux_protection_flags": 65543,
+      "windows_pte": "0x400000061002f001",
+      "linux_pte_protection": "0x7c00000000000001",
+      "read_only": false,
+      "coherent": false
+    },
+    {
+      "guest_map_flags": 17,
+      "linux_protection_flags": 65539,
+      "windows_pte": "0x400000061002f003",
+      "linux_pte_protection": "0x7c00000000000003",
+      "read_only": true,
+      "coherent": false
+    },
+    {
+      "guest_map_flags": 18,
+      "linux_protection_flags": 65551,
+      "windows_pte": "0x400000061002f005",
+      "linux_pte_protection": "0x7c00000000000005",
+      "read_only": false,
+      "coherent": true
+    },
+    {
+      "guest_map_flags": 19,
+      "linux_protection_flags": 65547,
+      "windows_pte": "0x400000061002f007",
+      "linux_pte_protection": "0x7c00000000000007",
+      "read_only": true,
+      "coherent": true
+    }
+  ],
+  "r23_destination_pte": "0x61002f007",
+  "r23_destination_read_only": true,
+  "correct_default_pte": "0x61002f001",
+  "linux_symbol": "RGXDerivePTEProt8",
+  "linux_code_sha256": "99f66b3ed0f3480d698fbc1e092e13df7e7434f85273899c70ec44c4838331e1",
+  "windows_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "hardware_access": false,
+  "limits": "Proves the read-only mapping defect, not that it is the sole cause of the r23 firmware fault. Linux adds high PTE metadata absent from the Windows encoder; that remains a separate compatibility question."
+}

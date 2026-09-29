@@ -1,0 +1,10 @@
+{
+  "checked_utc": "2026-09-27T16:20:37.321299+00:00",
+  "kernel_image_bytes": 8388608,
+  "kernel_image_sha256": "d27f408f9048236a10095c849af150eb133834890045328e37c610a85a0cfe15",
+  "matches_reference_state_image": true,
+  "device_memory_written": false,
+  "firmware_connected": false,
+  "module_unloaded": true,
+  "device_unbound": true
+}

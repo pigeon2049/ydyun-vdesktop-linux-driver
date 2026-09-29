@@ -1,0 +1,1193 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "passed": true,
+  "cases": [
+    {
+      "registered_mask": 0,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 1,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 0,
+          "valid": 0,
+          "descriptor": "0x0"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x240000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 2,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 1,
+          "valid": 0,
+          "descriptor": "0x2"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x241000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 3,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 1,
+          "valid": 0,
+          "descriptor": "0x2"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x241000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 0,
+          "valid": 0,
+          "descriptor": "0x0"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x240000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 4,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 2,
+          "valid": 0,
+          "descriptor": "0x4"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x242000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 5,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 2,
+          "valid": 0,
+          "descriptor": "0x4"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x242000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 0,
+          "valid": 0,
+          "descriptor": "0x0"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x240000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 6,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 2,
+          "valid": 0,
+          "descriptor": "0x4"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x242000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 1,
+          "valid": 0,
+          "descriptor": "0x2"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x241000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 7,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 2,
+          "valid": 0,
+          "descriptor": "0x4"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x242000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 1,
+          "valid": 0,
+          "descriptor": "0x2"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x241000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 0,
+          "valid": 0,
+          "descriptor": "0x0"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x240000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 8,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 3,
+          "valid": 0,
+          "descriptor": "0x6"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x243000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 9,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 3,
+          "valid": 0,
+          "descriptor": "0x6"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x243000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 0,
+          "valid": 0,
+          "descriptor": "0x0"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x240000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 10,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 3,
+          "valid": 0,
+          "descriptor": "0x6"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x243000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 1,
+          "valid": 0,
+          "descriptor": "0x2"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x241000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 11,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 3,
+          "valid": 0,
+          "descriptor": "0x6"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x243000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 1,
+          "valid": 0,
+          "descriptor": "0x2"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x241000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 0,
+          "valid": 0,
+          "descriptor": "0x0"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x240000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 12,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 3,
+          "valid": 0,
+          "descriptor": "0x6"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x243000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 2,
+          "valid": 0,
+          "descriptor": "0x4"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x242000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 13,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 3,
+          "valid": 0,
+          "descriptor": "0x6"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x243000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 2,
+          "valid": 0,
+          "descriptor": "0x4"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x242000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 0,
+          "valid": 0,
+          "descriptor": "0x0"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x240000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 14,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 3,
+          "valid": 0,
+          "descriptor": "0x6"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x243000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 2,
+          "valid": 0,
+          "descriptor": "0x4"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x242000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 1,
+          "valid": 0,
+          "descriptor": "0x2"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x241000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    },
+    {
+      "registered_mask": 15,
+      "events": [
+        {
+          "event": "0x14000c1a8",
+          "arg0": "0x2002d0",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001b0d8",
+          "arg0": "0x200000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x1400241ec",
+          "arg0": "0x200440",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001daa8",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "unregister",
+          "slot": 3,
+          "valid": 0,
+          "descriptor": "0x6"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x243000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 2,
+          "valid": 0,
+          "descriptor": "0x4"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x242000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 1,
+          "valid": 0,
+          "descriptor": "0x2"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x241000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unregister",
+          "slot": 0,
+          "valid": 0,
+          "descriptor": "0x0"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x240000",
+          "arg1": "0x158"
+        },
+        {
+          "event": "unmap",
+          "arg0": "0x220000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x231000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-page",
+          "arg0": "0x230000",
+          "arg1": "0x200000"
+        },
+        {
+          "event": "free-pool",
+          "arg0": "0x204000",
+          "arg1": "0x0"
+        },
+        {
+          "event": "0x14001cc98",
+          "arg0": "0x200578",
+          "arg1": "0x0"
+        }
+      ],
+      "platform_pointer_cleared": true
+    }
+  ],
+  "hardware_written": false,
+  "host_emulated": false,
+  "native_cleanup_callbacks_absent_in_guest": [
+    "0x9f8",
+    "0xa00",
+    "0xa28",
+    "0x1ad8"
+  ],
+  "modeled_helpers": [
+    "0x14000c1a8",
+    "0x14001b0d8",
+    "0x1400241ec",
+    "0x14001daa8",
+    "0x14001cc98",
+    "allocator frees",
+    "unmap",
+    "MMIO"
+  ],
+  "limits": "Selected failed-init platform destruction only; other subsystem cleanup is hooked. No firmware quiescence acknowledgment is established by this test."
+}

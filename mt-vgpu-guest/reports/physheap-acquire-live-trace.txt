@@ -1,0 +1,172 @@
+# tracer: nop
+#
+# entries-in-buffer/entries-written: 160/160   #P:8
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+              sh-4231    [002] .....   770.684393: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.684396: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.684397: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.684397: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.684398: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.684398: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.684398: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.684398: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.684398: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.684399: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.684399: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.684399: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.684400: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.684400: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.684400: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.684400: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+              sh-4231    [002] .....   770.690183: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.690185: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.690185: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.690186: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.690186: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.690186: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.690186: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.690186: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.690186: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.690187: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.690187: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.690187: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.690187: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.690187: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.690187: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.690188: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+  kworker/u256:4-70      [004] .....   770.695952: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+  kworker/u256:4-70      [004] .....   770.695953: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+  kworker/u256:4-70      [004] .....   770.695954: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+  kworker/u256:4-70      [004] .....   770.695954: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+  kworker/u256:4-70      [004] .....   770.695955: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+  kworker/u256:4-70      [004] .....   770.695955: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+  kworker/u256:4-70      [004] .....   770.695955: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+  kworker/u256:4-70      [004] .....   770.695956: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+  kworker/u256:4-70      [004] .....   770.695956: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+  kworker/u256:4-70      [004] .....   770.695956: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+  kworker/u256:4-70      [004] .....   770.695957: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+  kworker/u256:4-70      [004] .....   770.695957: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+  kworker/u256:4-70      [004] .....   770.695957: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+  kworker/u256:4-70      [004] .....   770.695957: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+  kworker/u256:4-70      [004] .....   770.695958: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+  kworker/u256:4-70      [004] .....   770.695958: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+              sh-4231    [002] .....   770.701656: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.701658: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.701658: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.701659: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.701659: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.701659: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.701659: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.701660: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.701660: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.701660: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.701660: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.701661: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.701661: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.701661: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.701661: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.701662: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+              sh-4231    [002] .....   770.707391: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.707392: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.707393: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.707393: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.707393: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.707394: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.707394: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.707394: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.707394: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.707395: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.707395: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.707395: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.707395: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.707395: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.707396: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.707396: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+              sh-4231    [002] .....   770.713168: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.713169: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.713169: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.713170: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.713170: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.713170: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.713171: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.713171: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.713171: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.713171: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.713172: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.713172: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.713172: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.713172: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.713173: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.713173: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+              sh-4231    [002] .....   770.718783: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.718784: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.718784: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.718784: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.718785: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.718785: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.718785: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.718785: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.718785: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.718786: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.718786: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.718786: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.718787: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.718787: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.718787: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.718787: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+              sh-4231    [002] .....   770.724391: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.724392: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.724392: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.724393: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.724393: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.724393: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.724393: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.724394: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.724394: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.724394: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.724394: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.724395: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.724395: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.724395: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.724396: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.724396: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+              sh-4231    [002] .....   770.730070: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.730072: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.730073: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.730073: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.730074: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.730074: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.730074: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.730074: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.730075: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.730075: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.730075: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.730075: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.730076: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.730076: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.730076: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.730076: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4
+              sh-4231    [002] .....   770.735786: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1
+              sh-4231    [002] .....   770.735787: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1 ret=0x0
+              sh-4231    [002] .....   770.735788: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x2
+              sh-4231    [002] .....   770.735788: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x2 ret=0x0
+              sh-4231    [002] .....   770.735788: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x3
+              sh-4231    [002] .....   770.735788: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x3 ret=0x0
+              sh-4231    [002] .....   770.735788: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x5
+              sh-4231    [002] .....   770.735789: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x5 ret=0x0
+              sh-4231    [002] .....   770.735789: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x6
+              sh-4231    [002] .....   770.735789: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x6 ret=0x0
+              sh-4231    [002] .....   770.735789: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x7
+              sh-4231    [002] .....   770.735789: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x7 ret=0x0
+              sh-4231    [002] .....   770.735790: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1b
+              sh-4231    [002] .....   770.735790: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1b ret=0x0
+              sh-4231    [002] .....   770.735790: acq_enter: (PhysHeapAcquireByDevPhysHeap+0x0/0x120 [mtgpu]) heap_id=0x1c
+              sh-4231    [002] .....   770.735790: acq_return: (PVRSRVPhysMemHeapsInit+0x1c6/0x3e0 [mtgpu] <- PhysHeapAcquireByDevPhysHeap) heap_id=0x1c ret=0xf4

@@ -1,0 +1,35 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "reference": "140026b30",
+  "matching_cases": 65,
+  "invalid_unchanged": [
+    "short-shared",
+    "no-shared",
+    "outside-bar",
+    "legacy",
+    "overflow-gpa",
+    "short-info"
+  ],
+  "current_messages": [
+    {
+      "type": 3,
+      "subtype": 0,
+      "operation": 0,
+      "value": "0x0"
+    },
+    {
+      "type": 3,
+      "subtype": 1,
+      "operation": 0,
+      "value": "0x843000000"
+    },
+    {
+      "type": 3,
+      "subtype": 2,
+      "operation": 0,
+      "value": "0x200000"
+    }
+  ],
+  "hardware_written": false,
+  "passed": true
+}

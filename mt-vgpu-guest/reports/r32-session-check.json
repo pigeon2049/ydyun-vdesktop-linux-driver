@@ -1,0 +1,22 @@
+{
+  "identities": {
+    "mt_guest_probe": "9d0f0ce06c13bf64d4b24d5789158080e280e5e3",
+    "mt_live_tqx": "9763bf6502e9a80ce3b4da4e34afb07ddfd0d8bd",
+    "mt_live_drm": "0f69619fb02d948cf7157921f29b5eb65dcdaa4f",
+    "mt_live_graphics": "4ebe649ca6321f483a45fa15a6173992735e0229"
+  },
+  "graphics": {
+    "device": "/dev/dri/renderD129",
+    "capabilities": [
+      "copy",
+      "native_fill"
+    ],
+    "submitted": 72,
+    "completed": 72,
+    "sequence": 231,
+    "retained": true
+  },
+  "runtime": "prepared=1 published=1 notified=1 result=0 retained=1 guest=2 firmware=2 started=1 event_result=0 events=1 render_ready=0",
+  "completions": "pending=0 completed=231 submit_enabled=0 workload_submit=0",
+  "gpu_jobs_executed_by_checker": 0
+}

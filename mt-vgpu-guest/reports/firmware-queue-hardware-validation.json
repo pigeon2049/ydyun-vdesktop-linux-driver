@@ -1,0 +1,31 @@
+{
+  "checked_utc": "2026-09-27T15:57:15.191409+00:00",
+  "queue_mapping_bound": true,
+  "dm_idle_snapshots": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "device_memory_written": false,
+  "firmware_queue_initialized": false,
+  "commands_submitted": 0,
+  "status_after_unload": {
+    "pci": "0000:00:0e.0",
+    "bar": 0,
+    "access": "read-only-u32",
+    "driver_state": 0,
+    "firmware_state": 1,
+    "hardware_acceleration_verified": false
+  },
+  "device_unbound": true,
+  "module_unloaded": true,
+  "services": {
+    "sddm": "active",
+    "spice-vdagentd": "active",
+    "tailscaled": "active"
+  },
+  "hardware_acceleration_verified": false
+}

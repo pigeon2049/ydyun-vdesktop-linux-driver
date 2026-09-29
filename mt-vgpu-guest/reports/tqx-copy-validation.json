@@ -1,0 +1,32 @@
+{
+  "utc": "2026-09-28T04:37:30.916580+00:00",
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "cases": 432,
+  "chunk_counts": {
+    "1": 130,
+    "2": 23,
+    "3": 118,
+    "4": 161
+  },
+  "rejected_cases": 10,
+  "outer_builder_cases": 432,
+  "operations": [
+    8,
+    16,
+    21
+  ],
+  "plan_bytes": 1488,
+  "compared": "24-byte chunks, complete 104-byte surface / 168-byte state, 48-byte source texture/sampler, addresses, rectangles and operation per chunk",
+  "scope": "14010f034 byte-copy parameters {src,0}, length, unit=1, align=1; CPU preparation only",
+  "modeled_helpers": [
+    "stack cookie (preserves RAX)",
+    "memcpy/memset if reached",
+    "memcmp",
+    "source descriptor allocation/device fields",
+    "outer builder only: interval synchronization and job emission"
+  ],
+  "hardware_access": false,
+  "gpu_execution": false,
+  "remaining": "TQX job emission, stream finalization, DMA export and live execution"
+}

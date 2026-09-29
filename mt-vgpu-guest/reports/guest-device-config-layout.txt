@@ -1,0 +1,75 @@
+struct _PVRSRV_DEVICE_CONFIG_ {
+	void *                     pvOSDevice;           /*     0     8 */
+	struct _PVRSRV_DEVICE_NODE_ * psDevNode;         /*     8     8 */
+	IMG_CHAR *                 pszName;              /*    16     8 */
+	IMG_CHAR *                 pszVersion;           /*    24     8 */
+	IMG_CPU_PHYADDR            sRegsCpuPBase;        /*    32     8 */
+	IMG_UINT32                 ui32RegsSize;         /*    40     4 */
+
+	/* XXX 4 bytes hole, try to pack */
+
+	void *                     virt_regs;            /*    48     8 */
+	u32                        mpc_id;               /*    56     4 */
+	u32                        osid_start;           /*    60     4 */
+	/* --- cacheline 1 boundary (64 bytes) --- */
+	u32                        osid_count;           /*    64     4 */
+
+	/* XXX 4 bytes hole, try to pack */
+
+	void                       (*vgpu_int_cb)(u32, bool, void *, u32); /*    72     8 */
+	void *                     priv_data;            /*    80     8 */
+	IMG_UINT32                 ui32IRQ;              /*    88     4 */
+	PVRSRV_DEVICE_SNOOP_MODE   eCacheSnoopingMode;   /*    92     4 */
+	IMG_HANDLE                 hDevData;             /*    96     8 */
+	IMG_HANDLE                 hSysData;             /*   104     8 */
+	IMG_BOOL                   bHasNonMappableLocalMemory; /*   112     4 */
+	IMG_BOOL                   bHasFBCDCVersion31;   /*   116     4 */
+	PVRSRV_PHYS_HEAP           eDefaultHeap;         /*   120     4 */
+
+	/* XXX 4 bytes hole, try to pack */
+
+	/* --- cacheline 2 boundary (128 bytes) --- */
+	PHYS_HEAP_CONFIG *         pasPhysHeaps;         /*   128     8 */
+	IMG_UINT32                 ui32PhysHeapCount;    /*   136     4 */
+
+	/* XXX 4 bytes hole, try to pack */
+
+	PFN_SYS_PRE_POWER          pfnPrePowerState;     /*   144     8 */
+	PFN_SYS_POST_POWER         pfnPostPowerState;    /*   152     8 */
+	PFN_SYS_GET_POWER          pfnGpuDomainPower;    /*   160     8 */
+	PFN_SYS_SET_PSTATE         pfnSetPerformanceState; /*   168     8 */
+	PFN_SYS_PM_RUNTIME_GET     pfnSysPmRuntimeGet;   /*   176     8 */
+	PFN_SYS_PM_RUNTIME_PUT     pfnSysPmRuntimePut;   /*   184     8 */
+	/* --- cacheline 3 boundary (192 bytes) --- */
+	PFN_SYS_DEV_CLK_FREQ_GET   pfnClockFreqGet;      /*   192     8 */
+	PFN_SYS_DEV_SOC_TIMER_READ pfnSoCTimerRead;      /*   200     8 */
+	PFN_SYS_DEV_CHECK_MEM_ALLOC_SIZE pfnCheckMemAllocSize; /*   208     8 */
+	PFN_SYS_DEV_HOST_CACHE_MAINTENANCE pfnHostCacheMaintenance; /*   216     8 */
+	IMG_BOOL                   bHasPhysicalCacheMaintenance; /*   224     4 */
+
+	/* XXX 4 bytes hole, try to pack */
+
+	PFN_SYS_DEV_FEAT_DEP_INIT  pfnSysDevFeatureDepInit; /*   232     8 */
+	PVRSRV_DVFS                sDVFS;                /*   240   120 */
+	/* --- cacheline 5 boundary (320 bytes) was 40 bytes ago --- */
+	IMG_BOOL                   bDevicePA0IsValid;    /*   360     4 */
+
+	/* XXX 4 bytes hole, try to pack */
+
+	PFN_SYS_DEV_ERROR_NOTIFY   pfnSysDevErrorNotify; /*   368     8 */
+	PFN_SLAVE_DMA_CHAN         pfnSlaveDMAGetChan;   /*   376     8 */
+	/* --- cacheline 6 boundary (384 bytes) --- */
+	PFN_SLAVE_DMA_FREE         pfnSlaveDMAFreeChan;  /*   384     8 */
+	PFN_DEV_PHY_ADDR_2_DMA_ADDR pfnDevPhysAddr2DmaAddr; /*   392     8 */
+	IMG_CHAR *                 pszDmaTxChanName;     /*   400     8 */
+	IMG_CHAR *                 pszDmaRxChanName;     /*   408     8 */
+	IMG_UINT32                 ui32DmaAlignment;     /*   416     4 */
+	IMG_UINT32                 ui32DmaTransferUnit;  /*   420     4 */
+	IMG_BOOL                   bHasDma;              /*   424     4 */
+	IMG_CHAR                   acUuid[16];           /*   428    16 */
+
+	/* size: 448, cachelines: 7, members: 45 */
+	/* sum members: 420, holes: 6, sum holes: 24 */
+	/* padding: 4 */
+};
+

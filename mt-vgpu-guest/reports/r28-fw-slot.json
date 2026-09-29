@@ -1,0 +1,159 @@
+{
+  "bytes": 8388608,
+  "sha256": "d98720f563ee95bbe08ea3fffade0619bc8f0421572216eb21838c66915faa91",
+  "started": 0,
+  "queues": [
+    {
+      "dm": 0,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 0,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 0,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 1,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 1,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 1,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 2,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 2,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 2,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 3,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 3,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 3,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 4,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 4,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 4,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    },
+    {
+      "dm": 5,
+      "ring": 0,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 5,
+      "ring": 1,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0
+    },
+    {
+      "dm": 5,
+      "ring": 2,
+      "head": 0,
+      "tail": 0,
+      "valid_cursors": true,
+      "pending": 0,
+      "pending_events": []
+    }
+  ],
+  "snapshot": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/reports/r28-fw-slot.bin",
+  "hardware_access": false
+}

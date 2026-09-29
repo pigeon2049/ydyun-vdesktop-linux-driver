@@ -1,0 +1,442 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "display_reference_sha256": "e061a9bda23fe8ae0cee81522a8b89455bfddd0b295bc86704009fcdeb82a686",
+  "passed": true,
+  "cases": [
+    {
+      "channel": 0,
+      "operation": "enable",
+      "before": "0x0",
+      "after": "0x1",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "disable",
+      "before": "0x0",
+      "after": "0x0",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "test-and-clear",
+      "before": "0x0",
+      "after": "0x0",
+      "boolean_result": 0
+    },
+    {
+      "channel": 0,
+      "operation": "enable",
+      "before": "0xffffffff",
+      "after": "0xffffffff",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "disable",
+      "before": "0xffffffff",
+      "after": "0xfffffffe",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "test-and-clear",
+      "before": "0xffffffff",
+      "after": "0xfffffffd",
+      "boolean_result": 1
+    },
+    {
+      "channel": 0,
+      "operation": "enable",
+      "before": "0x1010101",
+      "after": "0x1010101",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "disable",
+      "before": "0x1010101",
+      "after": "0x1010100",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "test-and-clear",
+      "before": "0x1010101",
+      "after": "0x1010101",
+      "boolean_result": 0
+    },
+    {
+      "channel": 0,
+      "operation": "enable",
+      "before": "0x2020202",
+      "after": "0x2020203",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "disable",
+      "before": "0x2020202",
+      "after": "0x2020202",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "test-and-clear",
+      "before": "0x2020202",
+      "after": "0x2020200",
+      "boolean_result": 1
+    },
+    {
+      "channel": 0,
+      "operation": "enable",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55a5b",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "disable",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55a5a",
+      "boolean_result": null
+    },
+    {
+      "channel": 0,
+      "operation": "test-and-clear",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55a58",
+      "boolean_result": 1
+    },
+    {
+      "channel": 1,
+      "operation": "enable",
+      "before": "0x0",
+      "after": "0x100",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "disable",
+      "before": "0x0",
+      "after": "0x0",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "test-and-clear",
+      "before": "0x0",
+      "after": "0x0",
+      "boolean_result": 0
+    },
+    {
+      "channel": 1,
+      "operation": "enable",
+      "before": "0xffffffff",
+      "after": "0xffffffff",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "disable",
+      "before": "0xffffffff",
+      "after": "0xfffffeff",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "test-and-clear",
+      "before": "0xffffffff",
+      "after": "0xfffffdff",
+      "boolean_result": 1
+    },
+    {
+      "channel": 1,
+      "operation": "enable",
+      "before": "0x1010101",
+      "after": "0x1010101",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "disable",
+      "before": "0x1010101",
+      "after": "0x1010001",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "test-and-clear",
+      "before": "0x1010101",
+      "after": "0x1010101",
+      "boolean_result": 0
+    },
+    {
+      "channel": 1,
+      "operation": "enable",
+      "before": "0x2020202",
+      "after": "0x2020302",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "disable",
+      "before": "0x2020202",
+      "after": "0x2020202",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "test-and-clear",
+      "before": "0x2020202",
+      "after": "0x2020002",
+      "boolean_result": 1
+    },
+    {
+      "channel": 1,
+      "operation": "enable",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55b5a",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "disable",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55a5a",
+      "boolean_result": null
+    },
+    {
+      "channel": 1,
+      "operation": "test-and-clear",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a5585a",
+      "boolean_result": 1
+    },
+    {
+      "channel": 2,
+      "operation": "enable",
+      "before": "0x0",
+      "after": "0x10000",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "disable",
+      "before": "0x0",
+      "after": "0x0",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "test-and-clear",
+      "before": "0x0",
+      "after": "0x0",
+      "boolean_result": 0
+    },
+    {
+      "channel": 2,
+      "operation": "enable",
+      "before": "0xffffffff",
+      "after": "0xffffffff",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "disable",
+      "before": "0xffffffff",
+      "after": "0xfffeffff",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "test-and-clear",
+      "before": "0xffffffff",
+      "after": "0xfffdffff",
+      "boolean_result": 1
+    },
+    {
+      "channel": 2,
+      "operation": "enable",
+      "before": "0x1010101",
+      "after": "0x1010101",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "disable",
+      "before": "0x1010101",
+      "after": "0x1000101",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "test-and-clear",
+      "before": "0x1010101",
+      "after": "0x1010101",
+      "boolean_result": 0
+    },
+    {
+      "channel": 2,
+      "operation": "enable",
+      "before": "0x2020202",
+      "after": "0x2030202",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "disable",
+      "before": "0x2020202",
+      "after": "0x2020202",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "test-and-clear",
+      "before": "0x2020202",
+      "after": "0x2000202",
+      "boolean_result": 1
+    },
+    {
+      "channel": 2,
+      "operation": "enable",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55a5a",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "disable",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a45a5a",
+      "boolean_result": null
+    },
+    {
+      "channel": 2,
+      "operation": "test-and-clear",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55a5a",
+      "boolean_result": 0
+    },
+    {
+      "channel": 3,
+      "operation": "enable",
+      "before": "0x0",
+      "after": "0x1000000",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "disable",
+      "before": "0x0",
+      "after": "0x0",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "test-and-clear",
+      "before": "0x0",
+      "after": "0x0",
+      "boolean_result": 0
+    },
+    {
+      "channel": 3,
+      "operation": "enable",
+      "before": "0xffffffff",
+      "after": "0xffffffff",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "disable",
+      "before": "0xffffffff",
+      "after": "0xfeffffff",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "test-and-clear",
+      "before": "0xffffffff",
+      "after": "0xfdffffff",
+      "boolean_result": 1
+    },
+    {
+      "channel": 3,
+      "operation": "enable",
+      "before": "0x1010101",
+      "after": "0x1010101",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "disable",
+      "before": "0x1010101",
+      "after": "0x10101",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "test-and-clear",
+      "before": "0x1010101",
+      "after": "0x1010101",
+      "boolean_result": 0
+    },
+    {
+      "channel": 3,
+      "operation": "enable",
+      "before": "0x2020202",
+      "after": "0x3020202",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "disable",
+      "before": "0x2020202",
+      "after": "0x2020202",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "test-and-clear",
+      "before": "0x2020202",
+      "after": "0x20202",
+      "boolean_result": 1
+    },
+    {
+      "channel": 3,
+      "operation": "enable",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55a5a",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "disable",
+      "before": "0xa5a55a5a",
+      "after": "0xa4a55a5a",
+      "boolean_result": null
+    },
+    {
+      "channel": 3,
+      "operation": "test-and-clear",
+      "before": "0xa5a55a5a",
+      "after": "0xa5a55a5a",
+      "boolean_result": 0
+    }
+  ],
+  "null_pointer_cases": 6,
+  "table_offsets": [
+    "0xf8",
+    "0x100",
+    "0x108"
+  ],
+  "hardware_written": false,
+  "host_emulated": false,
+  "limits": "Leaf behavior and callback-table identity only; display caller and startup ordering are separately inspected static evidence. Valid display channel count is not inferred from x86 shift wrapping.",
+  "live_read_only": {
+    "page0_328": "0x0",
+    "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+    "rpc_service": "running=1 ready=1 irq=10 acknowledgments=16925 replies=16925 rejected=0",
+    "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0"
+  }
+}

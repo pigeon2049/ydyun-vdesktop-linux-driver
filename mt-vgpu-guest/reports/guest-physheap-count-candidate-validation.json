@@ -1,0 +1,23 @@
+{
+  "module": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-2.3.0-guest-vgpu-info-v2-addr-sharedmem-vpumap-audit13-r10-20260929/mtgpu.ko",
+  "sha256": "5c2b68a02f7a772ccacb729d6e99a2b872e1606863bf93d6995768cd6ef53d92",
+  "core_build_tag": "5c6c275",
+  "guest_branch_targets_trampoline": true,
+  "trampoline_subtracts_one_only_on_guest_branch": true,
+  "shared_non_guest_count_unchanged": true,
+  "count_compare_offset": "0x434",
+  "mismatch_error_site_offset": "0x78f",
+  "mismatch_error_decimal": 644,
+  "mismatch_error_hex": "0x284",
+  "known_runtime_case": {
+    "driver_mode": "Guest",
+    "mem_mode": 1,
+    "reported_error": 644,
+    "static_generated_heap_count": 4,
+    "unpatched_expected_count": 5,
+    "candidate_expected_count": 4,
+    "source": "reports/official-linux-guest-port.md recorded run"
+  },
+  "candidate_matches_recorded_local_guest_count_failure": true,
+  "scope": "linked-byte and control-flow verification; no module load or device access"
+}

@@ -1,0 +1,119 @@
+{
+  "utc": "2026-09-27T18:15:05.673225+00:00",
+  "before_reload": {
+    "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0\n",
+    "rpc_service": "running=1 ready=1 irq=10 acknowledgments=105 replies=105 rejected=0\n",
+    "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0\n",
+    "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000\n",
+    "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+  },
+  "module_sha256": "6f2599bec31bc199bd0dcce1bbb0caa61a022aecbe8aa92294ee3e7b87d1553b",
+  "before_kick": {
+    "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0\n",
+    "rpc_service": "running=1 ready=1 irq=10 acknowledgments=0 replies=0 rejected=0\n",
+    "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0\n",
+    "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000\n",
+    "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+  },
+  "notification": {
+    "returncode": 0,
+    "stdout": "kick\n",
+    "stderr": "",
+    "elapsed": 13.205074176000153
+  },
+  "after_kick": {
+    "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0\n",
+    "rpc_service": "running=1 ready=1 irq=10 acknowledgments=10 replies=10 rejected=0\n",
+    "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0\n",
+    "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000\n",
+    "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+  },
+  "duplicate_attempt_guard": {
+    "returncode": 1,
+    "stderr": "tee: '/sys/bus/pci/devices/0000:00:0e.0/mt_guest/retained_control': Operation already in progress\n"
+  },
+  "relevant_logs": [
+    "[ 1540.922146] mt_guest_probe 0000:00:0e.0: retained queue kick: polls=400 guest=1 firmware=1 started=0 head=5 tail=0; no command added"
+  ],
+  "hardware_acceleration_verified": false,
+  "utc_audited": "2026-09-27T18:17:11.408086+00:00",
+  "source_sha256": "71c6698b957f151e9d1a9ea1955d4fbaa09514f2901a1cd5c7f957b3d9e05fbd",
+  "capture": "build/recovery-channel/capture-44e610d15e39/report.json",
+  "final_samples": [
+    {
+      "elapsed_seconds": 4.940000053466065e-07,
+      "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+      "rpc_service": "running=1 ready=1 irq=10 acknowledgments=10 replies=10 rejected=0",
+      "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0",
+      "vram": "result=-61 region_owned=0 device_memory_written=0 pattern_verified=0 restore_verified=0",
+      "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000",
+      "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0"
+    },
+    {
+      "elapsed_seconds": 5.000491079000085,
+      "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+      "rpc_service": "running=1 ready=1 irq=10 acknowledgments=15 replies=15 rejected=0",
+      "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0",
+      "vram": "result=-61 region_owned=0 device_memory_written=0 pattern_verified=0 restore_verified=0",
+      "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000",
+      "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0"
+    },
+    {
+      "elapsed_seconds": 10.0011501890001,
+      "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+      "rpc_service": "running=1 ready=1 irq=10 acknowledgments=15 replies=15 rejected=0",
+      "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0",
+      "vram": "result=-61 region_owned=0 device_memory_written=0 pattern_verified=0 restore_verified=0",
+      "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000",
+      "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0"
+    },
+    {
+      "elapsed_seconds": 15.001823676999948,
+      "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+      "rpc_service": "running=1 ready=1 irq=10 acknowledgments=20 replies=20 rejected=0",
+      "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0",
+      "vram": "result=-61 region_owned=0 device_memory_written=0 pattern_verified=0 restore_verified=0",
+      "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000",
+      "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0"
+    },
+    {
+      "elapsed_seconds": 20.0024773990001,
+      "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+      "rpc_service": "running=1 ready=1 irq=10 acknowledgments=25 replies=25 rejected=0",
+      "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0",
+      "vram": "result=-61 region_owned=0 device_memory_written=0 pattern_verified=0 restore_verified=0",
+      "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000",
+      "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0"
+    },
+    {
+      "elapsed_seconds": 25.000085682999952,
+      "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+      "rpc_service": "running=1 ready=1 irq=10 acknowledgments=30 replies=30 rejected=0",
+      "trial": "result=-61 connect_result=-61 disconnect_result=-61 published=0 connected=0 disconnected=0 restored=0 pinned=0 registered=15 online=0 connect_commands=0 disconnect_commands=0",
+      "vram": "result=-61 region_owned=0 device_memory_written=0 pattern_verified=0 restore_verified=0",
+      "publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000",
+      "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0"
+    }
+  ],
+  "services": {
+    "returncode": 0,
+    "stdout": "active\nactive\nactive\n",
+    "stderr": ""
+  },
+  "pci_command": {
+    "returncode": 0,
+    "stdout": "0003\n",
+    "stderr": ""
+  },
+  "kernel_irq_errors": [],
+  "drm_nodes": [
+    "card0",
+    "card0-Virtual-1",
+    "card0-Virtual-2",
+    "card0-Virtual-3",
+    "card0-Virtual-4",
+    "version"
+  ],
+  "new_commands_added": 0,
+  "firmware_state_reset_attempted": false
+}

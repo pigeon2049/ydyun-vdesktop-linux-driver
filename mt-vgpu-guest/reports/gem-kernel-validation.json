@@ -1,0 +1,31 @@
+{
+  "utc": "2026-09-29T16:10:58.184041+00:00",
+  "build_output": "make: Entering directory '/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest'\nmake -C /lib/modules/6.12.107+deb13-amd64/build M=/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest modules\nmake[1]: Entering directory '/usr/src/linux-headers-6.12.107+deb13-amd64'\n  CC [M]  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest/mt_gem_selftest.o\n  CC [M]  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest/mt_fence_selftest.o\n  MODPOST /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest/Module.symvers\n  LD [M]  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest/mt_gem_selftest.ko\n  LD [M]  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest/mt_fence_selftest.ko\n  BTF [M] /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest/mt_gem_selftest.ko\n  BTF [M] /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest/mt_fence_selftest.ko\nmake[1]: Leaving directory '/usr/src/linux-headers-6.12.107+deb13-amd64'\nmake: Leaving directory '/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/selftest'\n",
+  "module_sha256": "10d53481b3fef8c0c9ce1b3561fd5e8eeb1100c1448f13b9a9eed5115348ace9",
+  "executed": true,
+  "backing": "ordinary kernel RAM",
+  "scope": "Real DRM/GEM object callbacks and VM/BO lifetime; no real DRM file handles or GPU execution",
+  "before": {
+    "driver": "/sys/bus/pci/drivers/mt_guest_probe",
+    "live_probe_srcversion": null,
+    "drm_nodes": [
+      "by-path",
+      "card0"
+    ]
+  },
+  "result": 0,
+  "checks": 280,
+  "failure_line": 0,
+  "kernel_log": "[ 3074.359250] mt_gem_selftest: result=0 checks=280 failure_line=0 RAM allocations=21 frees=21 boot_backing_allocations=12 boot_backing_frees=12; no GPU access\n",
+  "after": {
+    "driver": "/sys/bus/pci/drivers/mt_guest_probe",
+    "live_probe_srcversion": null,
+    "drm_nodes": [
+      "by-path",
+      "card0"
+    ]
+  },
+  "test_module_unloaded": true,
+  "temporary_parent_removed": true,
+  "passed": true
+}

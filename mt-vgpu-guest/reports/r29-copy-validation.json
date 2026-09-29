@@ -1,0 +1,125 @@
+{
+  "hardware_access_by_verifier": false,
+  "boot_id": "fe18deeb-d431-4c03-ac88-34235e9849c5",
+  "gpu_copies_passed": 80,
+  "distinct_cases": 15,
+  "cases": [
+    {
+      "bytes": 256,
+      "source_offset": 0,
+      "destination_offset": 0
+    },
+    {
+      "bytes": 1,
+      "source_offset": 0,
+      "destination_offset": 0
+    },
+    {
+      "bytes": 15,
+      "source_offset": 0,
+      "destination_offset": 0
+    },
+    {
+      "bytes": 16,
+      "source_offset": 0,
+      "destination_offset": 0
+    },
+    {
+      "bytes": 31,
+      "source_offset": 0,
+      "destination_offset": 0
+    },
+    {
+      "bytes": 257,
+      "source_offset": 0,
+      "destination_offset": 0
+    },
+    {
+      "bytes": 1024,
+      "source_offset": 0,
+      "destination_offset": 0
+    },
+    {
+      "bytes": 4096,
+      "source_offset": 0,
+      "destination_offset": 0
+    },
+    {
+      "bytes": 255,
+      "source_offset": 1,
+      "destination_offset": 3
+    },
+    {
+      "bytes": 257,
+      "source_offset": 3,
+      "destination_offset": 17
+    },
+    {
+      "bytes": 1023,
+      "source_offset": 17,
+      "destination_offset": 33
+    },
+    {
+      "bytes": 2048,
+      "source_offset": 64,
+      "destination_offset": 128
+    },
+    {
+      "bytes": 7,
+      "source_offset": 4089,
+      "destination_offset": 4089
+    },
+    {
+      "bytes": 16,
+      "source_offset": 4080,
+      "destination_offset": 4077
+    },
+    {
+      "bytes": 3000,
+      "source_offset": 111,
+      "destination_offset": 113
+    }
+  ],
+  "fence_first": 3,
+  "fence_last": 82,
+  "dm1_ring_pairs_before": [
+    [
+      2,
+      2
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      2,
+      2
+    ]
+  ],
+  "dm1_ring_pairs_after": [
+    [
+      18,
+      18
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      18,
+      18
+    ]
+  ],
+  "ring_wrap_verified": true,
+  "root_matches_r28": true,
+  "root_sha256": "b07abac851a3bdcdc49c712301a79ddababb791bdeac8f601d2d6153e32f938c",
+  "final_source_all_4096_bytes_verified": true,
+  "final_destination_and_guards_verified": true,
+  "final_source_sha256": "ace368c4289820d12b6ba85347419cc023a1c1dc0299e116bd56ebd81c232dde",
+  "final_destination_sha256": "455b388bcfd9c985131e01d3542d9c1109a0eef5170b6d1cb624a3a90688e480",
+  "snapshot_sha256": "cb8ab4305c8bb90f3290a5a2db14c8f6e08efcd7f4f33ce8f669576bffc47f99",
+  "helper_sha256": "cc99aee7fc63dd3791550ae710d9de69b922a0d031b35b576c0a4fbee86e817c",
+  "runtime": "prepared=1 published=1 notified=1 result=0 retained=1 guest=2 firmware=2 started=1 event_result=0 events=1 render_ready=0",
+  "completions": "pending=0 completed=82 submit_enabled=0 workload_submit=0",
+  "limits": "80 sequential fixed-VM GPU copies. Every case checked in kernel; only final data and page tables independently snapshotted. No concurrency, root withdrawal, DRM/UMD or graphics acceleration claim."
+}

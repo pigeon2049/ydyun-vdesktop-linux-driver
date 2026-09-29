@@ -1,0 +1,32 @@
+{
+  "utc": "2026-09-28T04:02:34.993773+00:00",
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "cases": 490,
+  "rejected_cases": 13,
+  "encoded_bytes": 48,
+  "allocation_bytes": 64,
+  "linux_zero_padding_bytes": 16,
+  "formats": [
+    1,
+    2,
+    4,
+    8,
+    16
+  ],
+  "family": 2,
+  "executed": [
+    "callback installation 1400948c8",
+    "source preparation 14011bbe4",
+    "texture callback 14008deb8/1400ae5f8/1400acd90",
+    "default sampler 1400949fc/140078d18/1400aec68"
+  ],
+  "modeled": [
+    "family-2 device fields",
+    "64-byte CPU/GPU/heap-relative allocation",
+    "memcpy and stack cookie"
+  ],
+  "hardware_access": false,
+  "gpu_execution": false,
+  "limits": "Linear byte-copy geometry and default sampler only; live descriptor heap mapping, upload and execution unverified."
+}

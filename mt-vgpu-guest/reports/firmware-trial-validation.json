@@ -1,0 +1,44 @@
+{
+  "started_utc": "2026-09-27T16:31:46.388878+00:00",
+  "finished_utc": "2026-09-27T16:32:06.355330+00:00",
+  "trial": {
+    "result": -108,
+    "connect_result": -110,
+    "disconnect_result": -108,
+    "published": 1,
+    "connected": 0,
+    "disconnected": 0,
+    "restored": 0,
+    "pinned": 1,
+    "registered": 15,
+    "online": 4,
+    "connect_commands": 4,
+    "disconnect_commands": 1
+  },
+  "files": {
+    "trial_firmware": {
+      "bytes": 8388608,
+      "sha256": "1c029339ad9538094bb6a13601d5a946be77eb2c423df8c61da6fb3a41357c47"
+    },
+    "trial_backups": {
+      "bytes": 9478144,
+      "sha256": "3cfa322f560ad44cafaca59f0dc7b74815f666c160a50e0b84318fa16731a1a7"
+    },
+    "trial_events": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "channels_raw": {
+      "bytes": 16384,
+      "sha256": "c9a8f2b40eea7b75c553a62bfc681daa5fd864ddc9563bc8e1c3376ab8ecff7e"
+    }
+  },
+  "hardware_acceleration_verified": false,
+  "device_bound": true,
+  "module_loaded": true,
+  "services": {
+    "sddm": "active",
+    "spice-vdagentd": "active",
+    "tailscaled": "active"
+  }
+}

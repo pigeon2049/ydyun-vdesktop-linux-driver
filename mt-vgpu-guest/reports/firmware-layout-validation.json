@@ -1,0 +1,99 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "hardware_written": false,
+  "pci_id": "1ed5:0222",
+  "dispatch_target": "0x14002d73c",
+  "features_callback": "0x14002de98",
+  "features_cases_passed": 4096,
+  "reference_firmware_selector": 0,
+  "reference_firmware_image": "gen1",
+  "reference_mmu_mode": 0,
+  "reference_mmu_levels": 3,
+  "layout_function": "0x14001728c",
+  "layout_cases_passed": 20,
+  "layout_bytes_compared_per_case": 5648,
+  "invalid_inputs_rejected": 4,
+  "layout_sha256": "4ab518f6a5bc1fbd871e7b908b066a666505327577a9e6c3168b42820cbb3233",
+  "firmware_allocation_bytes": 8388608,
+  "state_bytes": 450000,
+  "queue_offset": 450000,
+  "queue_gpu_va": "0xe1c006ddd0",
+  "hardware_compatibility_verified": false,
+  "loader_stage_cases": [
+    {
+      "selector": 0,
+      "name": "gen1",
+      "mmu_mode": 0,
+      "bytes_compared": 8388608,
+      "sha256": "35d40f75099aaf7ff74040736ee7ee34e09e26f3556b7ea9040fa143bad9cee9"
+    },
+    {
+      "selector": 0,
+      "name": "gen1",
+      "mmu_mode": 1,
+      "bytes_compared": 8388608,
+      "sha256": "3e47b062495ac991ac16df998ee0b1659be561da88ac17bfc4b292540d00451a"
+    },
+    {
+      "selector": 1,
+      "name": "gen2",
+      "mmu_mode": 0,
+      "bytes_compared": 8388608,
+      "sha256": "914b4106cb6d8dd546c9fdf49a45b1e9c71c245769f7c0a5a05fb3ddbd41aa57"
+    },
+    {
+      "selector": 1,
+      "name": "gen2",
+      "mmu_mode": 1,
+      "bytes_compared": 8388608,
+      "sha256": "edc5b4a4652a9ef19bf4bcd56f84d8f265b6529e6b87b654405e302fe2665585"
+    },
+    {
+      "selector": 2,
+      "name": "gen2_1",
+      "mmu_mode": 0,
+      "bytes_compared": 8388608,
+      "sha256": "472d3b5edc6dc5f26e938e338443f9213e24a30a1c401db80ee31b893a9cb8bf"
+    },
+    {
+      "selector": 2,
+      "name": "gen2_1",
+      "mmu_mode": 1,
+      "bytes_compared": 8388608,
+      "sha256": "d0a30d3690225417190ec2d3242e049b07a09d82c943f2350576b2198661d3c8"
+    },
+    {
+      "selector": 3,
+      "name": "gen3",
+      "mmu_mode": 0,
+      "bytes_compared": 8388608,
+      "sha256": "1bf6ec88012b8f73ee3dc0b448313f12d46fc4569794652a427f0d718466dec3"
+    },
+    {
+      "selector": 3,
+      "name": "gen3",
+      "mmu_mode": 1,
+      "bytes_compared": 8388608,
+      "sha256": "f20046038686fae5bd1d23b54a977c8bfb5c1a0c5b51d6d86025fcb6ace30d28"
+    },
+    {
+      "selector": 4,
+      "name": "gen6",
+      "mmu_mode": 0,
+      "bytes_compared": 8388608,
+      "sha256": "5dbdb0a79bd5ec5eac171c0d366a3d70f9062096aba6c3c945e60d54999fe3e8"
+    },
+    {
+      "selector": 4,
+      "name": "gen6",
+      "mmu_mode": 1,
+      "bytes_compared": 8388608,
+      "sha256": "473dce75abd36fdaf518c4444ea67c0fec844e269516761b1a03658e4f418f11"
+    }
+  ],
+  "modeled_helpers": [
+    "ExAllocatePoolWithTag",
+    "memset",
+    "memcpy"
+  ]
+}

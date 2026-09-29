@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "complete_sequences": 128,
+  "command_bytes": 176,
+  "software_record_bytes": 256,
+  "hardware_accessed": false,
+  "functions": [
+    "1400e4d04",
+    "1400e5df4",
+    "1400e4b7c",
+    "1400e5360",
+    "1400e9420",
+    "1400e9b88"
+  ],
+  "assumptions": [
+    "CE3; state reservation 6 DWORDs",
+    "single copy plus explicit pending-copy barrier",
+    "no optional prefix or saved external state",
+    "no platform pre-copy external synchronization",
+    "modeled 0x26-DWORD reservation windows over 4096-byte RAM chunks"
+  ],
+  "limits": "The command and software record bytes match under these assumptions. Allocator, capability predicates, record storage and object reset are modeled. Live profile and record-to-DMA conversion/GPU execution are unverified."
+}

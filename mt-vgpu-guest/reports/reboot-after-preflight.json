@@ -1,0 +1,82 @@
+{
+  "utc": "2026-09-27T17:53:35.092861+00:00",
+  "kernel": "6.12.107+deb13-amd64",
+  "parameters": [
+    "enable_probe=1",
+    "query_info=1",
+    "probe_rpc=1",
+    "reserve_memory=1",
+    "prepare_resources=1",
+    "load_firmware=1",
+    "trial_connect=1"
+  ],
+  "insmod_invoked": false,
+  "hardware_acceleration_verified": false,
+  "vendor": "0x1ed5",
+  "device": "0x0222",
+  "subsystem_vendor": "0x1ed5",
+  "subsystem_device": "0x1101",
+  "driver": null,
+  "loaded_modules": [],
+  "module_sha256": "aa4644a8bfb3173a25e47dbb0873d16d01ad5964eb70eba7f84664c49d818bac",
+  "vermagic": {
+    "argv": [
+      "/usr/sbin/modinfo",
+      "-F",
+      "vermagic",
+      "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/mt_guest_probe.ko"
+    ],
+    "returncode": 0,
+    "stdout": "6.12.107+deb13-amd64 SMP preempt mod_unload modversions \n",
+    "stderr": ""
+  },
+  "firmware_sha256": "35d40f75099aaf7ff74040736ee7ee34e09e26f3556b7ea9040fa143bad9cee9",
+  "unbound_state_read": {
+    "argv": [
+      "sudo",
+      "-n",
+      "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/probe/mt-status",
+      "--read-status"
+    ],
+    "returncode": 0,
+    "stdout": "{\"pci\":\"0000:00:0e.0\",\"bar\":0,\"access\":\"read-only-u32\",\"driver_state\":1,\"firmware_state\":1,\"hardware_acceleration_verified\":false}\n",
+    "stderr": ""
+  },
+  "errors": [
+    "Device must report Guest=0 and FW=READY(1)"
+  ],
+  "eligible_for_trial": false,
+  "preflight_exit_code": 2,
+  "boot_id": "2f08fa02-a708-4b9b-bb94-3c2c01bf5e76",
+  "previous_boot_id": "babef30c-5fb0-48a0-81cb-1603a4cf10d7",
+  "guest_os_reboot_verified": true,
+  "reset_interfaces": {
+    "reset": false,
+    "reset_method": false
+  },
+  "relevant_kernel_messages": [
+    "[    0.014383] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)",
+    "[    0.184605] pci 0000:00:0e.0: [1ed5:0222] type 00 class 0x030000 PCIe Endpoint",
+    "[    0.192575] pci 0000:00:0e.0: BAR 0 [mem 0xfc610000-0xfc61ffff]",
+    "[    0.200577] pci 0000:00:0e.0: BAR 1 [mem 0xfc620000-0xfc62ffff]",
+    "[    0.208575] pci 0000:00:0e.0: BAR 2 [mem 0x800000000-0xbffffffff 64bit pref]",
+    "[    0.232651] pci 0000:00:0e.0: Video device with shadowed ROM at [mem 0x000c0000-0x000dffff]",
+    "[    0.259982] ACPI: PCI: Interrupt link LNKA configured for IRQ 10",
+    "[    0.260039] ACPI: PCI: Interrupt link LNKB configured for IRQ 10",
+    "[    0.261927] pci 0000:00:0e.0: vgaarb: bridge control possible",
+    "[    0.261927] pci 0000:00:0e.0: vgaarb: VGA device added: decodes=io+mem,owns=io+mem,locks=none",
+    "[    0.300078] ACPI: \\_SB_.LNKB: Enabled at IRQ 10",
+    "[    0.459306] ACPI: \\_SB_.LNKA: Enabled at IRQ 10",
+    "[    0.789524] ehci-pci 0000:00:07.0: irq 10, io mem 0xfc636000"
+  ],
+  "pci_command": "0003",
+  "drm_nodes": [
+    "card0-Virtual-4",
+    "card0-Virtual-2",
+    "card0-Virtual-3",
+    "card0",
+    "version",
+    "card0-Virtual-1"
+  ],
+  "observation": "Guest OS rebooted and modules unloaded, but hardware Guest connection state remained 1; new trial refused before insmod"
+}

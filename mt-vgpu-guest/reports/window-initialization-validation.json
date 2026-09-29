@@ -1,0 +1,92 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "passed": true,
+  "allocation_zeroed_bytes": 15944,
+  "initializer_hooked_after_zeroing": true,
+  "resource_and_refresh_instructions_executed": true,
+  "cases": [
+    {
+      "bar2_gpa": "0x800000000",
+      "bar2_bytes": "0x80000000",
+      "resource_flags": "0x80",
+      "compared_bytes": 280,
+      "subsequent_wddm_segments": 6,
+      "window_preserved": true
+    },
+    {
+      "bar2_gpa": "0x800000000",
+      "bar2_bytes": "0x400000000",
+      "resource_flags": "0x280",
+      "compared_bytes": 280,
+      "subsequent_wddm_segments": 6,
+      "window_preserved": true
+    },
+    {
+      "bar2_gpa": "0x1000000000",
+      "bar2_bytes": "0x80000000",
+      "resource_flags": "0x80",
+      "compared_bytes": 280,
+      "subsequent_wddm_segments": 6,
+      "window_preserved": true
+    },
+    {
+      "bar2_gpa": "0x1000000000",
+      "bar2_bytes": "0x400000000",
+      "resource_flags": "0x280",
+      "compared_bytes": 280,
+      "subsequent_wddm_segments": 6,
+      "window_preserved": true
+    },
+    {
+      "bar2_gpa": "0x2000000000",
+      "bar2_bytes": "0x80000000",
+      "resource_flags": "0x80",
+      "compared_bytes": 280,
+      "subsequent_wddm_segments": 6,
+      "window_preserved": true
+    },
+    {
+      "bar2_gpa": "0x2000000000",
+      "bar2_bytes": "0x400000000",
+      "resource_flags": "0x280",
+      "compared_bytes": 280,
+      "subsequent_wddm_segments": 6,
+      "window_preserved": true
+    }
+  ],
+  "rejected": [
+    {
+      "bar2_gpa": "0x0",
+      "bar2_bytes": "0x400000000",
+      "output_unchanged": true
+    },
+    {
+      "bar2_gpa": "0x1",
+      "bar2_bytes": "0x400000000",
+      "output_unchanged": true
+    },
+    {
+      "bar2_gpa": "0x800000000",
+      "bar2_bytes": "0x0",
+      "output_unchanged": true
+    },
+    {
+      "bar2_gpa": "0x800000000",
+      "bar2_bytes": "0x1",
+      "output_unchanged": true
+    },
+    {
+      "bar2_gpa": "0xfffffffffffff000",
+      "bar2_bytes": "0x2000",
+      "output_unchanged": true
+    },
+    {
+      "bar2_gpa": "0x800000000",
+      "bar2_bytes": "0x1000",
+      "output_unchanged": true
+    }
+  ],
+  "hardware_written": false,
+  "host_copy_length_verified": false,
+  "limits": "Constructor allocator/initializer binding modeled; resource decoding and refresh executed. Not the entire initialization callback chain or a lifetime/publication test."
+}

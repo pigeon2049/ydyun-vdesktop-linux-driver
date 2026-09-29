@@ -1,0 +1,1280 @@
+--- a/Makefile
++++ b/Makefile
+@@ -79,6 +79,7 @@
+ # build for virtualization
+ mtgpu-objs += \
+	src/mtgpu/vgpu/mtgpu_mdev_common.o \
++	src/mtgpu/vgpu/mtgpu_vgpu_info_compat.o \
+ 	src/mtgpu/vgpu/os-interface-vgpu.o
+ 
+ mtgpu-$(CONFIG_RISCV) += src/pvr/osfunc_riscv.o
+--- a/Makefile
++++ b/Makefile
+@@ -89,6 +89,8 @@
+ mtgpu-$(CONFIG_X86) += src/pvr/osfunc_x86.o
+ 
+ ccflags-y := -D__linux__ -include config_kernel.h
++ccflags-y += -DMTGPU_GUEST_ONLY_BUILD=1
++ccflags-y += -include $(OBJ_DIR)/inc/common/mtgpu_kernel_compat.h
+ ccflags-y += -include linux/version.h
+ ccflags-y += -include conftest.h
+ ccflags-y += -I$(OBJ_DIR)/inc \
+--- a/inc/common/os-interface.h
++++ b/inc/common/os-interface.h
+@@ -5,6 +5,7 @@
+ 
+ #ifndef __OS_INTERFACE_H__
+ #define __OS_INTERFACE_H__
++
+ 
+ #include "linux-types.h"
+ 
+--- a/inc/config_kernel.h
++++ b/inc/config_kernel.h
+@@ -32,7 +32,7 @@
+ #define RGX_OSID_6_DEFAULT_PRIORITY (15 - 6)
+ #define RGX_OSID_7_DEFAULT_PRIORITY (15 - 7)
+ #define RGX_HCS_DEFAULT_DEADLINE_MS 0xFFFFFFFFU
+-#define PVRSRV_APPHINT_DRIVERMODE 0
++#define PVRSRV_APPHINT_DRIVERMODE 0x80000001U
+ #define RGX_FW_HEAP_SHIFT 23
+ #define SUPPORT_AUTOVZ
+ #define SUPPORT_AUTOVZ_HW_REGS
+--- a/inc/mtgpu/vgpu/mtgpu_mdev.h
++++ b/inc/mtgpu/vgpu/mtgpu_mdev.h
+@@ -337,7 +337,8 @@
+ struct vm_area_struct;
+ struct device_attribute;
+ 
+-#if (RGX_NUM_OS_SUPPORTED > 1) && (PVRSRV_APPHINT_DRIVERMODE == 0)
++#if (RGX_NUM_OS_SUPPORTED > 1) && \
++	((PVRSRV_APPHINT_DRIVERMODE == 0) || defined(MTGPU_GUEST_ONLY_BUILD))
+ int mtgpu_mdev_init(struct mtgpu_device *mtgpu);
+ void mtgpu_mdev_exit(struct mtgpu_device *mtgpu);
+ int mtgpu_vz_init(struct mtgpu_device *mtgpu);
+--- a/inc/mtgpu/vgpu/mtgpu_mdev_common.h
++++ b/inc/mtgpu/vgpu/mtgpu_mdev_common.h
+@@ -6,7 +6,7 @@
+ #ifndef __MTGPU_MDEV_COMMON_H__
+ #define __MTGPU_MDEV_COMMON_H__
+ 
+-#if (PVRSRV_APPHINT_DRIVERMODE == 0)
++#if (PVRSRV_APPHINT_DRIVERMODE == 0) || defined(MTGPU_GUEST_ONLY_BUILD)
+ struct device;
+ struct attribute;
+ struct mdev_parent_ops;
+--- a/inc/mtgpu/vgpu/os-interface-vgpu.h
++++ b/inc/mtgpu/vgpu/os-interface-vgpu.h
+@@ -8,7 +8,17 @@
+ 
+ #include "os-interface.h"
+ 
+-#if (PVRSRV_APPHINT_DRIVERMODE == 0)
++#if (PVRSRV_APPHINT_DRIVERMODE == 0) || defined(MTGPU_GUEST_ONLY_BUILD)
++
++/* Kept only for the prebuilt core's value-table layout. Current VFIO no
++ * longer exposes these legacy mdev group notification values.
++ */
++#ifndef VFIO_GROUP_NOTIFY
++#define VFIO_GROUP_NOTIFY 0x4d540001
++#endif
++#ifndef VFIO_GROUP_NOTIFY_SET_KVM
++#define VFIO_GROUP_NOTIFY_SET_KVM 0x4d540002
++#endif
+ 
+ extern const u64 os_vgpu_value[];
+ #define OS_VGPU_VAL(index) (os_vgpu_value[OS_VGPU_##index])
+@@ -158,5 +168,5 @@
+ DECLARE_GET_OS_MEMBER_OFFSETOFEND_FUNC(vfio_irq_info, count);
+ DECLARE_GET_OS_MEMBER_OFFSETOFEND_FUNC(vfio_irq_set, count);
+ 
+-#endif /* PVRSRV_APPHINT_DRIVERMODE == 0 */
++#endif /* Host API build or Guest-only compatibility stubs */
+ #endif /* __OS_INTERFACE_VGPU_H__ */
+--- a/inc/pvr/services/osfunc.h
++++ b/inc/pvr/services/osfunc.h
+@@ -800,13 +800,13 @@
+ 
+ /*************************************************************************/ /*!
+ @Function       OSStringLCpy
+-@Description    OS function to support the standard C strlcpy() function.
++@Description    OS function to support the standard C MTGPU_STRLCPY() function.
+ */ /**************************************************************************/
+ size_t OSStringLCpy(IMG_CHAR *pszDest, const IMG_CHAR *pszSrc, size_t uDstSize);
+ 
+ /*************************************************************************/ /*!
+ @Function       OSStringLCat
+-@Description    OS function to support the BSD C strlcat() function.
++@Description    OS function to support the BSD C MTGPU_STRLCAT() function.
+ */ /**************************************************************************/
+ size_t OSStringLCat(IMG_CHAR *pszDest, const IMG_CHAR *pszSrc, size_t uDstSize);
+ 
+--- a/inc/pvr/services/pvr_fence_trace.h
++++ b/inc/pvr/services/pvr_fence_trace.h
+@@ -46,6 +46,11 @@
+ #define _TRACE_PVR_FENCE_H
+ 
+ #include <linux/tracepoint.h>
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#define PVR_ASSIGN_STR(dst, src) __assign_str(dst);
++#else
++#define PVR_ASSIGN_STR(dst, src) __assign_str(dst, src);
++#endif
+ 
+ struct pvr_fence;
+ struct pvr_fence_context;
+@@ -61,7 +66,7 @@
+ 	),
+ 
+ 	TP_fast_assign(
+-		__assign_str(name, fctx->name)
++		PVR_ASSIGN_STR(name, fctx->name)
+ 		pvr_context_value_str(fctx, __entry->val,
+ 			sizeof(__entry->val));
+ 	),
+@@ -106,10 +111,8 @@
+ 	),
+ 
+ 	TP_fast_assign(
+-		__assign_str(driver,
+-			fence->base.ops->get_driver_name(&fence->base))
+-		__assign_str(timeline,
+-			fence->base.ops->get_timeline_name(&fence->base))
++		PVR_ASSIGN_STR(driver, fence->base.ops->get_driver_name(&fence->base))
++		PVR_ASSIGN_STR(timeline, fence->base.ops->get_timeline_name(&fence->base))
+ 		fence->base.ops->fence_value_str(&fence->base,
+ 			__entry->val, sizeof(__entry->val));
+ 		__entry->context = fence->base.context;
+@@ -165,26 +168,18 @@
+ 	),
+ 
+ 	TP_fast_assign(
+-		__assign_str(driver,
+-			fence->base.ops->get_driver_name(&fence->base))
+-		__assign_str(timeline,
+-			fence->base.ops->get_timeline_name(&fence->base))
++		PVR_ASSIGN_STR(driver, fence->base.ops->get_driver_name(&fence->base))
++		PVR_ASSIGN_STR(timeline, fence->base.ops->get_timeline_name(&fence->base))
+ 		fence->base.ops->fence_value_str(&fence->base, __entry->val,
+ 			sizeof(__entry->val));
+ 		__entry->context = fence->base.context;
+-		__assign_str(foreign_driver,
+-			fence->fence->ops->get_driver_name ?
+-			fence->fence->ops->get_driver_name(fence->fence) :
+-			"unknown")
+-		__assign_str(foreign_timeline,
+-			fence->fence->ops->get_timeline_name ?
+-			fence->fence->ops->get_timeline_name(fence->fence) :
+-			"unknown")
++		PVR_ASSIGN_STR(foreign_driver, fence->fence->ops->get_driver_name ? fence->fence->ops->get_driver_name(fence->fence) : "unknown")
++		PVR_ASSIGN_STR(foreign_timeline, fence->fence->ops->get_timeline_name ? fence->fence->ops->get_timeline_name(fence->fence) : "unknown")
+ 		fence->fence->ops->fence_value_str ?
+ 			fence->fence->ops->fence_value_str(
+ 				fence->fence, __entry->foreign_val,
+ 				sizeof(__entry->foreign_val)) :
+-			(void) strlcpy(__entry->foreign_val,
++			(void) MTGPU_STRLCPY(__entry->foreign_val,
+ 				"unknown", sizeof(__entry->foreign_val));
+ 		__entry->foreign_context = fence->fence->context;
+ 	),
+--- a/inc/pvr/services/pvr_trace_events.h
++++ b/inc/pvr/services/pvr_trace_events.h
+@@ -47,6 +47,11 @@
+ #include <linux/version.h>
+ #include <linux/types.h>
+ #include <linux/tracepoint.h>
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#define PVR_ASSIGN_TRACE_STR(dst, src) __assign_str(dst);
++#else
++#define PVR_ASSIGN_TRACE_STR(dst, src) PVR_ASSIGN_TRACE_STR(dst, src)
++#endif
+ #include <linux/time.h>
+ 
+ #define show_secs_from_ns(ns) \
+@@ -89,9 +94,9 @@
+ 	),
+ 
+ 	TP_fast_assign(
+-		__assign_str(comm, comm);
+-		__assign_str(cmd, cmd);
+-		__assign_str(dm, dm);
++		PVR_ASSIGN_TRACE_STR(comm, comm);
++		PVR_ASSIGN_TRACE_STR(cmd, cmd);
++		PVR_ASSIGN_TRACE_STR(dm, dm);
+ 		__entry->ctx_id = ctx_id;
+ 		__entry->offset = offset;
+ 		__entry->sync_fwaddr = sync_fwaddr;
+@@ -136,9 +141,9 @@
+ 	),
+ 
+ 	TP_fast_assign(
+-		__assign_str(comm, comm);
+-		__assign_str(cmd, cmd);
+-		__assign_str(dm, dm);
++		PVR_ASSIGN_TRACE_STR(comm, comm);
++		PVR_ASSIGN_TRACE_STR(cmd, cmd);
++		PVR_ASSIGN_TRACE_STR(dm, dm);
+ 		__entry->ctx_id = ctx_id;
+ 		__entry->offset = offset;
+ 		__entry->sync_fwaddr = sync_fwaddr;
+@@ -176,7 +181,7 @@
+ 		__entry->ctx_id = ctx_id;
+ 		__entry->int_id = int_id;
+ 		__entry->ext_id = ext_id;
+-		__assign_str(kick_type, kick_type);
++		PVR_ASSIGN_TRACE_STR(kick_type, kick_type);
+ 	),
+ 
+ 	TP_printk("ctx_id=%lu int_id=%lu ext_id=%lu kick_type=%s",
+@@ -205,7 +210,7 @@
+ 	),
+ 
+ 	TP_fast_assign(
+-		__assign_str(work_type, work_type);
++		PVR_ASSIGN_TRACE_STR(work_type, work_type);
+ 		__entry->switch_type = switch_type;
+ 		__entry->timestamp = timestamp;
+ 		__entry->next_ctx_id = next_ctx_id;
+@@ -243,8 +248,8 @@
+ 	),
+ 
+ 	TP_fast_assign(
+-		__assign_str(comm, comm);
+-		__assign_str(dm, dm);
++		PVR_ASSIGN_TRACE_STR(comm, comm);
++		PVR_ASSIGN_TRACE_STR(dm, dm);
+ 		__entry->ctx_id = ctx_id;
+ 	),
+ 
+@@ -510,7 +515,7 @@
+ 
+ 	TP_fast_assign(
+ 		__entry->timestamp = timestamp;
+-		__assign_str(task, task);
++		PVR_ASSIGN_TRACE_STR(task, task);
+ 		__entry->fw_event = fw_event;
+ 	),
+ 
+--- a/src/common/os-interface.c
++++ b/src/common/os-interface.c
+@@ -23,6 +23,7 @@
+ #include <linux/jiffies.h>
+ #include <linux/kthread.h>
+ #include <linux/mm.h>
++#include <linux/mmzone.h>
+ #include <linux/mm_types.h>
+ #if defined(OS_LINUX_MAPLE_TREE_H_EXIST)
+ #include <linux/maple_tree.h>
+@@ -72,6 +73,25 @@
+ 
+ #include "mtgpu_device.h"
+ #include "os-interface.h"
++
++#ifndef MAX_ORDER
++#define MAX_ORDER (MAX_PAGE_ORDER + 1)
++#endif
++#ifndef PCI_IRQ_LEGACY
++#define PCI_IRQ_LEGACY PCI_IRQ_INTX
++#endif
++
++/* Linux 6.12 removed the fbdev aperture allocator but the legacy core ABI
++ * still expects its compact count + flexible range array. */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++struct apertures_struct {
++	unsigned int count;
++	struct {
++		resource_size_t base;
++		resource_size_t size;
++	} ranges[];
++};
++#endif
+ #if defined(SUPPORT_ION)
+ #include "ion/ion.h"
+ #include "ion_lma_heap.h"
+@@ -460,7 +480,18 @@
+ 
+ struct apertures_struct *os_alloc_apertures(unsigned int max_num)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	struct apertures_struct *ap;
++
++	if (max_num > (SIZE_MAX - sizeof(*ap)) / sizeof(ap->ranges[0]))
++		return NULL;
++	ap = kzalloc(struct_size(ap, ranges, max_num), GFP_KERNEL);
++	if (ap)
++		ap->count = max_num;
++	return ap;
++#else
+ 	return alloc_apertures(max_num);
++#endif
+ }
+ 
+ int os_sg_table_create(struct sg_table **sgt)
+@@ -668,7 +699,11 @@
+ 
+ void os_set_vm_area_struct_vm_flags(struct vm_area_struct *vma, unsigned long flag)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
++	vm_flags_reset(vma, flag);
++#else
+ 	vma->vm_flags = flag;
++#endif
+ }
+ 
+ void *os_memcpy(void *dst, const void *src, size_t size)
+@@ -1219,7 +1254,11 @@
+ 
+ struct file *os_get_fd_file(struct fd *fd)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
++	return fd_file(*fd);
++#else
+ 	return fd->file;
++#endif
+ }
+ 
+ void os_kref_init(mt_kref *kref)
+@@ -1717,12 +1756,23 @@
+ 
+ int os_pci_enable_pcie_error_reporting(struct pci_dev *pdev)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	/* AER reporting is managed by the PCI core on this kernel. */
++	(void)pdev;
++	return 0;
++#else
+ 	return pci_enable_pcie_error_reporting(pdev);
++#endif
+ }
+ 
+ int os_pci_disable_pcie_error_reporting(struct pci_dev *pdev)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	(void)pdev;
++	return 0;
++#else
+ 	return pci_disable_pcie_error_reporting(pdev);
++#endif
+ }
+ 
+ int os_pci_dev_wait(struct pci_dev *dev, char *reset_type, int timeout)
+@@ -2164,7 +2214,15 @@
+ 
+ u64 os_eventfd_signal(struct eventfd_ctx *ctx, __u64 n)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
++	__u64 i;
++
++	for (i = 0; i < n; i++)
++		eventfd_signal(ctx);
++	return n;
++#else
+ 	return eventfd_signal(ctx, n);
++#endif
+ }
+ 
+ void os_eventfd_ctx_put(struct eventfd_ctx *ctx)
+@@ -2214,7 +2272,11 @@
+ 
+ int os_pci_resize_resource(struct pci_dev *dev, int resno, int size)
+ {
+-	return pci_resize_resource(dev,  resno,  size);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	return pci_resize_resource(dev, resno, size, 0);
++#else
++	return pci_resize_resource(dev, resno, size);
++#endif
+ }
+ 
+ void os_pci_assign_unassigned_bus_resources(struct pci_bus *bus)
+@@ -2312,7 +2374,11 @@
+ int os_iommu_map(struct iommu_domain *domain, unsigned long iova,
+ 		 phys_addr_t paddr, size_t size, int prot)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	return iommu_map(domain, iova, paddr, size, prot, GFP_KERNEL);
++#else
+ 	return iommu_map(domain, iova, paddr, size, prot);
++#endif
+ }
+ 
+ size_t os_iommu_unmap(struct iommu_domain *domain, unsigned long iova, size_t size)
+--- a/src/mtgpu/mtgpu_drm_dispc.c
++++ b/src/mtgpu/mtgpu_drm_dispc.c
+@@ -820,10 +820,10 @@
+ 	return component_add(&pdev->dev, &mtgpu_dispc_component_ops);
+ }
+ 
+-static int mtgpu_dispc_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE mtgpu_dispc_remove(struct platform_device *pdev)
+ {
+ 	component_del(&pdev->dev, &mtgpu_dispc_component_ops);
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static struct platform_device_id mtgpu_dispc_device_id[] = {
+--- a/src/mtgpu/mtgpu_drm_dp.c
++++ b/src/mtgpu/mtgpu_drm_dp.c
+@@ -749,10 +749,10 @@
+ 	return component_add(&pdev->dev, &mtgpu_dp_component_ops);
+ }
+ 
+-static int mtgpu_dp_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE mtgpu_dp_remove(struct platform_device *pdev)
+ {
+ 	component_del(&pdev->dev, &mtgpu_dp_component_ops);
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static struct platform_device_id mtgpu_dp_device_id[] = {
+--- a/src/mtgpu/mtgpu_drm_drv.c
++++ b/src/mtgpu/mtgpu_drm_drv.c
+@@ -265,7 +265,9 @@
+ 		org_max_height = drm->mode_config.max_height;
+ 		drm->mode_config.max_width = 1024;
+ 		drm->mode_config.max_height = 768;
++#if defined(OS_DRM_DRM_FBDEV_GENERIC_H_EXIST)
+ 		drm_fbdev_generic_setup(drm, 32);
++#endif
+ 		drm->mode_config.max_width = org_max_width;
+ 		drm->mode_config.max_height = org_max_height;
+ 	}
+@@ -370,10 +372,10 @@
+ 	return component_master_add_with_match(dev, &mtgpu_component_ops, match);
+ }
+ 
+-static int mtgpu_drm_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE mtgpu_drm_remove(struct platform_device *pdev)
+ {
+ 	component_master_del(&pdev->dev, &mtgpu_component_ops);
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static int mtgpu_drm_suspend(struct device *dev)
+@@ -447,10 +449,11 @@
+ 
+ 	kfree(ap);
+ #else
+-	drm_aperture_remove_conflicting_framebuffers(base,
+-						     size,
+-						     false,
+-						     &mtgpu_drm_driver);
++	#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	drm_aperture_remove_conflicting_framebuffers(base, size, &mtgpu_drm_driver);
++#else
++	drm_aperture_remove_conflicting_framebuffers(base, size, false, &mtgpu_drm_driver);
++#endif
+ #endif
+ 
+ 	return 0;
+--- a/src/mtgpu/mtgpu_drm_dummy_connector.c
++++ b/src/mtgpu/mtgpu_drm_dummy_connector.c
+@@ -196,10 +196,10 @@
+ 	return component_add(&pdev->dev, &dummy_connector_component_ops);
+ }
+ 
+-static int dummy_connector_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE dummy_connector_remove(struct platform_device *pdev)
+ {
+ 	component_del(&pdev->dev, &dummy_connector_component_ops);
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static struct platform_device_id dummy_device_id[] = {
+--- a/src/mtgpu/mtgpu_drm_dummy_crtc.c
++++ b/src/mtgpu/mtgpu_drm_dummy_crtc.c
+@@ -317,10 +317,10 @@
+ 	return component_add(&pdev->dev, &dummy_crtc_component_ops);
+ }
+ 
+-static int dummy_crtc_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE dummy_crtc_remove(struct platform_device *pdev)
+ {
+ 	component_del(&pdev->dev, &dummy_crtc_component_ops);
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static struct platform_device_id dummy_crtc_device_id[] = {
+--- a/src/mtgpu/mtgpu_drm_hdmi.c
++++ b/src/mtgpu/mtgpu_drm_hdmi.c
+@@ -10,6 +10,9 @@
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
+ #include <linux/i2c.h>
++#ifndef I2C_CLASS_DDC
++#define I2C_CLASS_DDC I2C_CLASS_DEPRECATED
++#endif
+ #if defined(OS_DRM_DRMP_H_EXIST)
+ #include <drm/drmP.h>
+ #endif
+@@ -1114,10 +1117,10 @@
+ 	return component_add(&pdev->dev, &mtgpu_hdmi_component_ops);
+ }
+ 
+-static int mtgpu_hdmi_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE mtgpu_hdmi_remove(struct platform_device *pdev)
+ {
+ 	component_del(&pdev->dev, &mtgpu_hdmi_component_ops);
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static struct platform_device_id mtgpu_hdmi_device_id[] = {
+--- a/src/mtgpu/mtgpu_ipc_tty.c
++++ b/src/mtgpu/mtgpu_ipc_tty.c
+@@ -43,10 +43,12 @@
+ 	tty_port_hangup(&ipc_tty->port);
+ }
+ 
+-static int ipc_tty_write(struct tty_struct *tty, const u8 *buf, int count)
+-{
+-	struct mtgpu_ipc_tty *ipc_tty = tty->driver_data;
+-
++static MT_TTY_WRITE_RETURN ipc_tty_write(struct tty_struct *tty, const u8 *buf, MT_TTY_WRITE_COUNT count)
++{
++	struct mtgpu_ipc_tty *ipc_tty = tty->driver_data;
++
++	if (count > INT_MAX)
++		count = INT_MAX;
+ 	return mtgpu_fec_tty_do_write(ipc_tty->dev, buf, count, tty->index);
+ }
+ 
+--- a/src/mtgpu/mtgpu_module_param.c
++++ b/src/mtgpu/mtgpu_module_param.c
+@@ -71,10 +71,14 @@
+ 		 "mtgpu udma and hdma debug information enable(1)/disable(0) ");
+ 
+ #if (RGX_NUM_OS_SUPPORTED > 1)
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++int mtgpu_driver_mode = MTGPU_DRIVER_MODE_GUEST;
++#else
+ int mtgpu_driver_mode = MTGPU_DRIVER_MODE_HOST;
+ module_param(mtgpu_driver_mode, int, 0444);
+ MODULE_PARM_DESC(mtgpu_driver_mode,
+ 		 "mtgpu driver mode (native = -1, host = 0, guest = 1 )");
++#endif
+ #else
+ int mtgpu_driver_mode = MTGPU_DRIVER_MODE_NATIVE;
+ #endif
+--- a/src/mtgpu/phy-mthreads-dp.c
++++ b/src/mtgpu/phy-mthreads-dp.c
+@@ -200,7 +200,7 @@
+ 	return 0;
+ }
+ 
+-static int mtgpu_phy_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE mtgpu_phy_remove(struct platform_device *pdev)
+ {
+ 	struct mtgpu_phy *mtgpu = platform_get_drvdata(pdev);
+ 
+@@ -208,7 +208,7 @@
+ 
+ 	dev_info(&pdev->dev, "remove mtgpu dp-phy driver\n");
+ 
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static struct platform_device_id mtgpu_phy_device_id[] = {
+--- a/src/mtgpu/vgpu/mtgpu_mdev_common.c
++++ b/src/mtgpu/vgpu/mtgpu_mdev_common.c
+@@ -8,7 +8,7 @@
+  * device module.
+  */
+ 
+-#if (PVRSRV_APPHINT_DRIVERMODE == 0)
++#if (PVRSRV_APPHINT_DRIVERMODE == 0) || defined(MTGPU_GUEST_ONLY_BUILD)
+ 
+ #include <linux/vfio.h>
+ #include <linux/mdev.h>
+@@ -18,6 +18,30 @@
+ #include "mtgpu_mdev.h"
+ #include "vgpu_types.h"
+ 
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++/* Host-side vGPU creation is unavailable in a Guest-only module. The
++ * prebuilt core still contains these entry points, but Guest mode must not
++ * call them. Keep link-time stubs so the Guest driver can build on kernels
++ * where the legacy mdev_parent_ops API has been removed.
++ */
++struct attribute_group **mtgpu_mdev_create_type_groups(const char *types[], int len)
++{
++	return NULL;
++}
++
++void mtgpu_mdev_destroy_type_groups(struct attribute_group **type_groups)
++{
++}
++
++struct mdev_parent_ops *mtgpu_mdev_create_ops(struct device *dev)
++{
++	return NULL;
++}
++
++void mtgpu_mdev_destroy_ops(struct mdev_parent_ops *mdev_ops)
++{
++}
++#else
+ static DEVICE_ATTR_RO(vgpu_id);
+ static DEVICE_ATTR_RO(display_num_max);
+ static DEVICE_ATTR(display_num, 0644, display_num_show, display_num_store);
+@@ -255,5 +279,6 @@
+ 	mtgpu_mdev_destroy_type_groups(ops->supported_type_groups);
+ 	kfree(ops);
+ }
+-
+-#endif /* PVRSRV_APPHINT_DRIVERMODE == 0 */
++#endif
++
++#endif /* Host API build or Guest-only compatibility stubs */
+--- a/src/mtgpu/vgpu/os-interface-vgpu.c
++++ b/src/mtgpu/vgpu/os-interface-vgpu.c
+@@ -3,7 +3,7 @@
+  * @License     Dual MIT/GPLv2
+  */
+ 
+-#if (PVRSRV_APPHINT_DRIVERMODE == 0)
++#if (PVRSRV_APPHINT_DRIVERMODE == 0) || defined(MTGPU_GUEST_ONLY_BUILD)
+ 
+ #include <linux/kvm_host.h>
+ #include <linux/mdev.h>
+@@ -44,17 +44,29 @@
+ 
+ struct page *os_gfn_to_page(struct kvm *kvm, u64 gfn)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return NULL;
++#else
+ 	return gfn_to_page(kvm, gfn);
++#endif
+ }
+ 
+ unsigned long os_gfn_to_hva(struct kvm *kvm, u64 gfn)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return ~0UL;
++#else
+ 	return gfn_to_hva(kvm, gfn);
++#endif
+ }
+ 
+ u64 os_gfn_to_pfn(struct kvm *kvm, u64 gfn)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return ~0ULL;
++#else
+ 	return gfn_to_pfn(kvm, gfn);
++#endif
+ }
+ 
+ u64 os_gpa_to_gfn(u64 gpa)
+@@ -79,17 +91,25 @@
+ 
+ void os_kvm_get_kvm(struct kvm *kvm)
+ {
++#if !defined(MTGPU_GUEST_ONLY_BUILD)
+ 	kvm_get_kvm(kvm);
++#endif
+ }
+ 
+ void os_kvm_put_kvm(struct kvm *kvm)
+ {
++#if !defined(MTGPU_GUEST_ONLY_BUILD)
+ 	kvm_put_kvm(kvm);
++#endif
+ }
+ 
+ void os_kvm_release_pfn_clean(u64 pfn)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return;
++#else
+ 	return kvm_release_pfn_clean(pfn);
++#endif
+ }
+ 
+ struct kvm_memslots *os_kvm_memslots(struct kvm *kvm)
+@@ -99,12 +119,20 @@
+ 
+ struct kvm_memory_slot *os_list_first_kvm_memslot(struct kvm_memslots *slots)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return NULL;
++#else
+ 	return &slots->memslots[0];
++#endif
+ }
+ 
+ bool os_list_kvm_memslot_check(struct kvm_memslots *slots, struct kvm_memory_slot *slot)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return false;
++#else
+ 	return slot < slots->memslots + KVM_MEM_SLOTS_NUM && slot->npages;
++#endif
+ }
+ 
+ void os_kvm_memslot_inc(struct kvm_memory_slot **slot)
+@@ -114,26 +142,46 @@
+ 
+ void *os_mdev_get_drvdata(struct mdev_device *mdev)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return NULL;
++#else
+ 	return mdev_get_drvdata(mdev);
++#endif
+ }
+ 
+ struct device *os_mdev_parent_dev(struct mdev_device *mdev)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return NULL;
++#else
+ 	return mdev_parent_dev(mdev);
++#endif
+ }
+ 
+ struct device *os_mdev_dev(struct mdev_device *mdev)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return NULL;
++#else
+ 	return mdev_dev(mdev);
++#endif
+ }
+ 
+ struct mdev_device *os_mdev_from_dev(struct device *dev)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return NULL;
++#else
+ 	return mdev_from_dev(dev);
++#endif
+ }
+ 
+ const mt_guid_t os_mdev_uuid(struct mdev_device *mdev)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	mt_guid_t mt_uuid = { { 0 } };
++	return mt_uuid;
++#else
+ 	guid_t uuid;
+ 	mt_guid_t mt_uuid;
+ 
+@@ -146,15 +194,21 @@
+ 	memcpy(&mt_uuid, &uuid, sizeof(uuid));
+ 
+ 	return mt_uuid;
++#endif
+ }
+ 
+ void os_mdev_set_drvdata(struct mdev_device *mdev, void *data)
+ {
++#if !defined(MTGPU_GUEST_ONLY_BUILD)
+ 	mdev_set_drvdata(mdev, data);
++#endif
+ }
+ 
+ int os_mdev_set_iommu_device(struct mdev_device *mdev, struct device *iommu_device)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return -EOPNOTSUPP;
++#else
+ #if defined(OS_FUNC_MDEV_SET_IOMMU_DEVICE_EXIST)
+ 	if (!mdev)
+ 		return 0;
+@@ -168,16 +222,23 @@
+ #else
+ 	return -ENOTSUPP;
+ #endif /* OS_FUNC_MDEV_SET_IOMMU_DEVICE_EXIST */
++#endif
+ }
+ 
+ int os_mdev_register_device(struct device *dev, const struct mdev_parent_ops *ops)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return -EOPNOTSUPP;
++#else
+ 	return mdev_register_device(dev, ops);
++#endif
+ }
+ 
+ void os_mdev_unregister_device(struct device *dev)
+ {
++#if !defined(MTGPU_GUEST_ONLY_BUILD)
+ 	mdev_unregister_device(dev);
++#endif
+ }
+ 
+ int os_vfio_register_notifier(struct device *dev,
+@@ -185,21 +246,33 @@
+ 			      unsigned long *required_events,
+ 			      struct notifier_block *nb)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return -EOPNOTSUPP;
++#else
+ 	return vfio_register_notifier(dev, type, required_events, nb);
++#endif
+ }
+ 
+ int os_vfio_unregister_notifier(struct device *dev,
+ 				int type,
+ 				struct notifier_block *nb)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return -EOPNOTSUPP;
++#else
+ 	return vfio_unregister_notifier(dev, type, nb);
++#endif
+ }
+ 
+ int os_vfio_set_irqs_validate_and_prepare(struct vfio_irq_set *hdr,
+ 					  int num_irqs, int max_irq_type,
+ 					  size_t *data_size)
+ {
++#if defined(MTGPU_GUEST_ONLY_BUILD)
++	return -EOPNOTSUPP;
++#else
+ 	return vfio_set_irqs_validate_and_prepare(hdr, num_irqs, max_irq_type, data_size);
++#endif
+ }
+ 
+ struct vfio_device_info *os_create_vfio_device_info(void)
+@@ -278,4 +351,4 @@
+ IMPLEMENT_GET_OS_MEMBER_OFFSETOFEND_FUNC(vfio_irq_info, count);
+ IMPLEMENT_GET_OS_MEMBER_OFFSETOFEND_FUNC(vfio_irq_set, count);
+ 
+-#endif /* PVRSRV_APPHINT_DRIVERMODE == 0 */
++#endif /* Host API build or Guest-only compatibility stubs */
+--- a/src/mtjpu/mtjpu_drv.c
++++ b/src/mtjpu/mtjpu_drv.c
+@@ -160,11 +160,11 @@
+ 	return component_add(&plat_dev->dev, &mtjpu_component_ops);
+ }
+ 
+-static int mtjpu_remove(struct platform_device *plat_dev)
++static MT_PLATFORM_REMOVE_TYPE mtjpu_remove(struct platform_device *plat_dev)
+ {
+ 	component_del(&plat_dev->dev, &mtjpu_component_ops);
+ 
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static struct platform_device_id mtjpu_id_tbl[] = {
+--- a/src/mtvpu/mtvpu_drv.c
++++ b/src/mtvpu/mtvpu_drv.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include <linux/platform_device.h>
++#include <linux/vmalloc.h>
+ #include <linux/component.h>
+ #include <linux/debugfs.h>
+ #include <linux/uaccess.h>
+@@ -508,11 +509,11 @@
+ 	return component_add(&pdev->dev, &mtvpu_component_ops);
+ }
+ 
+-static int vpu_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE vpu_remove(struct platform_device *pdev)
+ {
+ 	component_del(&pdev->dev, &mtvpu_component_ops);
+ 
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static const struct dev_pm_ops vpu_pm_ops = {
+--- a/src/mtvpu/mtvpu_gem.c
++++ b/src/mtvpu/mtvpu_gem.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include <linux/slab.h>
++#include <linux/vmalloc.h>
+ #include <linux/device.h>
+ 
+ #include <drm/drm_file.h>
+--- a/src/pvr/km_apphint.c
++++ b/src/pvr/km_apphint.c
+@@ -849,7 +849,13 @@
+ 	int result;
+ 
+ 	/* need to discard const in case of string comparison */
+-	result = strlcpy(val_copy, val, APPHINT_BUFFER_SIZE);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
++	result = strscpy(val_copy, val, APPHINT_BUFFER_SIZE);
++	if (result < 0)
++		result = APPHINT_BUFFER_SIZE;
++#else
++	result = MTGPU_STRLCPY(val_copy, val, APPHINT_BUFFER_SIZE);
++#endif
+ 
+ 	get_apphint_id_from_action_addr(kp->arg, &id);
+ 	if (result < APPHINT_BUFFER_SIZE) {
+@@ -1601,9 +1607,12 @@
+ 															 apphint.val[ue + device_offset].private_data,
+ 															 pBuffer);
+ 		} else {
+-			if (strlcpy(apphint.val[ue + device_offset].stored.STRING, pBuffer, size) < size) {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
++			if (strscpy(apphint.val[ue + device_offset].stored.STRING, pBuffer, size) >= 0)
++#else
++			if (MTGPU_STRLCPY(apphint.val[ue + device_offset].stored.STRING, pBuffer, size) < size)
++#endif
+ 				error = 0;
+-			}
+ 		}
+ 		apphint.val[ue].device = device;
+ 	}
+--- a/src/pvr/osfunc.c
++++ b/src/pvr/osfunc.c
+@@ -518,7 +518,15 @@
+ 
+ size_t OSStringLCpy(IMG_CHAR *pszDest, const IMG_CHAR *pszSrc, size_t uDstSize)
+ {
+-	return strlcpy(pszDest, pszSrc, uDstSize);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
++	size_t src_len = strlen(pszSrc);
++
++	if (uDstSize)
++		strscpy(pszDest, pszSrc, uDstSize);
++	return src_len;
++#else
++	return MTGPU_STRLCPY(pszDest, pszSrc, uDstSize);
++#endif
+ }
+ 
+ size_t OSStringLCat(IMG_CHAR *pszDest, const IMG_CHAR *pszSrc, size_t uDstSize)
+@@ -527,7 +535,7 @@
+ 	 * Let strlcat handle any truncation cases correctly.
+ 	 * We will definitely get a NUL-terminated string set in pszDest
+ 	 */
+-	size_t uSrcSize = strlcat(pszDest, pszSrc, uDstSize);
++	size_t uSrcSize = MTGPU_STRLCAT(pszDest, pszSrc, uDstSize);
+ 
+ #if defined(PVR_DEBUG_STRLCPY) && defined(DEBUG)
+ 	/* Handle truncation by dumping calling stack if debug allows */
+--- a/src/pvr/physmem_osmem_linux.c
++++ b/src/pvr/physmem_osmem_linux.c
+@@ -453,7 +453,11 @@
+ 	return IMG_TRUE;
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++static struct shrinker *g_sShrinker;
++#else
+ static struct shrinker g_sShrinker;
++#endif
+ 
+ /* Returning the number of pages that still reside in the page pool. */
+ static unsigned long
+@@ -469,7 +473,11 @@
+ {
+ 	int remain;
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	PVR_ASSERT(psShrinker == g_sShrinker);
++#else
+ 	PVR_ASSERT(psShrinker == &g_sShrinker);
++#endif
+ 	(void)psShrinker;
+ 	(void)psShrinkControl;
+ 
+@@ -491,7 +499,11 @@
+ 	LinuxUnpinEntry *psUnpinEntry, *psTempUnpinEntry;
+ 	IMG_UINT32 uiPagesFreed;
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	PVR_ASSERT(psShrinker == g_sShrinker);
++#else
+ 	PVR_ASSERT(psShrinker == &g_sShrinker);
++#endif
+ 	(void)psShrinker;
+ 
+ 	/* In order to avoid possible deadlock use mutex_trylock in place of mutex_lock */
+@@ -597,6 +609,7 @@
+ 	.seeks = DEFAULT_SEEKS
+ };
+ #else
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ static struct shrinker g_sShrinker =
+ {
+ 	.count_objects = _CountObjectsInPagePool,
+@@ -604,6 +617,7 @@
+ 	.seeks = DEFAULT_SEEKS
+ };
+ #endif
++#endif
+ 
+ /* Register the shrinker so Linux can reclaim cached pages */
+ void LinuxInitPhysmem(void)
+@@ -614,7 +628,16 @@
+ 	if (g_psLinuxPagePoolCache)
+ 	{
+ 		/* Only create the shrinker if we created the cache OK */
+-#if defined(OS_REGISTER_SHRINKER_HAS_ONE_ARG)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++		g_sShrinker = shrinker_alloc(0, "mtgpu-pagepool");
++		if (g_sShrinker)
++		{
++			g_sShrinker->count_objects = _CountObjectsInPagePool;
++			g_sShrinker->scan_objects = _ScanObjectsInPagePool;
++			g_sShrinker->seeks = DEFAULT_SEEKS;
++			shrinker_register(g_sShrinker);
++		}
++#elif defined(OS_REGISTER_SHRINKER_HAS_ONE_ARG)
+ 		register_shrinker(&g_sShrinker);
+ #else
+ 		register_shrinker(&g_sShrinker, "mtgpu-pagepool");
+@@ -648,7 +671,15 @@
+ 	/* Free the page cache */
+ 	kmem_cache_destroy(g_psLinuxPagePoolCache);
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	if (g_sShrinker)
++	{
++		shrinker_free(g_sShrinker);
++		g_sShrinker = NULL;
++	}
++#else
+ 	unregister_shrinker(&g_sShrinker);
++#endif
+ 	_PagePoolUnlock();
+ 
+ 	kmem_cache_destroy(g_psLinuxPageArray);
+--- a/src/pvr/pmr_os.c
++++ b/src/pvr/pmr_os.c
+@@ -519,7 +519,11 @@
+ 	 */
+ 	if (PMR_IsSystem(psPMR))
+ 	{
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
++		vm_flags_clear(ps_vma, VM_PFNMAP);
++#else
+ 		ps_vma->vm_flags &= ~VM_PFNMAP;
++#endif
+ 		ui32LoopCount = (1 << (uiLog2PageSize - PAGE_SHIFT));
+ 	}
+ 
+--- a/src/pvr/pvr_debug.c
++++ b/src/pvr/pvr_debug.c
+@@ -42,6 +42,7 @@
+ */ /**************************************************************************/
+ 
+ #include <linux/sched.h>
++#include <linux/pid.h>
+ #include <linux/moduleparam.h>
+ 
+ #include "img_types.h"
+--- a/src/pvr/pvr_fence.c
++++ b/src/pvr/pvr_fence.c
+@@ -181,7 +181,7 @@
+ 		fence_name[len] = '-';
+ 		fence_name[len + 1] = '\0';
+ 	}
+-	strlcat(fence_name, name, fence_name_size);
++	MTGPU_STRLCAT(fence_name, name, fence_name_size);
+ }
+ 
+ static void
+@@ -363,7 +363,7 @@
+ 	fctx->fence_wq = fence_status_wq;
+ 
+ 	fctx->fence_context = dma_fence_context_alloc(1);
+-	strlcpy(fctx->name, name, sizeof(fctx->name));
++	MTGPU_STRLCPY(fctx->name, name, sizeof(fctx->name));
+ 
+ 	srv_err = PVRSRVRegisterCmdCompleteNotify(&fctx->cmd_complete_handle,
+ 				pvr_fence_context_signal_fences,
+--- a/src/pvr/pvr_ion_stats.c
++++ b/src/pvr/pvr_ion_stats.c
+@@ -108,7 +108,7 @@
+ 	numHeapsData = ion_query_heaps_kernel(dev, sDefaultIonHeapsData,
+ 					      ARRAY_SIZE(sDefaultIonHeapsData));
+ 	for (i = 0; i < numHeapsData; i++) {
+-		strlcpy(heaps[i].szName, sDefaultIonHeapsData[i].name, 32);
++		MTGPU_STRLCPY(heaps[i].szName, sDefaultIonHeapsData[i].name, 32);
+ 		heaps[i].ui32HashKey = pfnHashKey(sDefaultIonHeapsData[i].heap_id);
+ 	}
+ 
+--- a/src/pvr/pvr_platform_drv.c
++++ b/src/pvr/pvr_platform_drv.c
+@@ -98,10 +98,10 @@
+ 	return component_add(&pdev->dev, &pvr_component_ops);
+ }
+ 
+-static int pvr_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE pvr_remove(struct platform_device *pdev)
+ {
+ 	component_del(&pdev->dev, &pvr_component_ops);
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static void pvr_shutdown(struct platform_device *pdev)
+@@ -285,7 +285,7 @@
+ 	return ret;
+ }
+ 
+-static int pvr_nohw_remove(struct platform_device *pdev)
++static MT_PLATFORM_REMOVE_TYPE pvr_nohw_remove(struct platform_device *pdev)
+ {
+ 	struct drm_device *ddev = platform_get_drvdata(pdev);
+ 
+@@ -299,7 +299,7 @@
+ 
+ 	kfree(ddev->dev_private);
+ 
+-	return 0;
++	MT_PLATFORM_REMOVE_RETURN
+ }
+ 
+ static int __init pvr_nohw_init(void)
+--- a/src/pvr/pvr_sw_fence.c
++++ b/src/pvr/pvr_sw_fence.c
+@@ -159,9 +159,9 @@
+ 		return NULL;
+ 
+ 	fence_context->context = dma_fence_context_alloc(1);
+-	strlcpy(fence_context->context_name, context_name,
++	MTGPU_STRLCPY(fence_context->context_name, context_name,
+ 		sizeof(fence_context->context_name));
+-	strlcpy(fence_context->driver_name, driver_name,
++	MTGPU_STRLCPY(fence_context->driver_name, driver_name,
+ 		sizeof(fence_context->driver_name));
+ 	atomic_set(&fence_context->seqno, 0);
+ 	atomic_set(&fence_context->fence_count, 0);
+--- a/src/pvr/pvr_sync_file.c
++++ b/src/pvr/pvr_sync_file.c
+@@ -185,7 +185,7 @@
+ 	if (!timeline)
+ 		return -ENOMEM;
+ 
+-	strlcpy(timeline->name, task_comm, sizeof(timeline->name));
++	MTGPU_STRLCPY(timeline->name, task_comm, sizeof(timeline->name));
+ 	timeline->file_handle = file_handle;
+ 	timeline->is_sw = false;
+ 
+@@ -385,7 +385,7 @@
+ 		err = PVRSRV_ERROR_OUT_OF_MEMORY;
+ 		goto err_destroy_fence;
+ 	}
+-	strlcpy(sync_file_user_name(sync_file),
++	MTGPU_STRLCPY(sync_file_user_name(sync_file),
+ 		pvr_fence->name,
+ 		sizeof(sync_file_user_name(sync_file)));
+ 	dma_fence_put(&pvr_fence->base);
+@@ -763,9 +763,9 @@
+ 	struct pvr_sync_rename_ioctl_data *data = user_data;
+ 
+ 	data->szName[sizeof(data->szName) - 1] = '\0';
+-	strlcpy(timeline->name, data->szName, sizeof(timeline->name));
++	MTGPU_STRLCPY(timeline->name, data->szName, sizeof(timeline->name));
+ 	if (timeline->hw_fence_context)
+-		strlcpy(timeline->hw_fence_context->name, data->szName,
++		MTGPU_STRLCPY(timeline->hw_fence_context->name, data->szName,
+ 			sizeof(timeline->hw_fence_context->name));
+ 
+ 	return 0;
+@@ -885,7 +885,7 @@
+ 		pvr_sync_free_checkpoint_list_mem;
+ 	pvr_sync_data.sync_checkpoint_ops.pfnDumpInfoOnStalledUFOs =
+ 		pvr_sync_dump_info_on_stalled_ufos;
+-	strlcpy(pvr_sync_data.sync_checkpoint_ops.pszImplName, "pvr_sync_file",
++	MTGPU_STRLCPY(pvr_sync_data.sync_checkpoint_ops.pszImplName, "pvr_sync_file",
+ 		SYNC_CHECKPOINT_IMPL_MAX_STRLEN);
+ #if defined(PDUMP)
+ 	pvr_sync_data.sync_checkpoint_ops.pfnSyncFenceGetCheckpoints =
+--- /dev/null
++++ b/inc/common/mtgpu_kernel_compat.h
+@@ -0,0 +1,81 @@
++/* SPDX-License-Identifier: GPL-2.0 OR MIT */
++#ifndef MTGPU_KERNEL_COMPAT_H
++#define MTGPU_KERNEL_COMPAT_H
++
++#include <linux/version.h>
++#include <linux/types.h>
++
++/* Linux 6.11 changed platform_driver.remove() from int to void. */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
++#define MT_PLATFORM_REMOVE_TYPE void
++#define MT_PLATFORM_REMOVE_RETURN
++#else
++#define MT_PLATFORM_REMOVE_TYPE int
++#define MT_PLATFORM_REMOVE_RETURN return 0;
++#endif
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0) && !defined(DRM_UNLOCKED)
++#define DRM_UNLOCKED 0
++#endif
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
++static inline size_t mtgpu_strlcpy_compat(char *dst, const char *src, size_t size)
++{
++	size_t i = 0, len = 0;
++
++	while (src[len])
++		len++;
++	if (size) {
++		while (i + 1 < size && src[i]) {
++			dst[i] = src[i];
++			i++;
++		}
++		dst[i] = '\0';
++	}
++	return len;
++}
++
++static inline size_t mtgpu_strlcat_compat(char *dst, const char *src, size_t size)
++{
++	size_t dlen = 0, slen = 0, i = 0;
++
++	while (dlen < size && dst[dlen])
++		dlen++;
++	while (src[slen])
++		slen++;
++	if (dlen < size) {
++		while (dlen + i + 1 < size && src[i]) {
++			dst[dlen + i] = src[i];
++			i++;
++		}
++		dst[dlen + i] = '\0';
++	}
++	return dlen + slen;
++}
++#define MTGPU_STRLCPY mtgpu_strlcpy_compat
++#define MTGPU_STRLCAT mtgpu_strlcat_compat
++#else
++#define MTGPU_STRLCPY strlcpy
++#define MTGPU_STRLCAT strlcat
++#endif
++
++/* Linux 6.12 changed tty_operations.write() argument and return types. */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#define MT_TTY_WRITE_RETURN ssize_t
++#define MT_TTY_WRITE_COUNT size_t
++#else
++#define MT_TTY_WRITE_RETURN int
++#define MT_TTY_WRITE_COUNT int
++#endif
++
++/* Linux 6.12 renamed the highest buddy order to MAX_PAGE_ORDER. */
++#ifndef MAX_ORDER
++#define MAX_ORDER (MAX_PAGE_ORDER + 1)
++#endif
++
++/* PCI_IRQ_LEGACY was renamed to PCI_IRQ_INTX. */
++#ifndef PCI_IRQ_LEGACY
++#define PCI_IRQ_LEGACY PCI_IRQ_INTX
++#endif
++
++#endif

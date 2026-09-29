@@ -1,0 +1,180 @@
+{
+  "passed": true,
+  "hardware_access_by_verifier": false,
+  "boot_id": "fe18deeb-d431-4c03-ac88-34235e9849c5",
+  "new_frontend_native_fills": 25,
+  "new_frontend_copies": 4,
+  "old_frontend_fills": 1,
+  "old_frontend_copies": 1,
+  "native_1080p_fills": 23,
+  "full_surface_readback_verified_bytes_per_fill": 8388608,
+  "image": {
+    "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/r34-live/gpu-native-1080p.png",
+    "width": 1920,
+    "height": 1080,
+    "all_pixels_match_native_gpu_fill_receipts": true,
+    "ppm_sha256": "717172627ca4112febe4609634bd6f473b06d27a230bb9d1c5f820af24c6230d"
+  },
+  "pre_and_post_root_identical": true,
+  "three_prior_roots_unchanged": true,
+  "root_pa": "0x60617b000",
+  "root_sha256": "d0dda36728a629e4ff7e6c69ce3ff184feff0ba61f445874f9790badb9296e0a",
+  "table_pages": 26,
+  "mapped_pages": 6501,
+  "private_pages": 3172,
+  "shared_pages": 3329,
+  "all_pte_flags": 1,
+  "bindings": [
+    {
+      "va": "0x40000000",
+      "pa": "0x60619b000",
+      "bytes": 4096
+    },
+    {
+      "va": "0x40010000",
+      "pa": "0x60619c000",
+      "bytes": 8192
+    },
+    {
+      "va": "0x40020000",
+      "pa": "0x60619e000",
+      "bytes": 4096
+    },
+    {
+      "va": "0x41000000",
+      "pa": "0x60619f000",
+      "bytes": 8388608
+    },
+    {
+      "va": "0x42000000",
+      "pa": "0x60699f000",
+      "bytes": 4194304
+    },
+    {
+      "va": "0x43000000",
+      "pa": "0x606d9f000",
+      "bytes": 65536
+    },
+    {
+      "va": "0x44000000",
+      "pa": "0x606daf000",
+      "bytes": 65536
+    },
+    {
+      "va": "0x45000000",
+      "pa": "0x606dbf000",
+      "bytes": 65536
+    },
+    {
+      "va": "0x46000000",
+      "pa": "0x606dcf000",
+      "bytes": 65536
+    },
+    {
+      "va": "0x47000000",
+      "pa": "0x606ddf000",
+      "bytes": 65536
+    },
+    {
+      "va": "0x48000000",
+      "pa": "0x606def000",
+      "bytes": 65536
+    },
+    {
+      "va": "0xa000e00000",
+      "pa": "0x36000000",
+      "bytes": 2097152
+    },
+    {
+      "va": "0x81ffd03000",
+      "pa": "0x605807000",
+      "bytes": 2097152
+    },
+    {
+      "va": "0x84fff00000",
+      "pa": "0x605a07000",
+      "bytes": 1048576
+    },
+    {
+      "va": "0xf0ffe00000",
+      "pa": "0x605b07000",
+      "bytes": 2097152
+    },
+    {
+      "va": "0x81ffc00000",
+      "pa": "0x605d0a000",
+      "bytes": 1048576
+    },
+    {
+      "va": "0x84ffe00000",
+      "pa": "0x605f0a000",
+      "bytes": 524288
+    },
+    {
+      "va": "0x84ffe80000",
+      "pa": "0x605f8a000",
+      "bytes": 524288
+    },
+    {
+      "va": "0x81ffd00000",
+      "pa": "0x60600a000",
+      "bytes": 4096
+    },
+    {
+      "va": "0x81ff800000",
+      "pa": "0x890bc00000",
+      "bytes": 4194304
+    }
+  ],
+  "session": {
+    "identities": {
+      "mt_guest_probe": "9d0f0ce06c13bf64d4b24d5789158080e280e5e3",
+      "mt_live_tqx": "9763bf6502e9a80ce3b4da4e34afb07ddfd0d8bd",
+      "mt_live_drm": "0f69619fb02d948cf7157921f29b5eb65dcdaa4f",
+      "mt_live_graphics": "4ebe649ca6321f483a45fa15a6173992735e0229",
+      "mt_live_surface": "3962d291ed95b17df92f870d89315cf6c1776612"
+    },
+    "graphics": {
+      "device": "/dev/dri/renderD130",
+      "capabilities": [
+        "copy",
+        "native_fill"
+      ],
+      "max_object_bytes": 8388608,
+      "submitted": 29,
+      "completed": 29,
+      "sequence": 262,
+      "retained": true
+    },
+    "all_graphics": [
+      {
+        "device": "/dev/dri/renderD130",
+        "capabilities": [
+          "copy",
+          "native_fill"
+        ],
+        "max_object_bytes": 8388608,
+        "submitted": 29,
+        "completed": 29,
+        "sequence": 262,
+        "retained": true
+      },
+      {
+        "device": "/dev/dri/renderD129",
+        "capabilities": [
+          "copy",
+          "native_fill"
+        ],
+        "max_object_bytes": 65536,
+        "submitted": 74,
+        "completed": 74,
+        "sequence": 261,
+        "retained": true
+      }
+    ],
+    "runtime": "prepared=1 published=1 notified=1 result=0 retained=1 guest=2 firmware=2 started=1 event_result=0 events=1 render_ready=0",
+    "completions": "pending=0 completed=262 submit_enabled=0 workload_submit=0",
+    "gpu_jobs_executed_by_checker": 0
+  },
+  "limitations": "Private privileged synchronous GEM fill/copy only. One 8 MiB slot, one 4 MiB slot, six 64 KiB slots. No mmap/PRIME, PVR ABI, OpenGL/Vulkan, modesetting or desktop acceleration. All four roots remain retained."
+}

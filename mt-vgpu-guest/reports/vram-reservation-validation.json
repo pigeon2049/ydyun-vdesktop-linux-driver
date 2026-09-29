@@ -1,0 +1,27 @@
+{
+  "checked_utc": "2026-09-27T15:41:49.223939+00:00",
+  "reservation_succeeded": true,
+  "allocator_exhaustion_and_reuse_passed": true,
+  "sample_bytes": 8192,
+  "sample_sha256": "6d525e89e31aa90f79ed8728fcd87c932e7f240f6fe2c80d25e764b5f8694dbc",
+  "firmware_first_page_matches_previous_snapshot": true,
+  "firmware_first_page_sha256": "6146a7d0f21d76a846eb678505548c924fe5c9453cff58633b11057a97624fe3",
+  "normal_first_page_sha256": "6b7b144fec21e8d7e64f34a3e068fed218236c60d2ef43e8a75db609ea4c6d9d",
+  "device_memory_written": false,
+  "hardware_acceleration_verified": false,
+  "module_unloaded": true,
+  "device_unbound": true,
+  "status_after_unload": {
+    "pci": "0000:00:0e.0",
+    "bar": 0,
+    "access": "read-only-u32",
+    "driver_state": 0,
+    "firmware_state": 1,
+    "hardware_acceleration_verified": false
+  },
+  "services": {
+    "sddm": "active",
+    "spice-vdagentd": "active",
+    "tailscaled": "active"
+  }
+}

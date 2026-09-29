@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "contexts": [
+    {
+      "node_index": 0,
+      "node_type": 1,
+      "root_initial": 0,
+      "aux_bytes": 20480,
+      "aux_alignment": 128
+    },
+    {
+      "node_index": 1,
+      "node_type": 5,
+      "root_initial": 0,
+      "aux_bytes": 20480,
+      "aux_alignment": 128
+    },
+    {
+      "node_index": 2,
+      "node_type": 2,
+      "root_initial": 0,
+      "aux_bytes": 20480,
+      "aux_alignment": 128
+    },
+    {
+      "node_index": 3,
+      "node_type": 6,
+      "root_initial": 0,
+      "aux_bytes": 20480,
+      "aux_alignment": 128
+    },
+    {
+      "node_index": 4,
+      "node_type": 7,
+      "root_initial": 0,
+      "aux_bytes": 20480,
+      "aux_alignment": 128
+    },
+    {
+      "node_index": 5,
+      "node_type": 8,
+      "root_initial": 0,
+      "aux_bytes": 20480,
+      "aux_alignment": 128
+    }
+  ],
+  "root_associations": 12,
+  "process_tokens": [
+    0,
+    1,
+    4294967296,
+    17375808098319191535
+  ],
+  "hardware_accessed": false,
+  "modeled": [
+    "OS allocation/free/logging",
+    "platform address translation",
+    "auxiliary context BO allocation",
+    "process address-space setup"
+  ],
+  "limits": "Software object associations only; auxiliary GPU context format, platform translation, firmware execution and context withdrawal not verified"
+}

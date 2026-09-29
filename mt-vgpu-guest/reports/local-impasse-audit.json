@@ -1,0 +1,56 @@
+{
+  "utc": "2026-09-27T18:48:36.427349+00:00",
+  "previous_goal_turn": "no progress: state unchanged and scope authorization absent",
+  "this_goal_turn": "no progress: same blocking condition revalidated",
+  "consecutive_no_progress_audits": 2,
+  "blocker": "Retained firmware never consumes commands; the prepared recovery request can affect a Host MPC and has no explicit scope authorization.",
+  "approval_pending": true,
+  "goal_completed": false,
+  "no_pending_tool_process": true,
+  "local_state": {
+    "connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0",
+    "rpc_service": "running=1 ready=1 irq=10 acknowledgments=1475 replies=1475 rejected=0",
+    "retained_status": "guest=1 firmware=1 started=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0"
+  },
+  "pci_reset_available": false,
+  "hwr_helper_loaded": false,
+  "completion_requirements": [
+    {
+      "requirement": "Project under ydyun-vdesktop repository",
+      "evidence": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest",
+      "state": "met"
+    },
+    {
+      "requirement": "Reusable full Windows decompilation corpus",
+      "evidence": "DECOMPILATION.md and decompiled/manifest.json; existing corpus, not re-decompiled this turn",
+      "state": "available; not source-equivalent restoration"
+    },
+    {
+      "requirement": "Working vGPU firmware connection",
+      "evidence": "live Guest1/FW1, started=0, queue 5/0",
+      "state": "not met"
+    },
+    {
+      "requirement": "MTT DRM render and userspace acceleration",
+      "evidence": "No MTT render node; no successful hardware rendering test",
+      "state": "not met"
+    }
+  ],
+  "alternatives_reviewed": [
+    "OSID refresh and retained notification already tested without progress; no reason to repeat.",
+    "Ordinary Guest reboot already preserved the same firmware queue.",
+    "Local PCI reset endpoint absent.",
+    "Post-connection context publication must not be moved before connection.",
+    "Address/image/table construction already matched reference; no new missing write established.",
+    "Prepared HWR path remains unissued pending authorization of its wider scope."
+  ],
+  "next_action": "User decision on the existing HWR scope question, or evidence of a changed device session. Keep transport servicing in place.",
+  "consecutive_goal_turns_with_same_blocker": 3,
+  "blocker_turns": [
+    "HWR helper preparation finished; execution awaiting scope authorization",
+    "First no-progress revalidation; authorization absent",
+    "Second no-progress revalidation; authorization absent"
+  ],
+  "blocked_audit_passed": true,
+  "services": "active\nactive\nactive"
+}

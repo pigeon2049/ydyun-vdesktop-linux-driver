@@ -1,0 +1,9 @@
+{
+  "reference_query": "14002729c",
+  "reference_irq_ack": "140023810",
+  "query_instruction_cases": 532,
+  "ack_instruction_cases": 133,
+  "unhandled_requests_preserved": 10,
+  "passed": true,
+  "scope": "Query callback output and reference ack semantics; not IRQ delivery or firmware startup"
+}

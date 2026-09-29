@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "record_exports": 192,
+  "paging_adapter_and_normalization": 192,
+  "complete_stream_to_paging_sequences": 128,
+  "reference_functions": [
+    "1400e2690",
+    "14002171c",
+    "140019f10",
+    "14009419c",
+    "14004c67c"
+  ],
+  "descriptor_bytes": 336,
+  "reserved_state_bytes": 128,
+  "state_bytes_written_by_reference": 16,
+  "hardware_accessed": false,
+  "assumptions": [
+    "exactly one software record",
+    "zero-initialized 336-byte descriptor",
+    "zero-initialized state slot",
+    "RAM CPU/GPU address translation fixtures"
+  ],
+  "limits": "Windows paging representation only. Other queue paths, live CE version, memory attributes, complete submission metadata, and firmware execution are not established."
+}

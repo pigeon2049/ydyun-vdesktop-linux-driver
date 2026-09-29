@@ -1,0 +1,17 @@
+{
+  "normal": {
+    "offset": "0xa00000",
+    "length": 25165824,
+    "sha256": "4124fea75d9004ca397b6bf64865f168b7e133e6cde1575dc52ae0ee877f66ba"
+  },
+  "firmware": {
+    "offset": "0x3f000000",
+    "length": 8388608,
+    "sha256": "46c2843f5a3b519104edc271b564b2d21fdec4f4c3254f50fc5f63213f91a4df"
+  },
+  "pb": {
+    "offset": "0x0",
+    "length": 2097152,
+    "sha256": "5647f05ec18958947d32874eeb788fa396a05d0bab7c1b71f112ceb7e9b31eee"
+  }
+}

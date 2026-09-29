@@ -1,0 +1,230 @@
+{
+  "hardware_access_by_verifier": false,
+  "boot_id": "fe18deeb-d431-4c03-ac88-34235e9849c5",
+  "drm_query": {
+    "abi": 1,
+    "slots": 8,
+    "slot_bytes": 65536,
+    "leased": 0,
+    "retained": 1,
+    "faulted": 0,
+    "submitted": 9,
+    "completed": 9,
+    "sequence": 158
+  },
+  "verified_drm_copies": [
+    {
+      "copy_bytes": 256,
+      "source_offset": 0,
+      "destination_offset": 0,
+      "sequence": 133,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    },
+    {
+      "copy_bytes": 256,
+      "source_offset": 0,
+      "destination_offset": 0,
+      "sequence": 134,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    },
+    {
+      "copy_bytes": 65536,
+      "source_offset": 0,
+      "destination_offset": 0,
+      "sequence": 135,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    },
+    {
+      "copy_bytes": 32768,
+      "source_offset": 0,
+      "destination_offset": 0,
+      "sequence": 136,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    },
+    {
+      "copy_bytes": 8192,
+      "source_offset": 4096,
+      "destination_offset": 8192,
+      "sequence": 137,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    },
+    {
+      "copy_bytes": 8207,
+      "source_offset": 3,
+      "destination_offset": 17,
+      "sequence": 138,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    },
+    {
+      "copy_bytes": 4097,
+      "source_offset": 4095,
+      "destination_offset": 12289,
+      "sequence": 139,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    },
+    {
+      "copy_bytes": 31,
+      "source_offset": 65505,
+      "destination_offset": 65505,
+      "sequence": 140,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    },
+    {
+      "copy_bytes": 256,
+      "source_offset": 0,
+      "destination_offset": 0,
+      "sequence": 158,
+      "data_and_guards": true,
+      "native_gpu_sync_file": true
+    }
+  ],
+  "two_context_switch": {
+    "old_context_gpu_jobs": 17,
+    "new_context_after_switch_sequence": 158,
+    "file_equal": true
+  },
+  "root_gpu_pa": "0x606033000",
+  "root_sha256": "c6bc810bf884ca78af0c984be65d306182d24ac0f2d9ac40a3cf5ba21b53ab74",
+  "old_root_unchanged": true,
+  "table_pages": 18,
+  "mapped_pages": 3461,
+  "private_pages_checked_against_backing": 132,
+  "shared_pages_identical_to_old_context": 3329,
+  "pte_flags": {
+    "1": 3461
+  },
+  "bindings": [
+    {
+      "va": "0x40000000",
+      "gpu_pa_first_page": "0x606053000",
+      "bytes": 4096,
+      "page_vector": false
+    },
+    {
+      "va": "0x40010000",
+      "gpu_pa_first_page": "0x606054000",
+      "bytes": 8192,
+      "page_vector": false
+    },
+    {
+      "va": "0x40020000",
+      "gpu_pa_first_page": "0x606056000",
+      "bytes": 4096,
+      "page_vector": false
+    },
+    {
+      "va": "0x40100000",
+      "gpu_pa_first_page": "0x606057000",
+      "bytes": 65536,
+      "page_vector": false
+    },
+    {
+      "va": "0x40200000",
+      "gpu_pa_first_page": "0x606067000",
+      "bytes": 65536,
+      "page_vector": false
+    },
+    {
+      "va": "0x40300000",
+      "gpu_pa_first_page": "0x606077000",
+      "bytes": 65536,
+      "page_vector": false
+    },
+    {
+      "va": "0x40400000",
+      "gpu_pa_first_page": "0x606087000",
+      "bytes": 65536,
+      "page_vector": false
+    },
+    {
+      "va": "0x40500000",
+      "gpu_pa_first_page": "0x606097000",
+      "bytes": 65536,
+      "page_vector": false
+    },
+    {
+      "va": "0x40600000",
+      "gpu_pa_first_page": "0x6060a7000",
+      "bytes": 65536,
+      "page_vector": false
+    },
+    {
+      "va": "0x40700000",
+      "gpu_pa_first_page": "0x6060b7000",
+      "bytes": 65536,
+      "page_vector": false
+    },
+    {
+      "va": "0x40800000",
+      "gpu_pa_first_page": "0x6060c7000",
+      "bytes": 65536,
+      "page_vector": false
+    },
+    {
+      "va": "0xa000e00000",
+      "gpu_pa_first_page": "0x36000000",
+      "bytes": 2097152,
+      "page_vector": false
+    },
+    {
+      "va": "0x81ffd03000",
+      "gpu_pa_first_page": "0x605807000",
+      "bytes": 2097152,
+      "page_vector": false
+    },
+    {
+      "va": "0x84fff00000",
+      "gpu_pa_first_page": "0x605a07000",
+      "bytes": 1048576,
+      "page_vector": false
+    },
+    {
+      "va": "0xf0ffe00000",
+      "gpu_pa_first_page": "0x605b07000",
+      "bytes": 2097152,
+      "page_vector": false
+    },
+    {
+      "va": "0x81ffc00000",
+      "gpu_pa_first_page": "0x605d0a000",
+      "bytes": 1048576,
+      "page_vector": false
+    },
+    {
+      "va": "0x84ffe00000",
+      "gpu_pa_first_page": "0x605f0a000",
+      "bytes": 524288,
+      "page_vector": false
+    },
+    {
+      "va": "0x84ffe80000",
+      "gpu_pa_first_page": "0x605f8a000",
+      "bytes": 524288,
+      "page_vector": false
+    },
+    {
+      "va": "0x81ffd00000",
+      "gpu_pa_first_page": "0x60600a000",
+      "bytes": 4096,
+      "page_vector": false
+    },
+    {
+      "va": "0x81ff800000",
+      "gpu_pa_first_page": "0x890bc00000",
+      "bytes": 4194304,
+      "page_vector": true
+    }
+  ],
+  "runtime": "prepared=1 published=1 notified=1 result=0 retained=1 guest=2 firmware=2 started=1 event_result=0 events=1 render_ready=0",
+  "completions": "pending=0 completed=158 submit_enabled=0 workload_submit=0",
+  "module_sha256": "4f3db3739a695dd876483e900314b89e4a9f78f83a73746b394f895c372de484",
+  "limitations": "Experimental privileged DRM GEM/transfer/syncobj only. Fixed persistent root and eight 64 KiB slots. No OpenGL/Vulkan/desktop rendering, PRIME, mmap, async scheduler or root teardown."
+}

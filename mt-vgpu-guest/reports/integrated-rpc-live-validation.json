@@ -1,0 +1,51 @@
+{
+  "before": {
+    "utc": "2026-09-27T17:10:49.045526+00:00",
+    "service": "irq=10 disabled=0 shared_status=0 acknowledgments=560 replies=560 rejected=0 request_head=15 request_tail=15 reply_head=15 reply_tail=12\n",
+    "trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=6 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+  },
+  "module_sha256": "3e03d0cab4aad36b42eeaf5fc12a46c684c9b3186957700fd000233ca7a8c9d1",
+  "main_module_reloaded": false,
+  "samples": [
+    {
+      "utc": "2026-09-27T17:10:49.208606+00:00",
+      "service": "irq=10 disabled=0 shared_status=0 acknowledgments=0 replies=0 rejected=0 request_head=15 request_tail=15 reply_head=15 reply_tail=12\n",
+      "trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=7 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+    },
+    {
+      "utc": "2026-09-27T17:10:54.208851+00:00",
+      "service": "irq=10 disabled=0 shared_status=0 acknowledgments=5 replies=5 rejected=0 request_head=4 request_tail=4 reply_head=4 reply_tail=1\n",
+      "trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=7 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+    },
+    {
+      "utc": "2026-09-27T17:10:59.209268+00:00",
+      "service": "irq=10 disabled=0 shared_status=0 acknowledgments=9 replies=9 rejected=0 request_head=8 request_tail=8 reply_head=8 reply_tail=4\n",
+      "trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=7 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+    },
+    {
+      "utc": "2026-09-27T17:11:04.209688+00:00",
+      "service": "irq=10 disabled=0 shared_status=0 acknowledgments=13 replies=13 rejected=0 request_head=12 request_tail=12 reply_head=12 reply_tail=8\n",
+      "trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=7 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+    },
+    {
+      "utc": "2026-09-27T17:11:09.210122+00:00",
+      "service": "irq=10 disabled=0 shared_status=0 acknowledgments=13 replies=13 rejected=0 request_head=12 request_tail=12 reply_head=12 reply_tail=8\n",
+      "trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=7 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+    },
+    {
+      "utc": "2026-09-27T17:11:14.210525+00:00",
+      "service": "irq=10 disabled=0 shared_status=0 acknowledgments=18 replies=18 rejected=0 request_head=1 request_tail=1 reply_head=1 reply_tail=15\n",
+      "trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=7 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n"
+    }
+  ],
+  "services": [
+    "active",
+    "active",
+    "active"
+  ],
+  "new_kernel_messages": "[32751.071670] mt_live_service: initial replies=0 shared_status=0\n[32751.175797] mt_live_service: published absent local-MMU BAR4 base=0\n",
+  "irq_enabled_throughout": true,
+  "queries_advanced": true,
+  "no_new_irq_failure": true,
+  "hardware_acceleration_verified": false
+}

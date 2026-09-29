@@ -1,0 +1,96 @@
+{
+  "baseline": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-r22b-mmu-mapping-audit-20260929/mtgpu.prepostlink.ko",
+  "baseline_sha256": "1dfbd45397ebcd2009a60cd7909db5fb2dfcce084306c7a0d5492fef11885f0d",
+  "candidate": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-r22b-mmu-mapping-audit-20260929/mtgpu.ko",
+  "candidate_sha256": "b360d2d326a43b6651e73b3c5a35e2963979be792ec98af9638c44f4cb11ee6f",
+  "patches": [
+    {
+      "symbol": "mtgpu_platform_data_vz_init",
+      "symbol_offset": "0x8d",
+      "module_file_offset": "0x6898d",
+      "old_bytes": "498b8424e0100000",
+      "new_bytes": "4889c7e8ebff0d00"
+    },
+    {
+      "symbol": "mtgpu_device_memory_fixup",
+      "symbol_offset": "0x447",
+      "module_file_offset": "0x69667",
+      "old_bytes": "488b8a38040000",
+      "new_bytes": "488b4a20909090"
+    },
+    {
+      "symbol": "mtgpu_device_memory_fixup",
+      "symbol_offset": "0x390",
+      "module_file_offset": "0x695b0",
+      "old_bytes": "498b942438110000488b924804000048895010",
+      "new_bytes": "4889c74c89e6e885f50d009090909090909090"
+    },
+    {
+      "symbol": "mtgpu_device_memory_fixup",
+      "symbol_offset": "0x3a3",
+      "module_file_offset": "0x695c3",
+      "old_bytes": "48c7402000800000",
+      "new_bytes": "9090909090909090"
+    },
+    {
+      "symbol": "mtgpu_device_memory_fixup",
+      "symbol_offset": "0x24a",
+      "module_file_offset": "0x6946a",
+      "old_bytes": "488dbb9f080000",
+      "new_bytes": "488dbbff0f0000"
+    },
+    {
+      "symbol": "SysDevInit",
+      "symbol_offset": "0x25b",
+      "module_file_offset": "0x119d5b",
+      "old_bytes": "0f85af000000",
+      "new_bytes": "0f8555060000"
+    },
+    {
+      "symbol": "SysDevInit",
+      "symbol_offset": "0x8b6",
+      "module_file_offset": "0x11a3b6",
+      "old_bytes": "662e0f1f840000000000",
+      "new_bytes": "4183ed01e951faffff90"
+    },
+    {
+      "symbol": "mtgpu_device_memory_fixup",
+      "symbol_offset": "0x2ad",
+      "module_file_offset": "0x694cd",
+      "old_bytes": "8b8250080000",
+      "new_bytes": "b80000800090"
+    },
+    {
+      "symbol": "mtgpu_device_memory_fixup",
+      "symbol_offset": "0x2cd",
+      "module_file_offset": "0x694ed",
+      "old_bytes": "8b9250080000",
+      "new_bytes": "ba0000800090"
+    },
+    {
+      "symbol": "mtgpu_device_memory_fixup",
+      "symbol_offset": "0x312",
+      "module_file_offset": "0x69532",
+      "old_bytes": "8b9050080000",
+      "new_bytes": "ba0000800090"
+    }
+  ],
+  "unchanged_guards": [
+    {
+      "symbol": "SysDevInit",
+      "symbol_offset": "0x92",
+      "bytes": "4183c506",
+      "description": "shared base-count instruction remains unchanged"
+    }
+  ],
+  "changed_byte_count": 68,
+  "ftrace_metadata_sections_unchanged": [
+    "__mcount_loc",
+    ".rela__mcount_loc",
+    "__patchable_function_entries",
+    ".rela__patchable_function_entries"
+  ],
+  "only_expected_postlink_bytes_changed": true,
+  "hardware_accessed": false,
+  "scope": "same-build ELF and ftrace integrity only; no module-load claim"
+}

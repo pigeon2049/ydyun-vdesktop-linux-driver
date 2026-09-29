@@ -1,0 +1,99 @@
+{
+  "date": "2026-09-29",
+  "scope": "offline static analysis and Kbuild only",
+  "windows_v2_reference": {
+    "driver": "mtkm64.sys",
+    "function": "FUN_140026b30",
+    "header_shared_flag": "0x80",
+    "segment_shared_flag": "0x20",
+    "minimum_and_mapped_segment_bytes": "0x200000",
+    "captured_segment_bar2_offset": "0x43000000",
+    "captured_bar2_base": "0x800000000",
+    "captured_guest_physical_address": "0x843000000"
+  },
+  "linux_guest_layout": {
+    "mt_chip_bar_base_member_offset": "0x24f8",
+    "mt_chip_core_array_offset": "0x2500",
+    "mtgpu_device_vgpu_info_pointer_offset": "0x1138",
+    "mtgpu_device_vgpu_shm_pointer_offset": "0x1140",
+    "vgpu_share_mem_device_address_offset": "0x10",
+    "vgpu_share_mem_size_offset": "0x20",
+    "layout_method": "compiled offsetof probe using the candidate Kbuild flags"
+  },
+  "linux_guest_ring": {
+    "mapper_symbol": "vpu_init_guest_mem",
+    "mapper_address_source": "mt_chip.bar_base",
+    "mapper_length": "0x8000",
+    "mapper_pointer_member_offset": "0x1bd88",
+    "mapper_pointer_member": "mt_chip.vm.mem",
+    "mt_chip_vm_member_offset": "0x1bd68",
+    "mt_virm_mem_member_offset": "0x20",
+    "mapper_pointer_layout_build_assertion_passed": true,
+    "cleared_queue_indices": 32,
+    "entry_stride": "0xe8",
+    "entry_payload_offset": "0x120",
+    "entry_payload_bytes": "0xd8",
+    "used_status_offset": "0x1f8",
+    "last_observed_status_end_exclusive": "0x1e14",
+    "observed_accesses_fit_in_32k": true
+  },
+  "gdpa_window_cross_check": {
+    "linux_v1_translator_symbol": "GuestDevicePAddrToHostDevicePAddr",
+    "legacy_bound_size_offset_in_state": "0x40",
+    "legacy_bound_base_offset_in_state": "0x48",
+    "info_page_pointer_offset_in_state": "0x70",
+    "v2_info_bar2_size_offset": "0x20",
+    "captured_v2_guest_virtual_window_size": "0x43000000",
+    "physical_pci_bar2_aperture_size": "0x400000000",
+    "dispatcher_requires_virtual_window_size_match": true,
+    "physical_aperture_as_dispatch_size_rejected_by_unit_test": true,
+    "runtime_linux_guest_state_confirmed": false
+  },
+  "adaptation": {
+    "v1": "unchanged: keep the existing BAR2 base mapping",
+    "v2": "reparse the current info page at mapping time; require one valid flags&0x20 segment and exact agreement between its BAR2 address, the published share address, and the 2 MiB share length; temporarily use that address for the precompiled ring mapper, then restore BAR2 base",
+    "invalid_page_or_version": "fail VPU component initialization unless magic is valid and version is 1 or 2",
+    "invalid_v2": "fail VPU component initialization instead of mapping the BAR2 window start",
+    "host_published_mapping_length": "0x200000",
+    "linux_ring_mapping_length": "0x8000",
+    "mapping_time_revalidates_segment_table": true,
+    "published_address_must_match_current_shared_segment": true,
+    "published_size_must_equal_2mib": true
+  },
+  "compiled_vpu_bind_checks": {
+    "candidate_symbol": "vpu_component_bind",
+    "binary_section": ".text.unlikely",
+    "magic_gate_present": true,
+    "allowed_versions": [
+      1,
+      2
+    ],
+    "v2_share_helper_called": true,
+    "vpu_mapper_return_checked_for_v2": true,
+    "original_bar_base_restored_after_mapper": true,
+    "mapping_time_shared_segment_revalidation_present": true,
+    "verification_method": "objdump -dr on the linked audit13-r10 module including the mapping-time helper; Kbuild DWARF offsetof cross-check and BUILD_BUG_ON"
+  },
+  "candidate": {
+    "path": "build/official-vgpu-2.3.0-guest-vgpu-info-v2-addr-sharedmem-vpumap-audit13-r10-20260929/mtgpu.ko",
+    "sha256": "5c2b68a02f7a772ccacb729d6e99a2b872e1606863bf93d6995768cd6ef53d92",
+    "build_id": "59b8554cbed7738e56ea7552fd0ac7d847901589",
+    "staging_sha256_matches": true,
+    "vermagic": "6.12.107+deb13-amd64 SMP preempt mod_unload modversions",
+    "targeted_vgpu_helper_tests_passed": 20,
+    "python_tests_passed": 85,
+    "windows_gdpa_oracle_samples_passed": 142,
+    "pci_probe_order_check_passed": true,
+    "ftrace_metadata_integrity_check_passed": true,
+    "v1_translator_callers_preserved": 7,
+    "installed_or_loaded": false,
+    "bar_or_mmio_accessed": false,
+    "physheap_count_candidate_check_passed": true,
+    "physheap_count_validation_report": "build/official-vgpu-2.3.0-guest-vgpu-info-v2-addr-sharedmem-vpumap-audit13-r10-20260929/guest-physheap-count-candidate-validation.json"
+  },
+  "limitations": [
+    "the captured Windows v2 information page is OSID 4 and does not establish the format received by Linux Guest OSID 7",
+    "the Linux Guest VPU mapper and ring bounds were verified statically, not on a running guest",
+    "Host backing, PVZ mappings, firmware execution, and GPU acceleration remain unverified"
+  ]
+}

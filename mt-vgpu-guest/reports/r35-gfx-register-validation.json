@@ -1,0 +1,126 @@
+{
+  "utc": "2026-09-29T17:59:23.020893+00:00",
+  "passed": true,
+  "windows_reference_sha256": "3f2c843d3404d37b2beea9f97ebcc1e6207d11948c5da2c4581ccd4d8bc5ba0c",
+  "linux_reference_sha256": "b3058c02bbd7c879f076c48ee1faf78e0e764beeab09da7cbd053f3ec34237b0",
+  "windows_random_register_cases": 180,
+  "linux_windows_c_common_state_cases": 96,
+  "full_linux_packet_cases": 8,
+  "full_windows_record_cases": 24,
+  "invalid_cases": 6,
+  "vertex_register_bytes": 176,
+  "fragment_register_bytes": 352,
+  "windows_fixed_record_bytes": 13168,
+  "windows_record_bytes": 13696,
+  "linux_fixed_record_bytes": 13232,
+  "linux_record_bytes": 13760,
+  "linux_packet_bytes": 18160,
+  "records": [
+    {
+      "bytes": 13696,
+      "sha256": "4171119d179db9cef76c8063c9bda2c705799e995ebce7af36344addd5e02e4b"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "bcff0e68089056b938b0173f2040e1eb32304f9337c3b858d8e301dfe8050b66"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "7545abf393af5cf2ecc8b48afd6c2ff26b88fb7728e0bbb33fe679186e138390"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "e5d698a44118acf2184569d841e20cdd2e8e9a5ed04dcb1257cb415da729fda5"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "956a8230010831e753767593f5350d444578d89b724f70fe1df85d64037daf63"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "66efdecb2998fb948c89a03de7e13843950b394844f45d6517fd361d665c5d2f"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "97aaa0a9a4cd424e6f1afb6d3f8168061bc49e8e5a62f9ec26206c3ecd699c2c"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "c1dc3ca7dc5e32df7fbcd75a025fc5956bc2ebee776d96ad12dbc7785ea92aa9"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "580cd5998fab54fa387ee8da9830edb0673a1ff1da1a53023519a1fb91c3b9d8"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "60025bdd90513af8251c528c4f4dd0b9cda927ccb331cf1f9ccabcec0d353123"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "6a499b239385f33c254b25a2bdfbf215f050fbe2bef7f1a3c271f8b7e23b49cd"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "6b803243c84d4dbb69755b0585369d56781c85cdbf5632012e7e4c9174c7001b"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "4750b2105d23c05fbd428f3136eae511a2a5207fa572cc4f6d291829a12b0a3d"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "3b0f91d51169ba634afea0094cf419447bdb2d28c99792302b9356ad7df5c575"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "832ea34dd96bf6978814766be786b76b88362a9e50ea1d09c644c1030841a007"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "1e5d00b22edcd99a4ed1d32dcc8fba58fce3c7c24437dd2d4191961aab4eb16d"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "80027e05e2d083a4909ba1ac5a018379bd947b112d6f1e74b2c2f143c8ae758f"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "d39294dbfc3f1c14a4eac2dd88f73ff0c118b521bf2945af22a2bfd9efcfbd61"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "7b0b8ac922accbe794dffd02776b25178fcf84be60a4cf63a59c70cfe619eb49"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "5afa83ebba3cdeafd62e3c1fe57166e83629795306f3c4edc5c414df750ddae0"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "f49d7793373b3e27f09be08baf9c30cfcbc08cde6bbb6a0676e546235c67bde3"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "baab3158273cd8d566d4f0d56ed5b67f61d32234cedc1eceaa1569cff60af0fd"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "365589637ff7ceb5ade21d4a624bf30196947528c8bfb36111dc4b2bb7cc484a"
+    },
+    {
+      "bytes": 13696,
+      "sha256": "7f4a54afc70e3f258fefe2cc2dc7db8f92eb163221af7cd34057bf5ceaf24052"
+    }
+  ],
+  "modeled": [
+    "RAM allocators and libc memory operations",
+    "Windows state-object getters expose supplied register fixtures",
+    "Windows security cookie checked; no Windows OS or device calls",
+    "Linux GetFeatures uses explicit QY1 fixture and cores=1",
+    "cross-OS cases use matching common metadata words and disable DDK debug extension"
+  ],
+  "hardware_access": false,
+  "gpu_execution": false,
+  "limits": "CPU register/descriptor construction only. Not a complete GFX packet converter, valid shader/VDM stream, render-context resource allocator, bridge ABI or working OpenGL/Vulkan draw."
+}

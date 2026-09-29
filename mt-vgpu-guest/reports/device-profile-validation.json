@@ -1,0 +1,228 @@
+{
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "selection_cases": 23,
+  "cases": [
+    {
+      "device": "0x0",
+      "accepted": false
+    },
+    {
+      "device": "0xff",
+      "accepted": false
+    },
+    {
+      "device": "0x100",
+      "accepted": true,
+      "family": 1,
+      "primary_version": 1,
+      "ce_version": 0,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": null
+    },
+    {
+      "device": "0x102",
+      "accepted": true,
+      "family": 1,
+      "primary_version": 1,
+      "ce_version": 0,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": null
+    },
+    {
+      "device": "0x1ff",
+      "accepted": true,
+      "family": 1,
+      "primary_version": 1,
+      "ce_version": 0,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": null
+    },
+    {
+      "device": "0x200",
+      "accepted": true,
+      "family": 2,
+      "primary_version": 2,
+      "ce_version": 0,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": null
+    },
+    {
+      "device": "0x201",
+      "accepted": true,
+      "family": 2,
+      "primary_version": 2,
+      "ce_version": 0,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": null
+    },
+    {
+      "device": "0x202",
+      "accepted": true,
+      "family": 2,
+      "primary_version": 2,
+      "ce_version": 0,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": null
+    },
+    {
+      "device": "0x222",
+      "accepted": true,
+      "family": 2,
+      "primary_version": 2,
+      "ce_version": 0,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": null
+    },
+    {
+      "device": "0x2ff",
+      "accepted": true,
+      "family": 2,
+      "primary_version": 2,
+      "ce_version": 0,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": null
+    },
+    {
+      "device": "0x300",
+      "accepted": true,
+      "family": 3,
+      "primary_version": 3,
+      "ce_version": 1,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": "0x14009cb90"
+    },
+    {
+      "device": "0x301",
+      "accepted": true,
+      "family": 3,
+      "primary_version": 3,
+      "ce_version": 1,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": "0x14009cb90"
+    },
+    {
+      "device": "0x3ff",
+      "accepted": true,
+      "family": 3,
+      "primary_version": 3,
+      "ce_version": 1,
+      "transfer_version": 1,
+      "compute_version": 1,
+      "ce_constructor": "0x14009cb90"
+    },
+    {
+      "device": "0x400",
+      "accepted": true,
+      "family": 4,
+      "primary_version": 4,
+      "ce_version": 1,
+      "transfer_version": 1,
+      "compute_version": 2,
+      "ce_constructor": "0x14009cb90"
+    },
+    {
+      "device": "0x401",
+      "accepted": true,
+      "family": 4,
+      "primary_version": 4,
+      "ce_version": 1,
+      "transfer_version": 1,
+      "compute_version": 2,
+      "ce_constructor": "0x14009cb90"
+    },
+    {
+      "device": "0x4ff",
+      "accepted": true,
+      "family": 4,
+      "primary_version": 4,
+      "ce_version": 1,
+      "transfer_version": 1,
+      "compute_version": 2,
+      "ce_constructor": "0x14009cb90"
+    },
+    {
+      "device": "0x500",
+      "accepted": false
+    },
+    {
+      "device": "0x5ff",
+      "accepted": false
+    },
+    {
+      "device": "0x600",
+      "accepted": true,
+      "family": 6,
+      "primary_version": 5,
+      "ce_version": 3,
+      "transfer_version": 0,
+      "compute_version": 3,
+      "ce_constructor": "0x14009e2cc"
+    },
+    {
+      "device": "0x601",
+      "accepted": true,
+      "family": 6,
+      "primary_version": 5,
+      "ce_version": 3,
+      "transfer_version": 0,
+      "compute_version": 3,
+      "ce_constructor": "0x14009e2cc"
+    },
+    {
+      "device": "0x6ff",
+      "accepted": true,
+      "family": 6,
+      "primary_version": 5,
+      "ce_version": 3,
+      "transfer_version": 0,
+      "compute_version": 3,
+      "ce_constructor": "0x14009e2cc"
+    },
+    {
+      "device": "0x700",
+      "accepted": false
+    },
+    {
+      "device": "0xffff",
+      "accepted": false
+    }
+  ],
+  "local_pci_identity": {
+    "vendor": "0x1ed5",
+    "device": "0x222",
+    "subsystem_vendor": "0x1ed5",
+    "subsystem_device": "0x1101"
+  },
+  "local_profile": {
+    "vendor": 7893,
+    "device": 546,
+    "family": 2,
+    "primary_version": 2,
+    "ce_version": 0,
+    "transfer_version": 1,
+    "compute_version": 1
+  },
+  "functions": [
+    "1400470c8",
+    "1400205ac",
+    "140042000",
+    "1400228b4",
+    "140046e1c",
+    "14004d558",
+    "14005331c"
+  ],
+  "hardware_accessed": false,
+  "local_identity_source": "read-only sysfs PCI identity attributes",
+  "limits": "Allocation sizes/request/failure and CE constructor return values modeled. Selected versions, field installation and dispatch executed from original instructions. No live engine or firmware submission validated."
+}

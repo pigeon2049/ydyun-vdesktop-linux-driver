@@ -1,0 +1,745 @@
+{
+  "windows_driver": "/opt/MTT-driver-only/mtkm64.sys",
+  "windows_driver_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "executed_windows_function": [
+    "0x140027ab4",
+    "0x140027bec"
+  ],
+  "execution_scope": "FUN_140027ab4 only; no imported Windows helpers",
+  "guest_page": "reports/device-info.bin",
+  "guest_page_sha256": "6163ff0648e2ec45fde070e39b8bc9b0c1686f71ac42d184cb074d70594eaa2b",
+  "bar2_window_base": "0x800000000",
+  "bar2_window_size": "0x43000000",
+  "input_coordinate": "absolute GDPA = BAR2 base + tested BAR2 offset",
+  "compared_offsets": 142,
+  "all_results_match": true,
+  "cases": [
+    {
+      "gdpa": "0x800000000",
+      "gdpa_offset": "0x0",
+      "host_device_paddr": "0x36000000"
+    },
+    {
+      "gdpa": "0x800000001",
+      "gdpa_offset": "0x1",
+      "host_device_paddr": "0x36000001"
+    },
+    {
+      "gdpa": "0x8001fffff",
+      "gdpa_offset": "0x1fffff",
+      "host_device_paddr": "0x361fffff"
+    },
+    {
+      "gdpa": "0x800200000",
+      "gdpa_offset": "0x200000",
+      "host_device_paddr": "0x605000000"
+    },
+    {
+      "gdpa": "0x800200001",
+      "gdpa_offset": "0x200001",
+      "host_device_paddr": "0x605000001"
+    },
+    {
+      "gdpa": "0x800a8f697",
+      "gdpa_offset": "0xa8f697",
+      "host_device_paddr": "0x60588f697"
+    },
+    {
+      "gdpa": "0x80208dc8d",
+      "gdpa_offset": "0x208dc8d",
+      "host_device_paddr": "0x606e8dc8d"
+    },
+    {
+      "gdpa": "0x80284d04a",
+      "gdpa_offset": "0x284d04a",
+      "host_device_paddr": "0x60764d04a"
+    },
+    {
+      "gdpa": "0x802c9d5b1",
+      "gdpa_offset": "0x2c9d5b1",
+      "host_device_paddr": "0x607a9d5b1"
+    },
+    {
+      "gdpa": "0x802d075ab",
+      "gdpa_offset": "0x2d075ab",
+      "host_device_paddr": "0x607b075ab"
+    },
+    {
+      "gdpa": "0x803790741",
+      "gdpa_offset": "0x3790741",
+      "host_device_paddr": "0x608590741"
+    },
+    {
+      "gdpa": "0x8039083d5",
+      "gdpa_offset": "0x39083d5",
+      "host_device_paddr": "0x6087083d5"
+    },
+    {
+      "gdpa": "0x8039d486b",
+      "gdpa_offset": "0x39d486b",
+      "host_device_paddr": "0x6087d486b"
+    },
+    {
+      "gdpa": "0x80414ae2b",
+      "gdpa_offset": "0x414ae2b",
+      "host_device_paddr": "0x608f4ae2b"
+    },
+    {
+      "gdpa": "0x8042ded8b",
+      "gdpa_offset": "0x42ded8b",
+      "host_device_paddr": "0x6090ded8b"
+    },
+    {
+      "gdpa": "0x80448548d",
+      "gdpa_offset": "0x448548d",
+      "host_device_paddr": "0x60928548d"
+    },
+    {
+      "gdpa": "0x80454e809",
+      "gdpa_offset": "0x454e809",
+      "host_device_paddr": "0x60934e809"
+    },
+    {
+      "gdpa": "0x8045a2c63",
+      "gdpa_offset": "0x45a2c63",
+      "host_device_paddr": "0x6093a2c63"
+    },
+    {
+      "gdpa": "0x804cde6a9",
+      "gdpa_offset": "0x4cde6a9",
+      "host_device_paddr": "0x609ade6a9"
+    },
+    {
+      "gdpa": "0x805014b97",
+      "gdpa_offset": "0x5014b97",
+      "host_device_paddr": "0x609e14b97"
+    },
+    {
+      "gdpa": "0x8051fffff",
+      "gdpa_offset": "0x51fffff",
+      "host_device_paddr": "0x609ffffff"
+    },
+    {
+      "gdpa": "0x805200000",
+      "gdpa_offset": "0x5200000",
+      "host_device_paddr": "0x13a000000"
+    },
+    {
+      "gdpa": "0x805200001",
+      "gdpa_offset": "0x5200001",
+      "host_device_paddr": "0x13a000001"
+    },
+    {
+      "gdpa": "0x8055d9526",
+      "gdpa_offset": "0x55d9526",
+      "host_device_paddr": "0x13a3d9526"
+    },
+    {
+      "gdpa": "0x805a8be16",
+      "gdpa_offset": "0x5a8be16",
+      "host_device_paddr": "0x13a88be16"
+    },
+    {
+      "gdpa": "0x805be0fc7",
+      "gdpa_offset": "0x5be0fc7",
+      "host_device_paddr": "0x13a9e0fc7"
+    },
+    {
+      "gdpa": "0x8063b4c2e",
+      "gdpa_offset": "0x63b4c2e",
+      "host_device_paddr": "0x13b1b4c2e"
+    },
+    {
+      "gdpa": "0x806b9fb2a",
+      "gdpa_offset": "0x6b9fb2a",
+      "host_device_paddr": "0x13b99fb2a"
+    },
+    {
+      "gdpa": "0x80764e7fb",
+      "gdpa_offset": "0x764e7fb",
+      "host_device_paddr": "0x13c44e7fb"
+    },
+    {
+      "gdpa": "0x807b1b371",
+      "gdpa_offset": "0x7b1b371",
+      "host_device_paddr": "0x13c91b371"
+    },
+    {
+      "gdpa": "0x8086c32a2",
+      "gdpa_offset": "0x86c32a2",
+      "host_device_paddr": "0x13d4c32a2"
+    },
+    {
+      "gdpa": "0x80886f7cf",
+      "gdpa_offset": "0x886f7cf",
+      "host_device_paddr": "0x13d66f7cf"
+    },
+    {
+      "gdpa": "0x8089c8fab",
+      "gdpa_offset": "0x89c8fab",
+      "host_device_paddr": "0x13d7c8fab"
+    },
+    {
+      "gdpa": "0x80905c1b6",
+      "gdpa_offset": "0x905c1b6",
+      "host_device_paddr": "0x13de5c1b6"
+    },
+    {
+      "gdpa": "0x80908282b",
+      "gdpa_offset": "0x908282b",
+      "host_device_paddr": "0x13de8282b"
+    },
+    {
+      "gdpa": "0x80a2f3ca7",
+      "gdpa_offset": "0xa2f3ca7",
+      "host_device_paddr": "0x13f0f3ca7"
+    },
+    {
+      "gdpa": "0x80a33d77c",
+      "gdpa_offset": "0xa33d77c",
+      "host_device_paddr": "0x13f13d77c"
+    },
+    {
+      "gdpa": "0x80a607cc7",
+      "gdpa_offset": "0xa607cc7",
+      "host_device_paddr": "0x13f407cc7"
+    },
+    {
+      "gdpa": "0x80bc55ef7",
+      "gdpa_offset": "0xbc55ef7",
+      "host_device_paddr": "0x140a55ef7"
+    },
+    {
+      "gdpa": "0x80bf763c7",
+      "gdpa_offset": "0xbf763c7",
+      "host_device_paddr": "0x140d763c7"
+    },
+    {
+      "gdpa": "0x80cccba24",
+      "gdpa_offset": "0xcccba24",
+      "host_device_paddr": "0x141acba24"
+    },
+    {
+      "gdpa": "0x80df39410",
+      "gdpa_offset": "0xdf39410",
+      "host_device_paddr": "0x142d39410"
+    },
+    {
+      "gdpa": "0x80dff727f",
+      "gdpa_offset": "0xdff727f",
+      "host_device_paddr": "0x142df727f"
+    },
+    {
+      "gdpa": "0x80ea9dbf1",
+      "gdpa_offset": "0xea9dbf1",
+      "host_device_paddr": "0x14389dbf1"
+    },
+    {
+      "gdpa": "0x80eaf6317",
+      "gdpa_offset": "0xeaf6317",
+      "host_device_paddr": "0x1438f6317"
+    },
+    {
+      "gdpa": "0x80eebd3a2",
+      "gdpa_offset": "0xeebd3a2",
+      "host_device_paddr": "0x143cbd3a2"
+    },
+    {
+      "gdpa": "0x8104bfc55",
+      "gdpa_offset": "0x104bfc55",
+      "host_device_paddr": "0x1452bfc55"
+    },
+    {
+      "gdpa": "0x8108685fe",
+      "gdpa_offset": "0x108685fe",
+      "host_device_paddr": "0x1456685fe"
+    },
+    {
+      "gdpa": "0x8134d32bf",
+      "gdpa_offset": "0x134d32bf",
+      "host_device_paddr": "0x1482d32bf"
+    },
+    {
+      "gdpa": "0x813f10c93",
+      "gdpa_offset": "0x13f10c93",
+      "host_device_paddr": "0x148d10c93"
+    },
+    {
+      "gdpa": "0x813fe3b71",
+      "gdpa_offset": "0x13fe3b71",
+      "host_device_paddr": "0x148de3b71"
+    },
+    {
+      "gdpa": "0x814538a43",
+      "gdpa_offset": "0x14538a43",
+      "host_device_paddr": "0x149338a43"
+    },
+    {
+      "gdpa": "0x814fdd1c3",
+      "gdpa_offset": "0x14fdd1c3",
+      "host_device_paddr": "0x149ddd1c3"
+    },
+    {
+      "gdpa": "0x815046fc6",
+      "gdpa_offset": "0x15046fc6",
+      "host_device_paddr": "0x149e46fc6"
+    },
+    {
+      "gdpa": "0x8158ea4b8",
+      "gdpa_offset": "0x158ea4b8",
+      "host_device_paddr": "0x14a6ea4b8"
+    },
+    {
+      "gdpa": "0x81657218f",
+      "gdpa_offset": "0x1657218f",
+      "host_device_paddr": "0x14b37218f"
+    },
+    {
+      "gdpa": "0x81673fdc9",
+      "gdpa_offset": "0x1673fdc9",
+      "host_device_paddr": "0x14b53fdc9"
+    },
+    {
+      "gdpa": "0x816cfbea0",
+      "gdpa_offset": "0x16cfbea0",
+      "host_device_paddr": "0x14bafbea0"
+    },
+    {
+      "gdpa": "0x816e3e579",
+      "gdpa_offset": "0x16e3e579",
+      "host_device_paddr": "0x14bc3e579"
+    },
+    {
+      "gdpa": "0x8175b5af7",
+      "gdpa_offset": "0x175b5af7",
+      "host_device_paddr": "0x14c3b5af7"
+    },
+    {
+      "gdpa": "0x817adc419",
+      "gdpa_offset": "0x17adc419",
+      "host_device_paddr": "0x14c8dc419"
+    },
+    {
+      "gdpa": "0x817aea659",
+      "gdpa_offset": "0x17aea659",
+      "host_device_paddr": "0x14c8ea659"
+    },
+    {
+      "gdpa": "0x817c18c66",
+      "gdpa_offset": "0x17c18c66",
+      "host_device_paddr": "0x14ca18c66"
+    },
+    {
+      "gdpa": "0x817c221ca",
+      "gdpa_offset": "0x17c221ca",
+      "host_device_paddr": "0x14ca221ca"
+    },
+    {
+      "gdpa": "0x81901ba7a",
+      "gdpa_offset": "0x1901ba7a",
+      "host_device_paddr": "0x14de1ba7a"
+    },
+    {
+      "gdpa": "0x819a9f62c",
+      "gdpa_offset": "0x19a9f62c",
+      "host_device_paddr": "0x14e89f62c"
+    },
+    {
+      "gdpa": "0x81a765124",
+      "gdpa_offset": "0x1a765124",
+      "host_device_paddr": "0x14f565124"
+    },
+    {
+      "gdpa": "0x81b102579",
+      "gdpa_offset": "0x1b102579",
+      "host_device_paddr": "0x14ff02579"
+    },
+    {
+      "gdpa": "0x81b6a0d0e",
+      "gdpa_offset": "0x1b6a0d0e",
+      "host_device_paddr": "0x1504a0d0e"
+    },
+    {
+      "gdpa": "0x81b9d8c34",
+      "gdpa_offset": "0x1b9d8c34",
+      "host_device_paddr": "0x1507d8c34"
+    },
+    {
+      "gdpa": "0x81bb2165b",
+      "gdpa_offset": "0x1bb2165b",
+      "host_device_paddr": "0x15092165b"
+    },
+    {
+      "gdpa": "0x81c7fca2d",
+      "gdpa_offset": "0x1c7fca2d",
+      "host_device_paddr": "0x1515fca2d"
+    },
+    {
+      "gdpa": "0x81d662d2e",
+      "gdpa_offset": "0x1d662d2e",
+      "host_device_paddr": "0x152462d2e"
+    },
+    {
+      "gdpa": "0x81da915f3",
+      "gdpa_offset": "0x1da915f3",
+      "host_device_paddr": "0x1528915f3"
+    },
+    {
+      "gdpa": "0x81e766737",
+      "gdpa_offset": "0x1e766737",
+      "host_device_paddr": "0x153566737"
+    },
+    {
+      "gdpa": "0x81e984e7d",
+      "gdpa_offset": "0x1e984e7d",
+      "host_device_paddr": "0x153784e7d"
+    },
+    {
+      "gdpa": "0x81f166434",
+      "gdpa_offset": "0x1f166434",
+      "host_device_paddr": "0x153f66434"
+    },
+    {
+      "gdpa": "0x81fb17ca4",
+      "gdpa_offset": "0x1fb17ca4",
+      "host_device_paddr": "0x154917ca4"
+    },
+    {
+      "gdpa": "0x8201239de",
+      "gdpa_offset": "0x201239de",
+      "host_device_paddr": "0x154f239de"
+    },
+    {
+      "gdpa": "0x82050fa89",
+      "gdpa_offset": "0x2050fa89",
+      "host_device_paddr": "0x15530fa89"
+    },
+    {
+      "gdpa": "0x820ea925a",
+      "gdpa_offset": "0x20ea925a",
+      "host_device_paddr": "0x155ca925a"
+    },
+    {
+      "gdpa": "0x82152ff21",
+      "gdpa_offset": "0x2152ff21",
+      "host_device_paddr": "0x15632ff21"
+    },
+    {
+      "gdpa": "0x8215e87f6",
+      "gdpa_offset": "0x215e87f6",
+      "host_device_paddr": "0x1563e87f6"
+    },
+    {
+      "gdpa": "0x821d28360",
+      "gdpa_offset": "0x21d28360",
+      "host_device_paddr": "0x156b28360"
+    },
+    {
+      "gdpa": "0x8223f855f",
+      "gdpa_offset": "0x223f855f",
+      "host_device_paddr": "0x1571f855f"
+    },
+    {
+      "gdpa": "0x822aa7615",
+      "gdpa_offset": "0x22aa7615",
+      "host_device_paddr": "0x1578a7615"
+    },
+    {
+      "gdpa": "0x82347df4d",
+      "gdpa_offset": "0x2347df4d",
+      "host_device_paddr": "0x15827df4d"
+    },
+    {
+      "gdpa": "0x8234bc2f9",
+      "gdpa_offset": "0x234bc2f9",
+      "host_device_paddr": "0x1582bc2f9"
+    },
+    {
+      "gdpa": "0x823ae134f",
+      "gdpa_offset": "0x23ae134f",
+      "host_device_paddr": "0x1588e134f"
+    },
+    {
+      "gdpa": "0x823b6798c",
+      "gdpa_offset": "0x23b6798c",
+      "host_device_paddr": "0x15896798c"
+    },
+    {
+      "gdpa": "0x823bb31ee",
+      "gdpa_offset": "0x23bb31ee",
+      "host_device_paddr": "0x1589b31ee"
+    },
+    {
+      "gdpa": "0x823eb4ca4",
+      "gdpa_offset": "0x23eb4ca4",
+      "host_device_paddr": "0x158cb4ca4"
+    },
+    {
+      "gdpa": "0x8248a074f",
+      "gdpa_offset": "0x248a074f",
+      "host_device_paddr": "0x1596a074f"
+    },
+    {
+      "gdpa": "0x82503d944",
+      "gdpa_offset": "0x2503d944",
+      "host_device_paddr": "0x159e3d944"
+    },
+    {
+      "gdpa": "0x82597f44c",
+      "gdpa_offset": "0x2597f44c",
+      "host_device_paddr": "0x15a77f44c"
+    },
+    {
+      "gdpa": "0x828058ba9",
+      "gdpa_offset": "0x28058ba9",
+      "host_device_paddr": "0x15ce58ba9"
+    },
+    {
+      "gdpa": "0x828c9abad",
+      "gdpa_offset": "0x28c9abad",
+      "host_device_paddr": "0x15da9abad"
+    },
+    {
+      "gdpa": "0x828f04ce5",
+      "gdpa_offset": "0x28f04ce5",
+      "host_device_paddr": "0x15dd04ce5"
+    },
+    {
+      "gdpa": "0x82a024601",
+      "gdpa_offset": "0x2a024601",
+      "host_device_paddr": "0x15ee24601"
+    },
+    {
+      "gdpa": "0x82b7b5759",
+      "gdpa_offset": "0x2b7b5759",
+      "host_device_paddr": "0x1605b5759"
+    },
+    {
+      "gdpa": "0x82c722dc1",
+      "gdpa_offset": "0x2c722dc1",
+      "host_device_paddr": "0x161522dc1"
+    },
+    {
+      "gdpa": "0x82ee2db4b",
+      "gdpa_offset": "0x2ee2db4b",
+      "host_device_paddr": "0x163c2db4b"
+    },
+    {
+      "gdpa": "0x830350f0a",
+      "gdpa_offset": "0x30350f0a",
+      "host_device_paddr": "0x165150f0a"
+    },
+    {
+      "gdpa": "0x830b79c7a",
+      "gdpa_offset": "0x30b79c7a",
+      "host_device_paddr": "0x165979c7a"
+    },
+    {
+      "gdpa": "0x8318e3fe5",
+      "gdpa_offset": "0x318e3fe5",
+      "host_device_paddr": "0x1666e3fe5"
+    },
+    {
+      "gdpa": "0x831aecf6c",
+      "gdpa_offset": "0x31aecf6c",
+      "host_device_paddr": "0x1668ecf6c"
+    },
+    {
+      "gdpa": "0x831bca7f5",
+      "gdpa_offset": "0x31bca7f5",
+      "host_device_paddr": "0x1669ca7f5"
+    },
+    {
+      "gdpa": "0x832491c1b",
+      "gdpa_offset": "0x32491c1b",
+      "host_device_paddr": "0x167291c1b"
+    },
+    {
+      "gdpa": "0x832a337e2",
+      "gdpa_offset": "0x32a337e2",
+      "host_device_paddr": "0x1678337e2"
+    },
+    {
+      "gdpa": "0x832e26e6c",
+      "gdpa_offset": "0x32e26e6c",
+      "host_device_paddr": "0x167c26e6c"
+    },
+    {
+      "gdpa": "0x833f917c0",
+      "gdpa_offset": "0x33f917c0",
+      "host_device_paddr": "0x168d917c0"
+    },
+    {
+      "gdpa": "0x83436f123",
+      "gdpa_offset": "0x3436f123",
+      "host_device_paddr": "0x16916f123"
+    },
+    {
+      "gdpa": "0x835038806",
+      "gdpa_offset": "0x35038806",
+      "host_device_paddr": "0x169e38806"
+    },
+    {
+      "gdpa": "0x836030d75",
+      "gdpa_offset": "0x36030d75",
+      "host_device_paddr": "0x16ae30d75"
+    },
+    {
+      "gdpa": "0x8366cc729",
+      "gdpa_offset": "0x366cc729",
+      "host_device_paddr": "0x16b4cc729"
+    },
+    {
+      "gdpa": "0x837fd38a0",
+      "gdpa_offset": "0x37fd38a0",
+      "host_device_paddr": "0x16cdd38a0"
+    },
+    {
+      "gdpa": "0x838574652",
+      "gdpa_offset": "0x38574652",
+      "host_device_paddr": "0x16d374652"
+    },
+    {
+      "gdpa": "0x838d9b420",
+      "gdpa_offset": "0x38d9b420",
+      "host_device_paddr": "0x16db9b420"
+    },
+    {
+      "gdpa": "0x83921d397",
+      "gdpa_offset": "0x3921d397",
+      "host_device_paddr": "0x16e01d397"
+    },
+    {
+      "gdpa": "0x8392998f3",
+      "gdpa_offset": "0x392998f3",
+      "host_device_paddr": "0x16e0998f3"
+    },
+    {
+      "gdpa": "0x8396f8341",
+      "gdpa_offset": "0x396f8341",
+      "host_device_paddr": "0x16e4f8341"
+    },
+    {
+      "gdpa": "0x83b63d8ba",
+      "gdpa_offset": "0x3b63d8ba",
+      "host_device_paddr": "0x17043d8ba"
+    },
+    {
+      "gdpa": "0x83b67f720",
+      "gdpa_offset": "0x3b67f720",
+      "host_device_paddr": "0x17047f720"
+    },
+    {
+      "gdpa": "0x83ba6fdba",
+      "gdpa_offset": "0x3ba6fdba",
+      "host_device_paddr": "0x17086fdba"
+    },
+    {
+      "gdpa": "0x83c34d3d0",
+      "gdpa_offset": "0x3c34d3d0",
+      "host_device_paddr": "0x17114d3d0"
+    },
+    {
+      "gdpa": "0x83cbf62c4",
+      "gdpa_offset": "0x3cbf62c4",
+      "host_device_paddr": "0x1719f62c4"
+    },
+    {
+      "gdpa": "0x83cf67d64",
+      "gdpa_offset": "0x3cf67d64",
+      "host_device_paddr": "0x171d67d64"
+    },
+    {
+      "gdpa": "0x83d5355c0",
+      "gdpa_offset": "0x3d5355c0",
+      "host_device_paddr": "0x1723355c0"
+    },
+    {
+      "gdpa": "0x83e4afe54",
+      "gdpa_offset": "0x3e4afe54",
+      "host_device_paddr": "0x1732afe54"
+    },
+    {
+      "gdpa": "0x83effffff",
+      "gdpa_offset": "0x3effffff",
+      "host_device_paddr": "0x173dfffff"
+    },
+    {
+      "gdpa": "0x83f000000",
+      "gdpa_offset": "0x3f000000",
+      "host_device_paddr": "0x771fef000"
+    },
+    {
+      "gdpa": "0x83f000001",
+      "gdpa_offset": "0x3f000001",
+      "host_device_paddr": "0x771fef001"
+    },
+    {
+      "gdpa": "0x83fc11a25",
+      "gdpa_offset": "0x3fc11a25",
+      "host_device_paddr": "0x772c00a25"
+    },
+    {
+      "gdpa": "0x8414ebf5a",
+      "gdpa_offset": "0x414ebf5a",
+      "host_device_paddr": "0x7744daf5a"
+    },
+    {
+      "gdpa": "0x8417c4766",
+      "gdpa_offset": "0x417c4766",
+      "host_device_paddr": "0x7747b3766"
+    },
+    {
+      "gdpa": "0x842112d3a",
+      "gdpa_offset": "0x42112d3a",
+      "host_device_paddr": "0x775101d3a"
+    },
+    {
+      "gdpa": "0x842212697",
+      "gdpa_offset": "0x42212697",
+      "host_device_paddr": "0x775201697"
+    },
+    {
+      "gdpa": "0x84294b0ef",
+      "gdpa_offset": "0x4294b0ef",
+      "host_device_paddr": "0x77593a0ef"
+    },
+    {
+      "gdpa": "0x842e36a95",
+      "gdpa_offset": "0x42e36a95",
+      "host_device_paddr": "0x775e25a95"
+    },
+    {
+      "gdpa": "0x842fffffe",
+      "gdpa_offset": "0x42fffffe",
+      "host_device_paddr": "0x775feeffe"
+    },
+    {
+      "gdpa": "0x842ffffff",
+      "gdpa_offset": "0x42ffffff",
+      "host_device_paddr": "0x775feefff"
+    },
+    {
+      "gdpa": "0x843000000",
+      "gdpa_offset": "0x43000000",
+      "host_device_paddr": "0x0"
+    }
+  ],
+  "compared_out_of_window_inputs": [
+    "0x0",
+    "0x7ffffffff",
+    "0x771fef000",
+    "0x843000000",
+    "0x843000001"
+  ],
+  "all_out_of_window_results_match": true,
+  "synthetic_flags_8_10_offsets": [
+    "0x0",
+    "0xfff",
+    "0x1000",
+    "0x1fff",
+    "0x2000"
+  ],
+  "all_synthetic_flags_8_10_results_match": true,
+  "hardware_accessed": false
+}

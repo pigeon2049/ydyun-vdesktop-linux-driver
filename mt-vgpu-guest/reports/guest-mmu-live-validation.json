@@ -1,0 +1,57 @@
+{
+  "boot_id": "9635196d-8d84-4701-b9bc-9ff6e2bb8e24",
+  "kernel": "6.12.107+deb13-amd64",
+  "pci": "0000:00:0e.0",
+  "device": "1ed5:0222",
+  "info_version": 2,
+  "osid": 6,
+  "modules": [
+    {
+      "revision": "r19b-lma-page-smoke",
+      "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-r19b-lma-page-smoke-20260929/mtgpu.ko",
+      "sha256": "31b10a7524c2f16f06390e68a6684780982fa57de4159f64ddcb7107051f3ab9",
+      "build_id": "be3bf7b9a8f2a1de364f4cf52ac19466bf74231e"
+    },
+    {
+      "revision": "r20-mmu-context-audit",
+      "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-r20-mmu-context-audit-20260929/mtgpu.ko",
+      "sha256": "88e5943e17e2be25f7cb8c017b20aee58530fbbae873b2e983346a147fd7fb95",
+      "build_id": "f65b0d1b70d1715fec62444f4ab39280a464094c"
+    },
+    {
+      "revision": "r21-fw-context-audit",
+      "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-r21-fw-context-audit-20260929/mtgpu.ko",
+      "sha256": "01f3a00f8213e0b39176fe06deaee53f3e370ee6d5c6b8c78b2d598c0a2106c4",
+      "build_id": "d30a1b1551b7e5261cfbb226fbbf7e99b0ac6343"
+    },
+    {
+      "revision": "r22-mmu-mapping-audit",
+      "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-r22-mmu-mapping-audit-20260929/mtgpu.ko",
+      "sha256": "75d6b51f30745e8d834e783c590b543ceda5d7ee1e90ce7ce96724ed4cce3247",
+      "build_id": "38d8afe4f935d03aa365f699f2056c64a8558464"
+    },
+    {
+      "revision": "r22b-mmu-mapping-audit",
+      "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-r22b-mmu-mapping-audit-20260929/mtgpu.ko",
+      "sha256": "e2e47d2d581ab1988542e2639097226aed1f4b94efe596e5f11e89aabfcd60aa",
+      "build_id": "c0cabb0dcc67654ea26a329a40aa7290013cef9e"
+    }
+  ],
+  "lma_two_page_write_restore": true,
+  "mmu_context_create_destroy": true,
+  "fw_kernel_context_create_destroy": true,
+  "mmu_three_level_links_verified": true,
+  "gpu_local_pmr_two_pages_map_unmap": true,
+  "mmu_root_host": "0x60f800000",
+  "gpu_page_host": [
+    "0x611000000",
+    "0x611001000"
+  ],
+  "firmware_pb_unchanged": true,
+  "hardware_gpu_commands_submitted": false,
+  "render_ready": false,
+  "module_unloaded": true,
+  "pci_unbound": true,
+  "python_tests_passed": 96,
+  "r22_initial_failure": "Diagnostic passed nonzero mapping flags to MMU_UnmapPages; r22b matches DevmemIntUnmapPages zero flags and verifies both PTEs invalid."
+}

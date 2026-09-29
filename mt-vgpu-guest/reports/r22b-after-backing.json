@@ -1,0 +1,20 @@
+{
+  "normal": {
+    "offset": "0xa00000",
+    "size": "0x1800000",
+    "sha256": "8d0b0cad14bd58be5301d11318dabea34cd537ccd468065f7cf57d9b6c4756e9",
+    "unchanged_since_r21": false
+  },
+  "firmware": {
+    "offset": "0x3f000000",
+    "size": "0x800000",
+    "sha256": "46c2843f5a3b519104edc271b564b2d21fdec4f4c3254f50fc5f63213f91a4df",
+    "unchanged_since_r21": true
+  },
+  "pb": {
+    "offset": "0x0",
+    "size": "0x200000",
+    "sha256": "5647f05ec18958947d32874eeb788fa396a05d0bab7c1b71f112ceb7e9b31eee",
+    "unchanged_since_r21": true
+  }
+}

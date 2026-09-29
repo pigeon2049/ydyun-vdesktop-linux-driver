@@ -1,0 +1,42 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "device_info_sha256": "6163ff0648e2ec45fde070e39b8bc9b0c1686f71ac42d184cb074d70594eaa2b",
+  "oracle_cases_passed": 9,
+  "rejected_mutations": [
+    "signature",
+    "version",
+    "count-overflow",
+    "missing-pb",
+    "missing-direct-fw",
+    "pb-size",
+    "pb-address-overflow",
+    "segment-unaligned",
+    "segment-overlap",
+    "segment-size-overflow",
+    "small-first-segment",
+    "oversized-fw",
+    "shared-overlap",
+    "shared-outside-bar",
+    "mapped-total-mismatch"
+  ],
+  "truncated_input_rejected": true,
+  "short_bar_rejected": true,
+  "hardware_written": false,
+  "pools": [
+    {
+      "bar_offset": 10485760,
+      "gpu_pa": 25862078464,
+      "size": 25165824
+    },
+    {
+      "bar_offset": 0,
+      "gpu_pa": 905969664,
+      "size": 2097152
+    },
+    {
+      "bar_offset": 1056964608,
+      "gpu_pa": 31977304064,
+      "size": 67108864
+    }
+  ]
+}

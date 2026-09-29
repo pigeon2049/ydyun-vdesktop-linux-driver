@@ -1,0 +1,136 @@
+{
+  "utc": "2026-09-29T16:01:18.847778+00:00",
+  "runtime": "prepared=1 published=1 notified=1 result=0 retained=1 guest=0 firmware=0 started=1 event_result=-95 events=1 render_ready=0",
+  "completions": "pending=1 completed=1 submit_enabled=0 workload_submit=0",
+  "trial": "result=0 connect_result=0 disconnect_result=-61 published=1 connected=1 disconnected=0 restored=0 pinned=1 registered=15 online=1 connect_commands=1 disconnect_commands=0\nguest=0 firmware=0 started=1 events=1\ndm=0 ring=0 head=1 tail=1\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=1 tail=1\ndm=1 ring=0 head=2 tail=1\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=2 tail=1\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0",
+  "rpc_service": "running=1 ready=1 irq=10 acknowledgments=298 replies=295 rejected=0",
+  "buffers": "objects=15 allocated_bytes=13791232 normal_pool_ready=1 address_spaces=1 gem_objects=0 processes=1 contexts=1 family=2 ce_version=0 transfer_version=1 drm_registered=0",
+  "rings": [
+    {
+      "dm": 0,
+      "cursors": [
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "pending_events": []
+    },
+    {
+      "dm": 1,
+      "cursors": [
+        2,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        1,
+        0
+      ],
+      "pending_events": [
+        [
+          0,
+          257,
+          2,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "dm": 2,
+      "cursors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pending_events": []
+    },
+    {
+      "dm": 3,
+      "cursors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pending_events": []
+    },
+    {
+      "dm": 4,
+      "cursors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pending_events": []
+    },
+    {
+      "dm": 5,
+      "cursors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pending_events": []
+    }
+  ],
+  "dm1_commands": [
+    "0000000000000000000000006400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000",
+    "00000000000000000000000067000000000000000000000000d0001006000000000000000000000000000140000000000013000000000000000000000000000000000000000000000200000069890000"
+  ],
+  "result": "-110",
+  "prepared": "Y",
+  "submitted": "Y",
+  "verified": "N",
+  "sequence": "2"
+}

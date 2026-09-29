@@ -1,0 +1,166 @@
+{
+  "utc": "2026-09-27T17:36:00.896534+00:00",
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "entry": "0x140016218",
+  "hardware_written": false,
+  "hardware_connection_verified": false,
+  "entry_return": false,
+  "connection_calls": 1,
+  "firmware_model": "state=READY(1), started=0, never consumes queues",
+  "connection_delay_count": 400,
+  "register_writes": [
+    {
+      "offset": "0x890",
+      "value": "0x1"
+    },
+    {
+      "offset": "0xb00",
+      "value": "0x0"
+    },
+    {
+      "offset": "0xb00",
+      "value": "0x0"
+    },
+    {
+      "offset": "0xb00",
+      "value": "0x0"
+    },
+    {
+      "offset": "0xb00",
+      "value": "0x0"
+    },
+    {
+      "offset": "0xb00",
+      "value": "0x0"
+    }
+  ],
+  "retained_trial_bytes_compared": 8388608,
+  "retained_trial_sha256": "1c029339ad9538094bb6a13601d5a946be77eb2c423df8c61da6fb3a41357c47",
+  "normalized_command_pids": [
+    81803,
+    81803,
+    81803,
+    81803,
+    81803
+  ],
+  "comparison_normalizes_only_five_command_pid_fields": true,
+  "firmware_bytes_compared": 8388608,
+  "firmware_sha256": "d27f408f9048236a10095c849af150eb133834890045328e37c610a85a0cfe15",
+  "table_bytes_compared": 24576,
+  "table_sha256": "8efb81e19b66356105f2ae46ba2093197ed5fe97cdd61ac5e82b78b60dcc391b",
+  "auxiliary_bytes_compared": 4096,
+  "publications": [
+    {
+      "offset": "0x30",
+      "value": "0x771fef000"
+    },
+    {
+      "offset": "0x38",
+      "value": "0x800000"
+    },
+    {
+      "offset": "0x148",
+      "value": "0x1"
+    },
+    {
+      "offset": "0x148",
+      "value": "0x1"
+    },
+    {
+      "offset": "0x148",
+      "value": "0x1"
+    },
+    {
+      "offset": "0x148",
+      "value": "0x1"
+    }
+  ],
+  "allocations": [
+    {
+      "kind": "firmware",
+      "cpu": 16801792,
+      "size": 8388608,
+      "pa": 31977304064,
+      "offset": 1056964608,
+      "flags": 64,
+      "tag": 1180128327
+    },
+    {
+      "kind": "auxiliary",
+      "cpu": 25210880,
+      "size": 4096,
+      "pa": 25862103040,
+      "offset": 10510336,
+      "flags": 1,
+      "tag": 1180128327
+    },
+    {
+      "kind": "table",
+      "cpu": 25219072,
+      "size": 4096,
+      "pa": 25862078464,
+      "offset": 10485760,
+      "flags": 1,
+      "tag": 1446268995
+    },
+    {
+      "kind": "table",
+      "cpu": 25260032,
+      "size": 4096,
+      "pa": 25862082560,
+      "offset": 10489856,
+      "flags": 1,
+      "tag": 1446268996
+    },
+    {
+      "kind": "table",
+      "cpu": 25280512,
+      "size": 4096,
+      "pa": 25862086656,
+      "offset": 10493952,
+      "flags": 1,
+      "tag": 1446269012
+    },
+    {
+      "kind": "table",
+      "cpu": 25288704,
+      "size": 4096,
+      "pa": 25862090752,
+      "offset": 10498048,
+      "flags": 1,
+      "tag": 1446269012
+    },
+    {
+      "kind": "table",
+      "cpu": 25296896,
+      "size": 4096,
+      "pa": 25862094848,
+      "offset": 10502144,
+      "flags": 1,
+      "tag": 1446269012
+    },
+    {
+      "kind": "table",
+      "cpu": 25305088,
+      "size": 4096,
+      "pa": 25862098944,
+      "offset": 10506240,
+      "flags": 1,
+      "tag": 1446269012
+    }
+  ],
+  "modeled_helpers": [
+    "CPU allocation and memory primitives",
+    "single-threaded locks",
+    "GPU allocation descriptors at retained trial addresses",
+    "MmGetPhysicalAddress using corresponding Guest BAR2 GPA",
+    "MMIO recording and stalled firmware state",
+    "25 ms delay counter",
+    "deterministic process ID"
+  ],
+  "limits": [
+    "Host mappings, firmware execution and allocation lifecycle not emulated",
+    "Guest setup/layout inputs are the current verified fixtures",
+    "One current-device cold-load path and stalled disconnect, not general error/reset coverage"
+  ]
+}

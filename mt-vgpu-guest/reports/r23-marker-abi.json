@@ -1,0 +1,9 @@
+{
+  "mt_guest_device": "exact pahole match",
+  "mt_guest": "exact pahole match",
+  "mt_rpc_service": "exact pahole match",
+  "mt_runtime_context": "exact pahole match",
+  "mt_marker_store": "exact pahole match",
+  "mt_marker_ops": "exact pahole match",
+  "mt_fw_queue_io": "exact pahole match"
+}

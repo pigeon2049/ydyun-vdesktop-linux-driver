@@ -1,0 +1,15 @@
+{
+  "legacy_umd_package_sha256": "0cb86813a105759cf234a5cde4e26bc33a6f238b7e5d2208b23c5643057fbaeb",
+  "libsrv_um_sha256": "b3058c02bbd7c879f076c48ee1faf78e0e764beeab09da7cbd053f3ec34237b0",
+  "musa_dri_sha256": "d1eac49b5ef5e42a5507ff397e7e2dedf7c424eb720073dcad1e4c4e9234fa4c",
+  "umd_pvr_init_ioctl": "0x40046445",
+  "umd_pvr_srvkm_ioctl": "0xc0206440",
+  "connect_bridge_id": 1,
+  "connect_function_id": 0,
+  "connect_input_size": 16,
+  "connect_output_size": 17,
+  "client_ddk_version": "0x10000",
+  "kmd_ddk_version": "1.0 (0x10000)",
+  "connect_abi_matches": true,
+  "scope": "Static PVR Connect/init ABI match only; does not prove all bridge calls, Guest operation, or rendering compatibility."
+}

@@ -1,0 +1,37 @@
+{
+  "utc": "2026-09-29T17:15:49.915983+00:00",
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "cases": 190,
+  "rejected_cases": 15,
+  "command_bytes": 80,
+  "initial_pds_bytes": 16,
+  "software_record_bytes": 296,
+  "page_record_bytes": 16,
+  "cpu_image_bytes": 568,
+  "executed": [
+    "command object constructors 1400d9b08/140119e88/14011964c/1400a24f8",
+    "initial state 14011e6dc/1401168e4/14011a480/14011a62c",
+    "job source/program/destination 140113c08 and callbacks",
+    "job state cache/completion 14011b3cc/1400dad24",
+    "finalization 14011d194/14011e768/14011d378/14011d488",
+    "record/page insertion and page-size patch 14011df28/14011de48/1400db2c8",
+    "recovered leaf 1400da520",
+    "device properties/getters 140091470/14004d0e4/14004cc38; module getter 140089a00"
+  ],
+  "modeled": [
+    "OS platform configuration getter for device property initialization",
+    "command allocator constructor and first-page RAM allocation/GPU end lookup",
+    "CPU/GPU/heap-relative state allocation and code address lookup",
+    "allocator ownership finalization 140119914",
+    "memcpy/memset/stack cookie"
+  ],
+  "assumptions": [
+    "single linear-copy rectangle, no previous state or external synchronization",
+    "command page starts at a nonzero 4096-aligned GPU VA",
+    "software record arrays preallocated; no page rollover"
+  ],
+  "hardware_access": false,
+  "gpu_execution": false,
+  "limits": "Finalized command plus software records, not DMA/firmware submission. Heap mapping, allocation lifetime, multi-job streams and execution remain incomplete."
+}

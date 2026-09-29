@@ -1,0 +1,27 @@
+{
+  "checked_utc": "2026-09-27T15:43:26.676629+00:00",
+  "tested_bar_offset": "0xa06000",
+  "tested_gpu_pa": "0x605806000",
+  "tested_bytes": 4096,
+  "pattern_verified": true,
+  "original_data_restored_and_verified": true,
+  "firmware_written": false,
+  "page_tables_written": false,
+  "device_memory_written": true,
+  "hardware_acceleration_verified": false,
+  "module_unloaded": true,
+  "device_unbound": true,
+  "status_after_unload": {
+    "pci": "0000:00:0e.0",
+    "bar": 0,
+    "access": "read-only-u32",
+    "driver_state": 0,
+    "firmware_state": 1,
+    "hardware_acceleration_verified": false
+  },
+  "services": {
+    "sddm": "active",
+    "spice-vdagentd": "active",
+    "tailscaled": "active"
+  }
+}

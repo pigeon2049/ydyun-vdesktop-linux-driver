@@ -1,0 +1,535 @@
+{
+  "reference_directory": "/opt/MTT-driver-only",
+  "files": [
+    {
+      "name": "MT-VGPU-ENCODE.inf",
+      "size": 12106,
+      "sha256": "6cd6666df7020836beb52fa4e37a3c9bdfcd90c87b6ff336160582561679dbf8",
+      "driver_versions": [
+        "10/23/2025,27.18.594.2562"
+      ],
+      "matching_device_lines": [
+        "%MT_DEV.0222.1101.1ED5% = mtgpu64, PCI\\VEN_1ED5&DEV_0222&SUBSYS_11011ED5",
+        "MT_DEV.0222.1101.1ED5 = \"Moore Threads S3000 MTvGPU-1101\""
+      ],
+      "linux_loadable": false
+    },
+    {
+      "name": "MT-VGPU-FW-ENCODE-REL.inf",
+      "size": 14135,
+      "sha256": "4e89c26b70a22d9825863041cda461d97e499a998136c9646dab3f5aadc2978a",
+      "driver_versions": [
+        "11/02/2025,30.0.2505.1"
+      ],
+      "matching_device_lines": [
+        "%MT_DEV.0222.1101.1ED5% = mtgpu64, PCI\\VEN_1ED5&DEV_0222&SUBSYS_11011ED5",
+        "MT_DEV.0222.1101.1ED5 = \"Moore Threads S3000 MTvGPU-1101\""
+      ],
+      "linux_loadable": false
+    },
+    {
+      "name": "mtapi32.dll",
+      "size": 1503536,
+      "sha256": "00a581cd16b8ba9385b95affd42e363aa5aa0610ad32be68d44abba771075993",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "0.1.1.0",
+            "product_version": "0.1.1.0"
+          }
+        ],
+        "build_clues": []
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtapi64.dll",
+      "size": 1666864,
+      "sha256": "5b37be38f4b8c3978903bda209a4932a7a1cc74216eccf106077ffe51162b66f",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "0.1.1.0",
+            "product_version": "0.1.1.0"
+          }
+        ],
+        "build_clues": []
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdh32.dll",
+      "size": 1316584,
+      "sha256": "1bd376b354323dad12139cd4c65ac823a53bbbd2fc82d4c1971947c8cbf0c1ee",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "30.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\dxc\\build32\\Release\\mtdh32.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdh64.dll",
+      "size": 1502952,
+      "sha256": "d3e259c803d94e8ba7f28e1c5dad920b07548fb45b229db3f75907ecbdf7660f",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "30.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\dxc\\build\\Release\\mtdh64.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdispkm64.sys",
+      "size": 289000,
+      "sha256": "e061a9bda23fe8ae0cee81522a8b89455bfddd0b295bc86704009fcdeb82a686",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "30.0.2505.1",
+            "product_version": "1.14.2505.1"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\build\\wddm\\mtgpu\\output\\mt_kmd\\target\\fre_win10_amd64\\objs\\kmd\\exmod\\dim\\mthreads\\mtdispkm\\mtdispkm64.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdxc32.dll",
+      "size": 23434984,
+      "sha256": "c3b1e3ae29ae7dd3eb19876df24dd9236fdead867ad14111184f128954347754",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "30.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\dxc\\build32\\Release\\mtdxc32.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdxc64.dll",
+      "size": 24757696,
+      "sha256": "9054a999e6bb19ae376c0654d6efd10475cdb2aa1880ff6bb7aada25911aeefe",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "30.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\dxc\\build\\Release\\mtdxc64.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdxconv32.dll",
+      "size": 1369832,
+      "sha256": "8bfd2a7bfc9f52d5dac12448e232b3506f77aacbc901a1de6515dc58debb5cf8",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "30.0.2501.4465",
+            "product_version": "0.0.0.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\Users\\xin.pan\\source\\repos\\DirectXShaderCompiler\\cmake_build32\\Release\\bin\\dxilconv.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdxconv64.dll",
+      "size": 1757928,
+      "sha256": "43c230addaa2a286a857f97afe0d62000d5329ea138f83ef79444991f1fc5e80",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "30.0.2501.4465",
+            "product_version": "0.0.0.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\Users\\xin.pan\\source\\repos\\DirectXShaderCompiler\\cmake_build64\\Release\\bin\\dxilconv.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdxum32.dll",
+      "size": 25274160,
+      "sha256": "f7bafcc4d8d27b8a423e0cfbb89cd141da50dee166d186afa06e0e1d15aa5179",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "30.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\mtdxum\\cmake_build32\\Release\\mtdxum32.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdxum64.dll",
+      "size": 26527760,
+      "sha256": "3f2c843d3404d37b2beea9f97ebcc1e6207d11948c5da2c4581ccd4d8bc5ba0c",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "30.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\mtdxum\\cmake_build\\Release\\mtdxum64.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdxvaum32.dll",
+      "size": 1263336,
+      "sha256": "74c7cb7f092a7acfe04036f596a7ece6a4d5757dfbc7fc5e66e653b02f6fb95a",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "10.0.2505.1",
+            "product_version": "6.593.6196.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\mtvideodrv\\dxva\\cmake_build32\\Release\\mtdxvaum32.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtdxvaum64.dll",
+      "size": 1452776,
+      "sha256": "35341f6bd6a5fb54779315f436ba875a78c2dc2b3c135527c593eef68c60c4e8",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "10.0.2505.1",
+            "product_version": "6.593.6196.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\mtvideodrv\\dxva\\cmake_build\\Release\\mtdxvaum64.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtencodeapi32.dll",
+      "size": 736488,
+      "sha256": "dea123fdc1763a4c8ebad24c19d7f1befc36984e23ba358b60e3efd4d11165ac",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "0.2.1.1",
+            "product_version": "0.2.1.1"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\DirectStream\\MTCodec\\examples\\Sample\\AppEncode\\Common\\colorConvert.cpp",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\DirectStream\\MTCodec\\src\\MTEncode\\MTEncodeHelper\\CodecCavlcAv1.cpp",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\DirectStream\\build\\MTEncodeBuild\\Release\\Release\\mtencodeapi32.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtencodeapi64.dll",
+      "size": 931560,
+      "sha256": "4da2970956eeb5e338be62a462a4dff755b8f8bad7634204546ecbd2c55d344a",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "0.2.1.1",
+            "product_version": "0.2.1.1"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\DirectStream\\MTCodec\\examples\\Sample\\AppEncode\\Common\\colorConvert.cpp",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\DirectStream\\MTCodec\\src\\MTEncode\\MTEncodeHelper\\CodecCavlcAv1.cpp",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\DirectStream\\build\\MTEncodeBuild\\x64\\Release\\Release\\mtencodeapi64.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtgfxc32.dll",
+      "size": 109620456,
+      "sha256": "0cb5d716faf2b320a579c691a19cb0517cd5cc12bb31f89e9a9a143d08ecf0fc",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "30.0.2501.1001",
+            "product_version": "0.0.0.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\build.libgfxc.win\\mtcc\\libgfxc\\gfx_build\\Release\\Windows_x86\\src\\api\\Release\\mtgfxc32.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtgfxc64.dll",
+      "size": 110925032,
+      "sha256": "9da3c2e5568b7fce1149c52d385ad1a3dfd289771c1b449e87c25eaa97686a6e",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "30.0.2501.1001",
+            "product_version": "0.0.0.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\build.libgfxc.win\\mtcc\\libgfxc\\gfx_build\\Release\\Windows_x64\\src\\api\\Release\\mtgfxc64.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtgpu.cat",
+      "size": 698871,
+      "sha256": "b97c2a5ffed625dbbf9b5f1826de9dd7d630374547e539a40ec793f85b9fb2e7"
+    },
+    {
+      "name": "mticdfbg32.dll",
+      "size": 9605864,
+      "sha256": "cff9f6c2549511aa66ee83f68a5a43809e9fa80cc0f02936745275679e39e8d5",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [],
+        "build_clues": []
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mticdfbg64.dll",
+      "size": 11199720,
+      "sha256": "d02f520741e98bd9a22e21b248bddc5fa800f0585f7e87a0bb7d28124d2d7838",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [],
+        "build_clues": []
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mticdg32.dll",
+      "size": 27925224,
+      "sha256": "f1499cee0fbf3bcf22be5b376730b4962843a2de540ef0056ca821069c9b22a6",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "10.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\ogl\\build_x86\\Release\\mticdg32.pdb",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\ogl\\opengl\\api\\drivers\\binshader\\binshaderinternal.cpp",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\ogl\\opengl\\api\\drivers\\texmgr_gl.cpp",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\ogl\\opengl\\sgl4\\common\\volcanic\\twiddle.cpp"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mticdg64.dll",
+      "size": 29486824,
+      "sha256": "7d4f001e7c8e8a627dc133647d4d8aa8f6324d002c6b81fc0d3f2ab928433647",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "10.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\ogl\\build_x64\\Release\\mticdg64.pdb",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\ogl\\opengl\\api\\drivers\\binshader\\binshaderinternal.cpp",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\ogl\\opengl\\api\\drivers\\texmgr_gl.cpp",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\ogl\\opengl\\sgl4\\common\\volcanic\\twiddle.cpp"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mticdpxg32.dll",
+      "size": 113392,
+      "sha256": "62a2ed3803f3670a7e912f2097212da2787668f32e6a1a4698744e569d11a5de",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [],
+        "build_clues": []
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mticdpxg64.dll",
+      "size": 140272,
+      "sha256": "4c42e4b064a5541534e50f23a2eae023351d5fb1dcff8306ce4aa55847bdffac",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [],
+        "build_clues": []
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtkm64.sys",
+      "size": 18766568,
+      "sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "30.0.2505.1",
+            "product_version": "1.14.593.6196"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\build\\wddm\\mtgpu\\output\\mt_kmd\\intermediates\\fre_win10_amd64\\mtfw_firmware\\mtfirmware_t0.elf",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\build\\wddm\\mtgpu\\output\\mt_kmd\\intermediates\\fre_win10_amd64\\mtfw_firmware_gen2\\mtfirmware_t0.elf",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\build\\wddm\\mtgpu\\output\\mt_kmd\\intermediates\\fre_win10_amd64\\mtfw_firmware_gen2_1\\mtfirmware_t0.elf",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\build\\wddm\\mtgpu\\output\\mt_kmd\\intermediates\\fre_win10_amd64\\mtfw_firmware_gen3\\mtfirmware_t0.elf",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\build\\wddm\\mtgpu\\output\\mt_kmd\\intermediates\\fre_win10_amd64\\mtfw_firmware_gen6\\mtfirmware_t0.elf",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\build\\wddm\\mtgpu\\output\\mt_kmd\\target\\fre_win10_amd64\\objs\\kmd\\mtkm\\mtkm64.pdb",
+          "VGPU Env is abnormal, vgpu device id: 0x%x",
+          "VGPUFWStatusCheck"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtml.dll",
+      "size": 1739056,
+      "sha256": "26ec00ff915d369aca514e6b92d94a42ef4ab6e049e9deec33ed2f97bbc29071",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\build.mt-management.win\\mt-management\\build\\src\\Release\\mtml.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtml32.dll",
+      "size": 1557296,
+      "sha256": "690a09e31eeb3fc36735ef0488932ef57fc120a9defbd11ec0002ff1f71f50b5",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\build.mt-management.win\\mt-management\\build\\src\\Release\\mtml32.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtvppum32.dll",
+      "size": 711400,
+      "sha256": "fa3e82603a5d7d3e580b902c42f673d3297acb2fd48f7022caf7d1b48da3d5fe",
+      "pe": {
+        "machine": "0x14c",
+        "versions": [
+          {
+            "file_version": "10.0.2505.1",
+            "product_version": "6.41785.0.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\vpp\\cmake_build32\\Release\\mtvppum32.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtvppum64.dll",
+      "size": 790248,
+      "sha256": "90d62802890920f9e5f04d49e421892748c46b50b971549a29607ef19e8d3f5e",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "10.0.2505.1",
+            "product_version": "6.41785.0.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\vpp\\cmake_build\\Release\\mtvppum64.pdb"
+        ]
+      },
+      "linux_loadable": false
+    },
+    {
+      "name": "mtvpukm64.sys",
+      "size": 476392,
+      "sha256": "5527b03a8acf3ea6f4953da11c76629fb41e94cbb3eb3e604548e7ecc9921293",
+      "pe": {
+        "machine": "0x8664",
+        "versions": [
+          {
+            "file_version": "10.0.2505.1",
+            "product_version": "6.593.6196.0"
+          }
+        ],
+        "build_clues": [
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\build\\wddm\\mtgpu\\output\\mt_kmd\\target\\fre_win10_amd64\\objs\\mtvideodrv\\wddm\\mtvpukm\\mtvpukm64.pdb",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\mtvideodrv\\wddm\\mt_vpu_mim\\mimcoreload.c",
+          "C:\\jenkins\\workspace\\M-vdi-guest275\\wddm\\mtvideodrv\\wddm\\mt_vpu_mim\\mimsharedmem.c"
+        ]
+      },
+      "linux_loadable": false
+    }
+  ]
+}

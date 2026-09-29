@@ -1,0 +1,12 @@
+{
+  "utc": "2026-09-27T17:49:16.351562+00:00",
+  "boot_id": "babef30c-5fb0-48a0-81cb-1603a4cf10d7",
+  "requested_action": "User-authorized normal Guest OS reboot",
+  "host_vgpu_session_release_verified": false,
+  "state": {
+    "mt_guest/trial": "result=-108 connect_result=-110 disconnect_result=-108 published=1 connected=0 disconnected=0 restored=0 pinned=1 registered=15 online=8 connect_commands=4 disconnect_commands=1\nguest=1 firmware=1 started=0 events=0\ndm=0 ring=0 head=5 tail=0\ndm=0 ring=1 head=0 tail=0\ndm=0 ring=2 head=0 tail=0\ndm=1 ring=0 head=0 tail=0\ndm=1 ring=1 head=0 tail=0\ndm=1 ring=2 head=0 tail=0\ndm=2 ring=0 head=0 tail=0\ndm=2 ring=1 head=0 tail=0\ndm=2 ring=2 head=0 tail=0\ndm=3 ring=0 head=0 tail=0\ndm=3 ring=1 head=0 tail=0\ndm=3 ring=2 head=0 tail=0\ndm=4 ring=0 head=0 tail=0\ndm=4 ring=1 head=0 tail=0\ndm=4 ring=2 head=0 tail=0\ndm=5 ring=0 head=0 tail=0\ndm=5 ring=1 head=0 tail=0\ndm=5 ring=2 head=0 tail=0\n",
+    "mt_guest/connection": "driver=1 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 memory_result=-61 firmware_bar_offset=0x0 shared_bar_offset=0x0 render_ready=0\n",
+    "mt_live/status": "irq=10 disabled=0 shared_status=0 acknowledgments=1099 replies=1099 rejected=0 request_head=1 request_tail=1 reply_head=1 reply_tail=13\n",
+    "mt_live/publication": "bar2_gpa=0x800000000 local_mmu_gpa=0x0 firmware_pa=0x771fef000 firmware_bytes=0x800000 expected_firmware_pa=0x771fef000 expected_firmware_bytes=0x800000\n"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "utc": "2026-09-28T04:59:36.861809+00:00",
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "cases": 432,
+  "chunk_counts": {
+    "1": 130,
+    "2": 23,
+    "3": 116,
+    "4": 163
+  },
+  "allocation_counts": {
+    "5": 130,
+    "9": 23,
+    "13": 116,
+    "17": 163
+  },
+  "rejected_cases": 25,
+  "cpu_image_bytes": 1312,
+  "max_command_bytes": 320,
+  "executed": [
+    "command object constructor and initialization",
+    "outer copy splitter/geometry/operation selector 14010f034/1400a624c/140114418",
+    "all source/program/destination jobs 140113c08",
+    "initial PDS cache/state comparison 14011e634/14011b3cc",
+    "finalization, software/page records and backpatches 14011d194",
+    "command root export 14011d6bc/14011a21c"
+  ],
+  "modeled": [
+    "RAM/GPU/relative allocations and program heap lookup",
+    "memcmp/memcpy/memset/stack cookie",
+    "OS configuration getter",
+    "allocator ownership finalization 140119914"
+  ],
+  "assumptions": [
+    "fresh object, one region, no external synchronization, one command page",
+    "distinct caller-provided state addresses; no live heap/VM allocation"
+  ],
+  "hardware_access": false,
+  "gpu_execution": false,
+  "limits": "Complete bounded CPU encoding from byte-copy region through root export, not an executable firmware submission. Heap mapping, allocation lifetime, DMA conversion and GPU execution remain incomplete."
+}

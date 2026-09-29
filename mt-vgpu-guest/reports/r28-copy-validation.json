@@ -1,0 +1,75 @@
+{
+  "boot_id": "fe18deeb-d431-4c03-ac88-34235e9849c5",
+  "parameters": {
+    "prepared": "Y",
+    "submitted": "Y",
+    "verified": "Y",
+    "result": "0",
+    "sequence": "2"
+  },
+  "runtime": "prepared=1 published=1 notified=1 result=0 retained=1 guest=2 firmware=2 started=1 event_result=0 events=1 render_ready=0",
+  "completions": "pending=0 completed=2 submit_enabled=0 workload_submit=0",
+  "allocations": {
+    "root": {
+      "bytes": 131072,
+      "sha256": "b07abac851a3bdcdc49c712301a79ddababb791bdeac8f601d2d6153e32f938c"
+    },
+    "command": {
+      "bytes": 4096,
+      "sha256": "c6d45a0ca02dc67d9e87193f98775b8575406e86037ec7d1447b5cd2d5a4eb57"
+    },
+    "source": {
+      "bytes": 4096,
+      "sha256": "ec98ae12258ddf938a9f3c1d3c1599a39e397f7c1d6273c49e5e89aea82b5bf8"
+    },
+    "destination": {
+      "bytes": 4096,
+      "sha256": "504646597c67f202d02cef9a83870adbdd2e71921a9a199c422a24ced8ee33a3"
+    },
+    "dma": {
+      "bytes": 8192,
+      "sha256": "f9a0791aedde8b18d88c64cb6b3a3dab226e7d787bd0cb9074c6d6ca192cca61"
+    },
+    "engine-state": {
+      "bytes": 4096,
+      "sha256": "2cfe0bfc092f164b9b2bad8657feefc9fca00bbabd0f84eb03836d3bcb8a7328"
+    }
+  },
+  "source_pattern_preserved": true,
+  "copy_256_matches": true,
+  "destination_guard_preserved": true,
+  "walks": [
+    {
+      "va": "0x40000000",
+      "pte": "0x60602d001",
+      "writable": true
+    },
+    {
+      "va": "0x40100000",
+      "pte": "0x60602e001",
+      "writable": true
+    },
+    {
+      "va": "0x40200000",
+      "pte": "0x60602f001",
+      "writable": true
+    },
+    {
+      "va": "0x40010000",
+      "pte": "0x606030001",
+      "writable": true
+    },
+    {
+      "va": "0x40011000",
+      "pte": "0x606031001",
+      "writable": true
+    },
+    {
+      "va": "0x40020000",
+      "pte": "0x606032001",
+      "writable": true
+    }
+  ],
+  "hardware_copy_verified": true,
+  "drm_acceleration_verified": false
+}

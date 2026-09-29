@@ -1,0 +1,16 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "command_matches_reference": true,
+  "dma_matches_reference": true,
+  "command_different_offsets": [],
+  "dma_different_offsets": [],
+  "submission_view": [
+    1073807360,
+    4864,
+    0
+  ],
+  "command_sha256": "c6d45a0ca02dc67d9e87193f98775b8575406e86037ec7d1447b5cd2d5a4eb57",
+  "dma_sha256": "85a7ee27043840645368fbd0cbc72673c9781b652131119e01007534666c4eb0",
+  "hardware_access": false,
+  "limits": "Saved DMA/stream bytes only; allocation placement and platform/OS calls are modeled. Does not validate hardware page permissions, firmware compatibility, engine initialization or GPU execution."
+}

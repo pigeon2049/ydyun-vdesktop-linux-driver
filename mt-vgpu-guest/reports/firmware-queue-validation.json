@@ -1,0 +1,26 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "hardware_written": false,
+  "queue_bytes": 70944,
+  "dm_count": 6,
+  "command_bytes": 80,
+  "event_bytes": 24,
+  "ring_entries": 64,
+  "usable_entries_per_ring": 63,
+  "enqueue_cases_passed": 768,
+  "full_ring_cases_passed": 12,
+  "idle_cases_passed": 36,
+  "command_cases_passed": 66,
+  "invalid_enqueue_inputs_rejected": 9,
+  "guarded_initialization_matches": true,
+  "backend_order_verified": true,
+  "device_ordering_verified": false,
+  "firmware_connection_verified": false,
+  "modeled_helpers": [
+    "CPU memset",
+    "single-threaded producer spinlock",
+    "stall counter",
+    "process ID",
+    "captured MMIO write helper"
+  ]
+}

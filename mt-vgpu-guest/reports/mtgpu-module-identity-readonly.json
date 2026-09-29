@@ -1,0 +1,53 @@
+{
+  "timestamp_utc": "2026-09-29T02:25:31.825821+00:00",
+  "kernel": "6.12.107+deb13-amd64",
+  "scope": "read-only sysfs and ELF notes/hash; no PCI config/MMIO reads, no module load/unload",
+  "mtt_devices": [
+    {
+      "vendor": "0x1ed5",
+      "device": "0x0222",
+      "subsystem_vendor": "0x1ed5",
+      "subsystem_device": "0x1101",
+      "class": "0x030000",
+      "modalias": "pci:v00001ED5d00000222sv00001ED5sd00001101bc03sc00i00",
+      "bdf": "0000:00:0e.0",
+      "driver": null,
+      "resources": "0x00000000fc610000 0x00000000fc61ffff 0x0000000000040200\n0x00000000fc620000 0x00000000fc62ffff 0x0000000000040200\n0x0000000800000000 0x0000000bffffffff 0x000000000014220c\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x00000000000c0000 0x00000000000dffff 0x0000000000000212\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000",
+      "drm_nodes": []
+    }
+  ],
+  "mtgpu_module": {
+    "present": true,
+    "initstate": "coming",
+    "refcnt": "1",
+    "taint": "OE",
+    "core_size": "2527232",
+    "init_size": "380928",
+    "build_id": "3f50769528dc4c23b4ed36dda8cf89d7a9339fdc"
+  },
+  "candidate_module": {
+    "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-2.3.0-guest-vgpu-info-v2-addr-sharedmem-vpumap-audit13-r8-20260929/mtgpu.ko",
+    "sha256": "2333194a473506d9390f5d7444099d083c22ce6c777f891b0d4c917b121899c3",
+    "build_id": "671caf9a6d0512e6b88c49a1686099aa3acd1368",
+    "matches_loaded_module": false
+  },
+  "previous_offline_candidate": {
+    "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/official-vgpu-2.3.0-guest-vgpu-info-v2-addr-sharedmem-vpumap-audit13-r7-20260929/mtgpu.ko",
+    "sha256": "94ebca9846966d9c8b5825b66eace485e984094ab542249ddb4fb28132b78348",
+    "build_id": "2e2cb3f40e5c8d6d2ba323d1ffc66ac9586c3a7d"
+  },
+  "drm_nodes": [
+    {
+      "node": "/dev/dri/card0",
+      "device": "0000:00:02.0",
+      "vendor": "0x1b36",
+      "driver": "qxl"
+    }
+  ],
+  "discarded_experiment_artifact": {
+    "path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/discarded-ftrace-oops-diagnostic-experiment/mtgpu.ko",
+    "sha256": "41eb14c7e719cc427fddbd5fd2a67473d358262b4424fb60fbb686e55d686a90",
+    "build_id": "3f50769528dc4c23b4ed36dda8cf89d7a9339fdc",
+    "matches_loaded_module": true
+  }
+}

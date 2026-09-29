@@ -1,0 +1,3800 @@
+{
+  "legacy_umd_path": "/tmp/mtt-linux-umd-5.2.0/root/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0",
+  "legacy_umd_sha256": "b3058c02bbd7c879f076c48ee1faf78e0e764beeab09da7cbd053f3ec34237b0",
+  "kmd_2_3_generated_headers": "src/official-vgpu-2.3.0/usr/src/mtgpu-1.0.0/inc/pvr/generated",
+  "callsite_count": 205,
+  "unique_bridge_function_count": 205,
+  "bridge_functions_present_in_kmd_2_3_headers": 179,
+  "bridge_functions_absent_from_kmd_2_3_headers": 26,
+  "bridge_functions_with_exact_input_and_output_sizes": 154,
+  "bridge_functions_with_size_mismatches": 25,
+  "size_mismatches": [
+    {
+      "bridge_id": 26,
+      "function_id": 2,
+      "name": "DMADEVICEPARAMS",
+      "umd": [
+        0,
+        12
+      ],
+      "kmd_2_3": [
+        4,
+        12
+      ]
+    },
+    {
+      "bridge_id": 6,
+      "function_id": 29,
+      "name": "HEAPCFGHEAPCONFIGCOUNT",
+      "umd": [
+        0,
+        8
+      ],
+      "kmd_2_3": [
+        4,
+        8
+      ]
+    },
+    {
+      "bridge_id": 6,
+      "function_id": 34,
+      "name": "GETMAXPHYSHEAPCOUNT",
+      "umd": [
+        0,
+        8
+      ],
+      "kmd_2_3": [
+        4,
+        8
+      ]
+    },
+    {
+      "bridge_id": 6,
+      "function_id": 36,
+      "name": "GETDEFAULTPHYSICALHEAP",
+      "umd": [
+        0,
+        8
+      ],
+      "kmd_2_3": [
+        4,
+        8
+      ]
+    },
+    {
+      "bridge_id": 129,
+      "function_id": 7,
+      "name": "RGXGETLASTDEVICEERROR",
+      "umd": [
+        0,
+        8
+      ],
+      "kmd_2_3": [
+        4,
+        8
+      ]
+    },
+    {
+      "bridge_id": 132,
+      "function_id": 1,
+      "name": "RGXFWDEBUGDUMPFREELISTPAGELIST",
+      "umd": [
+        0,
+        4
+      ],
+      "kmd_2_3": [
+        4,
+        4
+      ]
+    },
+    {
+      "bridge_id": 132,
+      "function_id": 7,
+      "name": "RGXCURRENTTIME",
+      "umd": [
+        0,
+        12
+      ],
+      "kmd_2_3": [
+        4,
+        12
+      ]
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 2,
+      "name": "RGXGETHWPERFBVNCFEATUREFLAGS",
+      "umd": [
+        0,
+        196
+      ],
+      "kmd_2_3": [
+        4,
+        196
+      ]
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 8,
+      "name": "MUSAPFMSTART",
+      "umd": [
+        0,
+        20
+      ],
+      "kmd_2_3": [
+        0,
+        4
+      ]
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 12,
+      "name": "MUSAPFMWRAPPERCONFIG",
+      "umd": [
+        152,
+        4
+      ],
+      "kmd_2_3": [
+        24,
+        4
+      ]
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 13,
+      "name": "MUSAPFMTRIGGERDUMPONCE",
+      "umd": [
+        1176,
+        4
+      ],
+      "kmd_2_3": [
+        0,
+        4
+      ]
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 14,
+      "name": "MUSAPFMCLEARCONFIG",
+      "umd": [
+        20,
+        4
+      ],
+      "kmd_2_3": [
+        0,
+        4
+      ]
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 9,
+      "name": "MUSAPFMSTOP",
+      "umd": [
+        24,
+        12
+      ],
+      "kmd_2_3": [
+        0,
+        4
+      ]
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 10,
+      "name": "MUSAPFMGLOBALCONFIG",
+      "umd": [
+        16,
+        4
+      ],
+      "kmd_2_3": [
+        32,
+        12
+      ]
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 11,
+      "name": "MUSAPFMINSTANCECONFIG",
+      "umd": [
+        20,
+        4
+      ],
+      "kmd_2_3": [
+        16,
+        8
+      ]
+    },
+    {
+      "bridge_id": 130,
+      "function_id": 14,
+      "name": "RGXKICKTA3D3",
+      "umd": [
+        276,
+        4
+      ],
+      "kmd_2_3": [
+        268,
+        4
+      ]
+    },
+    {
+      "bridge_id": 138,
+      "function_id": 1,
+      "name": "RGXENDTIMERQUERY",
+      "umd": [
+        0,
+        4
+      ],
+      "kmd_2_3": [
+        4,
+        4
+      ]
+    },
+    {
+      "bridge_id": 137,
+      "function_id": 5,
+      "name": "RGXTDMGETSHAREDMEMORY",
+      "umd": [
+        0,
+        20
+      ],
+      "kmd_2_3": [
+        4,
+        20
+      ]
+    },
+    {
+      "bridge_id": 1,
+      "function_id": 1,
+      "name": "DISCONNECT",
+      "umd": [
+        0,
+        4
+      ],
+      "kmd_2_3": [
+        4,
+        4
+      ]
+    },
+    {
+      "bridge_id": 1,
+      "function_id": 2,
+      "name": "ACQUIREGLOBALEVENTOBJECT",
+      "umd": [
+        0,
+        12
+      ],
+      "kmd_2_3": [
+        4,
+        12
+      ]
+    },
+    {
+      "bridge_id": 1,
+      "function_id": 8,
+      "name": "GETDEVCLOCKSPEED",
+      "umd": [
+        0,
+        8
+      ],
+      "kmd_2_3": [
+        4,
+        8
+      ]
+    },
+    {
+      "bridge_id": 1,
+      "function_id": 9,
+      "name": "HWOPTIMEOUT",
+      "umd": [
+        0,
+        4
+      ],
+      "kmd_2_3": [
+        4,
+        4
+      ]
+    },
+    {
+      "bridge_id": 1,
+      "function_id": 11,
+      "name": "GETDEVICESTATUS",
+      "umd": [
+        0,
+        8
+      ],
+      "kmd_2_3": [
+        4,
+        8
+      ]
+    },
+    {
+      "bridge_id": 1,
+      "function_id": 15,
+      "name": "ACQUIREINFOPAGE",
+      "umd": [
+        0,
+        12
+      ],
+      "kmd_2_3": [
+        4,
+        12
+      ]
+    },
+    {
+      "bridge_id": 2,
+      "function_id": 0,
+      "name": "ALLOCSYNCPRIMITIVEBLOCK",
+      "umd": [
+        8,
+        32
+      ],
+      "kmd_2_3": [
+        4,
+        28
+      ]
+    }
+  ],
+  "reference_kmd_5_2_schema": {
+    "dkms_package_sha256": "e3f684b1f7582fa0b399a234b945ad4539c565a46399f8294db91368fa32c62b",
+    "header_root": "usr/src/mtgpu-5.2.0-server/inc/mt/generated",
+    "input_struct": "MTGPU_BRIDGE_IN_ALLOCSYNCPRIMITIVEBLOCK (ui64MemType: MT_UINT64)",
+    "output_struct": "MTGPU_BRIDGE_OUT_ALLOCSYNCPRIMITIVEBLOCK (ui64SyncPrimVAddr: MT_UINT64)",
+    "compiled_input_size": 8,
+    "compiled_output_size": 32,
+    "matches_legacy_umd_sizes": true,
+    "bridge_functions_present": 205,
+    "bridge_functions_absent": 0,
+    "bridge_functions_with_exact_sizes": 177,
+    "bridge_functions_with_size_mismatches": 28,
+    "size_mismatches": [
+      {
+        "bridge_id": 140,
+        "function_id": 4,
+        "name": "SUBMITTRANSFER",
+        "umd": [
+          108,
+          8
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 26,
+        "function_id": 2,
+        "name": "DMADEVICEPARAMS",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          4,
+          12
+        ]
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 42,
+        "name": "DEVMEMINTMAPPMRWITHRATIO",
+        "umd": [
+          40,
+          12
+        ],
+        "kmd": [
+          40,
+          0
+        ]
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 29,
+        "name": "HEAPCFGHEAPCONFIGCOUNT",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 34,
+        "name": "GETMAXPHYSHEAPCOUNT",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 36,
+        "name": "GETDEFAULTPHYSICALHEAP",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 129,
+        "function_id": 7,
+        "name": "MUSAGETLASTDEVICEERROR",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 129,
+        "function_id": 10,
+        "name": "MUSARESETLLCPERSISTING",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 132,
+        "function_id": 1,
+        "name": "MUSAFWDEBUGDUMPFREELISTPAGELIST",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          4,
+          4
+        ]
+      },
+      {
+        "bridge_id": 132,
+        "function_id": 7,
+        "name": "MUSACURRENTTIME",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          4,
+          12
+        ]
+      },
+      {
+        "bridge_id": 134,
+        "function_id": 4,
+        "name": "MUSAACQUIREHWPERFFSETTINGS",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 134,
+        "function_id": 5,
+        "name": "MUSARELEASEHWPERFFSETTINGS",
+        "umd": [
+          8,
+          4
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 134,
+        "function_id": 2,
+        "name": "MUSAGETHWPERFBVNCFEATUREFLAGS",
+        "umd": [
+          0,
+          196
+        ],
+        "kmd": [
+          4,
+          196
+        ]
+      },
+      {
+        "bridge_id": 130,
+        "function_id": 15,
+        "name": "CREATE_FENCE",
+        "umd": [
+          44,
+          8
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 130,
+        "function_id": 17,
+        "name": "MUSACREATEHWRTDATASET2",
+        "umd": [
+          154,
+          12
+        ],
+        "kmd": [
+          154,
+          0
+        ]
+      },
+      {
+        "bridge_id": 130,
+        "function_id": 14,
+        "name": "MUSAKICKGFX3",
+        "umd": [
+          276,
+          4
+        ],
+        "kmd": [
+          268,
+          4
+        ]
+      },
+      {
+        "bridge_id": 138,
+        "function_id": 1,
+        "name": "MUSAENDTIMERQUERY",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          4,
+          4
+        ]
+      },
+      {
+        "bridge_id": 137,
+        "function_id": 5,
+        "name": "MUSAGETSHAREDMEMORY",
+        "umd": [
+          0,
+          20
+        ],
+        "kmd": [
+          4,
+          20
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 1,
+        "name": "DISCONNECT",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          4,
+          4
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 2,
+        "name": "ACQUIREGLOBALEVENTOBJECT",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          4,
+          12
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 8,
+        "name": "GETDEVCLOCKSPEED",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 9,
+        "name": "HWOPTIMEOUT",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          4,
+          4
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 11,
+        "name": "GETDEVICESTATUS",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 15,
+        "name": "ACQUIREINFOPAGE",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          4,
+          12
+        ]
+      },
+      {
+        "bridge_id": 2,
+        "function_id": 3,
+        "name": "SYNCPRIMPDUMP",
+        "umd": [
+          12,
+          4
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 2,
+        "function_id": 4,
+        "name": "SYNCPRIMPDUMPVALUE",
+        "umd": [
+          16,
+          4
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 2,
+        "function_id": 5,
+        "name": "SYNCPRIMPDUMPPOL",
+        "umd": [
+          28,
+          4
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 2,
+        "function_id": 6,
+        "name": "SYNCPRIMPDUMPCBP",
+        "umd": [
+          36,
+          4
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      }
+    ],
+    "missing": [],
+    "interpretation": "Header-level ABI comparison against the packaged 5.2.0 DKMS source only; the package is a Host build and this does not establish Guest runtime support."
+  },
+  "reference_kmd_2_7_1_schema": {
+    "include_root": "src/mtgpu-2.7.1-6.12/inc",
+    "bridge_functions_present": 198,
+    "bridge_functions_absent": 7,
+    "bridge_functions_with_exact_sizes": 172,
+    "bridge_functions_with_size_mismatches": 26,
+    "size_mismatches": [
+      {
+        "bridge_id": 26,
+        "function_id": 2,
+        "name": "DMADEVICEPARAMS",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          4,
+          12
+        ]
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 42,
+        "name": "DEVMEMINTMAPPMRWITHRATIO",
+        "umd": [
+          40,
+          12
+        ],
+        "kmd": [
+          40,
+          0
+        ]
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 29,
+        "name": "HEAPCFGHEAPCONFIGCOUNT",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 34,
+        "name": "GETMAXPHYSHEAPCOUNT",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 36,
+        "name": "GETDEFAULTPHYSICALHEAP",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 129,
+        "function_id": 7,
+        "name": "RGXGETLASTDEVICEERROR",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 129,
+        "function_id": 16,
+        "name": "RGXKICKCDM4",
+        "umd": [
+          108,
+          4
+        ],
+        "kmd": [
+          96,
+          4
+        ]
+      },
+      {
+        "bridge_id": 132,
+        "function_id": 1,
+        "name": "RGXFWDEBUGDUMPFREELISTPAGELIST",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          4,
+          4
+        ]
+      },
+      {
+        "bridge_id": 132,
+        "function_id": 7,
+        "name": "RGXCURRENTTIME",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          4,
+          12
+        ]
+      },
+      {
+        "bridge_id": 134,
+        "function_id": 2,
+        "name": "RGXGETHWPERFBVNCFEATUREFLAGS",
+        "umd": [
+          0,
+          196
+        ],
+        "kmd": [
+          4,
+          196
+        ]
+      },
+      {
+        "bridge_id": 134,
+        "function_id": 8,
+        "name": "MUSAGETSOCTIMER",
+        "umd": [
+          0,
+          20
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 134,
+        "function_id": 17,
+        "name": "MUSAGETCONTAINERPID",
+        "umd": [
+          4,
+          8
+        ],
+        "kmd": [
+          0,
+          0
+        ]
+      },
+      {
+        "bridge_id": 130,
+        "function_id": 17,
+        "name": "RGXCREATEHWRTDATASET2",
+        "umd": [
+          154,
+          12
+        ],
+        "kmd": [
+          154,
+          0
+        ]
+      },
+      {
+        "bridge_id": 130,
+        "function_id": 14,
+        "name": "RGXKICKTA3D3",
+        "umd": [
+          276,
+          4
+        ],
+        "kmd": [
+          268,
+          4
+        ]
+      },
+      {
+        "bridge_id": 130,
+        "function_id": 20,
+        "name": "RGXKICKTA3D5",
+        "umd": [
+          108,
+          4
+        ],
+        "kmd": [
+          96,
+          4
+        ]
+      },
+      {
+        "bridge_id": 138,
+        "function_id": 1,
+        "name": "RGXENDTIMERQUERY",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          4,
+          4
+        ]
+      },
+      {
+        "bridge_id": 137,
+        "function_id": 10,
+        "name": "RGXTDMSUBMITTRANSFER3",
+        "umd": [
+          108,
+          4
+        ],
+        "kmd": [
+          96,
+          4
+        ]
+      },
+      {
+        "bridge_id": 137,
+        "function_id": 5,
+        "name": "RGXTDMGETSHAREDMEMORY",
+        "umd": [
+          0,
+          20
+        ],
+        "kmd": [
+          4,
+          20
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 1,
+        "name": "DISCONNECT",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          4,
+          4
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 2,
+        "name": "ACQUIREGLOBALEVENTOBJECT",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          4,
+          12
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 8,
+        "name": "GETDEVCLOCKSPEED",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 9,
+        "name": "HWOPTIMEOUT",
+        "umd": [
+          0,
+          4
+        ],
+        "kmd": [
+          4,
+          4
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 11,
+        "name": "GETDEVICESTATUS",
+        "umd": [
+          0,
+          8
+        ],
+        "kmd": [
+          4,
+          8
+        ]
+      },
+      {
+        "bridge_id": 1,
+        "function_id": 15,
+        "name": "ACQUIREINFOPAGE",
+        "umd": [
+          0,
+          12
+        ],
+        "kmd": [
+          4,
+          12
+        ]
+      },
+      {
+        "bridge_id": 2,
+        "function_id": 11,
+        "name": "SYNCPRIMEXPORTFD",
+        "umd": [
+          20,
+          8
+        ],
+        "kmd": [
+          16,
+          8
+        ]
+      },
+      {
+        "bridge_id": 2,
+        "function_id": 12,
+        "name": "SYNCPRIMIMPORTFD",
+        "umd": [
+          24,
+          12
+        ],
+        "kmd": [
+          24,
+          8
+        ]
+      }
+    ],
+    "missing": [
+      {
+        "bridge_id": 2,
+        "function_id": 13,
+        "bridge": "SYNC"
+      },
+      {
+        "bridge_id": 2,
+        "function_id": 14,
+        "bridge": "SYNC"
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 48,
+        "bridge": "MM"
+      },
+      {
+        "bridge_id": 6,
+        "function_id": 49,
+        "bridge": "MM"
+      },
+      {
+        "bridge_id": 136,
+        "function_id": 5,
+        "bridge": "RGXKICKSYNC"
+      },
+      {
+        "bridge_id": 136,
+        "function_id": 6,
+        "bridge": "RGXKICKSYNC"
+      },
+      {
+        "bridge_id": 136,
+        "function_id": 7,
+        "bridge": "RGXKICKSYNC"
+      }
+    ],
+    "interpretation": "Header-level ABI comparison against the local 2.7.1 source tree only; does not prove that its disabled-Guest build or runtime is suitable."
+  },
+  "missing_from_kmd_2_3": [
+    {
+      "bridge_id": 2,
+      "function_id": 10,
+      "bridge": "SYNC"
+    },
+    {
+      "bridge_id": 2,
+      "function_id": 11,
+      "bridge": "SYNC"
+    },
+    {
+      "bridge_id": 2,
+      "function_id": 12,
+      "bridge": "SYNC"
+    },
+    {
+      "bridge_id": 2,
+      "function_id": 13,
+      "bridge": "SYNC"
+    },
+    {
+      "bridge_id": 2,
+      "function_id": 14,
+      "bridge": "SYNC"
+    },
+    {
+      "bridge_id": 6,
+      "function_id": 42,
+      "bridge": "MM"
+    },
+    {
+      "bridge_id": 6,
+      "function_id": 48,
+      "bridge": "MM"
+    },
+    {
+      "bridge_id": 6,
+      "function_id": 49,
+      "bridge": "MM"
+    },
+    {
+      "bridge_id": 129,
+      "function_id": 13,
+      "bridge": "RGXCMP"
+    },
+    {
+      "bridge_id": 129,
+      "function_id": 14,
+      "bridge": "RGXCMP"
+    },
+    {
+      "bridge_id": 129,
+      "function_id": 15,
+      "bridge": "RGXCMP"
+    },
+    {
+      "bridge_id": 129,
+      "function_id": 16,
+      "bridge": "RGXCMP"
+    },
+    {
+      "bridge_id": 130,
+      "function_id": 17,
+      "bridge": "RGXTA3D"
+    },
+    {
+      "bridge_id": 130,
+      "function_id": 18,
+      "bridge": "RGXTA3D"
+    },
+    {
+      "bridge_id": 130,
+      "function_id": 19,
+      "bridge": "RGXTA3D"
+    },
+    {
+      "bridge_id": 130,
+      "function_id": 20,
+      "bridge": "RGXTA3D"
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 15,
+      "bridge": "RGXHWPERF"
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 16,
+      "bridge": "RGXHWPERF"
+    },
+    {
+      "bridge_id": 134,
+      "function_id": 17,
+      "bridge": "RGXHWPERF"
+    },
+    {
+      "bridge_id": 136,
+      "function_id": 4,
+      "bridge": "RGXKICKSYNC"
+    },
+    {
+      "bridge_id": 136,
+      "function_id": 5,
+      "bridge": "RGXKICKSYNC"
+    },
+    {
+      "bridge_id": 136,
+      "function_id": 6,
+      "bridge": "RGXKICKSYNC"
+    },
+    {
+      "bridge_id": 136,
+      "function_id": 7,
+      "bridge": "RGXKICKSYNC"
+    },
+    {
+      "bridge_id": 137,
+      "function_id": 8,
+      "bridge": "RGXTQ2"
+    },
+    {
+      "bridge_id": 137,
+      "function_id": 9,
+      "bridge": "RGXTQ2"
+    },
+    {
+      "bridge_id": 137,
+      "function_id": 10,
+      "bridge": "RGXTQ2"
+    }
+  ],
+  "callsites": [
+    {
+      "call_offset": "0x308a2",
+      "bridge_id": 13,
+      "input_size": 48,
+      "function_id": 0,
+      "output_size": 4,
+      "bridge": "CACHE",
+      "kmd_2_3_function": "CACHEOPQUEUE",
+      "kmd_2_3_input_size": 48,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30946",
+      "input_size": 36,
+      "bridge_id": 13,
+      "function_id": 1,
+      "output_size": 4,
+      "bridge": "CACHE",
+      "kmd_2_3_function": "CACHEOPEXEC",
+      "kmd_2_3_input_size": 36,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30a0b",
+      "input_size": 52,
+      "bridge_id": 13,
+      "function_id": 2,
+      "output_size": 4,
+      "bridge": "CACHE",
+      "kmd_2_3_function": "CACHEOPLOG",
+      "kmd_2_3_input_size": 52,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30ad6",
+      "bridge_id": 140,
+      "input_size": 40,
+      "function_id": 0,
+      "output_size": 12,
+      "bridge": "MUSACE",
+      "kmd_2_3_function": "CREATETRANSFERCONTEXT",
+      "kmd_2_3_input_size": 40,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30b71",
+      "bridge_id": 140,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MUSACE",
+      "kmd_2_3_function": "DESTROYTRANSFERCONTEXT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30bf5",
+      "function_id": 3,
+      "bridge_id": 140,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "MUSACE",
+      "kmd_2_3_function": "NOTIFYWRITEOFFSETUPDATE",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30d21",
+      "bridge_id": 140,
+      "input_size": 108,
+      "function_id": 4,
+      "output_size": 8,
+      "bridge": "MUSACE",
+      "kmd_2_3_function": "SUBMITTRANSFER",
+      "kmd_2_3_input_size": 108,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30ddb",
+      "bridge_id": 8,
+      "input_size": 16,
+      "function_id": 0,
+      "output_size": 12,
+      "bridge": "CMM",
+      "kmd_2_3_function": "DEVMEMINTEXPORTCTX",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30e71",
+      "bridge_id": 8,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "CMM",
+      "kmd_2_3_function": "DEVMEMINTUNEXPORTCTX",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30f05",
+      "bridge_id": 8,
+      "function_id": 2,
+      "input_size": 8,
+      "output_size": 20,
+      "bridge": "CMM",
+      "kmd_2_3_function": "DEVMEMINTACQUIREREMOTECTX",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 20,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x30fe2",
+      "input_size": 48,
+      "function_id": 0,
+      "bridge_id": 19,
+      "output_size": 8,
+      "bridge": "DEVICEMEMHISTORY",
+      "kmd_2_3_function": "DEVICEMEMHISTORYMAP",
+      "kmd_2_3_input_size": 48,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x310b5",
+      "input_size": 48,
+      "function_id": 1,
+      "bridge_id": 19,
+      "output_size": 8,
+      "bridge": "DEVICEMEMHISTORY",
+      "kmd_2_3_function": "DEVICEMEMHISTORYUNMAP",
+      "kmd_2_3_input_size": 48,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3118c",
+      "input_size": 40,
+      "bridge_id": 19,
+      "function_id": 2,
+      "output_size": 8,
+      "bridge": "DEVICEMEMHISTORY",
+      "kmd_2_3_function": "DEVICEMEMHISTORYMAPVRANGE",
+      "kmd_2_3_input_size": 40,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3125c",
+      "input_size": 40,
+      "bridge_id": 19,
+      "function_id": 3,
+      "output_size": 8,
+      "bridge": "DEVICEMEMHISTORY",
+      "kmd_2_3_function": "DEVICEMEMHISTORYUNMAPVRANGE",
+      "kmd_2_3_input_size": 40,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31347",
+      "input_size": 72,
+      "function_id": 4,
+      "bridge_id": 19,
+      "output_size": 8,
+      "bridge": "DEVICEMEMHISTORY",
+      "kmd_2_3_function": "DEVICEMEMHISTORYSPARSECHANGE",
+      "kmd_2_3_input_size": 72,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x313f1",
+      "bridge_id": 25,
+      "function_id": 0,
+      "input_size": 8,
+      "output_size": 20,
+      "bridge": "DI",
+      "kmd_2_3_function": "DICREATECONTEXT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 20,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31491",
+      "bridge_id": 25,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "DI",
+      "kmd_2_3_function": "DIDESTROYCONTEXT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3153c",
+      "input_size": 32,
+      "bridge_id": 25,
+      "function_id": 2,
+      "output_size": 4,
+      "bridge": "DI",
+      "kmd_2_3_function": "DIREADENTRY",
+      "kmd_2_3_input_size": 32,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x315e1",
+      "input_size": 28,
+      "bridge_id": 25,
+      "function_id": 3,
+      "output_size": 4,
+      "bridge": "DI",
+      "kmd_2_3_function": "DIWRITEENTRY",
+      "kmd_2_3_input_size": 28,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31661",
+      "bridge_id": 25,
+      "function_id": 4,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "DI",
+      "kmd_2_3_function": "DILISTALLENTRIES",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31731",
+      "bridge_id": 26,
+      "function_id": 0,
+      "input_size": 48,
+      "output_size": 4,
+      "bridge": "DMA",
+      "kmd_2_3_function": "DMATRANSFER",
+      "kmd_2_3_input_size": 48,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3181b",
+      "bridge_id": 26,
+      "function_id": 3,
+      "input_size": 56,
+      "output_size": 4,
+      "bridge": "DMA",
+      "kmd_2_3_function": "P2PTRANSFER",
+      "kmd_2_3_input_size": 56,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x318d5",
+      "input_size": 28,
+      "function_id": 1,
+      "bridge_id": 26,
+      "output_size": 12,
+      "bridge": "DMA",
+      "kmd_2_3_function": "DMASPARSEMAPPINGTABLE",
+      "kmd_2_3_input_size": 28,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3195a",
+      "function_id": 2,
+      "bridge_id": 26,
+      "input_size": 0,
+      "output_size": 12,
+      "bridge": "DMA",
+      "kmd_2_3_function": "DMADEVICEPARAMS",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31a12",
+      "input_size": 24,
+      "function_id": 0,
+      "bridge_id": 11,
+      "output_size": 28,
+      "bridge": "DMABUF",
+      "kmd_2_3_function": "PHYSMEMIMPORTDMABUF",
+      "kmd_2_3_input_size": 24,
+      "kmd_2_3_output_size": 28,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31ae5",
+      "input_size": 24,
+      "function_id": 1,
+      "bridge_id": 11,
+      "output_size": 28,
+      "bridge": "DMABUF",
+      "kmd_2_3_function": "PHYSMEMIMPORTDMABUFLOCKED",
+      "kmd_2_3_input_size": 24,
+      "kmd_2_3_output_size": 28,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31b92",
+      "bridge_id": 11,
+      "function_id": 2,
+      "input_size": 8,
+      "output_size": 8,
+      "bridge": "DMABUF",
+      "kmd_2_3_function": "PHYSMEMEXPORTDMABUF",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31c6a",
+      "function_id": 3,
+      "bridge_id": 11,
+      "input_size": 48,
+      "output_size": 28,
+      "bridge": "DMABUF",
+      "kmd_2_3_function": "PHYSMEMIMPORTSPARSEDMABUF",
+      "kmd_2_3_input_size": 48,
+      "kmd_2_3_output_size": 28,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31d41",
+      "function_id": 0,
+      "input_size": 28,
+      "bridge_id": 20,
+      "output_size": 4,
+      "bridge": "HTBUFFER",
+      "kmd_2_3_function": "HTBCONTROL",
+      "kmd_2_3_input_size": 28,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31df5",
+      "bridge_id": 20,
+      "input_size": 32,
+      "function_id": 1,
+      "output_size": 4,
+      "bridge": "HTBUFFER",
+      "kmd_2_3_function": "HTBLOG",
+      "kmd_2_3_input_size": 32,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31e9c",
+      "bridge_id": 6,
+      "input_size": 8,
+      "function_id": 0,
+      "output_size": 32,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMREXPORTPMR",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 32,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31f51",
+      "bridge_id": 6,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMRUNEXPORTPMR",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x31fd5",
+      "bridge_id": 6,
+      "function_id": 2,
+      "input_size": 8,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMRGETUID",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32065",
+      "bridge_id": 6,
+      "function_id": 3,
+      "input_size": 8,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMRMAKELOCALIMPORTHANDLE",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x320f1",
+      "bridge_id": 6,
+      "function_id": 4,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMRUNMAKELOCALIMPORTHANDLE",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32196",
+      "input_size": 28,
+      "bridge_id": 6,
+      "function_id": 5,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMRIMPORTPMR",
+      "kmd_2_3_input_size": 28,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3224a",
+      "bridge_id": 6,
+      "input_size": 8,
+      "function_id": 6,
+      "output_size": 28,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMRLOCALIMPORTPMR",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 28,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x322f1",
+      "bridge_id": 6,
+      "function_id": 7,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMRUNREFPMR",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32371",
+      "bridge_id": 6,
+      "function_id": 8,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "PMRUNREFUNLOCKPMR",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32472",
+      "input_size": 72,
+      "function_id": 9,
+      "bridge_id": 6,
+      "output_size": 24,
+      "bridge": "MM",
+      "kmd_2_3_function": "PHYSMEMNEWRAMBACKEDPMR",
+      "kmd_2_3_input_size": 72,
+      "kmd_2_3_output_size": 24,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x325b4",
+      "input_size": 64,
+      "function_id": 10,
+      "bridge_id": 6,
+      "output_size": 20,
+      "bridge": "MM",
+      "kmd_2_3_function": "PHYSMEMNEWRAMBACKEDLOCKEDPMR",
+      "kmd_2_3_input_size": 64,
+      "kmd_2_3_output_size": 20,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32661",
+      "bridge_id": 6,
+      "function_id": 11,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTPIN",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x326e1",
+      "bridge_id": 6,
+      "function_id": 12,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTUNPIN",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3277a",
+      "bridge_id": 6,
+      "function_id": 13,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTPINVALIDATE",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3281a",
+      "bridge_id": 6,
+      "function_id": 14,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTUNPININVALIDATE",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x328b9",
+      "bridge_id": 6,
+      "input_size": 4,
+      "function_id": 15,
+      "output_size": 24,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTCTXCREATE",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 24,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32961",
+      "bridge_id": 6,
+      "function_id": 16,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTCTXDESTROY",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x329fc",
+      "input_size": 28,
+      "function_id": 17,
+      "bridge_id": 6,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTHEAPCREATE",
+      "kmd_2_3_input_size": 28,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32a91",
+      "bridge_id": 6,
+      "function_id": 18,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTHEAPDESTROY",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32b36",
+      "input_size": 32,
+      "function_id": 19,
+      "bridge_id": 6,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTMAPPMR",
+      "kmd_2_3_input_size": 32,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32bfa",
+      "input_size": 40,
+      "function_id": 42,
+      "bridge_id": 6,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x32c91",
+      "bridge_id": 6,
+      "function_id": 20,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTUNMAPPMR",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32d28",
+      "function_id": 21,
+      "bridge_id": 6,
+      "input_size": 24,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTRESERVERANGE",
+      "kmd_2_3_input_size": 24,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32dc1",
+      "bridge_id": 6,
+      "function_id": 22,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTUNRESERVERANGE",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32e9e",
+      "input_size": 68,
+      "bridge_id": 6,
+      "function_id": 23,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "CHANGESPARSEMEM",
+      "kmd_2_3_input_size": 68,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x32f67",
+      "input_size": 40,
+      "function_id": 24,
+      "bridge_id": 6,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTMAPPAGES",
+      "kmd_2_3_input_size": 40,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3300d",
+      "bridge_id": 6,
+      "function_id": 48,
+      "input_size": 20,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x330b1",
+      "input_size": 20,
+      "function_id": 49,
+      "bridge_id": 6,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x33143",
+      "function_id": 25,
+      "bridge_id": 6,
+      "input_size": 20,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTUNMAPPAGES",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x331d0",
+      "function_id": 26,
+      "bridge_id": 6,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMISVDEVADDRVALID",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33268",
+      "input_size": 28,
+      "function_id": 27,
+      "bridge_id": 6,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMFLUSHDEVSLCRANGE",
+      "kmd_2_3_input_size": 28,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33300",
+      "function_id": 28,
+      "bridge_id": 6,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINVALIDATEFBSCTABLE",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33376",
+      "bridge_id": 6,
+      "input_size": 0,
+      "function_id": 29,
+      "output_size": 8,
+      "bridge": "MM",
+      "kmd_2_3_function": "HEAPCFGHEAPCONFIGCOUNT",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33404",
+      "bridge_id": 6,
+      "function_id": 30,
+      "input_size": 4,
+      "output_size": 8,
+      "bridge": "MM",
+      "kmd_2_3_function": "HEAPCFGHEAPCOUNT",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x334b1",
+      "bridge_id": 6,
+      "function_id": 31,
+      "input_size": 16,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "HEAPCFGHEAPCONFIGNAME",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3356f",
+      "input_size": 20,
+      "bridge_id": 6,
+      "function_id": 32,
+      "output_size": 44,
+      "bridge": "MM",
+      "kmd_2_3_function": "HEAPCFGHEAPDETAILS",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 44,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3364d",
+      "bridge_id": 6,
+      "function_id": 33,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMINTREGISTERPFNOTIFYKM",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x336c6",
+      "bridge_id": 6,
+      "input_size": 0,
+      "function_id": 34,
+      "output_size": 8,
+      "bridge": "MM",
+      "kmd_2_3_function": "GETMAXPHYSHEAPCOUNT",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33771",
+      "bridge_id": 6,
+      "function_id": 35,
+      "input_size": 20,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "PHYSHEAPGETMEMINFO",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x337e6",
+      "bridge_id": 6,
+      "input_size": 0,
+      "function_id": 36,
+      "output_size": 8,
+      "bridge": "MM",
+      "kmd_2_3_function": "GETDEFAULTPHYSICALHEAP",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3387a",
+      "function_id": 37,
+      "bridge_id": 6,
+      "input_size": 12,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "GETHEAPPHYSMEMUSAGE",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33905",
+      "bridge_id": 6,
+      "function_id": 38,
+      "input_size": 8,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "DEVMEMGETFAULTADDRESS",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3399e",
+      "bridge_id": 6,
+      "function_id": 39,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "MM",
+      "kmd_2_3_function": "PVRSRVUPDATEOOMSTATS",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33a41",
+      "bridge_id": 6,
+      "function_id": 40,
+      "input_size": 20,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "PHYSHEAPGETMEMINFOPKD",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33aca",
+      "function_id": 41,
+      "bridge_id": 6,
+      "input_size": 12,
+      "output_size": 12,
+      "bridge": "MM",
+      "kmd_2_3_function": "GETHEAPPHYSMEMUSAGEPKD",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33b65",
+      "function_id": 0,
+      "bridge_id": 15,
+      "input_size": 12,
+      "output_size": 20,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLOPENSTREAM",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 20,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33c32",
+      "function_id": 8,
+      "bridge_id": 15,
+      "input_size": 12,
+      "output_size": 28,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLOPENSTREAM2",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 28,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33ce1",
+      "bridge_id": 15,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLCLOSESTREAM",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33d69",
+      "bridge_id": 15,
+      "function_id": 2,
+      "input_size": 8,
+      "output_size": 12,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLACQUIREDATA",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33e0f",
+      "bridge_id": 15,
+      "function_id": 9,
+      "input_size": 12,
+      "output_size": 12,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLACQUIREDATA2",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33ebd",
+      "bridge_id": 15,
+      "function_id": 3,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLRELEASEDATA",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x33f65",
+      "function_id": 4,
+      "input_size": 20,
+      "bridge_id": 15,
+      "output_size": 16,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLDISCOVERSTREAMS",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 16,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34027",
+      "bridge_id": 15,
+      "function_id": 5,
+      "input_size": 16,
+      "output_size": 12,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLRESERVESTREAM",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x340d5",
+      "function_id": 6,
+      "bridge_id": 15,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLCOMMITSTREAM",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3416d",
+      "function_id": 7,
+      "bridge_id": 15,
+      "input_size": 20,
+      "output_size": 4,
+      "bridge": "PVRTL",
+      "kmd_2_3_function": "TLWRITEDATA",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34252",
+      "input_size": 60,
+      "bridge_id": 129,
+      "function_id": 0,
+      "output_size": 12,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXCREATECOMPUTECONTEXT",
+      "kmd_2_3_input_size": 60,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x342f1",
+      "bridge_id": 129,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXDESTROYCOMPUTECONTEXT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34371",
+      "bridge_id": 129,
+      "function_id": 2,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXFLUSHCOMPUTEDATA",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x343f5",
+      "function_id": 3,
+      "bridge_id": 129,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXSETCOMPUTECONTEXTPRIORITY",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34471",
+      "bridge_id": 129,
+      "function_id": 4,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXNOTIFYCOMPUTEWRITEOFFSETUPDATE",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x345a2",
+      "function_id": 5,
+      "bridge_id": 129,
+      "input_size": 108,
+      "output_size": 8,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXKICKCDM2",
+      "kmd_2_3_input_size": 108,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34701",
+      "function_id": 12,
+      "bridge_id": 129,
+      "input_size": 128,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXKICKCDM3",
+      "kmd_2_3_input_size": 128,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x347a7",
+      "function_id": 6,
+      "bridge_id": 129,
+      "input_size": 20,
+      "output_size": 12,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXSETCOMPUTECONTEXTPROPERTY",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34836",
+      "bridge_id": 129,
+      "input_size": 0,
+      "function_id": 7,
+      "output_size": 8,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXGETLASTDEVICEERROR",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x348d0",
+      "function_id": 13,
+      "bridge_id": 129,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x3494a",
+      "function_id": 8,
+      "bridge_id": 129,
+      "input_size": 0,
+      "output_size": 12,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXGETLLCPERSISTINGPROPERTIES",
+      "kmd_2_3_input_size": 0,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x349e5",
+      "function_id": 9,
+      "bridge_id": 129,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXSETLLCPERSISTINGPROPERTIES",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34a52",
+      "bridge_id": 129,
+      "function_id": 10,
+      "input_size": 0,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": "RGXRESETLLCPERSISTING",
+      "kmd_2_3_input_size": 0,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34ad9",
+      "function_id": 14,
+      "bridge_id": 129,
+      "input_size": 12,
+      "output_size": 12,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x34b61",
+      "bridge_id": 129,
+      "function_id": 15,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x34c70",
+      "function_id": 16,
+      "bridge_id": 129,
+      "input_size": 108,
+      "output_size": 4,
+      "bridge": "RGXCMP",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x34cfd",
+      "bridge_id": 132,
+      "function_id": 0,
+      "input_size": 4,
+      "output_size": 4,
+      "bridge": "RGXFWDBG",
+      "kmd_2_3_function": "RGXFWDEBUGSETFWLOG",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34d72",
+      "bridge_id": 132,
+      "function_id": 1,
+      "input_size": 0,
+      "output_size": 4,
+      "bridge": "RGXFWDBG",
+      "kmd_2_3_function": "RGXFWDEBUGDUMPFREELISTPAGELIST",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34df0",
+      "bridge_id": 132,
+      "function_id": 2,
+      "input_size": 4,
+      "output_size": 4,
+      "bridge": "RGXFWDBG",
+      "kmd_2_3_function": "RGXFWDEBUGSETHCSDEADLINE",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34e7e",
+      "bridge_id": 132,
+      "function_id": 3,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXFWDBG",
+      "kmd_2_3_function": "RGXFWDEBUGSETOSIDPRIORITY",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34f0e",
+      "bridge_id": 132,
+      "function_id": 4,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXFWDBG",
+      "kmd_2_3_function": "RGXFWDEBUGSETOSNEWONLINESTATE",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x34f90",
+      "bridge_id": 132,
+      "function_id": 5,
+      "input_size": 4,
+      "output_size": 4,
+      "bridge": "RGXFWDBG",
+      "kmd_2_3_function": "RGXFWDEBUGPHRCONFIGURE",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x35010",
+      "bridge_id": 132,
+      "function_id": 6,
+      "input_size": 4,
+      "output_size": 4,
+      "bridge": "RGXFWDBG",
+      "kmd_2_3_function": "RGXFWDEBUGWDGCONFIGURE",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x35086",
+      "bridge_id": 132,
+      "input_size": 0,
+      "function_id": 7,
+      "output_size": 12,
+      "bridge": "RGXFWDBG",
+      "kmd_2_3_function": "RGXCURRENTTIME",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3512a",
+      "function_id": 0,
+      "bridge_id": 134,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "RGXCTRLHWPERF",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x351b1",
+      "bridge_id": 134,
+      "function_id": 6,
+      "input_size": 4,
+      "output_size": 12,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "RGXGETHWPERFMASK",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x35236",
+      "bridge_id": 134,
+      "input_size": 0,
+      "function_id": 4,
+      "output_size": 12,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "RGXACQUIREHWPERFFSETTINGS",
+      "kmd_2_3_input_size": 0,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x352c1",
+      "bridge_id": 134,
+      "function_id": 5,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "RGXRELEASEHWPERFFSETTINGS",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3535d",
+      "function_id": 1,
+      "bridge_id": 134,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "RGXCONFIGUREHWPERFBLOCKS",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x353f7",
+      "function_id": 7,
+      "bridge_id": 134,
+      "input_size": 12,
+      "output_size": 16,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "RGXGETHWPERFBLOCKCONFIGS",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 16,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x354a0",
+      "bridge_id": 134,
+      "input_size": 0,
+      "function_id": 2,
+      "output_size": 196,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "RGXGETHWPERFBVNCFEATUREFLAGS",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 196,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x355dd",
+      "bridge_id": 134,
+      "function_id": 3,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "RGXCONTROLHWPERFBLOCKS",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3566c",
+      "function_id": 8,
+      "bridge_id": 134,
+      "input_size": 0,
+      "output_size": 20,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "MUSAPFMSTART",
+      "kmd_2_3_input_size": 0,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": false
+    },
+    {
+      "call_offset": "0x35714",
+      "bridge_id": 134,
+      "function_id": 17,
+      "input_size": 4,
+      "output_size": 8,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x357a1",
+      "bridge_id": 134,
+      "function_id": 16,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x3589b",
+      "bridge_id": 134,
+      "function_id": 12,
+      "input_size": 152,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "MUSAPFMWRAPPERCONFIG",
+      "kmd_2_3_input_size": 24,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x35949",
+      "bridge_id": 134,
+      "function_id": 13,
+      "input_size": 1176,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "MUSAPFMTRIGGERDUMPONCE",
+      "kmd_2_3_input_size": 0,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x359e6",
+      "bridge_id": 134,
+      "function_id": 14,
+      "input_size": 20,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "MUSAPFMCLEARCONFIG",
+      "kmd_2_3_input_size": 0,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x35aad",
+      "bridge_id": 134,
+      "function_id": 15,
+      "input_size": 96,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x35b4c",
+      "bridge_id": 134,
+      "function_id": 9,
+      "input_size": 24,
+      "output_size": 12,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "MUSAPFMSTOP",
+      "kmd_2_3_input_size": 0,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": false
+    },
+    {
+      "call_offset": "0x35bf0",
+      "bridge_id": 134,
+      "function_id": 10,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "MUSAPFMGLOBALCONFIG",
+      "kmd_2_3_input_size": 32,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": false
+    },
+    {
+      "call_offset": "0x35c86",
+      "bridge_id": 134,
+      "function_id": 11,
+      "input_size": 20,
+      "output_size": 4,
+      "bridge": "RGXHWPERF",
+      "kmd_2_3_function": "MUSAPFMINSTANCECONFIG",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": false
+    },
+    {
+      "call_offset": "0x35d2e",
+      "bridge_id": 136,
+      "input_size": 16,
+      "function_id": 0,
+      "output_size": 12,
+      "bridge": "RGXKICKSYNC",
+      "kmd_2_3_function": "RGXCREATEKICKSYNCCONTEXT",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x35dc5",
+      "bridge_id": 136,
+      "function_id": 5,
+      "input_size": 8,
+      "output_size": 12,
+      "bridge": "RGXKICKSYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x35e51",
+      "bridge_id": 136,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXKICKSYNC",
+      "kmd_2_3_function": "RGXDESTROYKICKSYNCCONTEXT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x35ed1",
+      "bridge_id": 136,
+      "function_id": 6,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXKICKSYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x35fa0",
+      "function_id": 7,
+      "bridge_id": 136,
+      "input_size": 68,
+      "output_size": 4,
+      "bridge": "RGXKICKSYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x360b1",
+      "function_id": 4,
+      "bridge_id": 136,
+      "input_size": 84,
+      "output_size": 8,
+      "bridge": "RGXKICKSYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x361aa",
+      "function_id": 2,
+      "bridge_id": 136,
+      "input_size": 56,
+      "output_size": 8,
+      "bridge": "RGXKICKSYNC",
+      "kmd_2_3_function": "RGXKICKSYNC2",
+      "kmd_2_3_input_size": 56,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36257",
+      "function_id": 3,
+      "bridge_id": 136,
+      "input_size": 20,
+      "output_size": 12,
+      "bridge": "RGXKICKSYNC",
+      "kmd_2_3_function": "RGXSETKICKSYNCCONTEXTPROPERTY",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36377",
+      "bridge_id": 130,
+      "input_size": 44,
+      "function_id": 15,
+      "output_size": 8,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "CREATE_FENCE",
+      "kmd_2_3_input_size": 44,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36597",
+      "function_id": 0,
+      "bridge_id": 130,
+      "input_size": 138,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXCREATEHWRTDATASET",
+      "kmd_2_3_input_size": 138,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36779",
+      "bridge_id": 130,
+      "function_id": 17,
+      "input_size": 154,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x36811",
+      "bridge_id": 130,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXDESTROYHWRTDATASET",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x368b2",
+      "input_size": 24,
+      "function_id": 2,
+      "bridge_id": 130,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXCREATEZSBUFFER",
+      "kmd_2_3_input_size": 24,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36951",
+      "bridge_id": 130,
+      "function_id": 3,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXDESTROYZSBUFFER",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x369d5",
+      "bridge_id": 130,
+      "function_id": 4,
+      "input_size": 8,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXPOPULATEZSBUFFER",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36a61",
+      "bridge_id": 130,
+      "function_id": 5,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXUNPOPULATEZSBUFFER",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36b55",
+      "bridge_id": 130,
+      "function_id": 6,
+      "input_size": 84,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXCREATEFREELIST",
+      "kmd_2_3_input_size": 84,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36bf1",
+      "bridge_id": 130,
+      "function_id": 7,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXDESTROYFREELIST",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36cdb",
+      "bridge_id": 130,
+      "input_size": 60,
+      "function_id": 8,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXCREATERENDERCONTEXT",
+      "kmd_2_3_input_size": 60,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36d71",
+      "bridge_id": 130,
+      "function_id": 9,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXDESTROYRENDERCONTEXT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36df5",
+      "function_id": 10,
+      "bridge_id": 130,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXSETRENDERCONTEXTPRIORITY",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x36e71",
+      "bridge_id": 130,
+      "function_id": 11,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXRENDERCONTEXTSTALLED",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x37111",
+      "function_id": 12,
+      "input_size": 268,
+      "bridge_id": 130,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXKICKTA3D2",
+      "kmd_2_3_input_size": 268,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x379a1",
+      "function_id": 16,
+      "input_size": 268,
+      "bridge_id": 130,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXKICKTA3D4",
+      "kmd_2_3_input_size": 268,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x37a57",
+      "function_id": 13,
+      "bridge_id": 130,
+      "input_size": 20,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXSETRENDERCONTEXTPROPERTY",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x37ae7",
+      "bridge_id": 130,
+      "function_id": 14,
+      "input_size": 276,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": "RGXKICKTA3D3",
+      "kmd_2_3_input_size": 268,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x37b59",
+      "function_id": 18,
+      "bridge_id": 130,
+      "input_size": 12,
+      "output_size": 12,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x37be1",
+      "bridge_id": 130,
+      "function_id": 19,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x37d01",
+      "input_size": 108,
+      "function_id": 20,
+      "bridge_id": 130,
+      "output_size": 4,
+      "bridge": "RGXTA3D",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x37d8d",
+      "bridge_id": 138,
+      "function_id": 0,
+      "input_size": 4,
+      "output_size": 4,
+      "bridge": "RGXTIMERQUERY",
+      "kmd_2_3_function": "RGXBEGINTIMERQUERY",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x37e02",
+      "bridge_id": 138,
+      "function_id": 1,
+      "input_size": 0,
+      "output_size": 4,
+      "bridge": "RGXTIMERQUERY",
+      "kmd_2_3_function": "RGXENDTIMERQUERY",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x37e94",
+      "bridge_id": 138,
+      "function_id": 2,
+      "input_size": 4,
+      "output_size": 20,
+      "bridge": "RGXTIMERQUERY",
+      "kmd_2_3_function": "RGXQUERYTIMER",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 20,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x37f86",
+      "bridge_id": 137,
+      "input_size": 40,
+      "function_id": 0,
+      "output_size": 12,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": "RGXTDMCREATETRANSFERCONTEXT",
+      "kmd_2_3_input_size": 40,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38029",
+      "function_id": 8,
+      "bridge_id": 137,
+      "input_size": 12,
+      "output_size": 12,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x380b1",
+      "bridge_id": 137,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": "RGXTDMDESTROYTRANSFERCONTEXT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38131",
+      "bridge_id": 137,
+      "function_id": 9,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x381b5",
+      "function_id": 2,
+      "bridge_id": 137,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": "RGXTDMSETTRANSFERCONTEXTPRIORITY",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38235",
+      "function_id": 3,
+      "bridge_id": 137,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": "RGXTDMNOTIFYWRITEOFFSETUPDATE",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38361",
+      "bridge_id": 137,
+      "input_size": 108,
+      "function_id": 4,
+      "output_size": 8,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": "RGXTDMSUBMITTRANSFER2",
+      "kmd_2_3_input_size": 108,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38482",
+      "bridge_id": 137,
+      "function_id": 10,
+      "input_size": 108,
+      "output_size": 4,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x3851c",
+      "function_id": 5,
+      "bridge_id": 137,
+      "input_size": 0,
+      "output_size": 20,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": "RGXTDMGETSHAREDMEMORY",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 20,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x385c1",
+      "bridge_id": 137,
+      "function_id": 6,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": "RGXTDMRELEASESHAREDMEMORY",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38657",
+      "function_id": 7,
+      "bridge_id": 137,
+      "input_size": 20,
+      "output_size": 12,
+      "bridge": "RGXTQ2",
+      "kmd_2_3_function": "RGXTDMSETTRANSFERCONTEXTPROPERTY",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38725",
+      "bridge_id": 1,
+      "input_size": 16,
+      "function_id": 0,
+      "output_size": 17,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "CONNECT",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 17,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x387c2",
+      "bridge_id": 1,
+      "function_id": 1,
+      "input_size": 0,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "DISCONNECT",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38836",
+      "bridge_id": 1,
+      "input_size": 0,
+      "function_id": 2,
+      "output_size": 12,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "ACQUIREGLOBALEVENTOBJECT",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x388c1",
+      "bridge_id": 1,
+      "function_id": 3,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "RELEASEGLOBALEVENTOBJECT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38945",
+      "bridge_id": 1,
+      "function_id": 4,
+      "input_size": 8,
+      "output_size": 12,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "EVENTOBJECTOPEN",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x389d1",
+      "bridge_id": 1,
+      "function_id": 5,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "EVENTOBJECTWAIT",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38a51",
+      "bridge_id": 1,
+      "function_id": 6,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "EVENTOBJECTCLOSE",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38ad0",
+      "bridge_id": 1,
+      "function_id": 7,
+      "input_size": 4,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "DUMPDEBUGINFO",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38b46",
+      "bridge_id": 1,
+      "input_size": 0,
+      "function_id": 8,
+      "output_size": 8,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "GETDEVCLOCKSPEED",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38bc2",
+      "bridge_id": 1,
+      "function_id": 9,
+      "input_size": 0,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "HWOPTIMEOUT",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38c45",
+      "function_id": 10,
+      "bridge_id": 1,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "ALIGNMENTCHECK",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38cb6",
+      "bridge_id": 1,
+      "input_size": 0,
+      "function_id": 11,
+      "output_size": 8,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "GETDEVICESTATUS",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 8,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38d57",
+      "bridge_id": 1,
+      "function_id": 12,
+      "input_size": 12,
+      "output_size": 16,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "GETMULTICOREINFO",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 16,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38e10",
+      "input_size": 4,
+      "function_id": 17,
+      "bridge_id": 1,
+      "output_size": 36,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "GETDEVINFO",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 36,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38ee0",
+      "function_id": 13,
+      "bridge_id": 1,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "EVENTOBJECTWAITTIMEOUT",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38f84",
+      "input_size": 20,
+      "bridge_id": 1,
+      "function_id": 14,
+      "output_size": 12,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "FINDPROCESSMEMSTATS",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x38ff6",
+      "bridge_id": 1,
+      "input_size": 0,
+      "function_id": 15,
+      "output_size": 12,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "ACQUIREINFOPAGE",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x39081",
+      "bridge_id": 1,
+      "function_id": 16,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "SRVCORE",
+      "kmd_2_3_function": "RELEASEINFOPAGE",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3911c",
+      "bridge_id": 2,
+      "input_size": 8,
+      "function_id": 0,
+      "output_size": 32,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "ALLOCSYNCPRIMITIVEBLOCK",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 28,
+      "input_size_matches_kmd_2_3": false,
+      "output_size_matches_kmd_2_3": false
+    },
+    {
+      "call_offset": "0x391d1",
+      "bridge_id": 2,
+      "function_id": 1,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "FREESYNCPRIMITIVEBLOCK",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3926d",
+      "bridge_id": 2,
+      "function_id": 2,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "SYNCPRIMSET",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x3930d",
+      "bridge_id": 2,
+      "function_id": 10,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x393b1",
+      "input_size": 28,
+      "bridge_id": 2,
+      "function_id": 13,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x39435",
+      "function_id": 3,
+      "bridge_id": 2,
+      "input_size": 12,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "SYNCPRIMPDUMP",
+      "kmd_2_3_input_size": 12,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x394cd",
+      "bridge_id": 2,
+      "function_id": 4,
+      "input_size": 16,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "SYNCPRIMPDUMPVALUE",
+      "kmd_2_3_input_size": 16,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x39584",
+      "bridge_id": 2,
+      "function_id": 5,
+      "input_size": 28,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "SYNCPRIMPDUMPPOL",
+      "kmd_2_3_input_size": 28,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x39625",
+      "function_id": 6,
+      "bridge_id": 2,
+      "input_size": 36,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "SYNCPRIMPDUMPCBP",
+      "kmd_2_3_input_size": 36,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x396d0",
+      "input_size": 20,
+      "function_id": 7,
+      "bridge_id": 2,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "SYNCALLOCEVENT",
+      "kmd_2_3_input_size": 20,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x39750",
+      "bridge_id": 2,
+      "function_id": 8,
+      "input_size": 4,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "SYNCFREEEVENT",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x397d0",
+      "bridge_id": 2,
+      "function_id": 9,
+      "input_size": 4,
+      "output_size": 4,
+      "bridge": "SYNC",
+      "kmd_2_3_function": "SYNCCHECKPOINTSIGNALLEDPDUMPPOL",
+      "kmd_2_3_input_size": 4,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x39867",
+      "function_id": 11,
+      "bridge_id": 2,
+      "input_size": 20,
+      "output_size": 8,
+      "bridge": "SYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x39926",
+      "input_size": 28,
+      "bridge_id": 2,
+      "function_id": 14,
+      "output_size": 8,
+      "bridge": "SYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x399db",
+      "input_size": 24,
+      "function_id": 12,
+      "bridge_id": 2,
+      "output_size": 12,
+      "bridge": "SYNC",
+      "kmd_2_3_function": null
+    },
+    {
+      "call_offset": "0x39a6e",
+      "bridge_id": 23,
+      "function_id": 0,
+      "input_size": 8,
+      "output_size": 4,
+      "bridge": "SYNCTRACKING",
+      "kmd_2_3_function": "SYNCRECORDREMOVEBYHANDLE",
+      "kmd_2_3_input_size": 8,
+      "kmd_2_3_output_size": 4,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    },
+    {
+      "call_offset": "0x39b2d",
+      "function_id": 1,
+      "bridge_id": 23,
+      "input_size": 32,
+      "output_size": 12,
+      "bridge": "SYNCTRACKING",
+      "kmd_2_3_function": "SYNCRECORDADD",
+      "kmd_2_3_input_size": 32,
+      "kmd_2_3_output_size": 12,
+      "input_size_matches_kmd_2_3": true,
+      "output_size_matches_kmd_2_3": true
+    }
+  ],
+  "interpretation": "Static library callsite inventory only. It does not show which calls are reached by a given application, validate payload field layout, or prove rendering compatibility."
+}

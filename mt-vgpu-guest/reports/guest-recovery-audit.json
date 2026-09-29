@@ -1,0 +1,209 @@
+{
+  "utc": "2026-09-27T18:40:45.999578+00:00",
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "device_accessed": false,
+  "hwr_request_entry": "1400088c0",
+  "original_instruction_cases": [
+    {
+      "local_flag": 0,
+      "local_state": 0,
+      "cleared_shared_10_18": false,
+      "writes": [
+        {
+          "offset": "0x118",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "local_flag": 0,
+      "local_state": 1,
+      "cleared_shared_10_18": false,
+      "writes": [
+        {
+          "offset": "0x118",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "local_flag": 0,
+      "local_state": 2,
+      "cleared_shared_10_18": false,
+      "writes": [
+        {
+          "offset": "0x118",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "local_flag": 0,
+      "local_state": 3,
+      "cleared_shared_10_18": false,
+      "writes": [
+        {
+          "offset": "0x118",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "local_flag": 1,
+      "local_state": 0,
+      "cleared_shared_10_18": false,
+      "writes": [
+        {
+          "offset": "0x118",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "local_flag": 1,
+      "local_state": 1,
+      "cleared_shared_10_18": false,
+      "writes": [
+        {
+          "offset": "0x118",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "local_flag": 1,
+      "local_state": 2,
+      "cleared_shared_10_18": true,
+      "writes": [
+        {
+          "offset": "0x118",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "local_flag": 1,
+      "local_state": 3,
+      "cleared_shared_10_18": false,
+      "writes": [
+        {
+          "offset": "0x118",
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "bar1_direct_call_inventory": [
+    {
+      "caller": "140021d90",
+      "line": 27465,
+      "call": "FUN_140027780(param_1 + 8,0x80,param_2);"
+    },
+    {
+      "caller": "14002216c",
+      "line": 27662,
+      "call": "FUN_140027780(param_1 + 8,0x90,lVar3);"
+    },
+    {
+      "caller": "14002249c",
+      "line": 27811,
+      "call": "FUN_140027780(param_1 + 8,0x148,1);"
+    },
+    {
+      "caller": "1400224b0",
+      "line": 27822,
+      "call": "FUN_140027780(param_1 + 8,0x30,param_2);"
+    },
+    {
+      "caller": "1400224b0",
+      "line": 27823,
+      "call": "FUN_140027780(param_1 + 8,0x38,param_3);"
+    },
+    {
+      "caller": "140022f24",
+      "line": 28716,
+      "call": "FUN_140027780(param_1 + 8,0x118,1);"
+    },
+    {
+      "caller": "1400231ec",
+      "line": 28979,
+      "call": "FUN_140027780(param_1 + 8,0xf0,param_4);"
+    },
+    {
+      "caller": "140023254",
+      "line": 28990,
+      "call": "FUN_140027780(param_1 + 8,0x100,1);"
+    },
+    {
+      "caller": "140023268",
+      "line": 29001,
+      "call": "FUN_140027780(param_1 + 8,0xf8,(longlong)param_2);"
+    },
+    {
+      "caller": "1400239e8",
+      "line": 29781,
+      "call": "FUN_140027780(plVar1,0x108,uVar4);"
+    },
+    {
+      "caller": "140025ed0",
+      "line": 31842,
+      "call": "FUN_140027780(param_1,0x150,uVar10);"
+    },
+    {
+      "caller": "140025ed0",
+      "line": 31843,
+      "call": "FUN_140027780(param_1,0x158,local_res10);"
+    },
+    {
+      "caller": "140025ed0",
+      "line": 31850,
+      "call": "FUN_140027780(param_1,0x158);"
+    },
+    {
+      "caller": "1400262ac",
+      "line": 31954,
+      "call": "FUN_140027780(param_1,0x70);"
+    },
+    {
+      "caller": "1400262d4",
+      "line": 31967,
+      "call": "FUN_140027780(param_1,0x78);"
+    },
+    {
+      "caller": "140026b30",
+      "line": 32441,
+      "call": "FUN_140027780(param_1,200,uVar4);"
+    },
+    {
+      "caller": "140026b30",
+      "line": 32442,
+      "call": "FUN_140027780(param_1,0x20,*(undefined8 *)(param_1 + 0x400));"
+    },
+    {
+      "caller": "140026b30",
+      "line": 32443,
+      "call": "FUN_140027780(param_1,0x28,*(undefined8 *)(param_1 + 0x518));"
+    },
+    {
+      "caller": "1400270e0",
+      "line": 32694,
+      "call": "FUN_140027780(param_1,0x110,*(undefined4 *)(*(longlong *)(param_1 + 0x1cb0) + 8));"
+    },
+    {
+      "caller": "1400271d8",
+      "line": 32747,
+      "call": "FUN_140027780(param_1,0x158,uVar2 * 2 | local_res8 & 0xfffffffffffffe00);"
+    }
+  ],
+  "old_host_sha256": "694768574d78a724fcfb5b2a2ecbbeac34828c861eb76ee1bb7dd2ed996450a0",
+  "old_host_static_path": [
+    "54140 BAR1 handler: +0x118/value=1 -> 54db6 vgpu_hwr_request",
+    "53f90 vgpu_hwr_request: is_gpu_normal; on abnormal, schedule MPC work",
+    "4a3a0 vgpu_mpc_hwr_work: abnormal branch -> reset_gpu at 4a3e3"
+  ],
+  "current_host_semantics_verified": false,
+  "hardware_request_issued": false,
+  "reason_not_issued": "Old Host path can reset an MPC; scope is not proven limited to this VM.",
+  "limitations": "CPU oracle verifies Guest writes/cleanup only. It does not emulate the Host, reset a GPU, or establish acceleration."
+}

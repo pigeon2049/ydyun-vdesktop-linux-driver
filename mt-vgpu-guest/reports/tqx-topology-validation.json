@@ -1,0 +1,70 @@
+{
+  "utc": "2026-09-28T05:35:42.898243+00:00",
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "original_path_cases": [
+    {
+      "reference_count": 1,
+      "linux_accepted": true
+    },
+    {
+      "reference_count": 2,
+      "linux_accepted": true
+    },
+    {
+      "reference_count": 3,
+      "linux_accepted": true
+    },
+    {
+      "reference_count": 4,
+      "linux_accepted": true
+    },
+    {
+      "reference_count": 5,
+      "linux_accepted": true
+    },
+    {
+      "reference_count": 6,
+      "linux_accepted": true
+    },
+    {
+      "reference_count": 7,
+      "linux_accepted": true
+    },
+    {
+      "reference_count": 8,
+      "linux_accepted": true
+    },
+    {
+      "reference_count": 0,
+      "linux_accepted": false
+    },
+    {
+      "reference_count": 9,
+      "linux_accepted": false
+    },
+    {
+      "reference_count": 4294967295,
+      "linux_accepted": false
+    }
+  ],
+  "rejected_framing_cases": 12,
+  "saved_info_sha256": "6163ff0648e2ec45fde070e39b8bc9b0c1686f71ac42d184cb074d70594eaa2b",
+  "saved_info_cores": 1,
+  "executed": [
+    "025338",
+    "0205ac",
+    "042000",
+    "0228b4",
+    "04d558",
+    "094b2c",
+    "0b1074"
+  ],
+  "modeled": [
+    "Guest platform objects and query object pointer links",
+    "version table for already established family2 profile"
+  ],
+  "hardware_access": false,
+  "gpu_execution": false,
+  "limits": "Uses the previously captured info page, not a fresh Host query. Proves layout-count provenance, not firmware readiness."
+}

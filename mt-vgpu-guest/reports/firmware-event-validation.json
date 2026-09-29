@@ -1,0 +1,11 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "dispatch_cases": 384,
+  "normal_completion_cases": 80,
+  "empty_submit_packets": 64,
+  "invalid_or_noncompletion_rejections": 8,
+  "shared_pause_gate_cases": 8,
+  "backpressure_and_budget_passed": true,
+  "hardware_accessed": false,
+  "limits": "RAM instruction comparison; preemption/fault completion and GPU execution not implemented or verified"
+}

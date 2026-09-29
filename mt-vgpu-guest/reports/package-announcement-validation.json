@@ -1,0 +1,327 @@
+{
+  "reference": "1400268d0 -> 14002680c",
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "cases": [
+    {
+      "case": "mode0",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ]
+      ]
+    },
+    {
+      "case": "current",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "mode2",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "query",
+          0,
+          45550650
+        ]
+      ]
+    },
+    {
+      "case": "wrong-magic",
+      "result": "0xc000000d",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "query",
+          0,
+          45550650
+        ]
+      ]
+    },
+    {
+      "case": "query-error",
+      "result": "0xc000000d",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ]
+      ]
+    },
+    {
+      "case": "version-rejected",
+      "result": "0xc000000d",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ],
+        [
+          "notify",
+          3,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "notify-error-reference-ignores",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-0",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-1",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-2",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-3",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-4",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-5",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-6",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-7",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    },
+    {
+      "case": "historical-8",
+      "result": "0x0",
+      "trace": [
+        [
+          "query",
+          1,
+          null
+        ],
+        [
+          "notify",
+          4,
+          19462179085
+        ],
+        [
+          "query",
+          2,
+          1407396358848514
+        ]
+      ]
+    }
+  ],
+  "invalid_builder_cases": 4,
+  "passed": true,
+  "hardware_written": false,
+  "scope": "RPC helpers modeled; no update query, downloads, or imported OS code executed",
+  "linux_difference": "Fail startup if the package record cannot be queued; reference ignores notify failure"
+}

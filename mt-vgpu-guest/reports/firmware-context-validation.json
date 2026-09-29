@@ -1,0 +1,24 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "hardware_written": false,
+  "new_descriptor_cases": 33,
+  "cached_descriptor_cases": 33,
+  "bytes_compared_per_case": 80,
+  "invalid_cases": 18,
+  "publication_offset": "0xf0",
+  "guard_bytes_preserved": true,
+  "example_system_memory_gpas_are_synthetic": true,
+  "host_runtime_integration": false,
+  "hardware_acceleration_verified": false,
+  "modeled_helpers": [
+    "CPU allocation/memset",
+    "CPU physical address translation",
+    "MMIO recording"
+  ],
+  "limits": [
+    "Caller must supply verified persistent CPU buffers and device_config",
+    "Current firmware MMU mode only; no Native or alternate root path",
+    "Descriptor publication is after successful firmware connection",
+    "Runtime lifetime, Host mapping, and actual publication not tested"
+  ]
+}

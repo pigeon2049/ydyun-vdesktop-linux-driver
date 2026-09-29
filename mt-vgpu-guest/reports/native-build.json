@@ -1,0 +1,15 @@
+{
+  "mode": "native",
+  "kernel": "6.12.107+deb13-amd64",
+  "source_commit": "099f7ea5afced34f9424618a9e2ec7aa37dba024",
+  "directory": "build/native-20260927-185344",
+  "returncode": 0,
+  "module_created": true,
+  "hardware_init_disabled_in_source": true,
+  "installed": false,
+  "loaded": false,
+  "objtool_warning_count": 5138,
+  "errors": [],
+  "module_sha256": "37c07304f8f7176aeca27684582f2f4f1ee1d842c6872eb33af18cd76a201efe",
+  "vermagic": "6.12.107+deb13-amd64 SMP preempt mod_unload modversions"
+}

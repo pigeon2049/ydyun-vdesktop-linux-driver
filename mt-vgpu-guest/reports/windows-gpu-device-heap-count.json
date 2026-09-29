@@ -1,0 +1,63 @@
+{
+  "binary": "/opt/MTT-driver-only/mtkm64.sys",
+  "binary_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "related_pci_family_evidence": {
+    "binary": "/opt/MTT-driver-only/mtdispkm64.sys",
+    "binary_sha256": "e061a9bda23fe8ae0cee81522a8b89455bfddd0b295bc86704009fcdeb82a686",
+    "function_va": "0x140017650",
+    "device_id_field": "16-bit value at input +2",
+    "family_mask": "0xff00",
+    "quyuan1_selector": "0x0200",
+    "profile_function_va": "0x140018100"
+  },
+  "registered_object": "gpu_device",
+  "constructor_va": "0x14003c4d0",
+  "executed_range": [
+    "0x14003c4d0",
+    "0x14003c64c"
+  ],
+  "stubbed_helpers": [
+    "0x14003e060",
+    "0x14003e1d8"
+  ],
+  "cases": [
+    {
+      "selector": "0x100",
+      "return": 0,
+      "heap_count": 4,
+      "firmware_selector": [
+        0
+      ]
+    },
+    {
+      "selector": "0x200",
+      "return": 0,
+      "heap_count": 4,
+      "firmware_selector": [
+        0
+      ]
+    },
+    {
+      "selector": "0x300",
+      "return": 0,
+      "heap_count": 4,
+      "firmware_selector": [
+        1
+      ]
+    },
+    {
+      "selector": "0x400",
+      "return": 0,
+      "heap_count": 5,
+      "firmware_selector": [
+        3
+      ]
+    }
+  ],
+  "interpretation": "The constructor's first descriptor dword 0x200 selects four heaps. The Linux source identifies S3000 0x0222 as QUYUAN1 family 0x0200; this is supporting cross-driver evidence for a four-heap profile, but the Windows descriptor field has not been proven identical to the Linux family mask. This does not validate PVZ map/unmap.",
+  "limits": [
+    "Only the selector function ran; Windows kernel helpers were not executed.",
+    "The result is static Windows RM behavior, not a Guest hardware trial.",
+    "Windows Pci/BAR mapping is not treated as an implementation of Linux PVZ callbacks."
+  ]
+}

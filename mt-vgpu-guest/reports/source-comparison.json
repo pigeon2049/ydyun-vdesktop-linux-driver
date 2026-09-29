@@ -1,0 +1,36 @@
+[
+  {
+    "source": "src/mtgpu-2.7.1-6.12",
+    "config": {
+      "RGX_NUM_OS_SUPPORTED": "1",
+      "PVRSRV_APPHINT_DRIVERMODE": "0x7FFFFFFF",
+      "MT_BUILD_OS_TYPE": "\"Desktop\""
+    },
+    "core_sha256": "83398c8c24cace69e53d561bd62ce6725a1ae2776b160ffbf67fc5fae9f892c3",
+    "symbols": [
+      "00000000001317e0 0000000000000018 T GuestDevicePAddrToHostDevicePAddr",
+      "00000000001528f0 000000000000006a T PvzConnectionInit",
+      "0000000000137b70 0000000000000068 T VMMCreatePvzConnection",
+      "00000000001316f0 0000000000000069 t _GuestDevicePAddrToHostDevicePAddr_Bar2.isra.0",
+      "00000000000db180 00000000000003b9 t _RGXDumpRGXMMUFaultStatus",
+      "0000000000059950 00000000000000ba T mtgpu_guest_get_vpu_info",
+      "0000000000059a10 0000000000000033 T mtgpu_guest_notify_host_vpu"
+    ]
+  },
+  {
+    "source": "src/official-vgpu-2.3.0/usr/src/mtgpu-1.0.0",
+    "config": {
+      "RGX_NUM_OS_SUPPORTED": "15",
+      "PVRSRV_APPHINT_DRIVERMODE": "0",
+      "MT_BUILD_OS_TYPE": "\"Desktop\""
+    },
+    "core_sha256": "694768574d78a724fcfb5b2a2ecbbeac34828c861eb76ee1bb7dd2ed996450a0",
+    "symbols": [
+      "00000000000e9d20 000000000000012c T GuestDevicePAddrToHostDevicePAddr",
+      "00000000001042a0 0000000000000190 T PvzConnectionInit",
+      "00000000000f1300 0000000000000068 T VMMCreatePvzConnection",
+      "000000000009edc0 000000000000088a T _RGXDumpRGXMMUFaultStatus",
+      "000000000003aa40 0000000000000033 T mtgpu_guest_notify_host_vpu"
+    ]
+  }
+]

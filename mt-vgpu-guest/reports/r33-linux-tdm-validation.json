@@ -1,0 +1,446 @@
+{
+  "utc": "2026-09-29T17:59:38.281966+00:00",
+  "passed": true,
+  "linux_reference_sha256": "b3058c02bbd7c879f076c48ee1faf78e0e764beeab09da7cbd053f3ec34237b0",
+  "windows_reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "protocol_selection_cases": 76,
+  "selectors": [
+    {
+      "bvnc": "0x1b000500fe0002",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1b000500fe0002",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1b000500fe0002",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x1b000500fe0002",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1b000700fe0002",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1b000700fe0002",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1b000700fe0002",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x1b000700fe0002",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1b000800fe0002",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1b000800fe0002",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1b000800fe0002",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x1b000800fe0002",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000301980065",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000301980065",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000301980065",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x1e000301980065",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000303300014",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000303300014",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000303300014",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x1e000303300014",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000506600001",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000506600001",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x1e000506600001",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x1e000506600001",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600015",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600015",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600015",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x23000206600015",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600017",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600017",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600017",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x23000206600017",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600022",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600022",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000206600022",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x23000206600022",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000301980065",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000301980065",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000301980065",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x23000301980065",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000306600017",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000306600017",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000306600017",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x23000306600017",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000406600017",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000406600017",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000406600017",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x23000406600017",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000501980017",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000501980017",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x23000501980017",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x23000501980017",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000209900192",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000209900192",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000209900192",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x26000209900192",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000409900192",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000409900192",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000409900192",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x26000409900192",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000609900192",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000609900192",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x26000609900192",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x26000609900192",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x460002099001a0",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x460002099001a0",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x460002099001a0",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x460002099001a0",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x4600030990019f",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x4600030990019f",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x4600030990019f",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x4600030990019f",
+      "drm_major": 3,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x46000409901015",
+      "drm_major": 0,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x46000409901015",
+      "drm_major": 1,
+      "mode": 1
+    },
+    {
+      "bvnc": "0x46000409901015",
+      "drm_major": 2,
+      "mode": 2
+    },
+    {
+      "bvnc": "0x46000409901015",
+      "drm_major": 3,
+      "mode": 1
+    }
+  ],
+  "normalization_cases": {
+    "fill": 40,
+    "copy": 40
+  },
+  "full_guest_packet_byte_equality": true,
+  "core_counts": {
+    "1": 10,
+    "2": 10,
+    "3": 10,
+    "4": 10,
+    "5": 10,
+    "6": 10,
+    "7": 10,
+    "8": 10
+  },
+  "invalid_packets_rejected": 4544,
+  "native_tdm_bytes": 4536,
+  "native_header_bytes": 88,
+  "guest_header_bytes": 72,
+  "register_tail_bytes": 40,
+  "other_region_serialization_shapes": {
+    "2": {
+      "total_bytes": 5240,
+      "opaque_register_bytes": 528,
+      "sha256": "98eba69220b86d768edbead18dac0a895db3147778415d23e43b1de6a2eab201"
+    },
+    "3": {
+      "total_bytes": 4536,
+      "opaque_register_bytes": 40,
+      "sha256": "5086df033fc46450430fd958e61f17485fc5782624ca862c72269139c037561b"
+    },
+    "4": {
+      "total_bytes": 4648,
+      "opaque_register_bytes": 128,
+      "sha256": "9c9c0e3948dc98360f8c2432998c46dc76dbb717cbccd28d2b10da9fab2ad95c"
+    },
+    "5": {
+      "total_bytes": 18160,
+      "opaque_register_bytes": 528,
+      "sha256": "d5e8ac960afe24c2b6eabd7c3c17794b6148c71595cf98ebcbdc544d2f4b3b31"
+    }
+  },
+  "modeled": [
+    "core count and known-table BVNC supplied as fixtures, not hardware discovery",
+    "DRM version queried through explicit RAM hook",
+    "RAM allocators, libc memory operations and GPU-allocation metadata",
+    "fresh zeroed single kick; no synchronization, PID, job ID or nonzero CSW"
+  ],
+  "unimplemented_tls_relocations": [
+    {
+      "address": 12939056,
+      "type": 16
+    }
+  ],
+  "hardware_access": false,
+  "gpu_execution": false,
+  "limits": "Normalizer is not connected to a device ioctl or used by the installed UMD. No PVR bridge, GL/Vulkan, GFX register translation or desktop acceleration is provided."
+}

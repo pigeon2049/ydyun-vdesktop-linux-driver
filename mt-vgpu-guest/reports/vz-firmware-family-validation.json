@@ -1,0 +1,39 @@
+{
+  "source_package": "official-vgpu-2.3.0",
+  "target_pci_id": "1ed5:0222",
+  "source_platform_family": "QUYUAN1",
+  "source_platform_family_id": "1ed5:0200",
+  "source_device_data": "quyuan1_drvdata",
+  "other_family_id": "1ed5:0400",
+  "driver_declared_vz_firmware": [
+    "musa.fw.1.0.0.0.vz.linux",
+    "musa.fw.1.0.0.0.vz.win"
+  ],
+  "windows_firmware_default": true,
+  "packaged_vz_windows_variants": [
+    {
+      "filename": "musa.fw.1.0.0.0.vz.win",
+      "size": 41632,
+      "sha256": "bd9b569dc8bee47ffcb606081aaf8a1942456510797b6ccb95397f5da56fa17e",
+      "embedded_build_marker": "rgx_firmware_vgpu"
+    },
+    {
+      "filename": "musa.fw.1.1.0.0.vz.win",
+      "size": 46272,
+      "sha256": "8ac6886d1a1e5856d270324f394186487293fcde874955cf30ef79d3f280639c",
+      "embedded_build_marker": "rgx_firmware_qy2_vgpu"
+    },
+    {
+      "filename": "musa.fw.1.2.0.0.vz.win",
+      "size": 46304,
+      "sha256": "b8969763bce28ea990a3ff38413176326f4d02d04fa03011d96533ce0d215497",
+      "embedded_build_marker": "rgx_firmware_ph_vgpu"
+    }
+  ],
+  "selection_note": "Keep the driver's declared 1.0.0.0 VZ image for the QUYUAN1/S3000 path. The 1.1 and 1.2 images identify QY2 and PH firmware builds; the local source does not establish them as compatible with this S3000 virtual device.",
+  "limits": [
+    "Build markers identify source firmware families, not a full compatibility ABI.",
+    "No firmware was uploaded or selected for a hardware trial by this script.",
+    "The Windows WDDM loader images in /opt/MTT-driver-only are separate binaries from these Linux package VZ firmware blobs."
+  ]
+}

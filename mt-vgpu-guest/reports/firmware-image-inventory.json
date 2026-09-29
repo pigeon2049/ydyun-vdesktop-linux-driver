@@ -1,0 +1,58 @@
+{
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "loader_function": "14001f0b0",
+  "uploaded": false,
+  "selected_for_hardware": null,
+  "images": [
+    {
+      "name": "gen1",
+      "selector": 0,
+      "va": "0x141031160",
+      "size": 160768,
+      "sha256": "31e5101641925f97141900917ed709546a4f0417d6fbdd0c75e4887b8d4c442d",
+      "segment_count": 5,
+      "record_count": 98,
+      "copied_bytes": 152944
+    },
+    {
+      "name": "gen2",
+      "selector": 1,
+      "va": "0x141058660",
+      "size": 183568,
+      "sha256": "526fa1e7a19ee4416fa8d1f46b3fa7ef40f9d02df7968a822b5778776f3cc132",
+      "segment_count": 5,
+      "record_count": 110,
+      "copied_bytes": 175376
+    },
+    {
+      "name": "gen2_1",
+      "selector": 2,
+      "va": "0x141085470",
+      "size": 168464,
+      "sha256": "bcfdfdec08f1ecf2244a2a38b200a9bb33c5e7d81002c2afa8eeb5652b07c5a8",
+      "segment_count": 5,
+      "record_count": 101,
+      "copied_bytes": 160544
+    },
+    {
+      "name": "gen3",
+      "selector": 3,
+      "va": "0x1410ae780",
+      "size": 190400,
+      "sha256": "4fb178882be908ab9259c5ffbacfeeab788198152706ea9bc9b288d3e2cb2868",
+      "segment_count": 5,
+      "record_count": 113,
+      "copied_bytes": 182136
+    },
+    {
+      "name": "gen6",
+      "selector": 4,
+      "va": "0x1410dd040",
+      "size": 168544,
+      "sha256": "47859f5e5183c8271831d2e48a7aa27c20e11cc0863b12035e66ebd41a2537a2",
+      "segment_count": 5,
+      "record_count": 97,
+      "copied_bytes": 160740
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+--- a/src/mtvpu/mtvpu_drv.c
++++ b/src/mtvpu/mtvpu_drv.c
+@@ -4,6 +4,8 @@
+  */
+ 
+ #include <linux/platform_device.h>
++#include <linux/build_bug.h>
++#include <linux/stddef.h>
+ #include <linux/vmalloc.h>
+ #include <linux/component.h>
+ #include <linux/debugfs.h>
+@@ -24,6 +26,7 @@
+ #include "mtgpu_drv.h"
+ #include "mtgpu_drm_drv.h"
+ #include "mtgpu_device.h"
++#include "mtgpu/vgpu/mtgpu_mdev.h"
+ #include "mtgpu_smc.h"
+ #include "os-interface.h"
+ 
+@@ -37,6 +40,10 @@
+ #ifndef MT_BUILD_VPU
+ #define MT_BUILD_VPU ""
+ #endif
++
++extern u64 mtgpu_guest_vpu_share_mem_base_compat(const void *raw_info,
++							 const void *raw_share_mem,
++							 const void *raw_mtdev);
+ 
+ int enable_pm_mtvpu_backup_device_memory = 0;
+ module_param(enable_pm_mtvpu_backup_device_memory, int, 0444);
+@@ -68,6 +75,11 @@
+ 	bool is_guest = mtgpu_get_driver_mode() == MTGPU_DRIVER_MODE_GUEST;
+ 	bool is_native = mtgpu_get_driver_mode() == MTGPU_DRIVER_MODE_NATIVE;
+ 
++	/* The prebuilt Guest ring mapper uses these private structure offsets. */
++	BUILD_BUG_ON(offsetof(struct mt_chip, bar_base) != 0x24f8);
++	BUILD_BUG_ON(offsetof(struct mt_chip, vm) +
++		     offsetof(struct mt_virm, mem) != 0x1bd88);
++
+ 	pr_info("Init VPU %s, Version %s\n", is_native ? "Native" : is_host ? "Host" : "Guest", MT_BUILD_VPU);
+ 	chip = kzalloc(sizeof(struct mt_chip), GFP_KERNEL);
+ 	if (!chip)
+@@ -281,7 +293,41 @@
+ 		goto err_lock;
+ 
+ 	if (is_guest_cmds) {
+-		vpu_init_guest_mem(chip);
++		u64 bar_base = chip->bar_base;
++		u32 info_version;
++		bool v2_info;
++
++		if (!mtdev->vgpu_info ||
++		    READ_ONCE(mtdev->vgpu_info->magic) != MTGPU_VGPU_INFO_MAGIC) {
++			pr_err("mtvpu: missing or invalid Guest vGPU info page\n");
++			goto err_lock;
++		}
++		info_version = READ_ONCE(mtdev->vgpu_info->version);
++		if (info_version != MTGPU_VGPU_INFO_VERSION1 && info_version != 2) {
++			pr_err("mtvpu: unsupported Guest vGPU info version %u\n",
++			       info_version);
++			goto err_lock;
++		}
++		v2_info = info_version == 2;
++
++		if (v2_info) {
++			u64 share_base = mtgpu_guest_vpu_share_mem_base_compat(
++				mtdev->vgpu_info, mtdev->vgpu_shm, mtdev);
++
++			if (!share_base) {
++				pr_err("mtvpu: invalid v2 VPU shared-memory mapping\n");
++				goto err_lock;
++			}
++			/* The prebuilt ring mapper ioremaps chip->bar_base directly. */
++			chip->bar_base = share_base;
++		}
++
++		ret = vpu_init_guest_mem(chip);
++		chip->bar_base = bar_base;
++		if (v2_info && ret) {
++			pr_err("mtvpu: failed to map v2 VPU shared memory: %d\n", ret);
++			goto err_lock;
++		}
+ 		vpu_init_guest_capibility(chip);
+ 	}
+ 

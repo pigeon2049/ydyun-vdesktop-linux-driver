@@ -1,0 +1,25 @@
+{
+  "utc": "2026-09-28T05:47:04.059892+00:00",
+  "passed": true,
+  "reference_sha256": "0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33",
+  "full_allocation_cases": 64,
+  "allocation_failure_cases": 32,
+  "getter_offset_cases": 32,
+  "original_truncation_cases": 1,
+  "linux_rejections": 11,
+  "platform_preservation_cases": 32,
+  "executed": [
+    "093aa8 allocation request",
+    "04c490 resource wrapper",
+    "093cc8/04c288/04b2bc GPU address getter",
+    "0931b8 type2 selection and 0219d0/041cc4 existing ctxState callback"
+  ],
+  "modeled": [
+    "05aec0 allocator success/failure and resource VA",
+    "explicit core counts 1..8 and physical heap availability",
+    "two pre-existing platform context-state descriptors and RAM backing"
+  ],
+  "hardware_access": false,
+  "gpu_execution": false,
+  "limits": "Storage plan only. Does not establish initial state contents, live topology, BO ownership, or firmware submission."
+}

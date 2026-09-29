@@ -1,0 +1,32 @@
+{
+  "checked_utc": "2026-09-27T16:21:47.354819+00:00",
+  "firmware_bytes": 8388608,
+  "firmware_gpu_pa": "0x771fef000",
+  "firmware_bar_offset": "0x3f000000",
+  "uploaded_sha256": "d27f408f9048236a10095c849af150eb133834890045328e37c610a85a0cfe15",
+  "backup_sha256": "066d0689a0e2e3f44a98d1f6b747a3e91f99412be3a7a5ac7c1468612f3f2ba1",
+  "upload_readback_verified": true,
+  "original_data_restored_and_verified": true,
+  "device_memory_written": true,
+  "firmware_address_published": false,
+  "page_tables_written": false,
+  "commands_submitted": 0,
+  "firmware_connected": false,
+  "status_after_unload": {
+    "pci": "0000:00:0e.0",
+    "bar": 0,
+    "access": "read-only-u32",
+    "driver_state": 0,
+    "firmware_state": 1,
+    "hardware_acceleration_verified": false
+  },
+  "device_unbound": true,
+  "module_unloaded": true,
+  "services": {
+    "sddm": "active",
+    "spice-vdagentd": "active",
+    "tailscaled": "active"
+  },
+  "hardware_acceleration_verified": false,
+  "validation_note": "Standalone status utility rejected concurrent access while bound; the upload test itself passed and its finally block unloaded the module. Final status was verified after unload."
+}
