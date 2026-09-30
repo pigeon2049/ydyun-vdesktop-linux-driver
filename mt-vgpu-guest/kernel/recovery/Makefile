@@ -30,3 +30,4 @@ obj-m += mt_drain_pending.o
 obj-m += mt_reconnect.o
 obj-m += mt_fix_poll.o
 obj-m += mt_live_3d.o
+obj-m += mt_live_3d_drm.o

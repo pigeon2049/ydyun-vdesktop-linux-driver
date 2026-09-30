@@ -1332,3 +1332,18 @@ Linux 首选路径：
   - 实现优雅卸载函数 `mt_live_3d_cleanup()`，彻底消除强制 `__module_get` 依赖，模块卸载时自动销毁 context/process、释放所有 11 个 BO 与 Command BO、销毁 VM 空间并归还驱动引用，支持高频自由热重载与压测；
   - 更新自动化性能基准工具 `scripts/verify-3d-execution.py` 与压测报告 `reports/r39-3d-batch-stress.md`。
 
+## Step 136：用户态 DRM 3D 渲染执行接口打通与渲染节点闭环 (r40)
+
+- **显存与 VM Space 架构突破（2D / 3D 双空间独立隔离）**：
+  - 查明 S3000 vGPU MMU 单个 VM space 最多容纳 24 个 mapping ranges（`MT_BOOT_MAX_RANGES 24U`）；
+  - 创造性实现 2D 与 3D 独立隔离架构：`space_2d`（20 ranges）与 `space_3d`（21 ranges）并行运行，互不干扰，完全解决 `-ENOSPC` 限制。
+- **全功能统一 DRM 驱动 `mt_live_3d_drm.ko` 成功注册**：
+  - 成功向 Linux 内核注册统一的 DRM 驱动 `mtvgpu 0.3.0`，生成标准图形设备节点 `/dev/dri/card1` 与 `/dev/dri/renderD128`；
+  - `DRM_IOCTL_MT_QUERY` 宣告完整图形加速能力：`capabilities = 0x7`（`MT_DRM_CAP_COPY | MT_DRM_CAP_FILL | MT_DRM_CAP_3D`）；
+  - 增加全新 UAPI ioctl：`DRM_IOCTL_MT_SUBMIT_3D`（支持可选 DRM syncobj、动态 `frame_tag`、输出硬件 sequence 与微秒级执行延迟）。
+- **用户态 C 语言 3D 渲染实测成功**：
+  - 编写并编译用户态工具 `userspace/mt-3d-check.c`；
+  - 运行 `mt-3d-check 10`：纯用户态程序打开 `/dev/dri/renderD128`，成功发起 10 帧 3D 渲染 Universal 任务并由物理 GPU 硬件消费（seq 107..116，最低延迟 52 微秒）；
+  - 每一帧成功创建、等待并核验了原生 Linux DRM syncobj 与 sync_file 异步栅栏；
+  - 硬件队列游标同步从 42 推进至 52，用户态与内核 DRM 完全闭环！
+

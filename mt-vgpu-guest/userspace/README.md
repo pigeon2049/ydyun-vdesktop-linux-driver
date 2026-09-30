@@ -1,9 +1,18 @@
-# 实验性 GPU 填充、DRM 和复制接口
+# 实验性 GPU 3D 渲染、填充与复制 DRM 接口
 
-当前最大表面前端是 r34 的 `/dev/dri/renderD130`：一个 8 MiB GEM、一个 4 MiB GEM、
-六个 64 KiB GEM，支持已实测的 1080p 原生 GPU 填充与 MiB 级复制。实际最大对象大小
-应读取 QUERY.slot_bytes，不能固定使用旧的 MT_DRM_SLOT_BYTES 宏。CREATE 会选择
-最小合适槽，资源不足时返回 ENOSPC。每次新租用清零整个物理槽。
+当前最新的统一全功能前端是 r40 的 `/dev/dri/renderD128`（`mtvgpu 0.3.0`），同时具备：
+- `MT_DRM_CAP_COPY` (1): 直接显存复制
+- `MT_DRM_CAP_FILL` (2): 原生 GPU 颜色填充
+- `MT_DRM_CAP_3D` (4): Universal Queue 3D 渲染执行
+
+用户态 3D 渲染测试工具：
+```sh
+cd /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest
+make -C userspace
+sudo build/userspace/mt-3d-check 10
+```
+该工具通过标准 `DRM_IOCTL_MT_SUBMIT_3D` 直接打开 `/dev/dri/renderD128`，向 DM 2 Universal 硬件队列提交 3D 渲染工作包，并绑定与验证 Linux 原生 DRM syncobj 及 sync_file 异步栅栏。
+
 
 ```sh
 sudo python3 scripts/check-graphics-session.py

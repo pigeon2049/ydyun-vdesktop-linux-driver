@@ -14,6 +14,7 @@
 #define MT_DRM_IO_BYTES 4096U
 #define MT_DRM_CAP_COPY 1U
 #define MT_DRM_CAP_FILL 2U
+#define MT_DRM_CAP_3D   4U
 struct drm_mt_query {
 	__u32 abi, slot_count, slot_bytes, leased;
 	__u32 faulted, retained, capabilities, reserved;
@@ -47,16 +48,27 @@ struct drm_mt_fill {
 	__u32 width, height, x, y, rect_width, rect_height, color, flags;
 	__u64 sequence;
 };
+/* 3D workload execution on Data Master 2 (Universal Queue) */
+struct drm_mt_submit_3d {
+	__u32 out_syncobj;   /* Optional syncobj handle (0 if unused) */
+	__u32 flags;         /* Submit flags */
+	__u64 frame_tag;     /* Frame sequence identifier */
+	__u64 sequence;      /* Hardware fence sequence output */
+	__u32 latency_us;    /* Measured hardware execution latency (us) */
+	__u32 reserved;      /* Must be 0 */
+};
 #define DRM_MT_QUERY 0x00
 #define DRM_MT_CREATE 0x01
 #define DRM_MT_READ 0x02
 #define DRM_MT_WRITE 0x03
 #define DRM_MT_COPY 0x04
 #define DRM_MT_FILL 0x05
+#define DRM_MT_SUBMIT_3D 0x06
 #define DRM_IOCTL_MT_QUERY DRM_IOR(DRM_COMMAND_BASE + DRM_MT_QUERY, struct drm_mt_query)
 #define DRM_IOCTL_MT_CREATE DRM_IOWR(DRM_COMMAND_BASE + DRM_MT_CREATE, struct drm_mt_create)
 #define DRM_IOCTL_MT_READ DRM_IOWR(DRM_COMMAND_BASE + DRM_MT_READ, struct drm_mt_rw)
 #define DRM_IOCTL_MT_WRITE DRM_IOW(DRM_COMMAND_BASE + DRM_MT_WRITE, struct drm_mt_rw)
 #define DRM_IOCTL_MT_COPY DRM_IOWR(DRM_COMMAND_BASE + DRM_MT_COPY, struct drm_mt_copy)
 #define DRM_IOCTL_MT_FILL DRM_IOWR(DRM_COMMAND_BASE + DRM_MT_FILL, struct drm_mt_fill)
+#define DRM_IOCTL_MT_SUBMIT_3D DRM_IOWR(DRM_COMMAND_BASE + DRM_MT_SUBMIT_3D, struct drm_mt_submit_3d)
 #endif

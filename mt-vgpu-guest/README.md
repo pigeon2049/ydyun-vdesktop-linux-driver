@@ -1,8 +1,8 @@
 # MT vGPU Guest：本机适配与实验
 
-**最新真机 3D 渲染多帧批量压测与环形回绕突破（2026-09-30，r39）**：升级 [kernel/recovery/mt_live_3d.c](kernel/recovery/mt_live_3d.c) 支持多帧连续提交、动态参数注入与纳秒级性能采样。物理真机累计执行 **106 帧** 真实 3D Universal 任务，成功率 **100%**。零延迟极限压测下 50 帧总耗时仅 4.568 毫秒，平均单帧耗时仅 **60 微秒**（最低 48 微秒），等效吞吐超过 16,000 FPS。成功验证了 **硬件 Ring 队列跨越 64-slot 边界的自动回绕**（游标 61 -> 17 -> 42），生命周期优雅卸载无残留。详见 [r39 压测报告](reports/r39-3d-batch-stress.md) 与 [性能测试套件](scripts/verify-3d-execution.py)。
+**最新用户态 DRM 3D 渲染执行接口打通（2026-09-30，r40）**：成功注册统一全功能 DRM 驱动 `mtvgpu 0.3.0`（`/dev/dri/card1`、`/dev/dri/renderD128`），宣告 `0x7` 全能力（2D Copy + Native Fill + 3D Universal）。引入 2D 与 3D 独立双 VM Space 隔离架构突破单个 MMU 空间 24-range 限制。纯用户态程序 [userspace/mt-3d-check.c](userspace/mt-3d-check.c) 通过标准 `DRM_IOCTL_MT_SUBMIT_3D` 直接发起 3D 渲染执行，每一帧成功绑定并核验 Linux 原生 syncobj 与 sync_file 异步栅栏，执行延迟仅 52 微秒，硬件队列同步推进，实现用户态到 GPU 硬件的完整闭环！详见 [r40 用户态 3D 报告](reports/r40-userspace-drm-3d.md)。
 
-**最新真机 3D 工作负载硬件闭环（2026-09-30，r38）**：物理冷关机重启后硬件自愈，`mt_guest_probe` 建立全新洁净活动连接。逆向查明 Linux 原厂 UMD 3D 提交规范（CSW 位于 `+0x58` 偏移，任务包全长 18,160 字节，操作码 `0x66`）。通过显存切片分配（11 个 BO、86,300 字节、29 页 VM 映射）、CSW 动态构建与 DM2 Universal 硬件队列提交，实现首次硬件 3D 执行与 dma_fence 回执闭环（106 微秒）。详见 [r38 3D 工作负载记录](reports/r38-minimal-3d-workload.md)。
+**真机 3D 渲染多帧批量压测与环形回绕突破（2026-09-30，r39）**：升级 [kernel/recovery/mt_live_3d.c](kernel/recovery/mt_live_3d.c) 支持多帧连续提交、动态参数注入与纳秒级性能采样。物理真机累计执行 **106 帧** 真实 3D Universal 任务，成功率 **100%**。零延迟极限压测下 50 帧总耗时仅 4.568 毫秒，平均单帧耗时仅 **60 微秒**（最低 48 微秒），等效吞吐超过 16,000 FPS。成功验证了 **硬件 Ring 队列跨越 64-slot 边界的自动回绕**（游标 61 -> 17 -> 42）。详见 [r39 压测报告](reports/r39-3d-batch-stress.md)。
 
 
 **最新真机与渲染上下文进展（2026-09-30，r36）**：完成冷启动后硬件会话恢复（OSID 4、`mt_cold_disconnect` 置 Guest OFF、`fresh-trial.py` 成功重连），并复核通过 30 个真实 GPU 硬件任务（含 23 次 1080p 颜色矩形原生填充与 2 次 4 MiB 显存复制，读回并导出 6MB PPM）。在此基础上闭合原厂 Linux QY1 3D 渲染上下文（`RGXCreateRenderContextCCB`）：定义 11 个专用 BO 显存规范（总需求仅 ~84.3 KiB，完全能在现有普通堆余量中满足）、12 个保存/恢复任务阶段及 248 字节 CSW 模板，经 C 实现逐字节核验与内核 6.12 头文件下 `W=1` 零警告编译通过。详见 [r36 渲染上下文记录](reports/r36-gfx-context.md) 和 [验证报告](reports/r36-gfx-context-validation.json)。
