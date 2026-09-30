@@ -110,12 +110,37 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
   `canned[]` 伪造表（含事件句柄 0x2000 使清理路径多走 release-event 一步，
   证明伪造值被真实消费）。
 
-## 7. 下一步（bA3）
+## 9. bA3：Connect 走通（返回 0）——info 页 mmap 与内容伪造是钥匙
 
-1. 精读 `0x92550`：`[rbp-0x70]`（BVNC 被检槽）的真正写入者；
-   对照第二次 Connect（`0x927b4`）的 `[r15]` 存储。
-2. 接受路 `0x3ba48 → 0x3b8eb` 之后：`InitMTFeatures` / `GetFeatures`
-   的输入来源；AppHint 名/默认值静态枚举。
-3. 走通 Connect 后依次点亮：heap 查询 → Sync alloc（复核 memType=2）→
-   RGX 上下文创建 → `RGXKICKTA3D3`（顺带看清尾部 8 字节内容）。
-4. 输出「渲染主路径最小命令集 + 打桩表」，作为 Stage B（内核侧实现）的输入。
+- 关键转向（T+gdb）：`catch syscall mmap` 证明 UMD 经 libc `syscall()`
+  直接发 mmap（`fd=6, len=0x10000, prot=READ, flags=SHARED, off=0x1001000`），
+  绕过 `mmap@plt` 拦截——之前“无 mmap”结论是拦截盲区，不是事实。
+  在 `/dev/null` 上该 mmap 成功返回零页，UMD 把 64KB 零当 info 页解析。
+- 失败链还原（S，`srv_um.dis`）：`0x48980 → 0x967a0(DevmemAcquireCpuVirtAddr)
+  → 0x98420 → 0x8f630`，在 `0x8f890` 因 mmap 结果检查走 78 分支。
+  疑似有两处 mmap（trace 见两次 `mmap_fabricated`，同 offset）。
+- 修复：shim 拦截 `syscall()` 本体（内部改走内联汇编 `S_`），
+  凡 UMD DRI fd 的 mmap 一律给匿名映射并预填 info 页；其余原样透传。
+- info 页内容破译（S：`0x92450` 起的比对）：
+  - `+0x44` u32：必须覆盖 `0xb57` 各位（`~x & 0xb57 == 0`），取 `0xb57`；
+  - `+0x48` u32：必须 `^ 0x688a847` 后忽略 bit16 为零，取 `0x688a847`；
+  - `+0x0` u32 = 1（设备数，沿用 v1 假设，验证通过）。
+  填入后 `PVRSRVConnect(0) -> 0, conn != NULL`，17-op 成功序列：
+  `INIT → Connect → event → infopage → import → mmap → HWPERF(0x86:0x4,
+  RGXACQUIREHWPERFFSETTINGS) → import(hPMR=0) → mmap →
+  GETMULTICOREINFO(0x1:0xc) → version 重扫 → ALIGNMENTCHECK(0x1:0xa,
+  in=用户指针+0x27) → 返回 0`。后三者输出全零即过（暂）。
+- 附带产出：`out_written` 日志（伪造落盘可审计）、`S_` 内联汇编、
+  UMD fd 追踪表。`reports/umd-bridge-connect-trace.jsonl` 已更新为成功序列。
+- 给 Stage B 的输入（已定）：KMD 必须实现 DRM mmap offset 分配
+  （`drm_vma_offset_manager` 类机制），info PMR 固定落在 `0x1001000`；
+  version 名 `pvr`；Connect 行为（Bvnc 上报其一 allow-list 值）。
+
+## 7. 下一步（bA4）
+
+1. 同一进程内 connect → 建 devmem ctx → 建 render ctx：
+   harness 需支持多步调用（conn 持久化）；`RGXCreateRenderContextCCB`
+   参数为 `(conn?, +0x30/+0x34 尺寸的参数块, flags?, out 句柄?)`，待静态确认。
+2. 依次点亮：heap 查询 → Sync alloc（动态复核 memType=2）→
+   RGX 上下文创建 → `RGXKICKTA3D3`（看清尾部 8 字节内容）。
+3. 输出「渲染主路径最小命令集 + 打桩表」，作为 Stage B（内核侧实现）的输入。

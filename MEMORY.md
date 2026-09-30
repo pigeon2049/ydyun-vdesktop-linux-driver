@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA2：Connect 中止根因追到 BVNC 门 + core allow-list；未提交）
+最后更新：2026-09-30（bA3：Connect 走通返回 0，info 页破译；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,42 @@
 
 ---
 
-## 本次会话进展（bA2：BVNC 门定位 + core allow-list，未提交）
+## 本次会话进展（bA3：Connect 走通 + info 页破译，未提交）
+
+接 bA2（同一会话， respond-all 连续推进）。
+
+### 1. 转向：UMD 经 raw syscall 做 mmap（拦截盲区）
+
+- `catch syscall mmap` 实锤：UMD 经 libc `syscall()` 直接 mmap
+ （`fd=6, len=0x10000, prot=READ, flags=SHARED, off=0x1001000`），
+  绕过 `mmap@plt` 拦截——之前“无 mmap”是工具盲区。
+  在 `/dev/null` 上成功拿零页，UMD 把 64KB 零当 info 页解析。
+- 失败链：`0x48980 → 0x967a0(DevmemAcquireCpuVirtAddr) → 0x98420 →
+  0x8f630`，在 mmap 结果检查（`0x8f890`）走 78（`ENODEV` 类失败→映射失败）。
+  断点定位法：gdb python 按文件偏移批量下断点（ASLR 下每次重算）。
+
+### 2. 修复 + info 页破译，Connect 返回 0
+
+- shim 拦截 `syscall()` 本体（内部改走内联汇编 `S_`），UMD DRI fd 的
+  mmap 一律给匿名映射并预填；其余透传。
+- 内容（S：`0x92450` 比对）：`[0]=1`（设备数）；`+0x44=0xb57`
+ （能力位全覆盖）；`+0x48=0x688a847`（KMD 构建魔数，忽略 bit16）。
+- 成功序列 17 ops：`INIT → Connect → event → infopage → import → mmap →
+  HWPERF(0x86:0x4) → import(hPMR=0) → mmap → GETMULTICOREINFO(0x1:0xc) →
+  version 重扫 → ALIGNMENTCHECK(0x1:0xa) → 0`。conn 非空。
+- 给 Stage B 的硬输入：KMD 需 DRM mmap-offset 分配（info PMR 在
+  `0x1001000`）；version 名 `pvr`；Connect 上报 allow-list Bvnc 之一。
+
+详见 `reports/bridge-stage-a-triage.md` §9（trace 已更新为成功序列）。
+
+### 4. 下一步（bA4）
+
+同一进程多步调用（conn 持久化）→ devmem ctx → render ctx；
+`RGXCreateRenderContextCCB` 参数形状已初探（见报告 §9 末尾）。
+
+---
+
+## 上次会话进展（bA2：BVNC 门定位 + core allow-list，提交 `b4ddfcd`）
 
 接 bA1 继续（同一会话）。
 

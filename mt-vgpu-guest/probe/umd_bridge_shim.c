@@ -49,6 +49,41 @@ static FILE *logf;
 static unsigned long seq;
 static int nullfd = -1;
 
+/* Raw syscall that bypasses this file's own syscall() interposition. */
+static long S_(long n, long a, long b, long c, long d, long e, long f)
+{
+	long ret;
+	register long r10 __asm__("r10") = d;
+	register long r8 __asm__("r8") = e;
+	register long r9 __asm__("r9") = f;
+	__asm__ volatile("syscall"
+			 : "=a"(ret)
+			 : "a"(n), "D"(a), "S"(b), "d"(c),
+			   "r"(r10), "r"(r8), "r"(r9)
+			 : "rcx", "r11", "memory");
+	return ret;
+}
+
+/* FDs handed to the UMD for /dev/dri nodes (backed by /dev/null). */
+#define MAX_UMD_FDS 16
+static int umd_fds[MAX_UMD_FDS];
+static int numd_fds;
+
+static void track_umd_fd(int fd)
+{
+	if (fd >= 0 && numd_fds < MAX_UMD_FDS)
+		umd_fds[numd_fds++] = fd;
+}
+
+static int is_umd_fd(int fd)
+{
+	int i;
+	for (i = 0; i < numd_fds; i++)
+		if (umd_fds[i] == fd)
+			return 1;
+	return 0;
+}
+
 /* Canned outputs that carry the UMD past early init checks. Each entry is
  * matched on (bridge_id, func_id); bytes are written to the start of the
  * output buffer (which was zeroed first). Grown iteratively from traces. */
@@ -65,12 +100,12 @@ static const struct canned_out canned[] = {
 	 {0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	  0x00, 0x00, 0x00, 0x00},
 	 12},
-	/* SRVCORE:Connect -> exact UMD allow-listed core ID (bA2-F3):
-	 * 0x0023000406600017 (S:3b8db; alt 0x0001000000000000). */
+	/* SRVCORE:Connect -> exact core ID + nonzero caps/arch (bA3-H1):
+	 * untested combination of individually-tried dimensions. */
 	{0x1, 0x0,
 	 {0x17, 0x00, 0x60, 0x06, 0x04, 0x00, 0x23, 0x00,
-	  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	  0x00},
+	  0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+	  0x01},
 	 17},
 	/* SRVCORE:ACQUIREINFOPAGE -> nonzero info-page PMR handle. */
 	{0x1, 0xf,
@@ -80,7 +115,7 @@ static const struct canned_out canned[] = {
 	/* MM:PMRLOCALIMPORTPMR -> align/size + local PMR handle. */
 	{0x6, 0x6,
 	 {0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	  0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 	  0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	  0x00, 0x00, 0x00, 0x00},
 	 28},
@@ -119,21 +154,26 @@ static int is_dri(const char *path)
 static int devnull(void)
 {
 	if (nullfd < 0)
-		nullfd = (int)syscall(SYS_openat, AT_FDCWD, "/dev/null",
-				      O_RDWR | O_CLOEXEC, 0);
+		nullfd = (int)S_(SYS_openat, AT_FDCWD, (long)"/dev/null",
+				      O_RDWR | O_CLOEXEC, 0, 0, 0);
 	return nullfd;
 }
 
-static void log_hex(const char *tag, const void *ptr, uint32_t size)
+static void log_hex_bytes(const void *ptr, uint32_t size)
 {
 	const unsigned char *b = ptr;
 	uint32_t n = size > MAX_BYTES ? MAX_BYTES : size;
 	uint32_t i;
+	for (i = 0; i < n; i++)
+		fprintf(logf, "%02x", b[i]);
+}
+
+static void log_hex(const char *tag, const void *ptr, uint32_t size)
+{
 	if (!logf)
 		return;
 	fprintf(logf, "\"%s\":\"", tag);
-	for (i = 0; i < n; i++)
-		fprintf(logf, "%02x", b[i]);
+	log_hex_bytes(ptr, size);
 	fprintf(logf, "\"");
 	if (size > MAX_BYTES)
 		fprintf(logf, ",\"%s_truncated\":%u", tag, size);
@@ -143,7 +183,8 @@ static int dri_open(const char *path)
 {
 	int fd;
 	ensure_log();
-	fd = (int)syscall(SYS_dup, devnull());
+	fd = (int)S_(SYS_dup, devnull(), 0, 0, 0, 0, 0);
+	track_umd_fd(fd);
 	if (logf)
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"open\",\"path\":\"%s\",\"fd\":%d}\n",
 			++seq, path ? path : "?", fd);
@@ -162,7 +203,7 @@ int open(const char *path, int flags, ...)
 	if (is_dri(path))
 		return dri_open(path);
 	{
-		int fd = (int)syscall(SYS_openat, AT_FDCWD, path, flags, mode);
+		int fd = (int)S_(SYS_openat, AT_FDCWD, (long)path, flags, mode, 0, 0);
 		ensure_log();
 		if (logf)
 			fprintf(logf, "{\"seq\":%lu,\"op\":\"open_other\",\"path\":\"%s\","
@@ -182,7 +223,7 @@ int open64(const char *path, int flags, ...)
 	}
 	if (is_dri(path))
 		return dri_open(path);
-	return (int)syscall(SYS_openat, AT_FDCWD, path, flags, mode);
+	return (int)S_(SYS_openat, AT_FDCWD, (long)path, flags, mode, 0, 0);
 }
 
 int openat(int dirfd, const char *path, int flags, ...)
@@ -196,7 +237,7 @@ int openat(int dirfd, const char *path, int flags, ...)
 	}
 	if (path[0] == '/' && is_dri(path))
 		return dri_open(path);
-	return (int)syscall(SYS_openat, dirfd, path, flags, mode);
+	return (int)S_(SYS_openat, dirfd, (long)path, flags, mode, 0, 0);
 }
 
 int openat64(int dirfd, const char *path, int flags, ...)
@@ -210,7 +251,7 @@ int openat64(int dirfd, const char *path, int flags, ...)
 	}
 	if (path[0] == '/' && is_dri(path))
 		return dri_open(path);
-	return (int)syscall(SYS_openat, dirfd, path, flags, mode);
+	return (int)S_(SYS_openat, dirfd, (long)path, flags, mode, 0, 0);
 }
 
 int ioctl(int fd, unsigned long req, ...)
@@ -286,7 +327,7 @@ int ioctl(int fd, unsigned long req, ...)
 					cmd.in_size);
 			else
 				fprintf(logf, "\"in\":null");
-			fprintf(logf, ",\"fabricated_zero_out\":%u,\"ret\":0}\n",
+			fprintf(logf, ",\"fabricated_zero_out\":%u",
 				cmd.out_ptr && cmd.out_size ? cmd.out_size : 0);
 		}
 		if (cmd.out_ptr && cmd.out_size) {
@@ -294,11 +335,19 @@ int ioctl(int fd, unsigned long req, ...)
 			memset((void *)(uintptr_t)cmd.out_ptr, 0, n);
 			apply_canned(cmd.bridge_id, cmd.bridge_func_id,
 				     (void *)(uintptr_t)cmd.out_ptr, n);
+			if (logf) {
+				fprintf(logf, ",\"out_written\":\"");
+				log_hex_bytes((const void *)(uintptr_t)cmd.out_ptr,
+					      n > 32 ? 32 : n);
+				fprintf(logf, "\"");
+			}
 		}
+		if (logf)
+			fprintf(logf, ",\"ret\":0}\n");
 		return 0;
 	}
 
-	ret = syscall(SYS_ioctl, fd, req, arg);
+	ret = S_(SYS_ioctl, fd, req, (long)arg, 0, 0, 0);
 	if (logf)
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"ioctl_passthrough\",\"fd\":%d,"
 			"\"req\":\"0x%lx\",\"ret\":%ld}\n", ++seq, fd, req, ret);
@@ -307,7 +356,7 @@ int ioctl(int fd, unsigned long req, ...)
 
 void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off)
 {
-	void *ret = (void *)syscall(SYS_mmap, addr, len, prot, flags, fd, off);
+	void *ret = (void *)S_(SYS_mmap, (long)addr, len, prot, flags, fd, off);
 	ensure_log();
 	if (logf)
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap\",\"fd\":%d,"
@@ -318,7 +367,7 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off)
 
 void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off64_t off)
 {
-	void *ret = (void *)syscall(SYS_mmap, addr, len, prot, flags, fd, off);
+	void *ret = (void *)S_(SYS_mmap, (long)addr, len, prot, flags, fd, (long)off);
 	ensure_log();
 	if (logf)
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap\",\"fd\":%d,"
@@ -329,7 +378,7 @@ void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off64_t off)
 
 int munmap(void *addr, size_t len)
 {
-	int ret = (int)syscall(SYS_munmap, addr, len);
+	int ret = (int)S_(SYS_munmap, (long)addr, len, 0, 0, 0, 0);
 	ensure_log();
 	if (logf)
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"munmap\",\"addr\":\"%p\","
@@ -339,7 +388,7 @@ int munmap(void *addr, size_t len)
 
 ssize_t read(int fd, void *buf, size_t count)
 {
-	ssize_t ret = syscall(SYS_read, fd, buf, count);
+	ssize_t ret = S_(SYS_read, fd, (long)buf, count, 0, 0, 0);
 	ensure_log();
 	if (logf && (fd > 2 || ret > 0))
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"read\",\"fd\":%d,"
@@ -350,7 +399,7 @@ ssize_t read(int fd, void *buf, size_t count)
 
 ssize_t pread(int fd, void *buf, size_t count, off_t off)
 {
-	ssize_t ret = syscall(SYS_pread64, fd, buf, count, off);
+	ssize_t ret = S_(SYS_pread64, fd, (long)buf, count, (long)off, 0, 0);
 	ensure_log();
 	if (logf)
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"pread\",\"fd\":%d,"
@@ -361,7 +410,7 @@ ssize_t pread(int fd, void *buf, size_t count, off_t off)
 
 ssize_t pread64(int fd, void *buf, size_t count, off64_t off)
 {
-	ssize_t ret = syscall(SYS_pread64, fd, buf, count, off);
+	ssize_t ret = S_(SYS_pread64, fd, (long)buf, count, (long)off, 0, 0);
 	ensure_log();
 	if (logf)
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"pread\",\"fd\":%d,"
@@ -372,7 +421,7 @@ ssize_t pread64(int fd, void *buf, size_t count, off64_t off)
 
 off_t lseek(int fd, off_t off, int whence)
 {
-	off_t ret = (off_t)syscall(SYS_lseek, fd, off, whence);
+	off_t ret = (off_t)S_(SYS_lseek, fd, off, whence, 0, 0, 0);
 	ensure_log();
 	if (logf && fd > 2)
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"lseek\",\"fd\":%d,"
@@ -380,4 +429,71 @@ off_t lseek(int fd, off_t off, int whence)
 			++seq, fd, (unsigned long)off, whence,
 			(unsigned long)ret);
 	return ret;
+}
+
+/* Fill a fabricated info page. Layout is refined iteratively from traces;
+ * v2: device count at +0, KMD capability mask at +0x44 (must cover 0xb57),
+ * KMD build-options magic at +0x48 (must equal 0x688a847 mod bit 16).
+ * Sources: UMD checks at file 0x92477/0x9247d (S). */
+static void fill_info_page(void *base, size_t len)
+{
+	uint32_t *u = base;
+	if (len >= 4)
+		u[0] = 1;
+	if (len >= 0x48 + 4) {
+		u[0x44 / 4] = 0xb57;
+		u[0x48 / 4] = 0x688a847;
+	}
+}
+
+/* Interpose libc syscall() itself: the UMD issues key syscalls (notably
+ * mmap of the render node for the info page) via syscall(), bypassing the
+ * mmap@plt wrapper above. Only mmap on UMD DRI fds is fabricated;
+ * everything else is forwarded untouched. */
+long syscall(long n, ...)
+{
+	va_list ap;
+	if (n == SYS_mmap) {
+		void *addr;
+		size_t len;
+		int prot, flags, fd;
+		off_t off;
+		void *p;
+		va_start(ap, n);
+		addr = va_arg(ap, void *);
+		len = va_arg(ap, size_t);
+		prot = va_arg(ap, int);
+		flags = va_arg(ap, int);
+		fd = va_arg(ap, int);
+		off = va_arg(ap, off_t);
+		va_end(ap);
+		ensure_log();
+		if (is_umd_fd(fd)) {
+			p = (void *)S_(SYS_mmap, 0, (long)len,
+					PROT_READ | PROT_WRITE,
+					MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			if (p != MAP_FAILED)
+				fill_info_page(p, len);
+			if (logf)
+				fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap_fabricated\","
+					"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","
+					"\"ret\":\"%p\"}\n",
+					++seq, fd, len, (unsigned long)off, p);
+			return (long)p;
+		}
+		return S_(SYS_mmap, (long)addr, (long)len, prot, flags, fd,
+			  (long)off);
+	}
+	{
+		long a, b, c, d, e, f;
+		va_start(ap, n);
+		a = va_arg(ap, long);
+		b = va_arg(ap, long);
+		c = va_arg(ap, long);
+		d = va_arg(ap, long);
+		e = va_arg(ap, long);
+		f = va_arg(ap, long);
+		va_end(ap);
+		return S_(n, a, b, c, d, e, f);
+	}
 }
