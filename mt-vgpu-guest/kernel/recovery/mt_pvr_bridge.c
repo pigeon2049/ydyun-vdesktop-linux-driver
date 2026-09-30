@@ -25,6 +25,7 @@
 #include <linux/ioctl.h>
 #include <linux/kref.h>
 #include <linux/mm.h>
+#include <linux/pgtable.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/pci.h>
@@ -36,13 +37,42 @@
 #include "../mt_pvr_device.h"
 #include "../mt_pvr_queue.h"
 
-/* The driver hard-codes these two numbers, so they are spelled out rather than
- * derived: 0xc0206440 = _IOWR('d', 0x40, 32 bytes), 0x40046445 = _IO('d', 0x45, u32).
+/* The driver hard-codes these two numbers, and the vendor declares them the
+ * same way in inc/pvr/include/pvr_drm.h:
+ *
+ *   DRM_PVR_SRVKM_CMD  0  ->  _IOWR('d', 0x40, struct drm_pvr_srvkm_cmd)  = 0xc0206440
+ *   DRM_PVR_SRVKM_INIT 5  ->  _IOW ('d', 0x45, struct drm_pvr_srvkm_init_data) = 0x40046445
+ *
+ * INIT's size field is load-bearing, not decoration. _IOC_SIZE(0x40046445) is
+ * 4 because the payload is a __u32, and drm_ioctl() copy_from_user()s exactly
+ * that many bytes into the kernel buffer it hands the driver. Declared as plain
+ * _IO the size field is 0, nothing is copied, and drm_pvr_srvkm_init() would
+ * read uninitialised stack. Do not "simplify" this back to _IO.
  */
+struct mt_pvr_init_data {
+	u32 init_module;
+};
+
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
-#define DRM_IOCTL_PVR_INIT _IO('d', 0x45)
+#define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
+
+/* Both numbers are wire contract, so pin them rather than trusting the spelling
+ * above to keep matching the vendor UMD.
+ */
+static_assert(DRM_IOCTL_PVR_BRIDGE == 0xc0206440, "bridge ioctl number drifted");
+static_assert(DRM_IOCTL_PVR_INIT == 0x40046445, "init ioctl number drifted");
+static_assert(_IOC_SIZE(DRM_IOCTL_PVR_BRIDGE) == sizeof(struct mt_pvr_cmd),
+	      "bridge payload must be copied by drm_ioctl");
+static_assert(_IOC_SIZE(DRM_IOCTL_PVR_INIT) == 4,
+	      "init payload must be 4 bytes or the argument never reaches us");
 
 #define MT_PVR_DRV_NAME "pvr"
+
+/* Ceiling for a single mmap of a bridge PMR. Stage-one PMRs are the info page
+ * and sync blocks, both small; this exists so a malformed offset cannot ask
+ * remap_vmalloc_range() to walk an arbitrary span.
+ */
+#define MT_PVR_MAX_MAP_BYTES (16U << 20)
 
 /* Bridge groups we serve. Anything else is rejected instead of guessed at. */
 #define MT_PVR_BRIDGE_SRVCORE 0x1U
@@ -138,11 +168,15 @@ static int pvr_open(struct drm_device *drm, struct drm_file *drm_file)
 	struct mt_guest_heap_plan plan;
 	struct mt_pvr_file *file;
 
-	if (!READ_ONCE(pvr_ready))
+	if (!READ_ONCE(pvr_ready)) {
+		pr_info("mt_pvr_bridge: open refused, not ready\n");
 		return -ENODEV;
+	}
 	file = kzalloc(sizeof(*file), GFP_KERNEL);
-	if (!file)
+	if (!file) {
+		pr_info("mt_pvr_bridge: open: allocation failed\n");
 		return -ENOMEM;
+	}
 	kref_init(&file->ref);
 	mutex_init(&file->lock);
 	INIT_LIST_HEAD(&file->pmrs);
@@ -160,6 +194,7 @@ static int pvr_open(struct drm_device *drm, struct drm_file *drm_file)
 	file->conn = kzalloc(sizeof(*file->conn), GFP_KERNEL);
 	if (!file->features || !file->info_page || !file->conn) {
 		kref_put(&file->ref, pvr_file_release);
+		pr_info("mt_pvr_bridge: open: per-file buffers failed\n");
 		return -ENOMEM;
 	}
 	mt_pvr_info_page_init(file->info_page, MT_PVR_INFO_BYTES);
@@ -316,10 +351,18 @@ static int pvr_cmd_info_page(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	if (!pmr)
 		return -ENOMEM;
 	memcpy(pmr->host, file->info_page, MT_PVR_INFO_BYTES);
-	/* The driver mmaps at handle << 12, so hand out the offset and let the
-	 * import step derive the handle (bA15: 28 of 28 calls agreed).
+	/* This is an IMG_HANDLE, i.e. the handle itself, NOT the mmap offset.
+	 *
+	 * PVRSRV_BRIDGE_OUT_ACQUIREINFOPAGE in the vendor's
+	 * generated/common_srvcore_bridge.h declares `IMG_HANDLE hPMR`, and
+	 * the UMD applies the "<< 12" shift itself when it mmaps. Returning
+	 * the pre-shifted offset here looked plausible -- bA15 had measured 28
+	 * of 28 mmaps landing on handle << 12 -- but it breaks the *next*
+	 * command: the UMD feeds the returned value straight back in as
+	 * PmrLocalImportPmr's hExtImportHandle, so a shifted handle can never
+	 * match a PMR and the import fails with -ENOENT.
 	 */
-	out.handle = mt_pvr_offset_of(pmr->handle);
+	out.handle = pmr->handle;
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -420,7 +463,11 @@ static int pvr_cmd_pmr_import(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 		return -ENOENT;
 	out.align = 1ULL << pmr->log2_page_size;
 	out.size = pmr->bytes;
-	out.pmr = mt_pvr_offset_of(pmr->handle);
+	/* PVRSRV_BRIDGE_OUT_PMRLOCALIMPORTPMR declares uiAlign/uiSize/hPMR;
+	 * hPMR is a handle like the hExtHandle it came from. The "<< 12" shift
+	 * belongs to the mmap path only.
+	 */
+	out.pmr = pmr->handle;
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -484,7 +531,13 @@ static int pvr_cmd_sync_block(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	out.sync_handle = obj->handle;
 	out.sync_pmr = pmr->handle;
 	out.block_size = 0x1000;
-	out.vaddr = mt_pvr_offset_of(pmr->handle);
+	/* PVRSRV_BRIDGE_OUT_ALLOCSYNCPRIMITIVEBLOCK ends in
+	 * ui32SyncPrimVAddr, a 32-bit virtual address -- not a handle. Since
+	 * no stage-one work touches the sync arena, the CPU mapping of the
+	 * PMR stands in for the GPU VA. Feeding a shifted handle (handle<<12)
+	 * in here also overflows the field once handles climb past 0xffff.
+	 */
+	out.vaddr = (u32)(uintptr_t)pmr->host;
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -591,6 +644,18 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 	}
 }
 
+/* drm_ioctl() has already copied the packet into kernel memory by the time it
+ * reaches us: kdata is a stack buffer, and it copy_from_user()s _IOC_SIZE(cmd)
+ * bytes into it (drm_ioctl.c, "Do not trust userspace, use our own
+ * definition"). The vendor's own handler does the same thing --
+ * PVRSRV_BridgeDispatchKM() casts arg straight to struct drm_pvr_srvkm_cmd
+ * without a second copy. Only the in_ptr/out_ptr inside the packet remain
+ * user pointers, and pvr_in()/pvr_out() are the ones that must fault-check
+ * them.
+ *
+ * Calling copy_from_user() on raw here always returned -EFAULT, because raw is
+ * a kernel address: it looked like a bad pointer, not like a bad argument.
+ */
 static int pvr_ioctl_bridge(struct drm_device *drm, void *raw,
 			    struct drm_file *drm_file)
 {
@@ -601,8 +666,7 @@ static int pvr_ioctl_bridge(struct drm_device *drm, void *raw,
 	(void)drm;
 	if (!file)
 		return -ENODEV;
-	if (copy_from_user(&cmd, raw, sizeof(cmd)))
-		return -EFAULT;
+	cmd = *(struct mt_pvr_cmd *)raw;
 	mutex_lock(&file->lock);
 	ret = pvr_bridge_dispatch(file, cmd.bridge_id, cmd.function_id, &cmd);
 	mutex_unlock(&file->lock);
@@ -618,13 +682,16 @@ static int pvr_ioctl_init(struct drm_device *drm, void *raw,
 	(void)drm;
 	if (!file)
 		return -ENODEV;
-	if (copy_from_user(&init_module, raw, sizeof(init_module)))
-		return -EFAULT;
-	/* 1 selects the generic connection, 2 the device connection the render
-	 * path needs (bA10).
+	init_module = *(u32 *)raw;
+	/* PVR_SRVKM_SERVICES_INIT / PVR_SRVKM_SYNC_INIT in the vendor's
+	 * pvr_drm.h: 1 selects the generic connection, 2 the device connection
+	 * the render path needs (bA10).
 	 */
-	if (init_module != 1 && init_module != 2)
+	if (init_module != 1 && init_module != 2) {
+		pr_info("mt_pvr_bridge: init_module=%u is not 1 or 2\n",
+			init_module);
 		return -EINVAL;
+	}
 	mutex_lock(&file->lock);
 	file->init_module = init_module;
 	mt_pvr_conn_init(file->conn, (u32)task_pid_nr(current), init_module);
@@ -640,12 +707,134 @@ static const struct drm_ioctl_desc pvr_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(PVR_INIT, pvr_ioctl_init, DRM_RENDER_ALLOW),
 };
 
+/* Map one of this file's PMRs. The UMD maps by DRM offset, and the offset is
+ * the handle shifted left by a page (mt_pvr_handle_of); bA15 measured 28 of 28
+ * calls agreeing on that, always 4 KiB aligned.
+ *
+ * The mapping is read/write. Stage 1 has no writable GPU memory behind these
+ * pages, so a write lands in the PMR's own system-memory backing and is never
+ * visible to the device -- acceptable now, and the reason the write flag is
+ * not rejected.
+ */
+static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+	struct drm_file *drm_file = filp->private_data;
+	struct mt_pvr_file *file = drm_file ? drm_file->driver_priv : NULL;
+	struct mt_pvr_pmr *pmr;
+	u64 handle, offset;
+	unsigned long length;
+
+	if (!file)
+		return -ENODEV;
+	offset = vma->vm_pgoff << PAGE_SHIFT;
+	length = vma->vm_end - vma->vm_start;
+	if (mt_pvr_handle_of(offset, &handle)) {
+		pr_info("mt_pvr_bridge: mmap bad offset 0x%llx (pgoff 0x%llx)\n",
+			offset, (unsigned long long)vma->vm_pgoff);
+		return -EINVAL;
+	}
+	if (length > MT_PVR_MAX_MAP_BYTES)
+		return -EINVAL;
+	mutex_lock(&file->lock);
+	pmr = pvr_pmr_find(file, handle);
+	mutex_unlock(&file->lock);
+	if (!pmr) {
+		pr_info("mt_pvr_bridge: mmap no PMR for handle 0x%llx\n",
+			handle);
+		return -ENOENT;
+	}
+	/* `offset` is the mapping's offset *into* the PMR, and remap_vmalloc_range
+	 * maps from the start of `host`, so the bound is the requested length
+	 * against the PMR size. Adding the offset here (as an earlier version
+	 * did) rejects every full-PMR mapping, because offset is the handle
+	 * shifted up by 12 and is far larger than the PMR.
+	 */
+	if (length > pmr->bytes) {
+		pr_info("mt_pvr_bridge: mmap len %lu > pmr bytes %llu\n",
+			length, pmr->bytes);
+		return -EINVAL;
+	}
+	/* Refuse a partial page: a short mapping would expose bytes outside
+	 * the PMR.
+	 */
+	if (length & ~PAGE_MASK) {
+		pr_info("mt_pvr_bridge: mmap unaligned length %lu\n", length);
+		return -EINVAL;
+	}
+	/* remap_vmalloc_range() cannot be used here: it requires the whole
+	 * vmalloc area to match, and vzalloc() appends a guard page when the
+	 * size is not a power of two, so it rejected every mapping with
+	 * -EINVAL. remap_vmalloc_range_partial() takes an explicit size and
+	 * does not care.
+	 *
+	 * No write protection is attempted: vm_flags is read-only on a live
+	 * vma and drm_vma_flags_modify() is not available in this 6.12 header
+	 * set. Stage-one PMRs are system memory, so a stray write lands in the
+	 * PMR's own backing rather than anywhere the device can see. Revisit
+	 * when real page tables exist and the two must agree.
+	 */
+	/* Map the PMR's system memory with remap_pfn_range().
+	 *
+	 * The two obvious alternatives are both unusable from a module on
+	 * 6.12, which cost several rounds of guessing:
+	 *
+	 *   - remap_vmalloc_range() is exported, but it demands
+	 *       if (!(area->flags & (VM_USERMAP | VM_DMA_COHERENT)))
+	 *             return -EINVAL;
+	 *     and vzalloc() sets neither flag. Setting VM_USERMAP needs
+	 *     __vmalloc_node_range(), which modpost reports as undefined:
+	 *     it is internal to mm/ and not exported.
+	 *   - remap_vmalloc_range_partial() would accept an explicit size,
+	 *     but it is unexported too.
+	 *
+	 * remap_pfn_range() is exported and imposes no flag requirement, so
+	 * the PMR is described page by page. vzalloc() is already page
+	 * backed, which is what makes this a remap rather than a copy.
+	 */
+	{
+		unsigned long pages = length >> PAGE_SHIFT;
+		unsigned long i;
+		struct page *page;
+		int ret = 0;
+
+		if (!pages) {
+			ret = -EINVAL;
+			goto out;
+		}
+		page = vmalloc_to_page(pmr->host);
+		for (i = 0; i < pages; i++) {
+			/* PAGE_KERNEL is a *kernel* pgprot: its _PAGE_USER bit
+			 * is clear, so the resulting PTE is not reachable from
+			 * user space and the first read faults (observed as a
+			 * segfault at info_page+0x48). Or in _PAGE_USER to make
+			 * it a genuine userspace mapping.
+			 */
+			ret = remap_pfn_range(vma,
+					vma->vm_start + (i << PAGE_SHIFT),
+					page_to_pfn(page + i), PAGE_SIZE,
+					__pgprot(pgprot_val(PAGE_KERNEL) |
+						 _PAGE_USER));
+			if (ret)
+				break;
+		}
+out:
+		return ret;
+	}
+}
+
+/* DRM 6.12 refuses to open a node whose file operations do not declare
+ * FOP_UNSIGNED_OFFSET: drm_open_helper() warns and returns -EINVAL, and the
+ * driver callback is never reached (drm_file.c:312). Every open of this node
+ * failed with EINVAL until this flag was set.
+ */
 static const struct file_operations pvr_fops = {
 	.owner = THIS_MODULE,
+	.fop_flags = FOP_UNSIGNED_OFFSET,
 	.open = drm_open,
 	.release = drm_release,
 	.unlocked_ioctl = drm_ioctl,
 	.compat_ioctl = drm_compat_ioctl,
+	.mmap = pvr_mmap,
 };
 
 static const struct drm_driver pvr_driver = {

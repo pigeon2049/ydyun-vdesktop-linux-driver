@@ -4,7 +4,8 @@ CFLAGS += -std=c11 -Wall -Wextra -Werror
 OUT := ../build/probe
 
 .PHONY: all clean
-all: $(OUT)/mt-status $(OUT)/umd_bridge_shim.so $(OUT)/umd_connect_harness
+all: $(OUT)/mt-status $(OUT)/umd_bridge_shim.so $(OUT)/umd_connect_harness \
+     $(OUT)/pvr_node_probe
 
 $(OUT)/mt-status: mt-status.c
 	mkdir -p $(OUT)
@@ -18,5 +19,10 @@ $(OUT)/umd_connect_harness: umd_connect_harness.c
 	mkdir -p $(OUT)
 	$(CC) $(CFLAGS) $< -o $@ -ldl
 
+$(OUT)/pvr_node_probe: pvr_node_probe.c
+	mkdir -p $(OUT)
+	$(CC) $(CFLAGS) -I ../kernel $< -o $@
+
 clean:
-	rm -f $(OUT)/mt-status $(OUT)/umd_bridge_shim.so $(OUT)/umd_connect_harness
+	rm -f $(OUT)/mt-status $(OUT)/umd_bridge_shim.so $(OUT)/umd_connect_harness \
+	      $(OUT)/pvr_node_probe

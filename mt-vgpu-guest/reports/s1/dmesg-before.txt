@@ -1,0 +1,5 @@
+[27838.453573] umd_connect_har[52289]: segfault at 0 ip 00007f53aedbda9c sp 00007ffd66ee0d20 error 4 in libsrv_um_MUSA.so.1.0.0[94a9c,7f53aed55000+3de000] likely on CPU 1 (core 0, socket 0)
+[27838.453590] Code: d5 41 54 55 48 89 f5 53 48 83 ec 08 48 8b 5f 20 4c 8d 64 c3 08 eb 10 0f 1f 80 00 00 00 00 48 83 c3 08 49 39 dc 74 37 4c 8b 3b <4d> 8b 37 4c 89 f7 e8 f9 77 f9 ff 48 89 ee 4c 89 f7 48 8d 50 01 e8
+[28372.312073] traps: umd_connect_har[53140] general protection fault ip:7f407d8772aa sp:7ffc9a8b1590 error:0 in libsrv_um_MUSA.so.1.0.0[a02aa,7f407d803000+3de000]
+[28901.449182] umd_connect_har[53952]: segfault at 40 ip 000056266b117bb3 sp 00007ffffe90f5c0 error 4 in umd_connect_harness[1bb3,56266b117000+1000] likely on CPU 3 (core 1, socket 0)
+[28901.449195] Code: ff ff 48 8d 78 02 31 d2 31 f6 e8 68 f5 ff ff 48 01 c3 e9 d3 fe ff ff 31 d2 48 8d 74 24 08 48 8d 78 02 e8 50 f5 ff ff 48 8b 13 <48> 8b 2c 02 48 8b 44 24 08 80 38 2b 48 89 eb 0f 85 ab fe ff ff 48

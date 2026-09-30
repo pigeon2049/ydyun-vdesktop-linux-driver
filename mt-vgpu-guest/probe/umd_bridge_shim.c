@@ -53,6 +53,29 @@ static unsigned long seq;
 static int nullfd = -1;
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
+/* Two modes, both useful.
+ *
+ * Default: fabricate. /dev/dri opens become /dev/null dup()s, ioctls are
+ * answered from the canned table, and mmap of the render node is a private
+ * anonymous mapping. This is how every offline result so far was produced
+ * (bA1-bA14) and it must keep working unchanged.
+ *
+ * UMD_SHIM_PASSTHROUGH=1: record only. Opens, ioctls and mmap go to the real
+ * kernel, and nothing is answered on the driver's behalf. This is how the
+ * Stage B bridge is validated: the same UMD, the same recipe, but the ioctls
+ * land on the real node instead of this file.
+ */
+static int passthrough;
+
+static int pvr_passthrough(void)
+{
+	const char *mode = getenv("UMD_SHIM_PASSTHROUGH");
+
+	if (mode && *mode && strcmp(mode, "0"))
+		passthrough = 1;
+	return passthrough;
+}
+
 /* Raw syscall that bypasses this file's own syscall() interposition. */
 static long S_(long n, long a, long b, long c, long d, long e, long f)
 {
@@ -363,7 +386,7 @@ int open(const char *path, int flags, ...)
 		mode = va_arg(ap, mode_t);
 		va_end(ap);
 	}
-	if (is_dri(path))
+	if (is_dri(path) && !pvr_passthrough())
 		return dri_open(path);
 	{
 		int fd = (int)S_(SYS_openat, AT_FDCWD, (long)path, flags, mode, 0, 0);
@@ -384,7 +407,7 @@ int open64(const char *path, int flags, ...)
 		mode = va_arg(ap, mode_t);
 		va_end(ap);
 	}
-	if (is_dri(path))
+	if (is_dri(path) && !pvr_passthrough())
 		return dri_open(path);
 	return (int)S_(SYS_openat, AT_FDCWD, (long)path, flags, mode, 0, 0);
 }
@@ -398,7 +421,7 @@ int openat(int dirfd, const char *path, int flags, ...)
 		mode = va_arg(ap, mode_t);
 		va_end(ap);
 	}
-	if (path[0] == '/' && is_dri(path))
+	if (path[0] == '/' && is_dri(path) && !pvr_passthrough())
 		return dri_open(path);
 	return (int)S_(SYS_openat, dirfd, (long)path, flags, mode, 0, 0);
 }
@@ -412,7 +435,7 @@ int openat64(int dirfd, const char *path, int flags, ...)
 		mode = va_arg(ap, mode_t);
 		va_end(ap);
 	}
-	if (path[0] == '/' && is_dri(path))
+	if (path[0] == '/' && is_dri(path) && !pvr_passthrough())
 		return dri_open(path);
 	return (int)S_(SYS_openat, dirfd, (long)path, flags, mode, 0, 0);
 }
@@ -428,6 +451,34 @@ int ioctl(int fd, unsigned long req, ...)
 	arg = va_arg(ap, void *);
 	va_end(ap);
 	ensure_log();
+
+	/* Record-only mode: answer nothing, forward everything. The log line
+	 * keeps the bridge id visible so the real trace can be diffed against
+	 * the fabricated one.
+	 */
+	if (pvr_passthrough()) {
+		ret = S_(SYS_ioctl, fd, req, (long)arg, 0, 0, 0);
+		if (logf) {
+			if (req == SRVKM_CMD && arg) {
+				struct srvkm_cmd cmd;
+
+				memcpy(&cmd, arg, sizeof(cmd));
+				fprintf(logf,
+					"{\"seq\":%lu,\"op\":\"ioctl_real\","
+					"\"fd\":%d,\"bridge\":\"0x%x:0x%x\","
+					"\"in_size\":%u,\"out_size\":%u,\"ret\":%ld}\n",
+					++seq, fd, cmd.bridge_id,
+					cmd.bridge_func_id, cmd.in_size,
+					cmd.out_size, ret);
+			} else {
+				fprintf(logf,
+					"{\"seq\":%lu,\"op\":\"ioctl_real\","
+					"\"fd\":%d,\"req\":\"0x%lx\",\"ret\":%ld}\n",
+					++seq, fd, req, ret);
+			}
+		}
+		return (int)ret;
+	}
 
 	if (req == DRM_VERSION && arg) {
 		/* libdrm-style probe: first with name==NULL to learn the
@@ -702,6 +753,20 @@ long syscall(long n, ...)
 		off = va_arg(ap, off_t);
 		va_end(ap);
 		ensure_log();
+		if (pvr_passthrough()) {
+			/* Let the real driver map. This is the path the Stage B
+			 * bridge is judged on: the driver maps its own PMR at
+			 * handle << 12, not an anonymous page.
+			 */
+			p = (void *)S_(SYS_mmap, (long)addr, (long)len, prot,
+				       flags, fd, (long)off);
+			if (logf)
+				fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap_real\","
+					"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","
+					"\"ret\":\"%p\"}\n",
+					++seq, fd, len, (unsigned long)off, p);
+			return (long)p;
+		}
 		if (is_umd_fd(fd)) {
 			p = (void *)S_(SYS_mmap, 0, (long)len,
 					PROT_READ | PROT_WRITE,

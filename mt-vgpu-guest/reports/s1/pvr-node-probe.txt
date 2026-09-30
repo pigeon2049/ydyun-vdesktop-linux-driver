@@ -1,0 +1,28 @@
+DRM_IOCTL_VERSION            ret=0
+version                      name='pvr' ver=0.1.0
+INIT                         ret=0
+0x1:0x0 Connect              ret=0
+                             bvnc=0x23000406600017 error=0 caps=0x0 arch=0
+0x1:0x2 AcquireGlobalEventObject ret=0
+                             handle=0x1000
+0x1:0xf AcquireInfoPage      ret=0
+                             info-pmr=0x1001 (offset 0x1001)
+0x6:0x1e HeapCfgHeapCount    ret=0
+                             count=11
+0x6:0x20 HeapCfgHeapDetails[0] ret=0
+                             base=0x40000000 size=0x8000000000 log2page=12 name='General'
+0x6:0x20 HeapCfgHeapDetails[8] ret=0
+                             base=0xec40000000 size=0x1000 name='USC Code'
+0x6:0x20 HeapCfgHeapDetails[1] unnamed ret=0
+                             name='' (expect empty)
+0x6:0x20 out of range        refused with Invalid argument, as required
+0x1:0xf AcquireInfoPage (for mmap) ret=0
+                             handle=0x1002 mmap offset=0x1002000
+0x6:0x6 PmrLocalImportPmr (info) ret=0
+                             align=0x1000 size=0x10000 pmr=0x1002
+info page                    mapped at 0x7f177be0c000, first word 0x00000001 word@0x48 0x0688a847
+0x2:0x0 AllocSyncPrimitiveBlock ret=0
+                             handle=0x1003 pmr=0x1004 block=0x1000 vaddr=0x40063000
+0xff:0xff unknown            refused with Inappropriate ioctl for device, as required
+
+OK: 0 failing step(s), 0 value mismatch(es)

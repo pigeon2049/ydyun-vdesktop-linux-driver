@@ -1,7 +1,93 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA13：Windows 灵感回灌 + SyncmemType 实测 + CreateSyncPrim 打通；未提交）
+最后更新：2026-10-01（bA19：S1 验收加载模块，真实 UMD 打真实 ioctls；6 个真 bug）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（bA19：S1 验收——加载模块跑真 UMD，抓出 6 个真 bug）
+
+接 bA18。用户选 A（insmod + 直通验收 + rmmod）。**已加载、已验收、已卸载复原**。
+
+### 0. 先纠一个会带偏整轮的错判
+
+- `/lib/modules/6.12.107+deb13-amd64/updates/mtgpu.ko`（20 MB、带 `debug_info`）
+  **是本项目自己适配阶段构建的产物**（`src/mtgpu-2.7.1-6.12` + `patches/`），
+  不是厂商原版二进制，**不能当独立 oracle**。已核对：其 build-id
+  `ee63001f…` 与 `build/` 下 93 个 mtgpu.ko 都不匹配，但树里就是同一份源码。
+- 但**厂商源码本身在树内**（`inc/pvr/include/pvr_drm.h`、`generated/*_bridge.h`），
+  这些是 UMD 的 ABI 权威，可以直接引用——而且本次两个关键 bug 正是靠它定死的。
+
+### 1. 验收前先加"只记录不伪造"直通模式
+
+- `probe/umd_bridge_shim.c` 增 `UMD_SHIM_PASSTHROUGH=1`：open/ioctl/mmap 全部转真内核，
+  什么都不代答；默认伪造模式**逐字未变**（bA1–bA14 全部离线结果依赖它），回归 4 步全 0。
+- 新增 `probe/pvr_node_probe.c`：直连节点逐条打命令，把 UMD 从链路里摘出来定位。
+  写它时自己踩了两个坑，都已修正并注释：
+  - `ioctl` 失败返回 -1、原因在 `errno`；原写法 `strerror(-ret)` 对每步都显示 EPERM，
+    把真实错误全掩盖了（这就是 EFAULT 藏了好几轮的原因）。
+  - 期望被拒绝的步骤（ENOTTY/EINVAL）原先计入失败，使"正确的拒绝"看起来像 bug。
+
+### 2. 6 个真 bug（全部由真机验收抓出，离线测试一个都测不到）
+
+1. **`FOP_UNSIGNED_OFFSET` 缺失**（DRM 6.12）。`drm_open_helper` 在
+   `drm_file.c:312` 直接 `return -EINVAL`，`pvr_open` 一次都不会被调用。
+   加 `.fop_flags = FOP_UNSIGNED_OFFSET` 后节点名返回 `pvr`（UMD 唯一接受的名字）。
+2. **ioctl 参数被二次拷贝**。6.12 `drm_ioctl()` 先把参数拷进内核 `stack_kdata`
+   再调驱动；我们又 `copy_from_user(raw)` → 对内核地址拷贝 → 必 EFAULT。
+   厂商 `PVRSRV_BridgeDispatchKM` 是直接 `psSrvkmCmd = (void *)arg` 不再拷。
+   只有 `in_ptr`/`out_ptr` 仍是用户指针，由 `pvr_in/pvr_out` 校验。
+3. **INIT 的 `_IOC_SIZE` 是承重字段**。厂商写的是
+   `DRM_IOW(0x45, struct drm_pvr_srvkm_init_data /* __u32 */)`，编码后正好 `0x40046445`。
+   写成 `_IO` 则 size=0，DRM 一个字节都不拷，驱动读到未初始化栈。已加 4 条 `static_assert` 钉死。
+4. **句柄被提前左移**（bA15 引入的回归）。`AcquireInfoPage` 依
+   `PVRSRV_BRIDGE_OUT_ACQUIREINFOPAGE` 应返回 `IMG_HANDLE hPMR`，**不是** mmap 偏移；
+   UMD 自己会 `<<12`。返回偏移后，UMD 把该值原样回灌 `PmrLocalImportPmr` 的
+   `hExtHandle`，与 PMR 表永远对不上 → `-ENOENT`。
+   同类错还有 `PmrLocalImportPmr` 的 `hPMR`、以及把 `handle<<12` 塞进
+   `AllocSyncPrimitiveBlock` 的 32 位 `ui32SyncPrimVAddr`（那是 VA，不是句柄）。
+   **教训：bA15 的"mmap 偏移 == handle<<12"是 UMD 侧行为，不能倒推成内核返回值。**
+5. **mmap 完全缺失**。fops 里没有 `.mmap`，UMD 映射 info 页无从谈起。
+6. **mmap 三个连环坑**：
+   - 边界算错：`offset + length > pmr->bytes`，而 `offset` 是句柄左移 12 位（远大于
+     PMR），导致任何整 PMR 映射都被拒。应为 `length > pmr->bytes`。
+   - `remap_vmalloc_range()` 导出了但要求 `area->flags & VM_USERMAP`，`vzalloc()`
+     不设该标志 → `-EINVAL`；想设它得用 `__vmalloc_node_range()`，但 modpost 报
+     **undefined**（`mm/` 内部符号）。`remap_vmalloc_range_partial()` 同样未导出。
+     最终用**已导出**的 `remap_pfn_range()` 逐页映射。
+   - pgprot：`PAGE_KERNEL` 的 `_PAGE_USER` 位为空，映射出来用户态读不了，
+     表现为 `segfault at info_page+0x48`。须
+     `__pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_USER)`。
+
+### 3. 验收结果
+
+- `pvr_node_probe` **全绿**（init_module=1 与 2 都过）：INIT / Connect
+  （`bvnc=0x23000406600017`，与 bA16 对 Windows 核对的期望值一致）/ 事件对象 / info 页 /
+  `HeapCfgHeapCount=11` / `General`、`USC Code`、未命名槽返回空串 / 越界 `-EINVAL` /
+  `AllocSyncPrimitiveBlock` / 未知命令 `-ENOTTY` / **info 页真能 mmap 并读出内容**。
+- **真实 UMD（5.2.0 libsrv_um_MUSA）打真实 ioctl：执行的桥命令从 4 条涨到 12 条**，
+  走完 Connect → info 页 mmap 成功 → 多条 SRVCORE/MM 命令 → 主动 Disconnect。
+  崩溃点从"mmap 失败后读 0x32"变成"往 0x58 写"，说明 info 页已被真正消费。
+- 新发现：`0x86:0x4 RGXACQUIREHWPERFFSETTINGS`（在 19 条内，已支持）与
+  **`0x86:0x5`（不在 19 条内，回 `-ENOTTY`）**——UMD 要继续就必须实现它，归 S2。
+- 门禁：Python 120 项全绿；`verify-runtime-integration.py` 通过
+  （`pvr_bridge_core_test` 170 项 RAM 检查 + `W=1` + 7 结构 ABI 门禁）。
+- **已 rmmod 复原**：`mt_guest_probe` 回到 62 引用、taint 仍 12800、只剩 `card0`、
+  00:0e.0 仍归 `mt_guest_probe`、无 oops/WARN。
+
+### 4. 过程中的教训（都是本轮真踩）
+
+- **`make ... 2>&1 | grep error` 会吞掉 modpost 失败**：连续几轮我加载的都是旧
+  `.ko`，却以为在测新代码。判断模块是否真的是新的，要看 `strings` 里有没有新字符串，
+  不能只看 `grep error` 没输出。
+- 反编译/静态材料不如**树内的厂商源码**权威：本次两个致命细节（ioctl 尺寸位、句柄
+  vs 偏移）都是 `pvr_drm.h` / `generated/*_bridge.h` 一眼定死的。
+- 自造模块当 oracle 会自欺：拿自己的 `mtgpu.ko` 去"验证"自己的桥接，等于自己判自己卷子。
+
+### 5. 下一步（S2）
+
+`0x86:0x5` + 0x58 写故障定位；再往后才是 `0x82:0x8` render context 之后的
+PMR 分配族。**S4（真实硬件提交）仍需单独批准。**
 
 ---
 
