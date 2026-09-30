@@ -218,10 +218,25 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 - 工具：`strat` 字符串读、`dumpat`、`bID*+OFF`/`bID@OFF`/`bID@@OFF`、
   `conn+OFF`、8 参数调用。
 
-## 7. 下一步（bA8）
+## 14. bA8：堆名解析机制落定（UMD 同步拷贝，无生命周期问题）
 
-1. 堆名生命周期：确认 entry 名指针目标（UMD arena 拷贝 vs 野指针）；
-   若为 arena 拷贝，查拷贝源与 renderctx 期 registry 差异。
+- 注册表_dump（gdb 在 `0x94a60` 入口读参 + 逐 entry 读名）：
+  registry（count=11）entries 0-6 名为 "General"，7 为
+  "PDS Code and Data"，8-10 为 "USC Code"。
+- 机制：UMD 在每次 details→heapcreate 间隙**同步拷贝**名到堆对象；
+  未命名堆继承共享栈槽的上次残留（1-6 得 "General"，9-10 得 "USC Code"）。
+  名字稳定，无生命周期问题——bA7 的头号嫌疑**排除**。
+- devmem 期三次查找（PDS/General/USC）全中；renderctx 期
+  `DevmemFindHeapByName` 报 INVALID_HEAP_INDEX 后 DCE 缓冲失败返回 1——
+  找的是**另一名字或另一注册表**（renderctx 用 `[r12+0x8]` 链，
+  非 devmem 注册表），待 bA9 抓现行（同款断点法，只需放过前三次）。
+- 副产出：`heap_names[]` 三命名即 KMD 上报名；`Ext` 返回语义、
+  DebugPrintf 抓因法、ASan 同插法均已验证可复用。
+
+## 7. 下一步（bA9）
+
+1. 抓 renderctx 期 `DevmemFindHeapByName` 的查找名与注册表
+   （0x94a60 断点放过前三次，只看第四次起；读 rdi/rsi/返回值）。
 2. 然后：Sync alloc 动态现身（复核 memType=2）→ `RGXKICKTA3D3`
    （看清尾部 8 字节）→ 最小命令集 + 打桩表（Stage B 输入）。
 3. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。

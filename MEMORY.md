@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA7：renderctx 堆名查找与生命周期问题；未提交）
+最后更新：2026-09-30（bA8：堆名同步拷贝确认，生命周期嫌疑排除；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,26 @@
 
 ---
 
-## 本次会话进展（bA7：renderctx 堆名查找机制，未提交）
+## 本次会话进展（bA8：堆名机制落定，未提交）
+
+接 bA7（同一会话连续推进）。
+
+### 1. 堆名是同步拷贝，无生命周期问题
+
+- 注册表全 dump：11 entries，0-6="General"（栈残留继承），
+  7="PDS Code and Data"，8-10="USC Code"（残留继承）。
+  UMD 在 details→create 间隙同步拷贝，名字稳定。
+- bA7 头号嫌疑排除。renderctx 期另有一次 `DevmemFindHeapByName`
+  失败（名字/注册表均未知），导致 DCE 缓冲失败返回 1——
+  bA9 用同款断点法抓第四次起的查找。
+
+### 2. 下一步（bA9）
+
+抓 renderctx 期查找名；然后 Sync → kick → 最小命令集。
+
+---
+
+## 上次会话进展（bA7：renderctx 堆名查找机制，未提交）
 
 接 bA6（同一会话连续推进）。
 
