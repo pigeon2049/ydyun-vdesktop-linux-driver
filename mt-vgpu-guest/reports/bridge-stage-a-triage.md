@@ -268,9 +268,29 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
   未命名堆继承共享栈槽的上次残留。名字稳定。
 - `heap_names[]` 即 KMD 上报名（General/PDS/USC/Component Control 均已验证）。
 
-## 7. 下一步（bA11）
+## 18. bA11：SyncPrim 现状与 kick 路线图（进行中）
 
-1. renderctx 已建成，推进 ZS buffer（`RGXCreateZSBuffer` 参数确认）→
-   Sync alloc 动态现身（复核 memType=2）→ `RGXKICKTA3D3`
-   （看清尾部 8 字节）→ 最小命令集 + 打桩表（Stage B 输入）。
-2. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。
+- `CreateSyncPrim(conn,...)` 在 `GetFeatures` 链
+  （`[conn+0]+0xa0` 未初始化）SEGV；`[X+0xa0]` 从未被写入
+  （watchpoint 全程无命中）——features 槽的写入者缺失，
+  候选：第二 Connect 调用（0x927b4，疑为死代码，从未执行）、
+  或某堆/特性桥。`PVRSRVConnectionCreateDevice` 已验证可用但不补该槽。
+- 关键发现：renderctx 创建**内部**经 `0x7c0a4` 注册 sync 分配回调
+  （`0xa0020` 存 `0x9f970`），真分配延迟到首次使用——
+  故 `0x02:0x00` 在 kick 准备时才现身（memType 动态值须到 kick 才见）。
+  三处注册点（`0x3bebb/0x74fc8/0x7c0a4`）可能传不同 memType，
+  静态单链 `edx=0x2` 只覆盖其一。
+- kick 入口候选（UMD 导出）：`RGXKickCDM/CDM2`、`musa_KickCETQ`、
+  `MUSACESubmit`、`RGXCreateKickSyncContext`；TA3D kick 另查。
+  推进需要：命令 BO、target、sync、ZS 全套构造——工作量大，
+  且离线包无法用硬件消费验证（只能审包）。
+- 给 Stage B 的输入（新增）：sync 分配是 lazy 的（注册与分配分离）；
+  kick 前置为 renderctx + devctx + device-conn 三件套。
+
+## 7. 下一步（bA12）
+
+1. SyncPrim 的 features 槽写入者（第二 Connect 调用是否死代码？
+   InitMTFeatures 的 rdx 目标？），或绕过：kick 准备是否自带 sync 初始化。
+2. ZS buffer → kick 包捕获（只审包不上交）→ PSC 输出格式对照
+   （r41 阻塞的正面回答）→ 最小命令集 + 打桩表（Stage B 输入）。
+3. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。

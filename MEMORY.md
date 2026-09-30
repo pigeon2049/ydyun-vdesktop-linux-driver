@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA10：render ctx 成功，device-conn；未提交）
+最后更新：2026-09-30（bA11：SyncPrim 现状与 kick 路线；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,28 @@
 
 ---
 
-## 本次会话进展（bA10：render ctx 成功，未提交）
+## 本次会话进展（bA11：SyncPrim 现状，未提交）
+
+接 bA10。
+
+### 1. Sync alloc 是 lazy 的，kick 时才现身
+
+- renderctx 创建内部经 `0x7c0a4` 注册 sync 分配回调（存 `0x9f970`），
+  真正的 `0x02:0x00` 桥在首次使用（kick 准备）才发——静态单链
+  `memType=2` 只覆盖三处注册点之一，动态值须到 kick 才见。
+- `CreateSyncPrim` 直调在 GetFeatures 链 SEGV（`[conn+0]+0xa0` 从未被写入，
+  watchpoint 全程无命中；第二 Connect 调用疑为死代码）。
+- kick 入口候选：`RGXKickCDM/CDM2`、`musa_KickCETQ`、`MUSACESubmit`、
+  `RGXCreateKickSyncContext`；推进需命令 BO/target/sync/ZS 全套，
+  且离线包无法硬件验证——只审包。
+
+### 2. 下一步（bA12）
+
+features 槽写入者；ZS；kick 包捕获对照 PSC；最小命令集。
+
+---
+
+## 上次会话进展（bA10：render ctx 成功，未提交）
 
 接 bA9。两条并进均有斩获：
 
