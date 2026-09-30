@@ -74,6 +74,33 @@ static int resolving_stat_flag;
 static int resolving_stat(void) { return resolving_stat_flag; }
 static void set_resolving_stat(int v) { resolving_stat_flag = v; }
 
+static int umd_trace_would_exceed(size_t line);
+
+/* Addresses of file-backed mappings this shim recorded, so munmap() can tell a
+ * UMD mapping (worth a log line) from the process's own anonymous ones (noise).
+ * A small fixed table: the UMD maps a handful of PMRs per session. */
+#define UMD_MAP_TRACK_MAX 64
+static void *umd_map_addrs[UMD_MAP_TRACK_MAX];
+static unsigned umd_map_count;
+
+static void umd_map_remember(void *addr)
+{
+	if (!addr || addr == MAP_FAILED)
+		return;
+	if (umd_map_count < UMD_MAP_TRACK_MAX)
+		umd_map_addrs[umd_map_count++] = addr;
+}
+
+static int umd_mmap_is_interesting(const void *addr)
+{
+	unsigned i;
+
+	for (i = 0; i < umd_map_count; i++)
+		if (umd_map_addrs[i] == addr)
+			return 1;
+	return 0;
+}
+
 /* Record path probes the UMD makes without opening.
  *
  * The device-connection failure happens with no ioctl at all, so anything the
@@ -88,7 +115,7 @@ static void log_path_probe(const char *op, const char *path, int ret)
 	if (!path || !strstr(path, "/dev/dri"))
 		return;
 	ensure_log();
-	if (logf)
+	if (logf && !umd_trace_would_exceed(512))
 		fprintf(logf,
 			"{\"seq\":%lu,\"op\":\"%s\",\"path\":\"%s\",\"ret\":%d}\n",
 			++seq, op, path, ret);
@@ -104,7 +131,7 @@ static void log_path_probe(const char *op, const char *path, int ret)
 static void log_open(const char *op, const char *path, int fd)
 {
 	ensure_log();
-	if (logf)
+	if (logf && !umd_trace_would_exceed(512))
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"%s\",\"path\":\"%s\","
 			"\"fd\":%d}\n", ++seq, op, path, fd);
 }
@@ -363,6 +390,21 @@ static void apply_canned(uint32_t bridge_id, uint32_t func_id,
 	}
 }
 
+/* Hard ceiling on the trace, in bytes.
+ *
+ * This has now bitten twice: a 4.7 GB / 81M-line flood in bA13, and 7.6 GB from
+ * a single run under gdb, where the UMD's DRM-node enumeration looped far more
+ * than the four commands a normal run issues. Both times the symptom was
+ * remote -- /tmp hit 100%, every "cc" in the test suite started failing, and
+ * the test count silently dropped from 120 to 91 -- which is easy to misread
+ * as a code regression. The trace is a diagnostic, so it must never be able to
+ * take the machine down with it.
+ */
+#define UMD_TRACE_MAX_BYTES (256ULL * 1024ULL * 1024ULL)
+
+static unsigned long long umd_trace_bytes;
+static int umd_trace_capped;
+
 static void ensure_log(void)
 {
 	const char *p;
@@ -372,6 +414,27 @@ static void ensure_log(void)
 	logf = fopen(p && *p ? p : "/tmp/opencode/umda/trace.jsonl", "a");
 	if (logf)
 		setvbuf(logf, NULL, _IONBF, 0);
+}
+
+/* Called before every write. Accounts the line when it is allowed through, and
+ * once the cap is hit returns 1 forever after so the trace stops rather than
+ * growing. Says so once on stderr, so a truncated trace is never mistaken for a
+ * complete one.
+ */
+static int umd_trace_would_exceed(size_t line)
+{
+	if (umd_trace_capped)
+		return 1;
+	if (umd_trace_bytes + line > UMD_TRACE_MAX_BYTES) {
+		umd_trace_capped = 1;
+		fprintf(stderr,
+			"[umd-shim] trace capped at %llu bytes; UMD appears to be "
+			"looping. Remaining records dropped.\n",
+			UMD_TRACE_MAX_BYTES);
+		return 1;
+	}
+	umd_trace_bytes += line;
+	return 0;
 }
 
 static int is_dri(const char *path)
@@ -413,7 +476,7 @@ static int dri_open(const char *path)
 	ensure_log();
 	fd = (int)S_(SYS_dup, devnull(), 0, 0, 0, 0, 0);
 	track_umd_fd(fd);
-	if (logf)
+	if (logf && !umd_trace_would_exceed(512))
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"open\",\"path\":\"%s\",\"fd\":%d}\n",
 			++seq, path ? path : "?", fd);
 	return fd;
@@ -433,7 +496,7 @@ int open(const char *path, int flags, ...)
 	{
 		int fd = (int)S_(SYS_openat, AT_FDCWD, (long)path, flags, mode, 0, 0);
 		ensure_log();
-		if (logf)
+		if (logf && !umd_trace_would_exceed(512))
 			fprintf(logf, "{\"seq\":%lu,\"op\":\"open_other\",\"path\":\"%s\","
 				"\"fd\":%d}\n", ++seq, path, fd);
 		return fd;
@@ -553,7 +616,7 @@ int ioctl(int fd, unsigned long req, ...)
 			v->name_len = 4;
 			v->date_len = 1;
 			v->desc_len = 1;
-			if (logf)
+			if (logf && !umd_trace_would_exceed(512))
 				fprintf(logf, "{\"seq\":%lu,\"op\":\"version_probe\","
 					"\"fd\":%d,\"ret\":0}\n", ++seq, fd);
 			return 0;
@@ -567,7 +630,7 @@ int ioctl(int fd, unsigned long req, ...)
 		if (v->desc && v->desc_len >= 1)
 			v->desc[0] = '\0';
 		v->desc_len = 1;
-		if (logf)
+		if (logf && !umd_trace_would_exceed(512))
 			fprintf(logf, "{\"seq\":%lu,\"op\":\"version_claim\","
 				"\"fd\":%d,\"name\":\"mtgpu\",\"ret\":0}\n",
 				++seq, fd);
@@ -576,7 +639,7 @@ int ioctl(int fd, unsigned long req, ...)
 
 	if ((req == SRVKM_CMD || req == SRVKM_INIT) && arg) {
 		if (req == SRVKM_INIT) {
-			if (logf)
+			if (logf && !umd_trace_would_exceed(512))
 				fprintf(logf, "{\"seq\":%lu,\"op\":\"ioctl\",\"fd\":%d,"
 					"\"req\":\"0x%lx\",\"init_module\":%u,\"ret\":0}\n",
 					++seq, fd, req, *(uint32_t *)arg);
@@ -671,7 +734,7 @@ int ioctl(int fd, unsigned long req, ...)
 				fprintf(logf, "\"");
 			}
 		}
-		if (logf)
+		if (logf && !umd_trace_would_exceed(512))
 			fprintf(logf, ",\"ret\":0}\n");
 		return 0;
 	}
@@ -682,7 +745,7 @@ int ioctl(int fd, unsigned long req, ...)
 		unsigned nr = req & 0xff;
 		if (nr >= 0x40 && nr <= 0x45 && req != SRVKM_CMD) {
 			ensure_log();
-			if (logf)
+			if (logf && !umd_trace_would_exceed(512))
 				fprintf(logf, "{\"seq\":%lu,\"op\":\"pvr_sync_ioctl\","
 					"\"fd\":%d,\"req\":\"0x%lx\",\"ret\":0}\n",
 					++seq, fd, req);
@@ -691,7 +754,7 @@ int ioctl(int fd, unsigned long req, ...)
 	}
 
 	ret = S_(SYS_ioctl, fd, req, (long)arg, 0, 0, 0);
-	if (logf)
+	if (logf && !umd_trace_would_exceed(512))
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"ioctl_passthrough\",\"fd\":%d,"
 			"\"req\":\"0x%lx\",\"ret\":%ld}\n", ++seq, fd, req, ret);
 	return (int)ret;
@@ -700,32 +763,51 @@ int ioctl(int fd, unsigned long req, ...)
 void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off)
 {
 	void *ret = (void *)S_(SYS_mmap, (long)addr, len, prot, flags, fd, off);
-	ensure_log();
-	if (logf)
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap\",\"fd\":%d,"
-			"\"len\":%zu,\"off\":\"0x%lx\",\"ret\":\"%p\"}\n",
-			++seq, fd, len, (unsigned long)off, ret);
+	/* Only file-backed mappings are of interest. An anonymous mapping
+	 * (fd < 0) is the process's own heap and library bookkeeping, and
+	 * logging those produced 79 million records and 8 GB of trace in one
+	 * run: the shim is also preloaded into gdb and its Python interpreter,
+	 * which map constantly. Nothing about the UMD shows up in them.
+	 */
+	if (fd >= 0) {
+		umd_map_remember(ret);
+		ensure_log();
+		if (logf && !umd_trace_would_exceed(512))
+			fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap\",\"fd\":%d,"
+				"\"len\":%zu,\"off\":\"0x%lx\",\"ret\":\"%p\"}\n",
+				++seq, fd, len, (unsigned long)off, ret);
+	}
 	return ret;
 }
 
 void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off64_t off)
 {
 	void *ret = (void *)S_(SYS_mmap, (long)addr, len, prot, flags, fd, (long)off);
-	ensure_log();
-	if (logf)
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap\",\"fd\":%d,"
-			"\"len\":%zu,\"off\":\"0x%llx\",\"ret\":\"%p\"}\n",
-			++seq, fd, len, (unsigned long long)off, ret);
+	if (fd >= 0) {
+		umd_map_remember(ret);
+		ensure_log();
+		if (logf && !umd_trace_would_exceed(512))
+			fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap\",\"fd\":%d,"
+				"\"len\":%zu,\"off\":\"0x%llx\",\"ret\":\"%p\"}\n",
+				++seq, fd, len, (unsigned long long)off, ret);
+	}
 	return ret;
 }
 
 int munmap(void *addr, size_t len)
 {
 	int ret = (int)S_(SYS_munmap, (long)addr, len, 0, 0, 0, 0);
-	ensure_log();
-	if (logf)
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"munmap\",\"addr\":\"%p\","
-			"\"len\":%zu,\"ret\":%d}\n", ++seq, addr, len, ret);
+	/* Same reasoning as mmap(): unmapping the process's own anonymous
+	 * allocations carries no UMD signal and floods the trace. Only record
+	 * a munmap whose address was handed out by a file-backed mapping we
+	 * logged, which is the info-page and PMR case.
+	 */
+	if (umd_mmap_is_interesting(addr)) {
+		ensure_log();
+		if (logf && !umd_trace_would_exceed(512))
+			fprintf(logf, "{\"seq\":%lu,\"op\":\"munmap\",\"addr\":\"%p\","
+				"\"len\":%zu,\"ret\":%d}\n", ++seq, addr, len, ret);
+	}
 	return ret;
 }
 
@@ -747,7 +829,7 @@ ssize_t pread(int fd, void *buf, size_t count, off_t off)
 {
 	ssize_t ret = S_(SYS_pread64, fd, (long)buf, count, (long)off, 0, 0);
 	ensure_log();
-	if (logf)
+	if (logf && !umd_trace_would_exceed(512))
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"pread\",\"fd\":%d,"
 			"\"count\":%zu,\"off\":\"0x%lx\",\"ret\":%zd}\n",
 			++seq, fd, count, (unsigned long)off, ret);
@@ -758,7 +840,7 @@ ssize_t pread64(int fd, void *buf, size_t count, off64_t off)
 {
 	ssize_t ret = S_(SYS_pread64, fd, (long)buf, count, (long)off, 0, 0);
 	ensure_log();
-	if (logf)
+	if (logf && !umd_trace_would_exceed(512))
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"pread\",\"fd\":%d,"
 			"\"count\":%zu,\"off\":\"0x%llx\",\"ret\":%zd}\n",
 			++seq, fd, count, (unsigned long long)off, ret);
@@ -821,7 +903,7 @@ long syscall(long n, ...)
 			 */
 			p = (void *)S_(SYS_mmap, (long)addr, (long)len, prot,
 				       flags, fd, (long)off);
-			if (logf)
+			if (logf && !umd_trace_would_exceed(512))
 				fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap_real\","
 					"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","
 					"\"ret\":\"%p\"}\n",
@@ -834,7 +916,7 @@ long syscall(long n, ...)
 					MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 			if (p != MAP_FAILED)
 				fill_info_page(p, len);
-			if (logf)
+			if (logf && !umd_trace_would_exceed(512))
 				fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap_fabricated\","
 					"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","
 					"\"ret\":\"%p\"}\n",
@@ -925,7 +1007,7 @@ static void log_alloc(const char *op, void *ptr, size_t size)
 		return;
 	in_log = 1;
 	ensure_log();
-	if (logf)
+	if (logf && !umd_trace_would_exceed(512))
 		fprintf(logf, "{\"seq\":0,\"op\":\"%s\",\"ptr\":\"%p\","
 			"\"size\":%zu}\n", op, ptr, size);
 	in_log = 0;

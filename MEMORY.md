@@ -1,11 +1,55 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA22：用 gdb 定位设备连接失败点 = MTSRV_ERROR_INIT_FAILURE）
+最后更新：2026-10-01（bA23：修 trace 洪泛（8GB 灌满 /tmp）+ 记录 bA22 定位结果）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA22：gdb + 真实机器码定位设备连接失败点）
+## 本次会话进展（bA23：trace 洪泛修复；/tmp 被灌满的连锁故障）
+
+接 bA22。**本轮先修工具，再谈驱动。**
+
+### 1. 一次「测试变少」的假回归（重要教训）
+
+- 跑 `python3 -m unittest discover -s tests` 得到 **`Ran 91 tests ... FAILED (errors=5)`**
+  （此前一直是 120/OK）。5 个错误全部是 `setUpClass` 里 `cc` 调用
+  `CalledProcessError`。
+- 真实原因：**`/tmp` 100% 满（7.9G/7.9G，0 可用）**，`cc` 无法写临时文件。
+  罪魁是 **`/tmp/opencode/umda/g9.jsonl` = 7.6 GB**（gdb9 那次运行产生）。
+- 删掉即恢复 120/OK。**教训：`/tmp` 满的症状极具误导性**——表现为「测试从 120 掉到 91、
+  5 个测试报错」，很容易被误判成代码回归而去改驱动。**先看 `df -h /tmp`。**
+
+### 2. 洪泛根因与修复（不是「加个上限」那么简单）
+
+- 8.1 GB / 7900 万行的内容是 `{"op":"mmap","fd":-1,...}`，即**匿名 mmap**。
+  原因：shim 是 `LD_PRELOAD`，**gdb 自己和它的 Python 解释器也加载了 shim**，
+  而它们 constantly mmap。`munmap`/`lseek` 同样对每个地址都记。
+- 修法（按重要性）：
+  1. `mmap`/`mmap64` **只记录 fd>=0 的文件映射**；匿名映射是进程自己的堆/库簿记，
+     对 UMD 行为零信息。⇒ 洪泛源头直接去掉。
+  2. `munmap` 只记录**本 shim 亲手记过的文件映射地址**（64 项小表
+     `umd_map_addrs`），即 info 页/PMR 那种。
+  3. 另加 **256 MiB 硬上限**作兜底（`umd_trace_would_exceed`），超限时在 stderr
+     提示一次，避免「被截断的 trace」被误当成完整 trace。
+- **实测**：同一 gdb 场景，trace 从 **8.1 GB / 79M 行** 降到 **37 KB / 457 行**，
+  且根本用不到上限（源头已去）。正常非 gdb 运行、真实 UMD 会话、伪造模式
+  4 步全 0，三者行为不变。
+
+### 3. 沉淀到纪律里
+
+- **诊断产物必须有量级上限**（bA13 已经吃过一次 4.7 GB 的亏，这次 8 GB 是第二次）。
+- **`LD_PRELOAD` 的观测 shim 要考虑自己会被 gdb/python 继承**，否则记录的是
+  无关进程的噪声。
+- 提交前**必须看到测试真的绿**。本轮我在 `Ran 91 / FAILED` 的情况下先提交了 bA22
+  （代码本身没问题，但这是坏习惯），本轮补上并把原因写进 MEMORY。
+
+### 4. 门禁与状态
+
+120 Python + 170 RAM + `W=1` + ABI 全绿；`/tmp` 用量 240M/7.9G；模块已卸载。
+
+---
+
+## 上次会话进展（bA22：gdb + 真实机器码定位设备连接失败点）
 
 接 bA21。真机继续（全程未重启）。
 
