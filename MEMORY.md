@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（提交 `ee1dd8d`，阶段 r42 完成）
+最后更新：2026-09-30（r43：r42 重叠检测 errno 等价性离线收尾；真机项仍待定）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,44 @@
 
 ---
 
-## 本次会话进展（r42，提交 ee1dd8d）
+## 本次会话进展（r43：r42 遗留 errno 等价性收尾，未提交）
+
+用户决定：先收尾 r42 遗留；r42 真机验证直接在本机尝试 root。
+
+### 1. 本机提权不可行（已实测）
+
+`NoNewPrivs=1`、`CapEff=0`：`sudo -n true` / `sudo true` 均报
+"no new privileges" 失败，`su` 认证失败。
+**本容器内任何重载主模块 / insmod / dmesg 操作都不可能执行。**
+r42 真机验证（512-mapping 真机场景、QUERY `vm3d_max_mappings` 真机值）
+只能到有 root 权限的终端上做。
+
+### 2. r42 遗留第 3 项关闭：重叠检测前移的 errno 等价性
+
+对照 `ee1dd8d^` 旧实现逐项核对，新旧差异只有两处优先级边：
+
+- `va + bytes` 上溢：旧经 planner 报 `-EINVAL`，新预检报 `-ERANGE`。
+  **r42 文档「调用者观察到的 errno 不变」对此边不成立**，已在
+  `reports/r42-vm-mapping-scale.md` 第 7 节勘误。
+- 重叠且同时超 mapped-byte 预算：旧 planner 内顺序 E2BIG 先，
+  新预检 `-EEXIST` 先。单 bind 的 `-EEXIST` vs `-ENOSPC` 顺序新旧一致。
+- plan 阶段拒绝（`-E2BIG` / 页预算 `-ENOSPC`）发生在 `grow()` 之后，
+  可能保留已增长的空暂存数组；image / count / 页数 / 引用计数精确不变
+  （良性过分配；旧固定数组无此现象）。
+- 全部 bind 调用方（`mt_vm_vram_bind`、`mt_gem_bind_handle`、
+  `mt_process_resources_bind(_pools)`、`mt_boot_bo_bind`）均透传 errno，
+  无优先级分支；用户态只断言计数值。故两处变化无实质影响。
+
+测试：`tests/gpu_vm_scale_test.c` 新增 `errno_precedence()`
+（2×32 MiB BO 顶满 64 MiB 预算 + 直接调 planner 交叉验证，ASan + UBSan），
+全量 21 测试通过，三处 `W=1` 零警告，ABI 门禁通过。
+`scripts/verify-runtime-integration.py` 无需改注册（同一二进制）。
+
+### 3. r42 真机验证仍未完成（原因：见第 1 条，需用户异地执行）
+
+---
+
+## 上次会话进展（r42，提交 `ee1dd8d`）
 
 ### 1. 订正了 r41 的一处错误结论
 
@@ -186,12 +223,15 @@ sudo rmmod mt_live_3d_drm
 
 ## 下一步（待用户决定）
 
-1. **是否重新加载主模块以完成 r42 真机验证？**
-   会销毁当前固件会话，需用户明确同意。
+1. **r42 真机验证（需用户异地执行，本容器不可能）：**
+   重载主模块 + `insmod mt_live_3d_drm` + `mt-3d-check`，
+   确认 512-mapping 场景与 `vm3d_max_mappings` 真机值。
+   会销毁当前固件会话，需用户明确同意并在有 root 的终端上做。
 2. **选定三角形/渲染路径**：逆向 PSC 编译器，还是走 PVRSRV ioctl 桥接
    让原厂 UMD 跑渲染路径（建议后者）。
 3. 若走 UMD 路径，需先做阶段设计：梳理原厂 UMD 对内核侧
    `PVRSRV` ioctl 的完整需求面。
+4. ~~r42 遗留第 3 项（重叠检测 errno 等价性）~~ 已由 r43 关闭。
 
 ---
 
@@ -216,4 +256,5 @@ sudo rmmod mt_live_3d_drm
   内核 taint 为 12800（外部/未签名模块），与进入本会话时一致。
 - 用户已加入 `video` 与 `render` 组，权限不是问题。
 - 实验副本与临时模块不得在移除入口保护后直接试载。
-- 未验证事项见 `reports/r42-vm-mapping-scale.md` 第 6 节。
+- 未验证事项见 `reports/r42-vm-mapping-scale.md` 第 6–7 节
+  （第 6 节第 3 项已由 r43 离线关闭；真机两项待异地执行）。

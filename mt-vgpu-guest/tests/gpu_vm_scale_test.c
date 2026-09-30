@@ -42,6 +42,25 @@ static int map(void *s, const struct mt_bo_backing *b, void **out)
 static void unmap(void *s, const struct mt_bo_backing *b) { (void)s; (void)b; }
 static const struct mt_bo_ops ops = {alloc, clear, release, map, unmap};
 
+/* r42 leftover probe store: identical layout, but permits the 32 MiB BOs
+ * needed to reach the mapped-byte budget without thousands of mappings. */
+static int big_alloc(void *opaque, u32 bytes, u32 alignment, struct mt_bo_backing *b)
+{
+	struct store *s = opaque;
+	void *p;
+	if (bytes > 64 * 1024 * 1024)
+		return -ENOMEM;
+	p = malloc(bytes);
+	if (!p)
+		return -ENOMEM;
+	s->next_pa = (s->next_pa + alignment - 1) & ~(u64)(alignment - 1);
+	*b = (struct mt_bo_backing){p, s->next_pa, s->next_pa, bytes};
+	s->next_pa += 0x10000000ULL;
+	s->allocs++;
+	return 0;
+}
+static const struct mt_bo_ops big_ops = {big_alloc, clear, release, map, unmap};
+
 /* Independent three-level walk, deliberately not reusing the production
  * encoders: this checks that the published image actually resolves each VA to
  * the expected physical address. */
@@ -222,11 +241,105 @@ static void growth_rejections(void)
 	     "usage, array capacity and every reference unchanged; RAM only");
 }
 
+/* r42 leftover: overlap detection was hoisted from the planner into the
+ * bind_many pre-check. Single-fault behaviour is preserved, but two
+ * precedence edges changed and are pinned here as intentional:
+ * - va+bytes overflow: the planner reports -EINVAL, bind_many -ERANGE;
+ * - an overlap on a batch that would also exceed the mapped-byte budget:
+ *   the planner reports -E2BIG, bind_many -EEXIST.
+ * No in-tree caller branches on either priority (bind, process-resource,
+ * boot and GEM paths all propagate errno transparently), and the direct
+ * planner probes below show both limits are still guarded natively.
+ * All backing store is ordinary RAM. Nothing publishes a root or touches
+ * a device. */
+static void errno_precedence(void)
+{
+	struct store s = {.next_pa = 0x500000000ULL};
+	struct mt_bo tables = {0}, a = {0}, b = {0}, c = {0};
+	struct mt_gpu_vm vm = {0};
+	const u32 capacity = 64 * 4096;
+	const u64 base = 0x800000000ULL;
+	const u32 big = 0x2000000U; /* 32 MiB */
+	u8 *image = malloc(capacity), *scratch = malloc(capacity), *saved = malloc(capacity);
+	u8 *probe = malloc(capacity);
+	u32 pages, count_before, pages_before, cap_before;
+
+	assert(image && scratch && saved && probe);
+	assert(!mt_bo_create(&tables, &big_ops, &s, capacity, 4096));
+	assert(!mt_bo_create(&a, &big_ops, &s, big, 4096));
+	assert(!mt_bo_create(&b, &big_ops, &s, big, 4096));
+	assert(!mt_bo_create(&c, &big_ops, &s, 0x4000, 4096));
+	assert(!mt_gpu_vm_init(&vm, &tables, image, scratch, capacity));
+	assert(!mt_gpu_vm_bind(&vm, &a, base, 0, big, 0));
+	assert(!mt_gpu_vm_bind(&vm, &b, base + big, 0, big, 0));
+	assert(vm.count == 2);
+	memcpy(saved, image, capacity);
+	count_before = vm.count;
+	pages_before = vm.used_pages;
+	cap_before = vm.binding_capacity;
+
+	/* Overlap that would also overflow the 64 MiB mapped-byte budget:
+	 * the hoisted check reports the overlap first. */
+	assert(mt_gpu_vm_bind(&vm, &c, base + 0x1000, 0, 4096, 0) == -EEXIST);
+	{
+		/* The planner's native order still reports the budget first,
+		 * so the limit itself is not lost, only its priority. Probed
+		 * directly so the VM scratch arrays (sized for 2 bindings)
+		 * are never overrun. */
+		struct mt_mmu_range r[3] = {
+			{base, a.backing.gpu_pa, big, 0},
+			{base + big, b.backing.gpu_pa, big, 0},
+			{base + 0x1000, c.backing.gpu_pa, 4096, 0},
+		};
+		assert(mt_mmu_build_pages(probe, capacity, tables.backing.gpu_pa,
+					  r, NULL, 3, &pages) == -E2BIG);
+	}
+	assert(vm.count == count_before && vm.used_pages == pages_before);
+	assert(vm.binding_capacity == cap_before && !memcmp(saved, image, capacity));
+	assert(a.refs == 2 && b.refs == 2 && c.refs == 1);
+
+	/* Pure budget overflow without overlap still surfaces -E2BIG.
+	 * This rejection happens in the planner, after grow: the array may
+	 * retain grown scratch, but image/count/pages/references are exact. */
+	assert(mt_gpu_vm_bind(&vm, &c, base + 2 * big, 0, 4096, 0) == -E2BIG);
+	assert(vm.count == count_before && vm.used_pages == pages_before);
+	assert(vm.binding_capacity >= cap_before && !memcmp(saved, image, capacity));
+	assert(a.refs == 2 && b.refs == 2 && c.refs == 1);
+	cap_before = vm.binding_capacity;
+
+	/* VA overflow: the hoisted range check reports -ERANGE. */
+	{
+		struct mt_vm_binding over = {&c, (1ULL << 40) - 0x2000, 0, 0x3000, 0};
+		struct mt_mmu_range r = {(1ULL << 40) - 0x2000, c.backing.gpu_pa, 0x3000, 0};
+		assert(mt_gpu_vm_bind_many(&vm, &over, 1) == -ERANGE);
+		/* The planner's own validity condition reports -EINVAL for the
+		 * same range; the errno for this edge changed in r42. */
+		assert(mt_mmu_build_pages(probe, capacity, tables.backing.gpu_pa,
+					  &r, NULL, 1, &pages) == -EINVAL);
+	}
+	assert(vm.count == count_before && vm.used_pages == pages_before);
+	assert(vm.binding_capacity == cap_before && !memcmp(saved, image, capacity));
+	assert(a.refs == 2 && b.refs == 2 && c.refs == 1);
+
+	assert(!mt_gpu_vm_fini(&vm));
+	assert(!mt_bo_put(&a) && !mt_bo_put(&b) && !mt_bo_put(&c));
+	assert(!mt_bo_put(&tables));
+	assert(s.allocs == s.frees);
+	free(image);
+	free(scratch);
+	free(saved);
+	free(probe);
+	puts("PASS: hoisted overlap/VA checks keep single-fault behaviour; "
+	     "two precedence edges (-EEXIST before -E2BIG, -ERANGE for VA "
+	     "overflow) pinned with planner cross-checks; RAM only");
+}
+
 int main(void)
 {
 	derived_ceiling();
 	many_mappings();
 	growth_rejections();
+	errno_precedence();
 	puts("PASS: GPU address-space mapping scalability suite");
 	return 0;
 }

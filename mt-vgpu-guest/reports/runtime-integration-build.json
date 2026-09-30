@@ -1,12 +1,12 @@
 {
-  "utc": "2026-09-30T04:12:38.726669+00:00",
+  "utc": "2026-09-30T04:59:48.974935+00:00",
   "passed": true,
   "checks": {
     "runtime_context_test": "PASS: atomic preparation, 31 blocked publication states, ordered publication, repeat rejection and retained lifetime\n",
     "trial_lifetime_test": "PASS: startup event retention, retained successful start, bounded trial teardown, timeout ownership and byte-exact restoration\n",
     "bo_lifetime_test": "PASS: BO fault rollback, zeroed padding, CPU/GPU lifetime, overflow guards and 10000 interleaved operations\n",
     "gpu_vm_test": "PASS: BO-backed three-level walks, transactional bind/unbind, table exhaustion, aliases, stale-entry clearing and seal lifetime\nPASS: shared-resource batch mapping, every-page walks, six reference rollbacks, missing/short BOs, table exhaustion and work-job pins; RAM only\n",
-    "gpu_vm_scale_test": "PASS: derived mapping ceiling follows page-table geometry and the mapped-byte budget; no fixed 24-range constant; RAM only\nPASS: 512 simultaneous mappings (was capped at 24) in 6 page-table pages, every page walk-verified, seal and full release; RAM only\nPASS: rejected binds and grow exhaustion leave the image, count, page usage, array capacity and every reference unchanged; RAM only\nPASS: GPU address-space mapping scalability suite\n",
+    "gpu_vm_scale_test": "PASS: derived mapping ceiling follows page-table geometry and the mapped-byte budget; no fixed 24-range constant; RAM only\nPASS: 512 simultaneous mappings (was capped at 24) in 6 page-table pages, every page walk-verified, seal and full release; RAM only\nPASS: rejected binds and grow exhaustion leave the image, count, page usage, array capacity and every reference unchanged; RAM only\nPASS: hoisted overlap/VA checks keep single-fault behaviour; two precedence edges (-EEXIST before -E2BIG, -ERANGE for VA overflow) pinned with planner cross-checks; RAM only\nPASS: GPU address-space mapping scalability suite\n",
     "gem_lifetime_test": "PASS: GEM bridge lifetime, file isolation, VM-backed work/copy/stream/paging staging, alias overlap rejection, unchanged failed outputs and balanced DRM references (modeled core)\n",
     "work_job_test": "PASS: work resource aliases, transactional rollback, CPU exclusion, VM guards, publication and owner-close lifetime\n",
     "execution_context_test": "PASS: process/VM ownership, context routes, kernel-selected identity, busy teardown, token exhaustion\n",
@@ -18,7 +18,7 @@
     "boot_bo_lifetime_test": "PASS: actual BO/VM boot borrowing, eighteen view failures, three pool allocation rollbacks, foreign/detached blocks, shared cache reuse, GPU retention, no borrowed clear/free, balanced module and backing lifetimes; RAM models only\n",
     "system_memory_test": "PASS: system-RAM preparation, kmalloc/vmalloc page paths, both allocation failures, final-page lookup/translation failures, zero policy and balanced ownership; OS primitives modeled\n",
     "boot_resource_stage_test": "PASS: actual boot preparation stages separate static PDS/USC images, ten allocation failures, profile rollback, unchanged backing bytes and balanced ownership; RAM models only\n",
-    "kernel_build": "make: \u8fdb\u5165\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\nmake -C /lib/modules/6.12.107+deb13-amd64/build M=/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel modules\nmake[1]: \u8fdb\u5165\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.107+deb13-amd64\u201d\n  CC [M]  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/mt_guest_probe.o\n  MODPOST /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/Module.symvers\n  LD [M]  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/mt_guest_probe.ko\n  BTF [M] /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/mt_guest_probe.ko\nmake[1]: \u79bb\u5f00\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.107+deb13-amd64\u201d\nmake: \u79bb\u5f00\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\n"
+    "kernel_build": "make: \u8fdb\u5165\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\nmake -C /lib/modules/6.12.107+deb13-amd64/build M=/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel modules\nmake[1]: \u8fdb\u5165\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.107+deb13-amd64\u201d\nmake[1]: \u79bb\u5f00\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.107+deb13-amd64\u201d\nmake: \u79bb\u5f00\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\n"
   },
   "module_sha256": "9269bff53b247b62f9e6d6dd54d864f3dcc67b08e399baea1090c08309279de7",
   "shared_mt_guest_abi_matches_backup": true,

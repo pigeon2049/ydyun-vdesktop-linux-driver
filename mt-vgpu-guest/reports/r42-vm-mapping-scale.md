@@ -173,4 +173,27 @@ TA state、光栅化上下文、以及全部 VDM/DDM 程序**全为零**。对�
 
 - 真机加载新布局主模块后的 512-mapping 场景（需要重建并重新加载主模块）
 - 真机 QUERY 返回的 `vm3d_max_mappings` 实际值
-- 重叠检测提前到校验循环后，是否与既有 `-EEXIST` 调用方语义完全一致（仅 RAM 测试覆盖）
+- ~~重叠检测提前到校验循环后，是否与既有 `-EEXIST` 调用方语义完全一致（仅 RAM 测试覆盖）~~
+  已由第 7 节收尾（RAM 测试 + 调用方核查）。
+
+## 7. r42 遗留收尾：重叠检测前移的 errno 等价性（离线完成，不需硬件）
+
+`tests/gpu_vm_scale_test.c` 新增 `errno_precedence()`（ASan + UBSan）：
+
+- 逐项核对全部 bind 调用方（`mt_vm_vram_bind`、`mt_gem_bind_handle`、
+  `mt_process_resources_bind(_pools)`、`mt_boot_bo_bind`）：**全部透传 errno，
+  没有任何调用方按 `-EEXIST` vs `-E2BIG`/`-ENOSPC`/`-ERANGE` 的优先级分支**；
+  用户态 `mt-3d-check` 只断言计数值，不依赖该 errno。
+- 单错语义保持；两处优先级变化钉为**预期行为**（直接调 planner 交叉验证，
+  证明两类上限仍被原生守护，只是优先级变了）：
+  1. `va + bytes` 上溢：planner 报 `-EINVAL`，`bind_many` 报 `-ERANGE`
+     （r42 起的变化；r42 文档「调用者观察到的 errno 不变」对此边不成立）；
+  2. 重叠且同时超出 mapped-byte 预算：planner 报 `-E2BIG`，
+     `bind_many` 报 `-EEXIST`（旧 planner 内顺序是 E2BIG 先）。
+     单 bind 的 `-EEXIST` vs `-ENOSPC` 顺序新旧一致（重叠先）。
+- plan 阶段拒绝（`-E2BIG` / 页预算 `-ENOSPC`）发生在 `grow()` 之后，
+  可能保留已增长的**空暂存数组**；image / count / 页数 / 引用计数精确不变。
+  旧固定数组无此现象，属良性过分配，不影响事务性语义。
+- 仍需硬件（未做）：512-mapping 真机场景、QUERY `vm3d_max_mappings` 真机值。
+  需重载主模块（销毁固件会话）；当前容器 `NoNewPrivs=1` + `CapEff=0`，
+  `sudo`/`su` 均不可用，必须到有 root 权限的终端上执行。
