@@ -136,11 +136,38 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
   （`drm_vma_offset_manager` 类机制），info PMR 固定落在 `0x1001000`；
   version 名 `pvr`；Connect 行为（Bvnc 上报其一 allow-list 值）。
 
-## 7. 下一步（bA4）
+## 10. bA4：devmem 上下文流程打通到堆创建，卡在 PSC 创建（双重释放为 UMD 错误路径 bug）
 
-1. 同一进程内 connect → 建 devmem ctx → 建 render ctx：
-   harness 需支持多步调用（conn 持久化）；`RGXCreateRenderContextCCB`
-   参数为 `(conn?, +0x30/+0x34 尺寸的参数块, flags?, out 句柄?)`，待静态确认。
-2. 依次点亮：heap 查询 → Sync alloc（动态复核 memType=2）→
-   RGX 上下文创建 → `RGXKICKTA3D3`（看清尾部 8 字节内容）。
+- 会话式 harness（`connect/buf/u32/u64/call/dump`，conn 进程内持久）：
+  `PVRSRVCreateDeviceMemContextExt(conn, &o1, &o2)`（签名已由反汇编确认）。
+- 新桥（T）：`0x6:0xf DEVMEMINTCTXCREATE` → `0x6:0x1e HEAPCOUNT(=11)`
+  → 11×(`0x6:0x20 HEAPDETAILS` + `0x6:0x11 HEAPCREATE`)
+  → 11×`0x6:0x12 HEAPDESTROY` → `0x6:0x10 CTXDESTROY` → 崩溃。
+  53-op 完整序列见 `reports/umd-bridge-devmem-trace.jsonl`。
+- 伪造（H 对 2.3 头 + 我方堆表）：heapcount=11；details 按
+  `mt_guest_plan_heaps` 逐 index 回真实 base/length（4K 页）；
+  ctxcreate 回非零句柄 + 64B cacheline；heapcreate 按 base 回不同句柄。
+- 根因链（S+gdb+ASan）：
+  - `RGXConstructDeviceMemContext` 在堆建完后报
+    `Failed to create PSC context`（S：`0x70373`），走 teardown
+    （11 destroys + ctxdestroy 均在 trace 中），
+    随后 `Ext` 照例吞错返回 0（教训：返回值不可信，看 trace/dump）。
+  - teardown 中 ASan 实锤真 double-free：0x30 devctx 先由
+    `MTSRVReleaseDeviceMemContext`（`0x6fb8c→0x41a10`）释放，
+    又被 epilogue（`0x6fafe→0x8e200`）释放——UMD 错误路径 bug，
+    真机上此路径不应被触发。
+  - `PVRSRVCreateRenderContext` 直调（无 devmem ctx）返回 3
+    （INVALID_PARAMS），确认 render ctx 依赖 devmem ctx——PSC 门是必经项。
+- memType 动态复核仍 pending（sync alloc 在 render ctx 之后）。
+- 给 Stage B 的输入（新增）：堆表 11 项真实范围（shim 内 `heap_ranges[]`
+  即 KMD 将来要上报的值）；`DEVMEMINTHEAPCREATE` OUT 句柄必须互异。
+
+## 7. 下一步（bA5）
+
+1. PSC context 创建需求：读 `RGXConstructDeviceMemContext`
+  （`0x6FD00-0x70500` 区）在堆建完后、PSC 创建前还查什么
+  （堆名？usc 堆？特性开关？）；候选：让 details 回堆名
+  （需 UMD 传 BufSz>0 的调用）或补 AppHint 默认。
+2. 然后：Sync alloc（动态复核 memType=2）→ RGX render ctx →
+   `RGXKICKTA3D3`（看清尾部 8 字节）。
 3. 输出「渲染主路径最小命令集 + 打桩表」，作为 Stage B（内核侧实现）的输入。

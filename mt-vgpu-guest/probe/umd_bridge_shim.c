@@ -8,13 +8,16 @@
  * Nothing touches PCI, BARs or kernel modules.
  */
 #define _GNU_SOURCE
+#include <dlfcn.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <execinfo.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -48,6 +51,7 @@ struct srvkm_cmd {
 static FILE *logf;
 static unsigned long seq;
 static int nullfd = -1;
+static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* Raw syscall that bypasses this file's own syscall() interposition. */
 static long S_(long n, long a, long b, long c, long d, long e, long f)
@@ -90,7 +94,7 @@ static int is_umd_fd(int fd)
 struct canned_out {
 	uint32_t bridge_id;
 	uint32_t func_id;
-	uint8_t bytes[32];
+	uint8_t bytes[64];
 	uint32_t size;
 };
 
@@ -100,12 +104,12 @@ static const struct canned_out canned[] = {
 	 {0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	  0x00, 0x00, 0x00, 0x00},
 	 12},
-	/* SRVCORE:Connect -> exact core ID + nonzero caps/arch (bA3-H1):
-	 * untested combination of individually-tried dimensions. */
+	/* SRVCORE:Connect -> exact core ID, zero caps/arch (bA4-H2):
+	 * nonzero caps misfires the devmem-ctx reuse counter. */
 	{0x1, 0x0,
 	 {0x17, 0x00, 0x60, 0x06, 0x04, 0x00, 0x23, 0x00,
-	  0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
-	  0x01},
+	  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	  0x00},
 	 17},
 	/* SRVCORE:ACQUIREINFOPAGE -> nonzero info-page PMR handle. */
 	{0x1, 0xf,
@@ -119,7 +123,82 @@ static const struct canned_out canned[] = {
 	  0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	  0x00, 0x00, 0x00, 0x00},
 	 28},
+	/* MM:HEAPCFGHEAPCOUNT -> 11 heaps (retest with distinct handles). */
+	{0x6, 0x1e,
+	 {0x00, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00},
+	 8},
+	/* MM:DEVMEMINTCTXCREATE -> nonzero server ctx/priv + 64B cache line. */
+	{0x6, 0xf,
+	 {0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	  0x01, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00},
+	 24},
 };
+
+/* Heap 0-10 base/length from mt_guest_plan_heaps (S3000 Guest layout). */
+struct heap_range { uint64_t base, size; };
+static const struct heap_range heap_ranges[11] = {
+	{0x40000000ULL, 0x8000000000ULL},
+	{0x8100000000ULL, 0x100000000ULL},
+	{0x8400000000ULL, 0x100000000ULL},
+	{0xa000000000ULL, 0x1000000ULL},
+	{0, 0},
+	{0, 0},
+	{0xe1c0000000ULL, 0x100000000ULL},
+	{0xec00000000ULL, 0x8000ULL},
+	{0xec40000000ULL, 0x1000ULL},
+	{0xeb00000000ULL, 0x100000000ULL},
+	{0xf000000000ULL, 0x100000000ULL},
+};
+
+static void fabricate_heap_details(const uint8_t *in, uint32_t in_size,
+				   uint8_t *out, uint32_t out_size)
+{
+	/* OUT (44B): base u64@0, length u64@8, reserved u64@16, name@24,
+	 * eError u32@32, log2page u32@36, log2align u32@40.
+	 * IN (20B): nameptr u64@0, config u32@8, heap u32@12, bufsz u32@16. */
+	uint32_t idx = 0;
+	uint64_t base = 0xf000000000ULL, size = 0x100000000ULL;
+	if (in_size >= 16) {
+		uint32_t i;
+		memcpy(&i, in + 12, 4);
+		idx = i;
+	}
+	if (idx < 11 && heap_ranges[idx].size) {
+		base = heap_ranges[idx].base;
+		size = heap_ranges[idx].size;
+	}
+	memset(out, 0, out_size < 44 ? out_size : 44);
+	if (out_size >= 16) {
+		memcpy(out, &base, 8);
+		memcpy(out + 8, &size, 8);
+	}
+	if (out_size >= 44) {
+		uint32_t v = 12;
+		memcpy(out + 36, &v, 4);
+		memcpy(out + 40, &v, 4);
+	}
+}
+
+/* Distinct heap handles keyed by base VA (OUT 12B: hHeap u64@0).
+ * IN (28B): base u64@0, length u64@8, ctx u64@16, log2page u32@24. */
+static void fabricate_heap_create(const uint8_t *in, uint32_t in_size,
+				  uint8_t *out, uint32_t out_size)
+{
+	uint64_t base = 0, h = 1;
+	uint32_t i;
+	if (in_size >= 8)
+		memcpy(&base, in, 8);
+	for (i = 0; i < 11; i++) {
+		if (heap_ranges[i].base == base) {
+			h = (uint64_t)(i + 1);
+			break;
+		}
+	}
+	memset(out, 0, out_size < 12 ? out_size : 12);
+	if (out_size >= 8)
+		memcpy(out, &h, 8);
+}
 
 static void apply_canned(uint32_t bridge_id, uint32_t func_id,
 			 void *out, uint32_t out_size)
@@ -333,8 +412,21 @@ int ioctl(int fd, unsigned long req, ...)
 		if (cmd.out_ptr && cmd.out_size) {
 			uint32_t n = cmd.out_size > 4096 ? 4096 : cmd.out_size;
 			memset((void *)(uintptr_t)cmd.out_ptr, 0, n);
-			apply_canned(cmd.bridge_id, cmd.bridge_func_id,
-				     (void *)(uintptr_t)cmd.out_ptr, n);
+			if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x20 &&
+			    cmd.in_ptr && cmd.in_size)
+				fabricate_heap_details(
+					(const uint8_t *)(uintptr_t)cmd.in_ptr,
+					cmd.in_size,
+					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x11 &&
+				 cmd.in_ptr && cmd.in_size)
+				fabricate_heap_create(
+					(const uint8_t *)(uintptr_t)cmd.in_ptr,
+					cmd.in_size,
+					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else
+				apply_canned(cmd.bridge_id, cmd.bridge_func_id,
+					     (void *)(uintptr_t)cmd.out_ptr, n);
 			if (logf) {
 				fprintf(logf, ",\"out_written\":\"");
 				log_hex_bytes((const void *)(uintptr_t)cmd.out_ptr,
@@ -496,4 +588,156 @@ long syscall(long n, ...)
 		va_end(ap);
 		return S_(n, a, b, c, d, e, f);
 	}
+}
+
+/* Log free() arguments with a short backtrace. Used to locate UMD-side
+ * double-free/abort sites during bring-up; quiet by default unless
+ * UMD_LOG_FREE=1. Forwarded via the real libc free looked up once. */
+static void (*real_free)(void *);
+static unsigned long umd_slide;
+
+static void resolve_umd_slide(void)
+{
+	char line[512];
+	FILE *maps;
+	if (umd_slide)
+		return;
+	maps = fopen("/proc/self/maps", "r");
+	if (!maps)
+		return;
+	while (fgets(line, sizeof(line), maps)) {
+		unsigned long start, end, off;
+		if (!strstr(line, "libsrv_um_MUSA") || !strstr(line, "r-xp"))
+			continue;
+		if (sscanf(line, "%lx-%lx %*s %lx", &start, &end, &off) == 3) {
+			umd_slide = start - off;
+			break;
+		}
+	}
+	fclose(maps);
+}
+
+/* Allocation accounting: match frees against mallocs to pinpoint invalid
+ * or double frees. Active only with UMD_LOG_ALLOC=1.
+ * Reentrancy-safe: dlsym itself allocates, so resolve under a guard with
+ * a bump fallback. */
+static void *(*real_malloc)(size_t);
+static void *(*real_calloc)(size_t, size_t);
+static void *(*real_realloc)(void *, size_t);
+static int resolving;
+static char tmpbuf[16384];
+static size_t tmpused;
+
+static void *tmp_alloc(size_t s)
+{
+	size_t a = (s + 15) & ~(size_t)15;
+	void *p;
+	if (!a || tmpused + a > sizeof(tmpbuf))
+		return NULL;
+	p = tmpbuf + tmpused;
+	tmpused += a;
+	return p;
+}
+
+static void resolve_alloc(const char *name, void **slot)
+{
+	if (*slot || resolving)
+		return;
+	resolving = 1;
+	*slot = dlsym(RTLD_NEXT, name);
+	resolving = 0;
+}
+
+static int in_log;
+static int in_free_log;
+
+static void log_alloc(const char *op, void *ptr, size_t size)
+{
+	if (in_log || in_free_log)
+		return;
+	in_log = 1;
+	ensure_log();
+	if (logf)
+		fprintf(logf, "{\"seq\":0,\"op\":\"%s\",\"ptr\":\"%p\","
+			"\"size\":%zu}\n", op, ptr, size);
+	in_log = 0;
+}
+
+void free(void *ptr)
+{
+	static int busy;
+	if (!real_free) {
+		resolve_alloc("free", (void **)&real_free);
+		if (!real_free)
+			return;
+	}
+	if (getenv("UMD_LOG_FREE") && !busy && !in_log) {
+		void *bt[6];
+		int n, i;
+		busy = 1;
+		in_free_log = 1;
+		pthread_mutex_lock(&log_lock);
+		ensure_log();
+		resolve_umd_slide();
+		if (logf) {
+			fprintf(logf, "{\"seq\":0,\"op\":\"free\",\"ptr\":\"%p\","
+				"\"bt\":[", ptr);
+			n = backtrace(bt, 6);
+			for (i = 0; i < n; i++) {
+				unsigned long a = (unsigned long)bt[i];
+				fprintf(logf, "%s\"0x%lx\"", i ? "," : "",
+					umd_slide && a >= umd_slide
+						? a - umd_slide : a);
+			}
+			fprintf(logf, "]}\n");
+		}
+		pthread_mutex_unlock(&log_lock);
+		in_free_log = 0;
+		busy = 0;
+	}
+	real_free(ptr);
+}
+
+void *malloc(size_t size)
+{
+	void *p;
+	resolve_alloc("malloc", (void **)&real_malloc);
+	if (!real_malloc)
+		return tmp_alloc(size);
+	p = real_malloc(size);
+	if (getenv("UMD_LOG_ALLOC"))
+		log_alloc("malloc", p, size);
+	return p;
+}
+
+void *calloc(size_t n, size_t size)
+{
+	void *p;
+	resolve_alloc("calloc", (void **)&real_calloc);
+	if (!real_calloc) {
+		p = tmp_alloc(n * size);
+		if (p)
+			memset(p, 0, n * size);
+		return p;
+	}
+	p = real_calloc(n, size);
+	if (getenv("UMD_LOG_ALLOC"))
+		log_alloc("calloc", p, n * size);
+	return p;
+}
+
+void *realloc(void *ptr, size_t size)
+{
+	void *p;
+	resolve_alloc("realloc", (void **)&real_realloc);
+	if (!real_realloc) {
+		p = tmp_alloc(size);
+		if (p && ptr)
+			memcpy(p, ptr, size);
+		return p;
+	}
+	p = real_realloc(ptr, size);
+	if (getenv("UMD_LOG_ALLOC"))
+		log_alloc("realloc", p, size);
+	return p;
 }

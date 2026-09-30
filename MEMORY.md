@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA3：Connect 走通返回 0，info 页破译；未提交）
+最后更新：2026-09-30（bA4：devmem 流程 + PSC 门定位 + ASan 实锤 UMD double-free；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,36 @@
 
 ---
 
-## 本次会话进展（bA3：Connect 走通 + info 页破译，未提交）
+## 本次会话进展（bA4：devmem 上下文 + PSC 门，未提交）
+
+接 bA3（同一会话连续推进）。
+
+### 1. 会话式 harness 与 devmem 流程
+
+- harness 支持 `connect/buf/u32/u64/call/dump`（conn 持久化）；
+  `RGXCreateDeviceMemContext(conn, &o1, &o2)` 签名已确认。
+- 新桥序列（53 ops，`reports/umd-bridge-devmem-trace.jsonl`）：
+  CTXCREATE → HEAPCOUNT(11) → 11×(HEAPDETAILS + HEAPCREATE)
+  → 11×HEAPDESTROY → CTXDESTROY → 崩溃。
+- 伪造：heapcount=11；details 按 `mt_guest_plan_heaps` 逐 index 真实范围；
+  ctxcreate/heapcreate 句柄互异（全零/别名会触发不同死法）。
+
+### 2. 根因：PSC 创建失败 + UMD 错误路径 double-free
+
+- `RGXConstructDeviceMemContext` 报 `Failed to create PSC context`
+  后 teardown；`Ext` 照例吞错返回 0（教训：只信 trace/dump）。
+- ASan 实锤：0x30 devctx 被 `MTSRVReleaseDeviceMemContext` 释放后，
+  又被 epilogue 释放——UMD 错误路径 bug，真机正常路径不应触发。
+- `RGXCreateRenderContext` 直调返回 3（INVALID_PARAMS），确认依赖 devmem。
+- memType 动态复核仍 pending。
+
+### 3. 下一步（bA5）
+
+PSC 创建需求（堆名？usc 堆？特性开关？）；然后 Sync → render ctx → kick。
+
+---
+
+## 上次会话进展（bA3：Connect 走通 + info 页破译，提交 `13e6299`）
 
 接 bA2（同一会话， respond-all 连续推进）。
 
