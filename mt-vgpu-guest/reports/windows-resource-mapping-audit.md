@@ -1,5 +1,19 @@
 # Windows RM heap profile 与 PCI 资源映射审计（2026-09-29）
 
+> **勘误（2026-09-30，bA16）**：本报告把 `gpu_device+0x24` 解读为「堆/段数」是**错的**。
+> 该字段是 **IO 窗口槽计数**（selector 0x100/0x200/0x300 → 4，0x400 → 5，
+> `decompiled/mtkm64.sys/disassembly.txt:65539-65540`），且 `gpu_device+0x24`
+> 在全文没有任何读取方把��当堆表上界。Windows 真正的显存计划是
+> **`FUN_14001ccd8` 的 22 项 GPU-VA 堆表 + 13 项资源 profile**
+> （`decompiled.c:23169`、`:22804`）。因此「Windows vGPU 有 4 个 heap」应改读为
+> 「该 RM 对象有 4 个 IO 窗口槽」。更正与完整证据见
+> [Windows 原厂 KMD 交叉核对](windows-kmd-crosscheck.md) §1.1；
+> 22 项堆表已由 `scripts/dump-windows-heap-table.py` 读出并与我们的 11 堆
+> 逐字节对照（9 个非空堆全部一致）。
+> 另注：另一对象上的 `+0x24` 才是段数（上限 0x20，日志 `"add segment
+> failed, segment_cnt:%d more than supported"`，`decompiled.c:51084-51091`），
+> 与本对象无关。
+
 输入为本地 mtkm64.sys（SHA-256 0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33）的 Ghidra 导出。反编译函数索引与汇编保存在 [decompiled/mtkm64.sys](../decompiled/mtkm64.sys/)；只读 xref 脚本为 [TraceDriverReferences.java](../scripts/TraceDriverReferences.java)，运行结果保存在 [windows-device-xrefs.log](windows-device-xrefs.log)。
 
 ## Windows GPU 资源对象的堆数量

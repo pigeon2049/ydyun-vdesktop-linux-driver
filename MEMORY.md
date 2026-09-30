@@ -16,7 +16,62 @@
 
 ---
 
-## 本次会话进展（bA15：Stage B 设计文档（评审稿），未提交）
+## 本次会话进展（bA16：Windows 原厂 KMD 交叉核对，未提交）
+
+接 bA15。用户要求回 Windows 反编译与原始驱动做调研，三路并行 + 亲自复核。
+
+### 1. 堆表闭环（新硬证据）
+
+- 新脚本 `scripts/dump-windows-heap-table.py`：从 `mtkm64.sys` 的 `.data` 读出
+  `FUN_14001ccd8` 用的 **22 项** GPU-VA 堆表（MMU 模式 0 选 `0x141030d90`，
+  模式 1 选 `0x141030fa0`；`decompiled.c:23169` 定 22 项），
+  与 `mt_guest_plan_heaps()` 逐项对照，落盘 `reports/windows-heap-table-22.json`。
+- **我们填的 9 个非空堆全部逐字节一致**（含此前记为「无法比较」的 3/7/8/9），
+  4/5 两堆双方都空；7 项单测 `tests/test_windows_heap_table.py` 门禁。
+- 13 项资源 profile + 掩码 `0x1ef9`（启用）与 `0x1220`（延后）亦与 Windows 一致。
+
+### 2. 两处旧报告勘误（已加注记，不改历史结论）
+
+- `windows-resource-mapping-audit.md`：`gpu_device+0x24` 是 **IO 窗口槽计数**，
+  **不是堆数**；Windows 堆表 22 项、资源 profile 13 项。「4 heaps」应改读为
+  「4 个 IO 窗口槽」。
+- `windows-fw-heap-ring-investigation.md`：`0x1800000` 在 `mtkm64.sys` 里是
+  **24 MiB 私有池大小**（`disassembly.txt:41878`），与 Host 侧 OSID 步进
+  巧合同值、语义不同；且 **Windows 不做 per-OSID 堆**（`osid` 全文零命中）。
+
+### 3. 完成信号：厂商模型 = 令牌 + 双环比对（已回灌 Stage B §7.4）
+
+- 驱动**不自增 fence**：FenceID 由 OS 分配 → 写入 `0x98` 字节工作记录 `+0x08`
+  → 固件完成时原样回填到 `0x18` 字节完成事件 `+0x08` → KMD 只**比对**。
+- 每队列块 `0x40`：`+0x04` lastPrepared / `+0x08` lastCompleted / `+0x14` 提交尾 /
+  `+0x20` 记录环基址 / `+0x28` 完成头 / `+0x2c` 提交尾；记录 flags `0x20`=可抢占。
+- 固件环：每 DM 块 `0x2e30`，命令环 64×`0x50`、完成事件 64×`0x18`，
+  head/tail `&0x3f` 单生产者单消费者。提交环满：自旋 10000 次后**静默丢弃**
+  （我们应回 `-EAGAIN`）。
+- 无 per-fence `KeSetEvent`；靠一次完成一次回调唤醒。
+- ⇒ Stage B §7.4 已按此重写：完成环直接复用 `kernel/mt_fw_event*`。
+
+### 4. 上下文规模与新线索
+
+- Windows 侧每上下文状态区 **96,000 字节**（`decompiled.c:24529-24530`），
+  与我们 r36 自造的 ~84.3 KiB 同量级；`mext` 扩展上载 `0x800`/引擎。
+- 新线索：`FUN_140019cc4`（`decompiled.c:20383`）向 `param_3+0xb0`（每槽 `0x40`，
+  3 个 qword）与 `+0xf0`（9 项）写**成组上下文寄存器常量**，是宿主侧唯一的
+  定值寄存器表（驱动未命名）。S3 审包时作对照物。
+
+### 5. 明确查不到（别再耗时间）
+
+CSW/Context-Store/Load 的寄存器名与写序列、`Serial-Kick`/`POLL_MAX_COUNT`
+等固件侧参数、`DAT_1402a6af0`（`.rdata` 未导出）——全部只在未反汇编的固件 blob
+（`0x141042000`–`0x1411b7000`）里。要拿需单独做一次该区间的 Ghidra 分析。
+
+### 下一步（待用户拍板）
+
+Stage B 按 §7.4 新模型落 S0（纯内核单测：令牌分配器、双环、offset 编解码）。
+
+---
+
+## 上次会话进展（bA15：Stage B 设计文档（评审稿），未提交）
 
 接 bA14。用户拍板「先做 Stage B 设计文档」。
 

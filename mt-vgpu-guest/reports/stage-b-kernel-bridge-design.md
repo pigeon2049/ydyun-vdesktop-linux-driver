@@ -105,6 +105,14 @@ mmap_offset == local_handle << 12 ，且 offset 低 12 位恒为 0
 - 堆几何**以 `kernel/mt_guest_heaps.h:mt_guest_plan_heaps()` 为准**（11 项，
   含两个 base=0/size=0 的空堆）。注意 shim 里那张表是早期近似
   （heap4/7/8 尺寸不同），不要照抄。
+- **数值已闭环（bA16）**：Windows `mtkm64.sys` 的 22 项 GPU-VA 堆表
+  （`FUN_14001ccd8`，MMU 模式 0 选表 `0x141030d90`）中，我们填的 9 个非空堆
+  **逐字节一致**，4/5 两堆双方都空；`scripts/dump-windows-heap-table.py` 可复现，
+  `tests/test_windows_heap_table.py` 门禁。见 `reports/windows-kmd-crosscheck.md` §1。
+- **名字只能来自 PVR UMD**：Windows 侧只给 13 项**资源**命名
+  （`Free List / Pmva Info / PMVA / Paging Command / Static PDS / Dynamic PDS /
+  Fence GPU Memory / Paging Ctx Buffer / PH1 patch buf / Static USC /
+  YUV Coefficient / DM Kill / Texture state`），从不给堆命名。
 
 ### 3.6 PMR 生命周期（devmem 阶段实测顺序）
 
@@ -280,12 +288,34 @@ struct mt_pvr_conn {          /* 一个 PVRSRV 连接 */
 - `RESERVERANGE` 只做 VA 区间预留（`ops->bind` 但不 `upload`），
   保证不超页预算（r42 起页预算 64MiB / 15872 项是硬边界）。
 
-### 7.4 事件与 fence
+### 7.4 事件与 fence（按 Windows 原厂模型，bA16 校核）
 
-- `EVENTOBJECTOPEN` → `drm_syncobj_create` + `drm_syncobj_export_fd` 语义等价物
-  （UMD 侧 `PVRSRVTLOpenStream` 会拿 fd 去做 timeline）。
-- `EVENTOBJECTWAIT` → 阻塞在既有固件完成事件链（`mt_fw_event*`）或
-  `dma_fence_wait`，超时按 `WAITTIMEOUT` 语义返回。
+Windows KMD 的完成模型经反编译核实如下，可直接照搬（证据见
+`reports/windows-kmd-crosscheck.md` §2）：
+
+- **令牌不是驱动自增的**：FenceID 由 OS 分配，随提交命令下到驱动；
+  驱动把它写进工作记录，固件完成时**原样回填**到完成事件，驱动只做**比对**。
+- **每队列 0x40 字节队列块**：`+0x04` lastPrepared / `+0x08` lastCompleted /
+  `+0x0c` lastFenceAtDPC / `+0x14` 提交 tail / `+0x20` 记录环基址 /
+  `+0x28` 完成 head / `+0x2c` 提交 tail / `+0x48` DM 号。
+- **提交记录 0x98 字节**：`+0x04` flags（`0x20`=可抢占）/`+0x08` 令牌/
+  `+0x10` context/`+0x28..0x30` 哨兵 `0xffffffff`。
+- **固件环**：每 DM 块 `0x2e30`；命令环 64×`0x50`；完成事件 64×`0x18`
+  （`+0x04` 类型、`+0x08` 令牌）；head/tail 各一对，索引 `& 0x3f`，单生产者单消费者。
+
+对应到我们：
+
+| 组件 | 我们的实现 | 备注 |
+| --- | --- | --- |
+| 令牌 | 每（device 连接, 队列）单调 `u64` | 不需要 OS 分配，Stage B 自己发 |
+| 提交环 | 每连接 64 槽定长记录（借鉴 0x98 布局） | 满时回 `-EAGAIN`（厂商是自旋后丢弃，我们不学） |
+| 完成环 | 复用 `kernel/mt_fw_event*` 的固件完成事件 | 就是厂商的「固件事件环」对应物 |
+| `EVENTOBJECTWAIT` | 阻塞直到令牌被完成环兑现 | 对应 `d->address_spaces` 之外的独立等待队列 |
+| `EVENTOBJECTOPEN` | `drm_syncobj_create` + 导出 fd | UMD 拿 fd 建 timeline |
+
+- 唤醒路径：厂商**没有** per-fence 的内核事件，只在完成时回调一次
+  （`DxgkCbNotifyInterrupt`，0x50 字节，Type 1/2/9）。我们对应
+  `dma_fence_signal` + `drm_syncobj`，一次完成一次唤醒。
 - 这条链决定了 L3→L4 的可行性：**没有它，UMD 会在第一次 kick 后挂死**。
 
 ### 7.5 共享 ABI 门禁
@@ -327,6 +357,8 @@ struct mt_pvr_conn {          /* 一个 PVRSRV 连接 */
 ## 10. 未决问题（需实测或需外部信息）
 
 1. 真机上 `HEAPCFGHEAPCOUNT` 到底报几个（我们计划报 11，含 2 个空堆）？
+   —— bA16 已把**数值**与 Windows 22 项表闭环（9 个非空堆逐字节一致），
+   但「向 UMD 报几个」这个协议值仍需真机确认。
 2. `RGXCREATEZSBUFFER`（`0x82:0x2`，IN 24B）的 24 字节字段分解——
    Stage A 未跑通，需要真实 KMD 才有数据。
 3. `SYNCALLOCEVENT`（`0x2:0x7`，IN 20B）字段分解（头文件可查，但与实际调用是否一致待验）。

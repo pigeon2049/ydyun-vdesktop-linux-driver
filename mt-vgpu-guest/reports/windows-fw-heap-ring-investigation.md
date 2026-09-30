@@ -1,5 +1,13 @@
 # Host 固件堆 ring buffer 路径核查
 
+> **勘误（2026-09-30，bA16）**：本文中 `0x1800000` 出现为「OSID 4→7 步进 / 与
+> BAR2 槽相差量」的推断，来自 Host 侧公式反推，**不是 Windows 侧的实测**。
+> 在 **`mtkm64.sys`** 里 `0x1800000` 是**普通私有分配池大小 24 MiB**
+> （`decompiled/mtkm64.sys/disassembly.txt:41878` `mov r10d,0x1800000` → `[r8+0x498]`；
+> 相邻 `[r8+0x480]=0x800000` 是 8 MiB 常量）。两者**巧合同值、语义不同**，
+> 不可互证。此外 Windows 侧**不做 per-OSID 堆**（`mtkm64.sys` 全文 `osid` 零命中）。
+> 完整证据见 [Windows 原厂 KMD 交叉核对](windows-kmd-crosscheck.md) §1.1–1.3。
+
 日期：2026-09-29。分析对象为 Linux 2.3.0 Host 包中的
 `mtgpu_core.o_binary`，只使用现有符号表、反汇编和随包头文件；没有调用驱动或访问设备。
 
