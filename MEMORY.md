@@ -16,7 +16,49 @@
 
 ---
 
-## 本次会话进展（bA13：Windows 灵感回灌 + Sync 实测突破，未提交）
+## 本次会话进展（bA15：Stage B 设计文档（评审稿），未提交）
+
+接 bA14。用户拍板「先做 Stage B 设计文档」。
+
+### 1. 新增产物
+
+- `reports/stage-b-kernel-bridge-design.md`：Stage B 评审稿（目标/范围/ABI 事实/
+  19 条阶段一命令规格/kick 第二波/内核模块设计/验证与回退/风险/未决问题）。
+- `scripts/build-stage-b-bridge-requirements.py` + `reports/stage-b-bridge-requirements.json`：
+  机器可读需求表（205 条命令名 + IN/OUT 字段偏移 + 线格式差量 + 19 条已观测）。
+- `tests/test_stage_b_bridge_requirements.py`：10 项单测钉住表结构与 trace 不变式。
+- `reference/kmd-5.2.0-server-generated/`：5.2.0 KMD 生成头（22 个 + `mt_bridge.h`），
+  从易失的 `/tmp/opencode/kmd52` 复制留档（含 PROVENANCE 与包 sha256）。
+- `reports/umd-bridge-sync-trace.jsonl`：bA13 成功会话轨迹入库（112 行）。
+
+### 2. 本轮新确认的硬事实
+
+- **mmap 偏移 = 本地句柄 << 12**：4 份 trace 的 28 次 mmap 全部成立且 4KiB 对齐。
+  KMD 侧约束：凡返回给 UMD 的可映射句柄 `h`，`h<<12` 必须是该 PMR 的合法 DRM 偏移。
+- **UMD 线格式 > 5.2 头声明**（单测钉住）：`0x6:0x9` IN 72/OUT 24（头 68/20）、
+  `0x6:0x13` IN 32（头 28）。内核必须按 UMD 尺寸接收。
+- **勘误**：CONNECT OUT 头文件即 17B（`ui64PackedBvnc@0/eError@8/
+  ui32CapabilityFlags@12/ui8KernelArch@16`），与 UMD 实发一致——bA14 初稿误记为 16，
+  由单测抓出并改正。
+- 连接对象关键偏移（bA13 实测确认）：`+0x14` flags、`+0x28` info 页、`+0x48` TL 流、
+  `+0x50` HWPerfUm、`+0x60` HWPerf 设置、`+0x68/+0x70/+0x78`、`+0xa0` 特征块、
+  `+0xb0`×2 sync arena。
+- 堆几何以 `kernel/mt_guest_heaps.h:mt_guest_plan_heaps()` 为准（11 项含 2 个空堆），
+  shim 里那张是早期近似，勿照抄。
+
+### 3. 仍缺头文件的三条命令
+
+`0x88:0x5/0x6/0x7`（RGXKICKSYNC 变体）在 2.7.1（止于 +4）与 5.2 Host 包（无 RGX 组）
+里都查不到，只能真机抓取或补 5.2 Guest 头。
+
+### 下一步（待用户拍板）
+
+按设计文档 §8 推进，建议从 S0（纯内核单测：句柄分配器 + offset 编解码 + 堆表回填）
+与 S1（加载模块但不绑硬件，用「只记录不伪造」shim 打真实 ioctl）起步。
+
+---
+
+## 上次会话进展（bA13：Windows 灵感回灌 + Sync 实测突破，未提交）
 
 接 bA12。用户建议回到 Windows 原始驱动找灵感，并行三路 mining + 活 harness 验证，
 推翻两个旧结论，打通一条新链。
