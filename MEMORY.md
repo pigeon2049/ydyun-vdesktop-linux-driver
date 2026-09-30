@@ -16,7 +16,50 @@
 
 ---
 
-## 本次会话进展（bA16：Windows 原厂 KMD 交叉核对，未提交）
+## 本次会话进展（bA17：Stage B S0 落地（线格式 + 队列核心 + 门禁），未提交）
+
+接 bA16。开始写 Stage B 桥的内核侧代码（纯逻辑，不碰硬件）。
+
+### 1. 新增内核头（可离线验证）
+
+- `kernel/mt_pvr_wire.h`：阶段一命令的线上结构（`__attribute__((packed))`，
+  逐字段 `static_assert`）。三处 **UMD 线格式 > 5.2 头声明**的差量显式建模为
+  保留尾部（`0x6:0x9` IN 72/OUT 24、`0x6:0x13` IN 32），避免内核截断驱动写入的字段。
+  头文件自带类型定义（照 `kernel/mt_mmu.h` 惯例），模块与用户态测试都能编译。
+- `kernel/mt_pvr_queue.h`：
+  - **令牌 + 双环**（照 bA16 的厂商模型）：提交记录 64 槽（token@+0x08、
+    flags `0x20`=可抢占、context、哨兵），完成事件 64 槽（token@+0x08、
+    type@+0x04）；`head`=下一写位、`tail`=下一读位、保留一槽（容量 N-1）。
+  - **事件环无条件排空**，只有令牌匹配才推进提交侧；不匹配即陈旧事件丢弃
+    （与 `FUN_14000be34`+`FUN_14000e6a4` 一致）。这一条最初写反，
+    由 RAM 测试抓出并改正。
+  - 环满回 `-EAGAIN`（厂商是自旋 10000 次后静默丢弃，不学）。
+  - **mmap 偏移编解码**：`offset == handle << 12`（bA15 实测 28/28 成立）。
+  - 句柄分配器：单一单调空间、基址 `0x1000`、零句柄永不出现（bA4 教训）。
+  - **堆表服务端**：`mt_pvr_heaps_init/find/count`，几何来自
+    `mt_guest_plan_heaps()`，名字表四名（General/PDS Code and Data/USC Code/
+    Component Control），未命名槽不匹配空串与前缀。
+
+### 2. 测试与门禁
+
+- `tests/pvr_bridge_core_test.c`：**133 项 RAM 检查**（ASan+UBSan），覆盖
+  逐字段偏移、令牌单调与不匹配、陈旧事件、环满/回绕、fault 不得报 drained、
+  偏移编解码、句柄唯一性、堆表几何与按名查找。已注册进
+  `scripts/verify-runtime-integration.py`（随全量门禁跑）。
+- `tests/test_pvr_wire_sizes.py`：4 项门禁，**C 结构尺寸 ↔
+  `stage-b-bridge-requirements.json` 互为门禁**（含三处 wire 差量断言）。
+- 全量：`python3 -m unittest discover -s tests` **120 项全绿**；
+  `python3 scripts/verify-runtime-integration.py` 通过（含 `W=1` 内核构建与
+  7 结构 ABI 门禁）。**未加载任何模块，未访问硬件。**
+
+### 3. S0 状态
+
+设计文档 §8 的 S0 已完成。下一阶段 S1：新 recovery 模块（DRM 节点 version 名
+`pvr`）+ 把 19 条命令接到真实 ioctl，用「只记录不伪造」模式的 shim 验收。
+
+---
+
+## 上次会话进展（bA16：Windows 原厂 KMD 交叉核对，未提交）
 
 接 bA15。用户要求回 Windows 反编译与原始驱动做调研，三路并行 + 亲自复核。
 

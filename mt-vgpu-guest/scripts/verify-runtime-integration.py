@@ -38,10 +38,11 @@ def main():
     asan = ('bo_lifetime_test', 'gpu_vm_test', 'gpu_vm_scale_test', 'gem_lifetime_test',
             'work_job_test', 'execution_context_test', 'tqx_program_test', 'tqx_upload_test',
             'tqx_dma_test', 'tqx_submission_test', 'boot_bo_lifetime_test',
-            'system_memory_test', 'boot_resource_stage_test')
+            'system_memory_test', 'boot_resource_stage_test', 'pvr_bridge_core_test')
     test_names = ('runtime_context_test', 'trial_lifetime_test', 'bo_lifetime_test', 'gpu_vm_test',
                   'gpu_vm_scale_test',
-                  'gem_lifetime_test', 'work_job_test', 'execution_context_test', 'runtime_submit_gate_test', 'tqx_program_test', 'tqx_upload_test', 'tqx_dma_test', 'tqx_submission_test', 'boot_bo_lifetime_test', 'system_memory_test', 'boot_resource_stage_test')
+                  'gem_lifetime_test', 'work_job_test', 'execution_context_test', 'runtime_submit_gate_test', 'tqx_program_test', 'tqx_upload_test', 'tqx_dma_test', 'tqx_submission_test', 'boot_bo_lifetime_test', 'system_memory_test', 'boot_resource_stage_test',
+                  'pvr_bridge_core_test')
     for source in test_names:
         binary = build / source
         run(flags + (['-fsanitize=address'] if source in asan else []) +

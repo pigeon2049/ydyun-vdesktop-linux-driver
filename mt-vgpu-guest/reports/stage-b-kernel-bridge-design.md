@@ -337,6 +337,18 @@ Windows KMD 的完成模型经反编译核实如下，可直接照搬（证据�
 | S3 | 实现第二波，跑通 ZS/kick **只审包** | kick 包落盘，字段与 PSC 期望逐项对照 | `rmmod` |
 | S4 | 真机提交（L4） | 需用户另行拍板（影响硬件状态） | 见 MEMORY 注意事项 |
 
+**S0 的当前状态（bA17）**：第一部分已完成并接入门禁。
+
+| 产物 | 作用 |
+| --- | --- |
+| `kernel/mt_pvr_wire.h` | 阶段一命令的线上结构（packed，逐字段断言；三处 wire 差量显式建模为保留尾部） |
+| `kernel/mt_pvr_queue.h` | 令牌分配器 + 提交环/完成环（照 §7.4 厂商模型）+ mmap 偏移编解码 + 句柄分配器 |
+| `tests/pvr_bridge_core_test.c` | 105 项 RAM 检查（ASan+UBSan）：令牌不匹配、陈旧事件、环满、回绕、fault 语义 |
+| `tests/test_pvr_wire_sizes.py` | 4 项门禁：C 结构尺寸 ↔ `stage-b-bridge-requirements.json` 互为门禁 |
+| `scripts/verify-runtime-integration.py` | 已注册新测试，随全量门禁一起跑 |
+
+S0 剩余：堆表回填（把 `mt_guest_plan_heaps()` 接到 `0x6:0x20` 的 44 字节输出与堆名回写）。
+
 **S1 的关键手法**：把 `probe/umd_bridge_shim.c` 切成「只记录、不伪造」模式，
 让 UMD 打真实内核 ioctl——这既是验收手段，也是把离线成果搬到真桥的回归基线。
 

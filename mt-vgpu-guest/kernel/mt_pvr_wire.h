@@ -1,0 +1,213 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+#ifndef MT_PVR_WIRE_H
+#define MT_PVR_WIRE_H
+
+/* On-the-wire layouts the legacy MUSA user-mode driver speaks, for the 19
+ * commands Stage B phase 1 implements.
+ *
+ * Source of truth: the 5.2.0 KMD generated headers (kept in
+ * reference/kmd-5.2.0-server-generated/, the generation this UMD was built
+ * against) cross-checked against the sizes the driver actually puts on the
+ * wire, captured in reports/stage-b-bridge-requirements.json. Every
+ * _Static_assert below cites the command it belongs to;
+ * tests/test_pvr_wire_sizes.py diffs these sizes against that JSON, so a
+ * header refresh that moves a field fails the build instead of corrupting
+ * user memory.
+ *
+ * All structures are packed: the wire is not aligned, and the driver reads
+ * these out of its own heap buffers. Use get_unaligned/put_user when the
+ * buffer lives in user space.
+ *
+ * Three commands carry MORE bytes than the 5.2 header struct declares
+ * (0x6:0x9 in/out, 0x6:0x13 in). Those tails are modelled as reserved so the
+ * kernel accepts the driver's sizes instead of dropping what it set.
+ */
+
+/* The wire is unaligned and the driver reads these out of its own heap
+ * buffers. __attribute__ rather than the kernel __packed macro so the same
+ * header compiles in the userspace RAM harness.
+ *
+ * Integer types follow kernel/mt_mmu.h: pull them from the kernel when built
+ * as a module, define them here when the header is compiled by a user-space
+ * test, so nothing outside the kernel tree has to supply a stub.
+ */
+#ifdef __KERNEL__
+#include <linux/types.h>
+#else
+#include <assert.h>	/* static_assert */
+#include <stdint.h>
+#include <string.h>
+#include <errno.h>
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+#endif
+
+#define MT_PVR_PACKED __attribute__((packed))
+
+typedef u32 mt_handle;
+typedef u64 mt_gpuvaddr;
+
+/* 0xc0206440 dispatch packet. */
+struct MT_PVR_PACKED mt_pvr_cmd {
+	u32 bridge_id;
+	u32 function_id;
+	u64 in_ptr;
+	u64 out_ptr;
+	u32 in_size;
+	u32 out_size;
+};
+
+/* 0x1:0x0 SRVCORE:Connect -- 16-byte IN, 17-byte OUT. */
+struct MT_PVR_PACKED mt_pvr_connect_in {
+	u32 client_build_options;
+	u32 client_ddk_build;
+	u32 client_ddk_version;
+	u32 flags;
+};
+
+struct MT_PVR_PACKED mt_pvr_connect_out {
+	u64 packed_bvnc;
+	u32 error;
+	u32 capability_flags;
+	u8 kernel_arch;
+};
+
+/* 0x1:0x2 AcquireGlobalEventObject, 0x1:0xf AcquireInfoPage -- no IN, 12-byte OUT. */
+struct MT_PVR_PACKED mt_pvr_handle_out {
+	u64 handle;
+	u32 error;
+};
+
+/* 0x1:0x4 EventObjectOpen -- 8-byte IN, 12-byte OUT. */
+struct MT_PVR_PACKED mt_pvr_event_open_in {
+	u64 event_object;
+};
+
+struct MT_PVR_PACKED mt_pvr_event_open_out {
+	u64 os_event;
+	u32 error;
+};
+
+/* 0x6:0x6 MM:PmrLocalImportPmr -- 8-byte IN, 28-byte OUT. */
+struct MT_PVR_PACKED mt_pvr_import_in {
+	u64 ext_handle;
+};
+
+struct MT_PVR_PACKED mt_pvr_import_out {
+	u64 align;
+	u64 size;
+	u64 pmr;
+	u32 error;
+};
+
+/* 0x6:0x20 MM:HeapCfgHeapDetails -- 20-byte IN, 44-byte OUT. */
+struct MT_PVR_PACKED mt_pvr_heap_details_in {
+	u64 heap_name_out;
+	u32 heap_config_index;
+	u32 heap_index;
+	u32 heap_name_buf_size;
+};
+
+struct MT_PVR_PACKED mt_pvr_heap_details_out {
+	mt_gpuvaddr base;
+	u64 length;
+	u64 reserved_length;
+	u64 heap_name_out;
+	u32 error;
+	u32 log2_data_page_size;
+	u32 log2_import_alignment;
+};
+
+/* 0x6:0x9 MM:PhysMemNewRamBackedPmr -- 72-byte IN, 24-byte OUT.
+ * The header struct stops at 68/20; the driver sends 4 more bytes each way.
+ */
+struct MT_PVR_PACKED mt_pvr_pmr_in {
+	u64 chunk_size;
+	u64 size;
+	u64 mapping_table;
+	u64 annotation;
+	u32 annotation_length;
+	u32 log2_page_size;
+	u32 num_phys_chunks;
+	u32 num_virt_chunks;
+	u32 pdump_flags;
+	u32 pid;
+	u32 flags;
+	u64 user_address;
+	u32 wire_tail_in;
+};
+
+struct MT_PVR_PACKED mt_pvr_pmr_out {
+	u64 pmr;
+	u32 error;
+	u32 out_flags;
+	u32 is_system_mem;
+	u32 wire_tail_out;
+};
+
+/* 0x6:0x13 MM:DevmemIntMapPmr -- 32-byte IN (header declares 28), 12-byte OUT. */
+struct MT_PVR_PACKED mt_pvr_map_in {
+	u64 server_heap;
+	u64 pmr;
+	u64 reservation;
+	u32 map_flags;
+	u32 wire_tail_in;
+};
+
+struct MT_PVR_PACKED mt_pvr_map_out {
+	u64 mapping;
+	u32 error;
+};
+
+/* 0x6:0x15 MM:DevmemIntReserveRange -- 24-byte IN, 12-byte OUT. */
+struct MT_PVR_PACKED mt_pvr_reserve_in {
+	mt_gpuvaddr address;
+	u64 length;
+	u64 server_heap;
+};
+
+struct MT_PVR_PACKED mt_pvr_reserve_out {
+	u64 reservation;
+	u32 error;
+};
+
+/* 0x2:0x0 SYNC:AllocSyncPrimitiveBlock -- 8-byte IN, 32-byte OUT.
+ * memType is 0x100000000, measured live in bA13; the static 0x2 in older notes
+ * was the arena class, not this field.
+ */
+struct MT_PVR_PACKED mt_pvr_sync_block_in {
+	u64 mem_type;
+};
+
+struct MT_PVR_PACKED mt_pvr_sync_block_out {
+	u64 sync_handle;
+	u64 sync_pmr;
+	u32 error;
+	u32 block_size;
+	u64 vaddr;
+};
+
+#define MT_PVR_SYNC_MEM_TYPE 0x100000000ULL
+
+static_assert(sizeof(struct mt_pvr_cmd) == 32, "dispatch packet");
+static_assert(sizeof(struct mt_pvr_connect_in) == 16, "0x1:0x0 in");
+static_assert(sizeof(struct mt_pvr_connect_out) == 17, "0x1:0x0 out");
+static_assert(sizeof(struct mt_pvr_handle_out) == 12, "0x1:0x2/0x1:0xf out");
+static_assert(sizeof(struct mt_pvr_event_open_in) == 8, "0x1:0x4 in");
+static_assert(sizeof(struct mt_pvr_event_open_out) == 12, "0x1:0x4 out");
+static_assert(sizeof(struct mt_pvr_import_in) == 8, "0x6:0x6 in");
+static_assert(sizeof(struct mt_pvr_import_out) == 28, "0x6:0x6 out");
+static_assert(sizeof(struct mt_pvr_heap_details_in) == 20, "0x6:0x20 in");
+static_assert(sizeof(struct mt_pvr_heap_details_out) == 44, "0x6:0x20 out");
+static_assert(sizeof(struct mt_pvr_pmr_in) == 72, "0x6:0x9 in (wire 72)");
+static_assert(sizeof(struct mt_pvr_pmr_out) == 24, "0x6:0x9 out (wire 24)");
+static_assert(sizeof(struct mt_pvr_map_in) == 32, "0x6:0x13 in (wire 32)");
+static_assert(sizeof(struct mt_pvr_map_out) == 12, "0x6:0x13 out");
+static_assert(sizeof(struct mt_pvr_reserve_in) == 24, "0x6:0x15 in");
+static_assert(sizeof(struct mt_pvr_reserve_out) == 12, "0x6:0x15 out");
+static_assert(sizeof(struct mt_pvr_sync_block_in) == 8, "0x2:0x0 in");
+static_assert(sizeof(struct mt_pvr_sync_block_out) == 32, "0x2:0x0 out");
+
+#endif /* MT_PVR_WIRE_H */
