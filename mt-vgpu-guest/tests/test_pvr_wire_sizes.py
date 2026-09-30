@@ -48,6 +48,8 @@ MAPPING = {
     "mt_pvr_reserve_out": (0x6, 0x15),
     "mt_pvr_sync_block_in": (0x2, 0x0),
     "mt_pvr_sync_block_out": (0x2, 0x0),
+    "mt_pvr_ctx_create_in": (0x6, 0xF),
+    "mt_pvr_ctx_create_out": (0x6, 0xF),
 }
 
 # Which table size each struct corresponds to: "in", "out" or "dispatch".
@@ -62,6 +64,7 @@ DIRECTION = {
     "mt_pvr_map_in": "in", "mt_pvr_map_out": "out",
     "mt_pvr_reserve_in": "in", "mt_pvr_reserve_out": "out",
     "mt_pvr_sync_block_in": "in", "mt_pvr_sync_block_out": "out",
+    "mt_pvr_ctx_create_in": "in", "mt_pvr_ctx_create_out": "out",
 }
 
 # Table key holding the wire size for each direction.

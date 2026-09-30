@@ -173,6 +173,21 @@ struct MT_PVR_PACKED mt_pvr_reserve_out {
 	u32 error;
 };
 
+/* 0x6:0xf MM:DevmemIntCtxCreate -- 4-byte IN, 24-byte OUT. The driver refcounts
+ * contexts per connection and reuses the same object (decompiled.c:13673), so
+ * both handles must stay stable across calls.
+ */
+struct MT_PVR_PACKED mt_pvr_ctx_create_in {
+	u32 flags;
+};
+
+struct MT_PVR_PACKED mt_pvr_ctx_create_out {
+	u64 server_context;
+	u64 priv_data;
+	u32 error;
+	u32 cpu_cache_line_size;
+};
+
 /* 0x2:0x0 SYNC:AllocSyncPrimitiveBlock -- 8-byte IN, 32-byte OUT.
  * memType is 0x100000000, measured live in bA13; the static 0x2 in older notes
  * was the arena class, not this field.
@@ -207,6 +222,8 @@ static_assert(sizeof(struct mt_pvr_map_in) == 32, "0x6:0x13 in (wire 32)");
 static_assert(sizeof(struct mt_pvr_map_out) == 12, "0x6:0x13 out");
 static_assert(sizeof(struct mt_pvr_reserve_in) == 24, "0x6:0x15 in");
 static_assert(sizeof(struct mt_pvr_reserve_out) == 12, "0x6:0x15 out");
+static_assert(sizeof(struct mt_pvr_ctx_create_in) == 4, "0x6:0xf in");
+static_assert(sizeof(struct mt_pvr_ctx_create_out) == 24, "0x6:0xf out");
 static_assert(sizeof(struct mt_pvr_sync_block_in) == 8, "0x2:0x0 in");
 static_assert(sizeof(struct mt_pvr_sync_block_out) == 32, "0x2:0x0 out");
 

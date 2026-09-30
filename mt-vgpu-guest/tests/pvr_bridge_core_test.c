@@ -8,10 +8,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../kernel/mt_pvr_wire.h"
 #include "../kernel/mt_pvr_queue.h"
+#include "../kernel/mt_pvr_device.h"
 
 static int checks;
 
@@ -276,9 +278,94 @@ static int test_heap_table(void)
 	return 0;
 }
 
+static int test_device_layout(void)
+{
+	struct mt_pvr_conn conn;
+	struct mt_pvr_features features;
+	struct mt_pvr_connect_out result;
+	/* Large enough for a full info page; static so a failing check leaks
+	 * nothing.
+	 */
+	static u32 page[MT_PVR_INFO_BYTES / 4];
+
+	/* Offsets the UMD reads out of its own connection object. Each one was
+	 * confirmed against a live offline session; if the struct moves, one of
+	 * these fires rather than a silent misread.
+	 */
+	CHECK(offsetof(struct mt_pvr_conn, srv_handle) == 0x00);
+	CHECK(offsetof(struct mt_pvr_conn, version) == 0x08);
+	CHECK(offsetof(struct mt_pvr_conn, pid) == 0x0c);
+	CHECK(offsetof(struct mt_pvr_conn, init_flags) == 0x14);
+	CHECK(offsetof(struct mt_pvr_conn, info_page) == 0x28);
+	CHECK(offsetof(struct mt_pvr_conn, tl_stream) == 0x48);
+	CHECK(offsetof(struct mt_pvr_conn, hwperf_um) == 0x50);
+	CHECK(offsetof(struct mt_pvr_conn, hwperf_setting) == 0x60);
+	CHECK(offsetof(struct mt_pvr_conn, devmem_refs) == 0x70);
+	CHECK(offsetof(struct mt_pvr_conn, devmem_ctx) == 0x78);
+	CHECK(offsetof(struct mt_pvr_conn, features) == 0xa0);
+	CHECK(offsetof(struct mt_pvr_conn, sync_arena) == 0xb0);
+	CHECK(offsetof(struct mt_pvr_conn, sync_span) == 0xb8);
+	/* The feature block lives behind this skew: GetFeatures adds it. */
+	CHECK(MT_PVR_FEATURE_SKEW == 0x620);
+
+	mt_pvr_conn_init(&conn, 4242, 2);
+	/* The driver hands the connection pointer back to us as the services
+	 * handle, so it has to be self-referential.
+	 */
+	CHECK(conn.srv_handle == (u64)(uintptr_t)&conn);
+	CHECK(conn.version == 1);
+	CHECK(conn.pid == 4242);
+	CHECK(conn.init_flags == 2);
+
+	mt_pvr_features_init(&features, 1);
+	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_CORE_COUNT) == 1);
+	/* The DDK feature set must stay below 2: a different value sends the
+	 * driver down an unvalidated allocation path.
+	 */
+	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_SET) < 2);
+	/* Reads past the end return zero instead of walking off the blob. */
+	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_BYTES) == 0);
+	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_BYTES - 2) == 0);
+
+	/* Connect must answer with the value the offline session actually
+	 * accepted. The three sub-gates below are properties of that constant
+	 * and worth pinning; a fourth comparison the decompilation shows
+	 * (V == strtol("4")) is not, because it cannot hold at the same time
+	 * as top16 == 0x23 -- yet the value demonstrably worked, so the
+	 * reconstruction there is wrong and the test does not encode it.
+	 */
+	mt_pvr_connect_result(&result);
+	CHECK(mt_pvr_bvnc_allowed(result.packed_bvnc));
+	CHECK(result.packed_bvnc == 0x0023000406600017ULL);
+	CHECK((result.packed_bvnc >> 48) == 0x23);
+	CHECK(((result.packed_bvnc >> 16) & 0xffff) == 0x660);
+	CHECK((u16)result.packed_bvnc == 0x17);
+	CHECK(result.error == 0);
+	CHECK(mt_pvr_bvnc_allowed(0x0001000000000000ULL));
+	CHECK(!mt_pvr_bvnc_allowed(0));
+	CHECK(!mt_pvr_bvnc_allowed(0x0023000406600018ULL));
+
+	/* Info page: the driver rejects the page unless these three fields are
+	 * right (decompiled.c:92477, 9247d). A static buffer keeps this out of
+	 * the heap so a failing CHECK cannot leak.
+	 */
+	memset(page, 0, sizeof(page));
+	mt_pvr_info_page_init(page, sizeof(page));
+	CHECK(page[0x00 / 4] == 1);
+	CHECK(page[0x44 / 4] == 0xb57);
+	CHECK(page[0x48 / 4] == 0x688a847);
+	/* A short buffer must be left alone entirely. */
+	memset(page, 0, sizeof(page));
+	mt_pvr_info_page_init(page, 8);
+	CHECK(page[0x00 / 4] == 0);
+	CHECK(page[0x44 / 4] == 0);
+	return 0;
+}
+
 int main(void)
 {
 	CHECK(test_wire_offsets() == 0);
+	CHECK(test_device_layout() == 0);
 	CHECK(test_queue_basic() == 0);
 	CHECK(test_queue_full_and_wrap() == 0);
 	CHECK(test_queue_fault() == 0);

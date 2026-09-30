@@ -349,6 +349,17 @@ Windows KMD 的完成模型经反编译核实如下，可直接照搬（证据�
 
 S0 剩余：堆表回填（把 `mt_guest_plan_heaps()` 接到 `0x6:0x20` 的 44 字节输出与堆名回写）。
 
+**S1 的当前状态（bA18）**：模块已写好并通过 W=1 构建，**尚未加载**。
+
+| 产物 | 说明 |
+| --- | --- |
+| `kernel/mt_pvr_device.h` | 连接对象布局（UMD 读取点逐偏移断言）、feature 块按偏移访问器、Connect 结果、info 页构造 |
+| `kernel/recovery/mt_pvr_bridge.c` | DRM 节点 `.name = "pvr"`；两条 ioctl 号写死为 UMD 实际使用的 `0xc0206440` / `0x40046445`；19 条命令分发；PMR=系统内存、句柄=真实分配器、堆几何=计划表 |
+| 安全边界（静态核验） | 模块内**无** `pci_register_driver`、无 `ioremap`/`readl`/`writel`、无 BAR 申请；不绑定 `00:0e.0`，主模块活会话不受影响 |
+
+验收方式（待执行）：把 shim 切成「只记录不伪造」，让离线 UMD 打真实 ioctl，
+trace 与 bA13 逐条对齐。**加载前需用户确认。**
+
 **S1 的关键手法**：把 `probe/umd_bridge_shim.c` 切成「只记录、不伪造」模式，
 让 UMD 打真实内核 ioctl——这既是验收手段，也是把离线成果搬到真桥的回归基线。
 

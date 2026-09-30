@@ -16,7 +16,47 @@
 
 ---
 
-## 本次会话进展（bA17：Stage B S0 落地（线格式 + 队列核心 + 门禁），未提交）
+## 本次会话进展（bA18：Stage B S1 模块写好（未加载），未提交）
+
+接 bA17。环境确认：**root 可用**（`sudo -n true` 成功，与 r43 不同）、
+`mt_guest_probe` 在跑并持有 `00:0e.0`（62 引用）、taint 12800、当前无 MTT 节点。
+
+### 1. 新增
+
+- `kernel/mt_pvr_device.h`：连接对象布局（UMD 读取点逐偏移 `static_assert`：
+  `+0x00` srv handle、`+0x08`、`+0x0c` pid、`+0x14` flags、`+0x28` info 页、
+  `+0x48` TL 流、`+0x50` HWPerfUm、`+0x60` HWPerf 设置、`+0x70` refcount、
+  `+0x78` devmem ctx、`+0xa0` features、`+0xb0/+0xb8` sync arena）、
+  feature 块**按偏移访问**（不臆造未命名字段）、Connect 结果、info 页构造。
+- `kernel/recovery/mt_pvr_bridge.c`：DRM 节点 `.name="pvr"`；**ioctl 号写死**为
+  UMD 实际用的 `0xc0206440` / `0x40046445`（DRM 6.12 的 `DRM_IOCTL_DEF_DRV` 只认
+  `DRM_IOCTL_*` 宏、不自动编号，编号错等于没有这个节点）；19 条命令分发；
+  PMR 系统内存后备；句柄来自真实分配器；堆几何来自计划表；堆名回写调用者缓冲
+  （bA5 的教训）。
+- `kernel/mt_pvr_wire.h` 增补 `0x6:0xf` ctxcreate 的 IN/OUT（4/24 字节）。
+
+### 2. 过程修正（均由编译/测试抓出）
+
+- DRM 6.12 的 `drm_driver.open` 返回 `int`（不是 `drm_device *`）、
+  `gem_prime_import` 返回 `struct drm_gem_object *`；stage 1 不用 GEM，直接去掉。
+- `conn` 必须 packed 才能对上 UMD 偏移；用显式 pad 字段填满每段间隙。
+- **反编译不可靠的一处**：`ConnectionCreate` 的 `V == strtol("4")` 与
+  `top16 == 0x23` 数学上互斥（`(bvnc>>32)&0xffff` 对 `0x0023000406600017`
+  恒为 `0x23`），而该值实测通过 ⇒ Ghidra 此处还原有误。单测只钉已验证的三个
+  子门，不把这条写进门禁。
+
+### 3. 门禁与状态
+
+- `tests/pvr_bridge_core_test.c` 扩到 **170 项**（新增 device 布局/Bvnc/feature/
+  info 页），全量 Python 120 项全绿；`verify-runtime-integration.py` 通过
+  （含 `W=1` 内核构建与 7 结构 ABI 门禁）。
+- 静态核验：模块内**无** `pci_register_driver`、无 `ioremap`/`readl`/`writel`、
+  无 BAR 申请 ⇒ 加载它不触碰主模块活会话。
+- **未执行 insmod**（按纪律需用户确认）。下一步：切「只记录不伪造」shim 验收。
+
+---
+
+## 上次会话进展（bA17：Stage B S0 落地（线格式 + 队列核心 + 门禁），未提交）
 
 接 bA16。开始写 Stage B 桥的内核侧代码（纯逻辑，不碰硬件）。
 
