@@ -54,6 +54,11 @@ static uint64_t parse_arg(const char *s)
 {
 	unsigned long off;
 	char *end;
+	uint64_t base, val;
+	if (s[0] == '*') {
+		memcpy(&val, (void *)(uintptr_t)parse_arg(s + 1), 8);
+		return val;
+	}
 	if (strcmp(s, "conn") == 0) {
 		if (!have_conn) {
 			fprintf(stderr, "no connection yet\n");
@@ -61,17 +66,38 @@ static uint64_t parse_arg(const char *s)
 		}
 		return conn;
 	}
+	if (strncmp(s, "conn+", 5) == 0) {
+		if (!have_conn) {
+			fprintf(stderr, "no connection yet\n");
+			exit(1);
+		}
+		return conn + strtoul(s + 5, NULL, 0);
+	}
 	if (s[0] == 'b') {
 		unsigned id = (unsigned)strtoul(s + 1, &end, 10);
-		uint64_t base;
 		if (id >= MAX_BUFS || !bufs[id]) {
 			fprintf(stderr, "bad buffer ref %s\n", s);
 			exit(1);
 		}
 		base = (uint64_t)(uintptr_t)bufs[id];
 		if (*end == '*') {
-			uint64_t val;
 			memcpy(&val, (void *)(uintptr_t)base, 8);
+			if (*(end + 1) == '+')
+				val += strtoul(end + 2, NULL, 0);
+			return val;
+		}
+		if (*end == '@') {
+			if (*(end + 1) == '@') {
+				char *tail;
+				off = strtoul(end + 2, &tail, 0);
+				memcpy(&val, (void *)(uintptr_t)base, 8);
+				memcpy(&val,
+				       (void *)(uintptr_t)(val + off), 8);
+				if (*tail == '+')
+					val += strtoul(tail + 1, NULL, 0);
+				return val;
+			}
+			memcpy(&val, (void *)(uintptr_t)(base + strtoul(end + 1, NULL, 0)), 8);
 			return val;
 		}
 		off = 0;
@@ -146,7 +172,8 @@ int main(int argc, char **argv)
 			       strcmp(argv[j], "u32") != 0 &&
 			       strcmp(argv[j], "u64") != 0 &&
 			       strcmp(argv[j], "dump") != 0 &&
-			       strcmp(argv[j], "dumpat") != 0)
+			       strcmp(argv[j], "dumpat") != 0 &&
+			       strcmp(argv[j], "strat") != 0)
 				a[n++] = parse_arg(argv[j++]);
 			printf("SYMBOL %s(...) -> %" PRId64 "\n", argv[i + 1],
 			       (int64_t)f(a[0], a[1], a[2], a[3], a[4], a[5],
@@ -172,6 +199,20 @@ int main(int argc, char **argv)
 			for (k = 0; k < len; k++)
 				printf("%s%02x", k % 16 == 0 ? "\n  " : " ", p[k]);
 			printf("\n");
+			i += 3;
+		} else if (strcmp(argv[i], "strat") == 0) {
+			const char *p = (const char *)(uintptr_t)
+				parse_arg(argv[i + 1]);
+			unsigned long maxlen = strtoul(argv[i + 2], NULL, 0);
+			unsigned long k;
+			printf("STRAT %s: \"", argv[i + 1]);
+			for (k = 0; k < maxlen; k++) {
+				char ch = p[k];
+				if (!ch)
+					break;
+				putchar(ch < 32 || ch > 126 ? '.' : ch);
+			}
+			printf("\"\n");
 			i += 3;
 		} else {
 			fprintf(stderr, "unknown op %s\n", argv[i]);

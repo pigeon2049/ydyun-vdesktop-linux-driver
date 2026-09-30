@@ -200,10 +200,28 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 - 给 Stage B 的输入（新增）：renderctx 三参数形状；params+0x10 子结构；
   OOM-stats 桥存在（KMD 需实现计数器接口）。
 
-## 7. 下一步（bA7）
+## 13. bA7：renderctx 堆名查找机制与名字生命周期问题（进行中）
 
-1. 堆损坏根因：用 ASan 跑 renderctx 组合（exe+shim 同插已有先例），
-   抓第一次非法写（候选：params+0x10 子结构内容？堆名？import 句柄？）。
+- `RGXCreateRenderContext(conn, params, outptr=rdx)` 最远到达：
+  PMR 分配 → `0x6:0x27 UPDATEOOMSTATS` → unref → 返回 1（outptr 未写）。
+  58-op 序列见 `reports/umd-bridge-renderctx-trace.jsonl`。
+- 按名找堆机制（S）：`0x94a60` 遍历数组（count@+0x18，表@+0x20），
+  `entry+0` 为名字指针，`strlen/strncmp` 比对；devmem 期
+  "PDS/General/USC" 三查全中（rdi=同一 registry）。
+- renderctx 期同名查找失败 → `DevmemSubAllocate` 报 OUT_OF_DEVICE_VM →
+  DCE 上下文 PDS 缓冲失败 → 返回 1。堆名指针追踪（`strat`/`dumpat`/
+  `bID@@`/`bID@`/`*` 前缀多级解引用）显示 entry 名指向 mmap 区
+  （0x77…，非堆 0x55… 非栈 0x7fff…），疑为 UMD 自有 arena 拷贝——
+  生命周期待定是当前头号问题。
+- 行为三态（SEGV/挂起/返回 1/3）同输入并存，堆损坏仍未排除；
+  ASan 已抓到 GetAppHint 野写（features 野指针）等多个次生现象。
+- 工具：`strat` 字符串读、`dumpat`、`bID*+OFF`/`bID@OFF`/`bID@@OFF`、
+  `conn+OFF`、8 参数调用。
+
+## 7. 下一步（bA8）
+
+1. 堆名生命周期：确认 entry 名指针目标（UMD arena 拷贝 vs 野指针）；
+   若为 arena 拷贝，查拷贝源与 renderctx 期 registry 差异。
 2. 然后：Sync alloc 动态现身（复核 memType=2）→ `RGXKICKTA3D3`
    （看清尾部 8 字节）→ 最小命令集 + 打桩表（Stage B 输入）。
 3. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。

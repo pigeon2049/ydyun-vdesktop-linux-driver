@@ -196,6 +196,28 @@ static void fabricate_heap_details(const uint8_t *in, uint32_t in_size,
 	}
 }
 
+/* Distinct PMR handles per allocation (OUT 24B: hPMR u64@0).
+ * Zero handles alias and break later unref/map steps. */
+static uint64_t next_pmr = 0x5000;
+
+static void fabricate_pmr_alloc(const uint8_t *in, uint32_t in_size,
+				uint8_t *out, uint32_t out_size)
+{
+	uint64_t h;
+	(void)in;
+	(void)in_size;
+	memset(out, 0, out_size < 24 ? out_size : 24);
+	if (out_size >= 8) {
+		h = next_pmr++;
+		memcpy(out, &h, 8);
+	}
+	if (out_size >= 20) {
+		/* RAM-backed PMRs live in system memory. */
+		uint32_t one = 1;
+		memcpy(out + 16, &one, 4);
+	}
+}
+
 /* Distinct heap handles keyed by base VA (OUT 12B: hHeap u64@0).
  * IN (28B): base u64@0, length u64@8, ctx u64@16, log2page u32@24. */
 static void fabricate_heap_create(const uint8_t *in, uint32_t in_size,
@@ -417,10 +439,35 @@ int ioctl(int fd, unsigned long req, ...)
 				"\"bridge\":\"0x%x:0x%x\",\"in_size\":%u,\"out_size\":%u,",
 				++seq, fd, cmd.bridge_id, cmd.bridge_func_id,
 				cmd.in_size, cmd.out_size);
-			if (cmd.in_ptr && cmd.in_size)
+			if (cmd.in_ptr && cmd.in_size) {
 				log_hex("in", (const void *)(uintptr_t)cmd.in_ptr,
 					cmd.in_size);
-			else
+				/* PMR alloc carries a human annotation naming
+				 * the allocation purpose. */
+				if (cmd.bridge_id == 0x6 &&
+				    cmd.bridge_func_id == 0x9 && cmd.in_size >= 36) {
+					const uint8_t *inb =
+						(const uint8_t *)(uintptr_t)cmd.in_ptr;
+					uint64_t ap = 0;
+					uint32_t alen = 0;
+					uint32_t k;
+					memcpy(&ap, inb + 24, 8);
+					memcpy(&alen, inb + 32, 4);
+					fprintf(logf, ",\"annotation\":\"");
+					if (alen > 128)
+						alen = 128;
+					for (k = 0; k < alen; k++) {
+						char ch =
+							((const char *)(uintptr_t)ap)[k];
+						if (!ch)
+							break;
+						fputc(ch < 32 || ch > 126 ? '.'
+									  : ch,
+						      logf);
+					}
+					fprintf(logf, "\"");
+				}
+			} else
 				fprintf(logf, "\"in\":null");
 			fprintf(logf, ",\"fabricated_zero_out\":%u",
 				cmd.out_ptr && cmd.out_size ? cmd.out_size : 0);
@@ -437,6 +484,11 @@ int ioctl(int fd, unsigned long req, ...)
 			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x11 &&
 				 cmd.in_ptr && cmd.in_size)
 				fabricate_heap_create(
+					(const uint8_t *)(uintptr_t)cmd.in_ptr,
+					cmd.in_size,
+					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x9)
+				fabricate_pmr_alloc(
 					(const uint8_t *)(uintptr_t)cmd.in_ptr,
 					cmd.in_size,
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);

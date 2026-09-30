@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA6：renderctx 签名 + 堆损坏非确定性；未提交）
+最后更新：2026-09-30（bA7：renderctx 堆名查找与生命周期问题；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,31 @@
 
 ---
 
-## 本次会话进展（bA6：renderctx 参数与堆损坏，未提交）
+## 本次会话进展（bA7：renderctx 堆名查找机制，未提交）
+
+接 bA6（同一会话连续推进）。
+
+### 1. renderctx 走到 DCE 缓冲分配并报缺堆
+
+- `RGXCreateRenderContext(conn, params, outptr=rdx)` 最远：
+  PMR 分配 → `0x6:0x27 UPDATEOOMSTATS` → unref → 返回 1（outptr 未写）。
+  58-op 序列见 `reports/umd-bridge-renderctx-trace.jsonl`。
+- DebugPrintf 抓因：`DevmemFindHeapByName` 失败 →
+  suballocate OUT_OF_DEVICE_VM → DCE 上下文 PDS 缓冲失败。
+- 按名找堆机制：`0x94a60` 遍历（count@+0x18，表@+0x20），
+  `entry+0` 为名指针；devmem 期 PDS/General/USC 三查全中。
+- 堆名指针追到 mmap 区（0x77…），生命周期待定为头号问题；
+  同输入三态（SEGV/挂起/返回）并存，堆损坏未排除。
+- 工具：`strat`、`dumpat`、`bID*+OFF`/`bID@OFF`/`bID@@OFF`、
+  `*` 前缀解引用、`conn+OFF`、8 参数调用。
+
+### 2. 下一步（bA8）
+
+堆名生命周期确认；然后 Sync → kick → 最小命令集。
+
+---
+
+## 上次会话进展（bA6：renderctx 参数与堆损坏，未提交）
 
 接 bA5（同一会话连续推进）。
 
