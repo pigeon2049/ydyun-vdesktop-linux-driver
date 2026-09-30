@@ -159,6 +159,13 @@ int main(int argc, char **argv)
 			uint64_t val = parse_arg(argv[i + 3]);
 			memcpy((char *)bufs[id] + off, &val, 8);
 			i += 4;
+		} else if (strcmp(argv[i], "poke") == 0) {
+			uint64_t addr = parse_arg(argv[i + 1]);
+			uint64_t val = parse_arg(argv[i + 2]);
+			memcpy((void *)(uintptr_t)addr, &val, 8);
+			printf("POKE %s <- 0x%lx\n", argv[i + 1],
+			       (unsigned long)val);
+			i += 3;
 		} else if (strcmp(argv[i], "call") == 0 ||
 			   strcmp(argv[i], "ret") == 0) {
 			generic_fn f = (generic_fn)resolve(argv[i + 1]);
@@ -173,7 +180,8 @@ int main(int argc, char **argv)
 			       strcmp(argv[j], "u64") != 0 &&
 			       strcmp(argv[j], "dump") != 0 &&
 			       strcmp(argv[j], "dumpat") != 0 &&
-			       strcmp(argv[j], "strat") != 0)
+			       strcmp(argv[j], "strat") != 0 &&
+			       strcmp(argv[j], "poke") != 0)
 				a[n++] = parse_arg(argv[j++]);
 			printf("SYMBOL %s(...) -> %" PRId64 "\n", argv[i + 1],
 			       (int64_t)f(a[0], a[1], a[2], a[3], a[4], a[5],

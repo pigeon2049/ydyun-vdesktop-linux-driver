@@ -243,6 +243,27 @@ static void fabricate_pmr_alloc(const uint8_t *in, uint32_t in_size,
 	}
 }
 
+/* Sync primitive block (0x02:0x00) OUT is 32B: hSyncHandle u64@0,
+ * hhSyncPMR u64@8, eError u32@16, BlockSize u32@20, VAddr u64@24.
+ * Zero BlockSize kills the follow-up RA_Alloc (entry rejects size 0);
+ * zero handles alias later unref/map steps. Fabricate all nonzero. */
+static void fabricate_sync_alloc(uint8_t *out, uint32_t out_size)
+{
+	uint64_t hpmr;
+	uint32_t blk = 0x1000;
+	memset(out, 0, out_size < 32 ? out_size : 32);
+	if (out_size >= 8) {
+		uint64_t h = 0x6000 + (next_pmr & 0xff);
+		memcpy(out, &h, 8);
+	}
+	if (out_size >= 16) {
+		hpmr = next_pmr++;
+		memcpy(out + 8, &hpmr, 8);
+	}
+	if (out_size >= 24)
+		memcpy(out + 20, &blk, 4);
+}
+
 /* Distinct heap handles keyed by base VA (OUT 12B: hHeap u64@0).
  * IN (28B): base u64@0, length u64@8, ctx u64@16, log2page u32@24. */
 static void fabricate_heap_create(const uint8_t *in, uint32_t in_size,
@@ -517,6 +538,9 @@ int ioctl(int fd, unsigned long req, ...)
 					(const uint8_t *)(uintptr_t)cmd.in_ptr,
 					cmd.in_size,
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else if (cmd.bridge_id == 0x2 && cmd.bridge_func_id == 0x0)
+				fabricate_sync_alloc(
+					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
 			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x13)
 				fabricate_handle_out(&next_mapping,
 						     (uint8_t *)(uintptr_t)cmd.out_ptr,
@@ -597,7 +621,10 @@ ssize_t read(int fd, void *buf, size_t count)
 {
 	ssize_t ret = S_(SYS_read, fd, (long)buf, count, 0, 0, 0);
 	ensure_log();
-	if (logf && (fd > 2 || ret > 0))
+	/* Worker threads poll fds in tight loops; logging every read floods
+	 * the trace (tens of millions of lines) and fills /tmp. Log reads
+	 * only when explicitly asked. Bridge/ioctl/mmap logging is unaffected. */
+	if (logf && getenv("UMD_TRACE_READ") && (fd > 2 || ret > 0))
 		fprintf(logf, "{\"seq\":%lu,\"op\":\"read\",\"fd\":%d,"
 			"\"count\":%zu,\"ret\":%zd}\n",
 			++seq, fd, count, ret);

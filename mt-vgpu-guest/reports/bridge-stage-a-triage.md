@@ -313,3 +313,84 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
    kick 包捕获（审包对 PSC）自然落地。
 5. 成功标准：UMD 走完 connect→devmem→renderctx→kick-submit
    全链路（先只审包不上交硬件），输出最小命令集终版。
+
+## 20. bA13：Windows 灵感回灌 + Sync 动态值 + CreateSyncPrim 打通
+
+### 20.1 bA12 勘误：kick 首参是连接，不是 renderctx
+
+- `MTSRVGetClientEventFilter`（`decompiled.c:15822`，`0013fae0`）：
+  `lVar1=*(param_1+0x50)` 的持有者是 `0xd0` 连接结构
+  （`ConnectionCreate:13644` 分配），`+0x50` 由 `FUN_0013ede0`
+  （`PVRSRVHWPerfUmInit`）经 `_AcquireHWPerfSetting` 写入；
+  `conn+0x14=0x20` 时 bit `0x10` 为零必走分配路。renderctx（`0x330`，
+  `RGXCreateRenderContextCCB:53459`）全程无 `+0x50` 读写。
+- `RGXKickTA:53206`（`0017afd0`）：`param_1=psDevConnection`，
+  `param_2=psKickTA`，门卫仅 `(param_2!=0 && *(param_2+0x30)!=0)`。
+  bA12 误传 renderctx 作 param_1——调用错误，非对象图缺失。
+- 实测（T）：`connect 0` 后 `conn+0x50` 非零、`conn+0x14=0x20`；
+  `RGXKickTA(conn, kickbuf(+0x30≠0))` 越过 filter，止于
+  `RGXPrepareTA(FUN_00178800)+0x253`（VMA `0x178a53`，gdb 双独立 run 定位）。
+  下一步是整形 kickTA，不是补事件过滤器。
+
+### 20.2 Sync memType 动态值：`0x100000000`（静态 2 证伪）
+
+- `0x02:0x00` IN 8B=`0000000001000000`，对照 5.2
+  `common_sync_bridge.h` 即 `MTGPU_BRIDGE_IN_ALLOCSYNCPRIMITIVEBLOCK.ui64MemType`。
+- 机理（S）：`CreateSyncPrim:001782a0` 调
+  `FUN_0019e0c0(arena,lVar3,1,0x100000000,lVar3,"Sync_Prim",...)`；
+  `RA_Alloc` 把 `param_4` 掩码（`& 0xf8e0007f0c1eff33`，bit32 保留）后透传给
+  `SyncPrimBlockImport(FUN_0019f970):77234 → wrapper(FUN_001390d0):12045`。
+  静态 `edx=0x2` 是 `FUN_001a0020:77446` 建 RA 的类别参（`FUN_0019da20` param_3），
+  与桥输入无关——bA1/bA5 结论作废。
+- 因果对照（T）：同会话去手动 `CreateSyncPrim` 则零 `0x02:0x0x`、零 DebugPrintf；
+  加上即现（两次独立 run 同值）。
+
+### 20.3 `CreateSyncPrim → 0` 会话配方与 sync 伪造
+
+- 最小成功序列（单进程，`build/probe/umd_connect_harness`）：
+  `connect 0` → `PVRSRVConnectionCreateDevice(b7,u0,u0)` →
+  `RGXCreateDeviceMemContext(b7*,b5,b5+8)`（`o1=o2=0x30` RGX ctx，
+  `*param_2=*param_3=__ptr`，见 `0016f970` 尾）→ params（`+0x10=devctx` 直接指针、
+  `+0x30/+0x34≠0`）→ `RGXCreateRenderContext(b7*,b6,b9) → 0，out 非零`。
+  注：`+0x10` 是 devctx 本体（`CCB` 内 `__ptr[1]=*(param_2+4)`，
+  注册表=`*(__ptr[1]+8)`=`MTSRV ctx`经 `FUN_001417e0→FUN_00195290` 填入）；
+  bA6 的「子结构」说修正。
+- sync 三槽（T）：`generic-conn+0xb0`、`device-conn+0xb0`、`renderctx+0x30`
+  皆非零且 arena（`+0x40`）皆非零（一次「arena=0」系 harness `'*…'` 引号误包，
+  复测已澄清）。
+- `CreateSyncPrim(device-sync)` 曾返 3：根因是全零 `0x02:0x00` 输出
+  （`BlockSize=0`）触发后续 `RA_Alloc` 入口拒零（`0x652`，dprintf 抓获）。
+  shim 新增 `fabricate_sync_alloc`（`hSync=0x60xx`、`PMR=0x5000+`、
+  `BlockSize=0x1000`）后**首次返回 0**，out 非零；新桥
+  `0x02:0x07 BridgeSyncAllocEvent` 现身（IN 20B，待对头文件精读）。
+- Stage B 硬输入：Sync 真 `memType=0x100000000`；`0x02:0x00` OUT 必须非零
+  句柄/PMR/BlockSize。
+
+### 20.4 Windows 侧 mining（反编译文本直读，不启动 Ghidra）
+
+- `RenderContext/KickTA/EventFilter/SyncPrim/PSC` 在 `mtkm64.sys/mtdxum*/mtgfxc*`
+  的 `decompiled.c` 基本零命中；对应物：WDDM Cb
+  （`mtdxum64.dll:261885ff D3DDDIRenderCb/CreateContextCb/
+  Create/Destroy/Wait/SignalSynchronizationObject*Cb`）与
+  `musa::compiler` LLVM 后端（`mtgfxc64.dll` 内
+  `llvm.musa.load.vertex.buffer / get.vertex.id|base / per.vertex.buffer.base`）。
+  PSC 上下文 ctor（Linux `001a4fc0`，`0x428` 字节）在 Windows 侧无明文对应——
+  顶点取数手写重实现无望，桥接是唯一活路。
+- `mtkm64.sys` strings：FW 内嵌 `KICK-DM/PreKick/Serial-Kick/Kick-Task/
+  CDM_DM KICK/GEOM_DM KICK/GFX-Stage …/Kick Event update|check|Timeout +
+  CDM Context Store/Resume RGX_CR_CDM_CONTEXT_STORE0/1…`（`0x14104xxxx` 段，
+  `references_from:[]`，查 `disassembly.txt` 反查 `LEA`）。
+- `InitMTFeatures(00151930)` 按 device-type 选表：`0=Sudi，10=QuYuan1，
+  0x14=QuYuan2，0x28=PingHu1` + `PVRSRVGetMultiCoreInfo` 回填。
+- `FUN_00183d30=RGXGenerateContextSwitchUniformTasks`（Linux `58016`，
+  不在 `mtkm64.sys`）：`local_40[0]==0`（USC `calloc(8)` OOM）即
+  `Failed to create USC task`；`GeneratePDSUniformLoad` 要求 state-buffer
+  addr 非零、code/data 段尺寸非零——Stage B 合成描述符时的非零清单。
+
+### 20.5 工具链教训
+
+- devmem 成功后 UMD 工作线程空转 `read(fd3)`：shim 原逐条记日志，
+  一次刷出 4.7GB/8100万行（已删）。现 `read` 日志默认关闭
+  （`UMD_TRACE_READ=1` 才记）；成功会话进程不自然退出，一律 `timeout`。
+- `probe/umd_connect_harness.c` 未提交的 `poke` op 一并入库（bA13 commit）。
+- 大 trace 不落 `reports/`；只记配方、线格式与结论。

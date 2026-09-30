@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA12：Stage A 收官评估 + Stage B 提案；未提交）
+最后更新：2026-09-30（bA13：Windows 灵感回灌 + SyncmemType 实测 + CreateSyncPrim 打通；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,75 @@
 
 ---
 
-## 本次会话进展（bA12：Stage A 收官评估，未提交）
+## 本次会话进展（bA13：Windows 灵感回灌 + Sync 实测突破，未提交）
+
+接 bA12。用户建议回到 Windows 原始驱动找灵感，并行三路 mining + 活 harness 验证，
+推翻两个旧结论，打通一条新链。
+
+### 1. bA12 勘误：kick 崩的不是事件过滤器缺失，是首参传错
+
+- `MTSRVGetClientEventFilter(param_1,1)` 的 `param_1` 是 **psDevConnection**
+  （`+0x50` 为 HWPerfUm 指针，`FUN_0013ede0` 在 `ConnectionCreate→_AcquireHWPerfSetting`
+  后分配；`conn+0x14=0x20` 时 bit `0x10` 为零必走该路）。`RGXKickTA/RGXKickCDM` 的
+  param_1 同为连接，`+0x30` 检查的是 kick 参数块——bA12 把 renderctx 当 param_1
+  传，野读是调用错误，不是 UMD 对象图缺失。
+- 实测：`PVRSRVConnect` 后 `conn+0x50` 非零；`RGXKickTA(conn, kickbuf)` 越过
+  `GetClientEventFilter`，崩点推进到 `RGXPrepareTA(FUN_00178800)+0x253`
+ （kick 结构字段未整形，预期内）。
+
+### 2. Sync memType 动态值首次捕获：`0x100000000`，静态 2 理论作废
+
+- `0x02:0x00` 输入 8B = `00000000 01000000`（u64 `0x100000000`），对照 5.2 头即
+  `ui64MemType`。静态 `edx=0x2` 只是 RA 创建时的 arena 类别参数
+ （`FUN_001a0020→FUN_0019da20` 的 param_3），经 `RA_Alloc` 的是 `param_4` 掩码值；
+  `CreateSyncPrim` 调 `RA_Alloc(...,1,0x100000000,...)`，掩码保留 bit32。
+- 对照试验证明因果：去掉手动 `CreateSyncPrim` 的会话零 `0x02:0x00`、零 DebugPrintf；
+  加上即现。bA1/bA5 的「memType 恒为 2」降级为已证伪。
+
+### 3. `CreateSyncPrim` → 0（device-conn 真 sync ctx + 新伪造）
+
+- 会话配方（`build/probe/umd_connect_harness` 单进程）：
+  `connect 0 → PVRSRVConnectionCreateDevice(b7,u0,u0) → RGXCreateDeviceMemContext(b7*,b5,b5+8)`
+  → `params+0x10=devctx`（devctx 指针**直接**存，不是子结构；bA6 修正）
+  `+0x30/+0x34≠0 → RGXCreateRenderContext(b7*,b6,b9) → 0，out 非零`。
+- sync ctx 三槽皆有效：`conn+0xb0` ×2、`renderctx+0x30`（arena 皆非零；
+  中间一次「arena=0」是 harness 引用号引号包错的人为乌龙）。
+- `CreateSyncPrim(device-sync,...)` 返回 3 的根因是伪造质量：
+  全零 `0x02:0x00` 输出使 `BlockSize=0`，后续 `RA_Alloc` 入口拒零（`0x652`）。
+  shim 新增 `fabricate_sync_alloc`（句柄/`0x5000+` PMR/`BlockSize=0x1000`）后
+  **首次返回 0**，out 非零；连带捕获新桥 `0x02:0x07 BridgeSyncAllocEvent`。
+- 给 Stage B 的硬输入：Sync 分配真值就是 `0x100000000`；`0x02:0x00` OUT 必须带
+  非零句柄/PMR/BlockSize，否则 UMD 自己的 RA 二次分配就地失败。
+
+### 4. Windows 侧灵感（结论性，细节见报告 §20）
+
+- Windows 四件套无 `RenderContext/KickTA/PSC` 字面量——对应物是 WDDM Cb
+  （`D3DDDIRenderCb/CreateContextCb/CreateSynchronizationObjectCb…`，
+  `mtdxum64.dll`）+ `musa::compiler` LLVM 后端
+  （`llvm.musa.load.vertex.buffer` 等，`mtgfxc64.dll`）。PSC 编译器只在 Linux UMD
+ （`001a4fc0…`）；顶点取数手写重实现无望，**桥接路线是唯一活路**（强化 Stage B）。
+- `mtkm64.sys` 内嵌 FW 日志给出固件侧 DM/kick/event 全家桶词汇；
+  `InitMTFeatures` 按 device-type 选四套特征表（Sudi/QuYuan1/QuYuan2/PingHu1）。
+
+### 5. 工具链
+
+- `probe/umd_bridge_shim.c`：`read` 日志默认关闭（`UMD_TRACE_READ=1` 才记；
+  devmem 成功后 UMD 工作线程空转 `read fd3`，曾一次刷出 4.7GB/8100万行 trace，
+  已删）；`0x02:0x00` 伪造；既有 `poke`（harness 未提交改动一并入库）。
+- 纪律：devmem 成功后的会话进程不会自然退出（工作线程），一律 `timeout` +
+  小 trace；大 trace 勿落 `reports/`（本次只记配方与结论）。
+
+### 下一步（bA14）
+
+1. `RGXCreateZSBuffer(hHeap, devmemctx)`（签名已扒：param_1=hHeap/param_3=devmemctx）
+   → `RGXAddRenderTarget` → `RGXCreateKickSyncContextCCB(conn, devmemctx)`
+   → 以 `CreateSyncPrim` 产物 + DebugPrintf/`0x652` 法整形 kickTA，进 `RGXPrepareTA`。
+2. 复核 `0x02:0x07` IN 结构（对照 5.2 头）并记入 Stage B 桥表。
+3. Stage B 提案不变，但 Sync 行已可写死真值（memType=`0x100000000`）。
+
+---
+
+## 上次会话进展（bA12：Stage A 收官评估，未提交）
 
 接 bA11。kick 入口已探明，要求事件过滤器对象（`[renderctx+0x50]`），
 我方流程未建——属 UMD 内部对象图缺失，非线格式问题。
