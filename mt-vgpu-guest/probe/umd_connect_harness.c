@@ -7,11 +7,12 @@
  *   buf ID SIZE              calloc(SIZE,1); remembers ID -> pointer
  *   u32 ID OFF VAL           poke u32 into buffer ID at OFF
  *   u64 ID OFF VAL           poke u64 into buffer ID at OFF
- *   call SYM A...            call SYM(up to 6 args); each arg is one of:
+ *   call SYM A...            call SYM(up to 16 args); each arg is one of:
  *                              conn          remembered connection
  *                              bID           buffer ID base pointer
  *                              bID+OFF       buffer ID plus byte offset
  *                              uVAL          integer (dec/0xhex)
+ *   str ID OFF TEXT         write TEXT (with NUL) into buffer ID at OFF
  *   dump ID OFF LEN          hexdump buffer region
  *   ret SYM ...              alias for call (prints SYMBOL ... -> ret)
  *
@@ -27,6 +28,8 @@
 
 typedef uint64_t (*generic_fn)(uint64_t, uint64_t, uint64_t,
 			       uint64_t, uint64_t, uint64_t,
+			       uint64_t, uint64_t, uint64_t, uint64_t,
+			       uint64_t, uint64_t, uint64_t, uint64_t,
 			       uint64_t, uint64_t);
 
 #define MAX_BUFS 32
@@ -169,15 +172,16 @@ int main(int argc, char **argv)
 		} else if (strcmp(argv[i], "call") == 0 ||
 			   strcmp(argv[i], "ret") == 0) {
 			generic_fn f = (generic_fn)resolve(argv[i + 1]);
-			uint64_t a[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+			uint64_t a[16] = {0};
 			int n = 0;
 			int j = i + 2;
-			while (j < argc && n < 8 && strcmp(argv[j], "call") != 0 &&
+			while (j < argc && n < 16 && strcmp(argv[j], "call") != 0 &&
 			       strcmp(argv[j], "ret") != 0 &&
 			       strcmp(argv[j], "connect") != 0 &&
 			       strcmp(argv[j], "buf") != 0 &&
 			       strcmp(argv[j], "u32") != 0 &&
 			       strcmp(argv[j], "u64") != 0 &&
+			       strcmp(argv[j], "str") != 0 &&
 			       strcmp(argv[j], "dump") != 0 &&
 			       strcmp(argv[j], "dumpat") != 0 &&
 			       strcmp(argv[j], "strat") != 0 &&
@@ -185,8 +189,20 @@ int main(int argc, char **argv)
 				a[n++] = parse_arg(argv[j++]);
 			printf("SYMBOL %s(...) -> %" PRId64 "\n", argv[i + 1],
 			       (int64_t)f(a[0], a[1], a[2], a[3], a[4], a[5],
-					  a[6], a[7]));
+					  a[6], a[7], a[8], a[9], a[10], a[11],
+					  a[12], a[13], a[14], a[15]));
 			i = j;
+		} else if (strcmp(argv[i], "str") == 0) {
+			unsigned id = (unsigned)strtoul(argv[i + 1], NULL, 10);
+			unsigned long off = strtoul(argv[i + 2], NULL, 0);
+			const char *s = argv[i + 3];
+			if (id >= MAX_BUFS || !bufs[id]) {
+				fprintf(stderr, "bad buf id\n");
+				return 1;
+			}
+			memcpy((char *)bufs[id] + off, s, strlen(s) + 1);
+			printf("STR buf%u+0x%lx <- \"%s\"\n", id, off, s);
+			i += 4;
 		} else if (strcmp(argv[i], "dump") == 0) {
 			unsigned id = (unsigned)strtoul(argv[i + 1], NULL, 10);
 			unsigned long off = strtoul(argv[i + 2], NULL, 0);

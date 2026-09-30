@@ -387,7 +387,29 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
   `Failed to create USC task`；`GeneratePDSUniformLoad` 要求 state-buffer
   addr 非零、code/data 段尺寸非零——Stage B 合成描述符时的非零清单。
 
-### 20.5 工具链教训
+#### 20.6 bA14：ZS 缓冲参数序修正 + 伪造成就的又一面墙
+
+- harness 扩容：`call` 支持 16 参数（`RGXCreateZSBuffer` 有 13 个），新增
+  `str ID OFF TEXT` 写串（`MTSRVFindHeapByName` 需要名缓冲）。
+- **`RGXCreateZSBuffer` 真实参数序**（`00184f90` + 内联体 `MTSRVAllocExportableDeviceMemMIW`
+  `00144840` 交叉确认）：
+  `(psDevConnection, hHeap, psDevMemCtx, uiFlags, psMalloc, uiSize(log2),
+    bAligned, bCPU, ppui64Mem, pphMemHandle, pppsZSBuffer, pphPMR, pvClientData)`
+  —— **`param_2` 才是连接**，`param_1` 是 hHeap；bA14 之前按相反顺序调用，
+  报 `0x1d3 "%s invalid" psDevConnection`。
+- 堆对象布局（T，`MTSRVFindHeapByName(devmemctx,"General") -> 0` 后 dump 96B）：
+  `+0x00` self、`+0x08` refcount=1、`+0x10` base（`0x40000000`）、
+  `+0x18` size（`0x8000000000`）、`+0x20` reserved=0、`+0x50` Log2PageSize=12。
+  该 `+0x50` 是 `MTSRVGetHeapLog2PageSize`（`FUN_001972c0`）唯一来源。
+- 新墙：参数序修正后 `RGXCreateZSBuffer` 进入
+  `DevmemAllocateExportable`（`FUN_00195660`）并在其内部校验返回
+  `MTSRV_ERROR_INVALID_PARAMS`（`0x6e3` dprintf 定位）。该层依赖真实堆几何
+  （size/align/flags/Log2AllocSizePage 与三处互斥标志），伪造不再收敛——
+  与 §19 结论一致：**ZS/kick 的剩余工作必须由真实 KMD 数据驱动**。
+- 结论：离线阶段能给的已给完（连接/双连接/devmem/renderctx/sync 全绿，
+  memType 实值在手）。下一步应转入 Stage B 内核桥实现。
+
+## 20.5 工具链教训
 
 - devmem 成功后 UMD 工作线程空转 `read(fd3)`：shim 原逐条记日志，
   一次刷出 4.7GB/8100万行（已删）。现 `read` 日志默认关闭
