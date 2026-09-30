@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（提交 `c104a7d`，r43：r42 重叠检测 errno 等价性离线收尾；真机项仍待定）
+最后更新：2026-09-30（提交 r44：r42 新布局真机验证通过；卸载期 WARN 新发现已记录）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,56 @@
 
 ---
 
-## 本次会话进展（r43：r42 遗留 errno 等价性收尾，提交 `c104a7d`）
+## 本次会话进展（r44：r42 真机验证完成 + 卸载 WARN 新发现）
+
+用户指令：重启后在本机继续测试。
+
+### 0. 重启后环境
+
+- `sudo` 可用（`NoNewPrivs=0`）；`mt_guest_probe` 未加载，旧会话已随重启消失，
+  无需销毁任何东西。
+- `00:0e.0` 被官方 `mtgpu` 绑定，但它启动时即 `PhysHeapsInit` 失败（`-19`，
+  无设备节点，引用 0）；显示走 QXL。已解绑（可逆），官方驱动模块仍在内存中。
+
+### 1. 会话重建（未绕过任何门禁）
+
+- unbound 后 BAR 读数 `Guest=2/FW=1`（宿主侧残留，30 秒 3 次轮询稳定），
+  `fresh-trial.py` 预检判不合格，主模块 probe 自身也要求 `0x890==0`——均未绕过。
+- 按 r36/r28 定式：`mt_cold_disconnect` 只读 dry-run
+  （6 DM 全环 idle、`started=0`、`FW=1`；`fw_pa=0x779fef000` 为宿主重启后新值）
+  → `finish=1` 写 Guest OFF → 双重确认 `Guest=0/FW=1` → 卸载 helper。
+- `fresh-trial.py --run --runtime-context`：`connected=1`、`published=1`、
+  `guest=2 firmware=2 started=1 pinned=1`。主模块为新布局重编，
+  证据 `build/fresh-trials/20260930T052647Z-28c45d79/`（gitignored）。
+
+### 2. r42 真机验证通过
+
+- `mt_live_3d_drm` 加载不再 `-EBUSY`：
+  `2D VM (pages=18, maps=20/15872) & 3D VM (pages=21, maps=23/15872)`。
+- `mt-3d-check 20`：`2D=20 3D=23/15872`（上限 15872 真机实测 = r42 推导值），
+  20 帧 100% + render-target 绑定/VRAM 读回全部 OK。
+- 详见 `reports/r44-r42-live-verification.md`。
+
+### 3. 新发现（预先存在，与 r42 无关）：sealed 恢复空间卸载报 WARN
+
+- `rmmod mt_live_3d_drm` 两次均在 `release_unpublished` 留两条 WARNING
+  （674/679 行 `destroy(space_3d/2d)` 返回 `-EBUSY`）。
+- 根因：两空间都已 `seal`，而 `mt_gpu_vm_fini` 按设计拒绝已 seal 的 VM
+  （r42 前后相同；r41 从未 seal 后卸载，故无人见过）。
+- 泄漏：2 个 `mt_vm_vram` 对象 + 所绑 BO；每周期主模块引用计数 +26
+  （VRAM backing 的 `__module_get` 永不配对，`store->objects` 不回落）。
+- 已验证会话在 WARN 卸载后依然健康（第二次加载 + 3 帧 `seq=22..25` + 读回全过；
+  第二次加载节点顺延为 `renderD129`/`card2`，`mt-3d-check` 硬编码路径，
+  用临时 symlink 覆盖，用完即删）。
+- 规则：已 seal 的恢复模块不要热卸载（与 r32/r34 一致）；WARN 保留不静默；
+  真正的释放需要 context-withdrawal/TLB 协议（独立工作项，不动手）。
+- 当前终态：新布局主模块 + 活会话（`guest=2 firmware=2 started=1`，
+  `pending=0 completed=25`），恢复模块已卸载，`00:0e.0` 归自研驱动；
+  taint 新增 `W` 位。
+
+---
+
+## 上次会话进展（r43：r42 遗留 errno 等价性收尾，提交 `c104a7d`）
 
 用户决定：先收尾 r42 遗留；r42 真机验证直接在本机尝试 root。
 
@@ -223,15 +272,14 @@ sudo rmmod mt_live_3d_drm
 
 ## 下一步（待用户决定）
 
-1. **r42 真机验证（需用户异地执行，本容器不可能）：**
-   重载主模块 + `insmod mt_live_3d_drm` + `mt-3d-check`，
-   确认 512-mapping 场景与 `vm3d_max_mappings` 真机值。
-   会销毁当前固件会话，需用户明确同意并在有 root 的终端上做。
+1. ~~r42 真机验证~~ 已由 r44 完成（20 帧 + 读回 + 上限实测）。
 2. **选定三角形/渲染路径**：逆向 PSC 编译器，还是走 PVRSRV ioctl 桥接
    让原厂 UMD 跑渲染路径（建议后者）。
 3. 若走 UMD 路径，需先做阶段设计：梳理原厂 UMD 对内核侧
    `PVRSRV` ioctl 的完整需求面。
 4. ~~r42 遗留第 3 项（重叠检测 errno 等价性）~~ 已由 r43 关闭。
+5. 远期：sealed VM 释放需要 context-withdrawal/TLB 协议；
+   在此之前已 seal 的恢复模块不要热卸载（每次卸载漏 2 VM 对象 + 约 26 主模块引用）。
 
 ---
 
@@ -257,4 +305,7 @@ sudo rmmod mt_live_3d_drm
 - 用户已加入 `video` 与 `render` 组，权限不是问题。
 - 实验副本与临时模块不得在移除入口保护后直接试载。
 - 未验证事项见 `reports/r42-vm-mapping-scale.md` 第 6–7 节
-  （第 6 节第 3 项已由 r43 离线关闭；真机两项待异地执行）。
+  （r43 已离线关闭第 3 项；真机两项已由 r44 完成，
+  见 `reports/r44-r42-live-verification.md`）。
+- 已 seal 的恢复模块（`mt_live_3d_drm` 等）不要热卸载：
+  `destroy` 必报 `-EBUSY` WARN 并泄漏（r44 第 3–4 节）。
