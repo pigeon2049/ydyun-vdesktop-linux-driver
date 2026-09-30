@@ -236,22 +236,31 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 - 给 Stage B 的输入（新增）：UMD 工具链本身必须确定性；
   OOM-stats 桥需实现（计数器语义）。
 
-## 15. bA10：render context 创建成功（TA timeline 是钥匙）
+## 15. bA10：TA timeline 与 sync ioctl（renderctx 成功其一）
 
 - `PVRFDSyncOpen` 的 `PVR_SYNC_IOC_RENAME`（`0x40206441`）在假 fd 上
   报 ENOTTY → 无 TA timeline → renderctx 失败。shim 对 DRM `pvr`
-  系列 ioctl（`0x6440-0x6445`，桥包除外）一律回 0 后：
-  **`RGXCreateRenderContext(...) -> 0`，outptr 为非零 ctx！**
-- 101-op 成功序列见 `reports/umd-bridge-renderctx-trace.jsonl`：
-  devmem/堆/PMR 之后 `0x82:0x8 RGXCREATERENDERCONTEXT(hRenderContext=0x6000)`、
-  `0x1:0x4 EVENTOBJECTOPEN(0x7000)`、第二 render 节点 open + `INIT(2)`、
-  两次 SYNC_RENAME（TA/3D timeline？），无 teardown，直接返回 0。
-- 给 Stage B 的输入（新增）：KMD 必须实现整套 PVR sync ioctl
-  （rename/create-fence/inc 等，不止桥包）；render 节点要能多开
-  （UMD 开第二个节点做 sync）。
-- 仍 open：Sync alloc 动态值（kick 前必现）、ZS buffer、kick 本体。
+  系列 ioctl（`0x6440-0x6445`，桥包除外）一律回 0 后首次走通。
+  （后续 bA10-device-conn 给出更完整的成功路径，本节保留 sync 发现。）
+- 给 Stage B 的输入：KMD 必须实现整套 PVR sync ioctl
+  （rename/create-fence/inc 等，不止桥包）；render 节点要能多开。
 
-## 16. bA8 附记：注册表内容（已由 bA10 证实有用）
+## 16. bA10：render context 创建成功（device connection 是钥匙）
+
+- `PVRSRVConnectionCreateDevice(b7,u0,u0)` 跑出**第二套完整 Connect 序列**
+  在 device-conn 上重做 devmem＋renderctx：
+  **`RGXCreateRenderContext(...) -> 0`，outptr 非零 render ctx！**
+- 120-op 成功序列见 `reports/umd-bridge-renderctx-trace.jsonl`：
+  PMR/reserve/map 若干轮 → `0x82:0x8`（hRenderContext=0x6000）→
+  `0x1:0x4`（0x7000）→ 第二节点 + `INIT(2)` → 两次 SYNC_RENAME → 返回 0。
+  （通用 conn 上同调用只到 1；device conn 是渲染路径的前提。）
+- 给 Stage B 的输入（新增）：KMD 必须支持**两种连接**
+  （generic + device），渲染走 device；`PVRSRVConnectionCreateDevice`
+  的线格式已在 trace 中（`b7 u0 u0` 即可）。
+- 仍 open：CreateSyncPrim 在 `[conn+0]+0xa0`（features）野指针上 SEGV
+  （通用/device conn 皆然，见 bA11）；Sync memType 动态值待其后。
+
+## 17. bA8 附记：注册表内容（位置修正，内容保留）
 
 - 注册表 dump：registry（count=11）entries 0-6 名为 "General"，7 为
   "PDS Code and Data"，8-10 为 "USC Code"。

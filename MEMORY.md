@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA10：render context 创建成功；未提交）
+最后更新：2026-09-30（bA10：render ctx 成功，device-conn；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,31 @@
 
 ---
 
-## 本次会话进展（bA10：render context 创建成功，未提交）
+## 本次会话进展（bA10：render ctx 成功，未提交）
+
+接 bA9。两条并进均有斩获：
+
+### 1. TA timeline（sync ioctl 全家）
+
+`PVR_SYNC_IOC_RENAME` 在假 fd 上 ENOTTY → 无 timeline → 失败。
+shim 对 DRM pvr 系列（`0x6440-0x6445`，桥包除外）回 0。
+
+### 2. device connection（决定性）
+
+- `PVRSRVConnectionCreateDevice(b7,u0,u0)` 跑出第二套完整 Connect，
+  返回 device-conn；其上 devmem＋renderctx：
+  **`RGXCreateRenderContext -> 0`，outptr 非零！**（120 ops，
+  `reports/umd-bridge-renderctx-trace.jsonl`）。
+- 通用 conn 上同调用只到 1——渲染走 device conn。
+- 给 Stage B 的输入：两种连接都要实现；`CreateDevice` 线格式已有。
+
+### 3. 下一步（bA11）
+
+ZS buffer → Sync alloc（memType 复核）→ kick → 最小命令集。
+
+---
+
+## 上次会话进展（bA9：稳定性修复 + OOM-stats，未提交）
 
 接 bA9（同一会话连续推进）。
 
