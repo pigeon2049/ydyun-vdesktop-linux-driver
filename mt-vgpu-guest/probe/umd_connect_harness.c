@@ -26,7 +26,8 @@
 #include <string.h>
 
 typedef uint64_t (*generic_fn)(uint64_t, uint64_t, uint64_t,
-			       uint64_t, uint64_t, uint64_t);
+			       uint64_t, uint64_t, uint64_t,
+			       uint64_t, uint64_t);
 
 #define MAX_BUFS 32
 
@@ -62,20 +63,25 @@ static uint64_t parse_arg(const char *s)
 	}
 	if (s[0] == 'b') {
 		unsigned id = (unsigned)strtoul(s + 1, &end, 10);
+		uint64_t base;
 		if (id >= MAX_BUFS || !bufs[id]) {
 			fprintf(stderr, "bad buffer ref %s\n", s);
 			exit(1);
 		}
+		base = (uint64_t)(uintptr_t)bufs[id];
+		if (*end == '*') {
+			uint64_t val;
+			memcpy(&val, (void *)(uintptr_t)base, 8);
+			return val;
+		}
 		off = 0;
 		if (*end == '+')
 			off = strtoul(end + 1, NULL, 0);
-		return (uint64_t)(uintptr_t)bufs[id] + off;
+		return base + off;
 	}
 	if (s[0] == 'u' || s[0] == 'i')
 		return strtoull(s + 1, NULL, 0);
-	fprintf(stderr, "bad arg %s\n", s);
-	exit(1);
-	return 0;
+	return strtoull(s, NULL, 0);
 }
 
 int main(int argc, char **argv)
@@ -118,31 +124,33 @@ int main(int argc, char **argv)
 		} else if (strcmp(argv[i], "u32") == 0) {
 			unsigned id = (unsigned)strtoul(argv[i + 1], NULL, 10);
 			unsigned long off = strtoul(argv[i + 2], NULL, 0);
-			uint32_t val = (uint32_t)strtoul(argv[i + 3], NULL, 0);
+			uint32_t val = (uint32_t)parse_arg(argv[i + 3]);
 			memcpy((char *)bufs[id] + off, &val, 4);
 			i += 4;
 		} else if (strcmp(argv[i], "u64") == 0) {
 			unsigned id = (unsigned)strtoul(argv[i + 1], NULL, 10);
 			unsigned long off = strtoul(argv[i + 2], NULL, 0);
-			uint64_t val = strtoull(argv[i + 3], NULL, 0);
+			uint64_t val = parse_arg(argv[i + 3]);
 			memcpy((char *)bufs[id] + off, &val, 8);
 			i += 4;
 		} else if (strcmp(argv[i], "call") == 0 ||
 			   strcmp(argv[i], "ret") == 0) {
 			generic_fn f = (generic_fn)resolve(argv[i + 1]);
-			uint64_t a[6] = {0, 0, 0, 0, 0, 0};
+			uint64_t a[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 			int n = 0;
 			int j = i + 2;
-			while (j < argc && n < 6 && strcmp(argv[j], "call") != 0 &&
+			while (j < argc && n < 8 && strcmp(argv[j], "call") != 0 &&
 			       strcmp(argv[j], "ret") != 0 &&
 			       strcmp(argv[j], "connect") != 0 &&
 			       strcmp(argv[j], "buf") != 0 &&
 			       strcmp(argv[j], "u32") != 0 &&
 			       strcmp(argv[j], "u64") != 0 &&
-			       strcmp(argv[j], "dump") != 0)
+			       strcmp(argv[j], "dump") != 0 &&
+			       strcmp(argv[j], "dumpat") != 0)
 				a[n++] = parse_arg(argv[j++]);
 			printf("SYMBOL %s(...) -> %" PRId64 "\n", argv[i + 1],
-			       (int64_t)f(a[0], a[1], a[2], a[3], a[4], a[5]));
+			       (int64_t)f(a[0], a[1], a[2], a[3], a[4], a[5],
+					  a[6], a[7]));
 			i = j;
 		} else if (strcmp(argv[i], "dump") == 0) {
 			unsigned id = (unsigned)strtoul(argv[i + 1], NULL, 10);
@@ -155,6 +163,16 @@ int main(int argc, char **argv)
 				printf("%s%02x", k % 16 == 0 ? "\n  " : " ", p[k]);
 			printf("\n");
 			i += 4;
+		} else if (strcmp(argv[i], "dumpat") == 0) {
+			unsigned char *p = (unsigned char *)(uintptr_t)
+				parse_arg(argv[i + 1]);
+			unsigned long len = strtoul(argv[i + 2], NULL, 0);
+			unsigned long k;
+			printf("DUMPAT %s:", argv[i + 1]);
+			for (k = 0; k < len; k++)
+				printf("%s%02x", k % 16 == 0 ? "\n  " : " ", p[k]);
+			printf("\n");
+			i += 3;
 		} else {
 			fprintf(stderr, "unknown op %s\n", argv[i]);
 			return 2;

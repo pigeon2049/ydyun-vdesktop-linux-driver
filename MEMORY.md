@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA5：devmem ctx 成功，USC 堆命名；未提交）
+最后更新：2026-09-30（bA6：renderctx 签名 + 堆损坏非确定性；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,27 @@
 
 ---
 
-## 本次会话进展（bA5：devmem 上下文创建成功，未提交）
+## 本次会话进展（bA6：renderctx 参数与堆损坏，未提交）
+
+接 bA5（同一会话连续推进）。
+
+### 1. renderctx 签名破解
+
+- `RGXCreateRenderContext(conn?, params, outptr=rdx)`；
+  CCB 要求 params 非空、`+0x30/+0x34` 非零、第 7 参数非空
+  （缺失报 `ppsRenderContext invalid` 返回 3）。
+- params`+0x10` 须为子结构指针（零则 SEGV）；取 devctx 时行为三态：
+  SEGV / 单线程 mutex 自死锁 / 返回 3——非确定性指向堆损坏。
+- 新桥：`0x6:0x27 PVRSRVUPDATEOOMSTATS`（某分配失败的上报）。
+- 方法沉淀：DebugPrintf 断点读参、`dumpat`、`bID*`、`call` 8 参数。
+
+### 2. 下一步（bA7）
+
+ASan 跑 renderctx 组合抓第一次非法写；然后 Sync → kick → 最小命令集。
+
+---
+
+## 上次会话进展（bA5：devmem 上下文创建成功，未提交）
 
 接 bA4（同一会话连续推进）。
 

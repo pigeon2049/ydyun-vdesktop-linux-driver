@@ -184,11 +184,26 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 - 给 Stage B 的输入（新增）：堆名表（`heap_names[]` 即上报值）；
   devmem 流程需要 named heaps（General/PDS/USC 至少三者）。
 
-## 7. 下一步（bA6）
+## 12. bA6：renderctx 签名与参数块，堆损坏的非确定性（进行中）
 
-1. 用已建好的 devmem ctx 调 `RGXCreateRenderContext`
-  （`RGXCreateRenderContextCCB` 参数：rdi=conn/dev？rsi=参数块
-  +0x30/+0x34 尺寸非零，elj 第 7 参数为 out 句柄；harness 已支持 8 参数）；
-  目标：Sync alloc 动态现身（复核 memType=2）。
-2. 然后：`RGXKICKTA3D3`（看清尾部 8 字节）→ 最小命令集 + 打桩表（Stage B 输入）。
+- 签名（S+gdb）：`RGXCreateRenderContext(conn?, params?, outptr=rdx)`；
+  `RGXCreateRenderContextCCB` 要求 rsi 非空、`[rsi+0x30]/[rsi+0x34]` 非零、
+  第 7 参数（out 句柄）非空——缺失报 `ppsRenderContext invalid` 返回 3。
+- 参数块 `+0x10` 必须是子结构指针（零则在 `FindHeap("General")` 前 SEGV）；
+  取 devctx 时行为非确定：SEGV / mutex 自死锁（单线程 `pthread_mutex_lock`
+  等待）/ 返回 3——三态并存指向**堆损坏**（某伪造维度仍错）。
+- 新桥（T）：`0x6:0x27 PVRSRVUPDATEOOMSTATS`（in8）——OOM 统计上报，
+  说明某分配失败是 abort 前因之一。
+- 方法：DebugPrintf 断点读参（`%s in %s()` 类消息直接报失败点）；
+  `dumpat` 任意地址读；`bID*` 解引用传参；`call` 支持 8 参数。
+  成功序列见 `reports/umd-bridge-renderctx-trace.jsonl`（58 ops，含新桥）。
+- 给 Stage B 的输入（新增）：renderctx 三参数形状；params+0x10 子结构；
+  OOM-stats 桥存在（KMD 需实现计数器接口）。
+
+## 7. 下一步（bA7）
+
+1. 堆损坏根因：用 ASan 跑 renderctx 组合（exe+shim 同插已有先例），
+   抓第一次非法写（候选：params+0x10 子结构内容？堆名？import 句柄？）。
+2. 然后：Sync alloc 动态现身（复核 memType=2）→ `RGXKICKTA3D3`
+   （看清尾部 8 字节）→ 最小命令集 + 打桩表（Stage B 输入）。
 3. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。
