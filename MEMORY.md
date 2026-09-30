@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA1：桥接离线 triage 起步，tracer 跑通 Connect 序列；见下）
+最后更新：2026-09-30（bA2：Connect 中止根因追到 BVNC 门 + core allow-list；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,45 @@
 
 ---
 
-## 本次会话进展（bA1：桥接 Stage A 离线 triage，未提交）
+## 本次会话进展（bA2：BVNC 门定位 + core allow-list，未提交）
+
+接 bA1 继续（同一会话）。
+
+### 1. 返回码解码
+
+78 = `MTGPU_ERROR_DEVICEMEM_MAP_FAILED`（枚举数得，非猜测）。
+
+### 2. 系统二分（均为 T）
+
+Connect OUT 全零→全非零→单字段非零、事件句柄 0→0x2000，
+中止序列完全不变 → Connect OUT 不是当前 blocker 的充分条件。
+事件句柄非零使清理多走 release-event 一步（句柄被真实消费的又一证据）。
+
+### 3. gdb 抓栈定位失败分支
+
+- `UMD_TRAP="1:1"` 在 disconnect 前 SIGTRAP，抓到清理栈；
+  上层在 `cmp rdx,0x23 / cmp edx,0x660` 门走失败分支，`r14=78` 预置返回。
+- 门逻辑还原（S，`srv_um.dis` 文件偏移）：
+  连接对象 u64 先与 `0x0001000000000000`（`0x3b8c5`）、
+  `0x0023000406600017`（`0x3b8d8`）精确比对——UMD 写死的 core allow-list，
+  **未来 KMD 必须原样上报其中之一**；未命中则强制覆写为后者再过
+  `top16==0x23`、`bits[31:16]==0x660`、`C==0x17`、`V==4` 四道子门。
+- 即使伪造精确值仍走失败分支：被检槽 `[rbp-0x70]` 经 `0x92550` 写入，
+  数据流待 bA3 精读（对照第二次 Connect `0x927b4` 的 `[r15]` 槽）。
+- 接受路之后还有 `InitMTFeatures(0x51b20)` / `GetFeatures(0x518e0)`；
+  AppHint 名/默认在 rodata 可静态枚举（地址已记入报告 §8）。
+
+详见 `reports/bridge-stage-a-triage.md` §8（`reports/umd-bridge-connect-trace.jsonl`
+已更新为 13-op canonical trace）。
+
+### 4. 下一步（bA3）
+
+精读 `0x92550` 的 Bvnc 槽写入者；跟接受路进 `InitMTFeatures`；
+然后依次点亮 heap → Sync → RGX 上下文 → kick。
+
+---
+
+## 上次会话进展（bA1：桥接 Stage A 离线 triage，提交 `c98c197`）
 
 用户决定：按 PVRSRV 桥接推进。先做阶段 A（离线 triage），第一步已落地。
 

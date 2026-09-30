@@ -77,11 +77,45 @@ PVRSRVConnect -> 78
 Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在覆盖侧。
 结论待动态序列走到 kick 后再定；当前没有证据表明主路径被缺失 ID 挡住。
 
-## 7. 下一步（bA2）
+## 8. bA2：Connect 中止根因追到 BVNC 门（仍未越过， frontier 精确定位）
 
-1. 伪造 Connect OUT（Bvnc + caps + arch），看是否越过 disconnect；
-   Bvnc 真值候选：UMD 内 `expected` 常量（`0x3be60` 附近 push 的
-   `0x660/0x17/0x23` 待解码）或从硬件只读寄存器取（另起只读 helper，不碰 BAR 写）。
-2. 走通 Connect 后依次点亮：heap 查询 → Sync alloc（复核 memType=2）→
+- 返回码解码（H）：78 = `MTGPU_ERROR_DEVICEMEM_MAP_FAILED`
+ （`mtgpu_errors.h` 枚举，`MTGPU_OK=0` 起第 79 项）。
+- 系统二分（T）：Connect OUT 全零→全非零→单字段非零，中止序列**完全不变**；
+  故 Connect OUT 不是当前 blocker 的充分条件（但仍可能是必要条件）。
+- `UMD_TRAP="1:1"` + gdb 在 disconnect 前抓栈（T）：
+  清理函数 → `PVRSRVConnect` 上层在 `cmp rdx,0x23 / cmp edx,0x660`
+  门处走失败分支（`je` 成功路未中），`r14=78` 预置为返回值。
+- 门逻辑还原（S，`srv_um.dis` 文件偏移）：
+  - `0x3b8bb` 取连接对象 u64 → 先后与
+    **`0x0001000000000000`**（`0x3b8c5`）、**`0x0023000406600017`**
+    （`0x3b8d8`）精确比对，命中任一即走接受路（`0x3ba48`）——
+    这是 UMD 为本代硬件写死的 **core allow-list**，未来 KMD 必须原样上报其中之一。
+  - 未命中则强制覆写为 `0x0023000406600017` 再过三道子门：
+    `top16==0x23`、`bits[31:16]==0x660`、`C==0x17` 且 `V==strtol("4")==4`
+    （`0x3b9c8/0x3b9d3/0x3ba50/0x3ba5d`）。
+  - 即使用精确值 `0x0023000406600017` 伪造，仍走失败分支——
+    被检值可能不是 Connect OUT 的直接拷贝（`[rbp-0x70]` 经 `0x92550`
+    连接创建函数写入，数据流待 bA3 精读），或接受路之后还有检查。
+- 排除项（T）：info 页无 mmap/pread/lseek（shim 已覆盖），无其他 open
+  （shim 现记录全部 open，本次零新增），无 passthrough ioctl。
+- bA3 切入点（全部有文件行号）：
+  1. 精读 `0x92550`（`0x92550-0x92858`）：`[rbp-0x70]` 到底写入什么；
+     对照第二次 Connect 调用（`0x927b4`）的 Bvnc 存储槽（`[r15]`）。
+  2. 接受路 `0x3ba48 → 0x3b8eb` 之后：`InitMTFeatures(0x51b20)` /
+     `GetFeatures(0x518e0)` 的输入来源（`r12+0x80/0x88` AppHint？）。
+  3. AppHint 名/默认值在 rodata（`0x40a433/0x40a444/0x40a465/0x40a489/0x40a49c`），
+     可静态枚举。
+- 附带产出：shim 新增 `UMD_TRAP="bridge:func"`（SIGTRAP 抓栈）、全部 open 记录、
+  `canned[]` 伪造表（含事件句柄 0x2000 使清理路径多走 release-event 一步，
+  证明伪造值被真实消费）。
+
+## 7. 下一步（bA3）
+
+1. 精读 `0x92550`：`[rbp-0x70]`（BVNC 被检槽）的真正写入者；
+   对照第二次 Connect（`0x927b4`）的 `[r15]` 存储。
+2. 接受路 `0x3ba48 → 0x3b8eb` 之后：`InitMTFeatures` / `GetFeatures`
+   的输入来源；AppHint 名/默认值静态枚举。
+3. 走通 Connect 后依次点亮：heap 查询 → Sync alloc（复核 memType=2）→
    RGX 上下文创建 → `RGXKICKTA3D3`（顺带看清尾部 8 字节内容）。
-3. 输出「渲染主路径最小命令集 + 打桩表」，作为 Stage B（内核侧实现）的输入。
+4. 输出「渲染主路径最小命令集 + 打桩表」，作为 Stage B（内核侧实现）的输入。

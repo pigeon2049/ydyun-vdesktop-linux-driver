@@ -9,6 +9,7 @@
  */
 #define _GNU_SOURCE
 #include <fcntl.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -59,6 +60,18 @@ struct canned_out {
 };
 
 static const struct canned_out canned[] = {
+	/* SRVCORE:AcquireGlobalEventObject -> nonzero event handle (bA2-E2). */
+	{0x1, 0x2,
+	 {0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x00, 0x00},
+	 12},
+	/* SRVCORE:Connect -> exact UMD allow-listed core ID (bA2-F3):
+	 * 0x0023000406600017 (S:3b8db; alt 0x0001000000000000). */
+	{0x1, 0x0,
+	 {0x17, 0x00, 0x60, 0x06, 0x04, 0x00, 0x23, 0x00,
+	  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	  0x00},
+	 17},
 	/* SRVCORE:ACQUIREINFOPAGE -> nonzero info-page PMR handle. */
 	{0x1, 0xf,
 	 {0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -148,7 +161,14 @@ int open(const char *path, int flags, ...)
 	}
 	if (is_dri(path))
 		return dri_open(path);
-	return (int)syscall(SYS_openat, AT_FDCWD, path, flags, mode);
+	{
+		int fd = (int)syscall(SYS_openat, AT_FDCWD, path, flags, mode);
+		ensure_log();
+		if (logf)
+			fprintf(logf, "{\"seq\":%lu,\"op\":\"open_other\",\"path\":\"%s\","
+				"\"fd\":%d}\n", ++seq, path, fd);
+		return fd;
+	}
 }
 
 int open64(const char *path, int flags, ...)
@@ -247,6 +267,15 @@ int ioctl(int fd, unsigned long req, ...)
 			return 0;
 		}
 		memcpy(&cmd, arg, sizeof(cmd));
+		{
+			/* UMD_TRAP="bridge:func" raises SIGTRAP when that
+			 * bridge fires, so gdb captures the caller stack. */
+			const char *trap = getenv("UMD_TRAP");
+			unsigned tb = 0, tf = 0;
+			if (trap && sscanf(trap, "%u:%u", &tb, &tf) == 2 &&
+			    tb == cmd.bridge_id && tf == cmd.bridge_func_id)
+				raise(SIGTRAP);
+		}
 		if (logf) {
 			fprintf(logf, "{\"seq\":%lu,\"op\":\"ioctl\",\"fd\":%d,"
 				"\"bridge\":\"0x%x:0x%x\",\"in_size\":%u,\"out_size\":%u,",
