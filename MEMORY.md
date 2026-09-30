@@ -1,11 +1,64 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA20：`return 0` 空桩才是 Connect 拦路虎；真 UMD Connect 首次成功）
+最后更新：2026-10-01（bA21：设备连接阻塞点收窄；busid 之谜是我自己的探针 bug）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA20：Connect 打通——空桩必须写 OUT；设备连接卡在 busid 比对）
+## 本次会话进展（bA21：设备连接阻塞点收窄，一次自测纠错）
+
+接 bA20。真机继续（全程未重启）。
+
+### 1. 自我纠错：上一轮「节点没有 busid」的结论是错的，那是探针的 bug
+
+- 6.12 的 `struct drm_unique` 字段顺序是 **{unique_len 在前, unique 指针在后}**
+  （`include/uapi/drm/drm.h:156`），我按 `{unique, unique_len}` 写探针，于是：
+  - 「长度探测」那次读到的是**指针槽**，恒为 0；
+  - 「取值」那次把 `256` 当**指针**传给内核 ⇒ 必然 EFAULT。
+- 用正确结构重测，**我们的节点 busid 完全正常**：
+  `SET_VERSION(1,4) ret=0` → `GET_UNIQUE unique_len=16 busid='pci:0000:00:0e.0'`。
+- **教训：结论落在「内核返回了 EFAULT」这类信号上时，先怀疑自己的探针。**
+
+### 2. 两个 ioctl 号此前被我认错（都已用 drm.h 核实）
+
+- `0xc0106407` = **`DRM_IOCTL_SET_VERSION`**（nr 0x07），不是 GET_UNIQUE；
+  UMD 发的 `0x400000001` 解出来是 `drm_di_major=1, drm_di_minor=4`，
+  正是 libdrm 的 `drmSetVersion(fd,1,4)`，而 `drm_set_busid()` **只**由它触发。
+  所以 busid 确实被设上了（与 §1 的实测一致）。
+- `GET_UNIQUE` 是 `0xc0106401`，**UMD 一次都没发过**。
+
+### 3. 设备连接的完整可观测特征（已收窄）
+
+`PVRSRVConnectionCreateDevice` → 4，且**它自己不发任何 ioctl**。UMD 实际动作：
+
+1. open `renderD128/129/130` → 按 version 名选中我们的 `renderD130`（`pvr`）；
+2. open `card0`(QXL) → 名不符被跳过；`card1/card2` 不存在；open `card3`（我们的 primary）；
+3. `card3` 上 `VERSION`×2 + `SET_VERSION(1,4)`（**成功**）；
+4. 然后**直接放弃**：没有 `GET_UNIQUE`、没有 `/sys` 访问、没有任何 busid 字符串比较。
+
+### 4. 为此写的观测工具（`probe/umd_busid_trace.c`，纯只读）
+
+拦截 `strcmp/strcasecmp/strncasecmp/strncmp/memcmp`，只记录含 `:` 或以 `pci:` 开头的
+比较。**结论是零命中**——UMD 根本没用 libc 比较 busid。
+- 工具本身已自测有效（用 argv 传入 `pci:0000:00:0e.0` 能正常记录）。
+- 写它时踩了一次坑：过滤条件里调用 `strcmp("pci")` ⇒ 递归调用自己 ⇒ 进程崩溃；
+  改成本地逐字符比较后正常。
+
+### 5. 结论与下一步（未解决，如实记录）
+
+- 失败点是 **`SET_VERSION` 成功之后的某一步**，且**不产生任何系统调用**。
+- 反编译的控制流（Ghidra 说 `SET_VERSION==0` ⇒ `goto drmGetBusid` ⇒ 发 `GET_UNIQUE`）
+  与实测**矛盾**；本 UMD 的反编译已至少错过一次（bA18 的 `strtol("4")` 门），
+  故此处**以实测为准，不信反编译**。
+- 唯一还站得住的具体假设：`FUN_005024a0` 枚举里含 **`controlD` 节点**
+  （`param_2==2` 时匹配 `"controlD"`），PVR 历来有 `/dev/dri/controlD*`；
+  我们只注册了 `DRIVER_RENDER|DRIVER_SYNCOBJ`，**没有 control 节点**，
+  而 UMD 也从未 open 它（可能只用 stat ⇒ 不可见）。
+- 门禁：120 Python + 170 RAM + `W=1` + ABI 全绿；伪造模式回归仍是 4 步全 0。
+
+---
+
+## 上次会话进展（bA20：Connect 打通——空桩必须写 OUT；设备连接卡在 busid 比对）
 
 接 bA19。真机继续（无需重启，模块加载/卸载即可）。
 

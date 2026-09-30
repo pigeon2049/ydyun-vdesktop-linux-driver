@@ -5,7 +5,7 @@ OUT := ../build/probe
 
 .PHONY: all clean
 all: $(OUT)/mt-status $(OUT)/umd_bridge_shim.so $(OUT)/umd_connect_harness \
-     $(OUT)/pvr_node_probe
+     $(OUT)/pvr_node_probe $(OUT)/umd_busid_trace.so
 
 $(OUT)/mt-status: mt-status.c
 	mkdir -p $(OUT)
@@ -23,6 +23,10 @@ $(OUT)/pvr_node_probe: pvr_node_probe.c
 	mkdir -p $(OUT)
 	$(CC) $(CFLAGS) -I ../kernel $< -o $@
 
+$(OUT)/umd_busid_trace.so: umd_busid_trace.c
+	mkdir -p $(OUT)
+	$(CC) $(CFLAGS) -shared -fPIC $< -o $@ -ldl
+
 clean:
 	rm -f $(OUT)/mt-status $(OUT)/umd_bridge_shim.so $(OUT)/umd_connect_harness \
-	      $(OUT)/pvr_node_probe
+	      $(OUT)/pvr_node_probe $(OUT)/umd_busid_trace.so

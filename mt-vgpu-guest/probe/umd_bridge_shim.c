@@ -451,6 +451,13 @@ int openat(int dirfd, const char *path, int flags, ...)
 
 		if (pvr_passthrough() && path[0] == '/')
 			log_open("openat_real", path, fd);
+		else if (pvr_passthrough() && strstr(path, "/sys/"))
+			/* The UMD's DRM-device discovery walks sysfs
+			 * (/sys/dev/char/.../device/drm and udev property
+			 * files) and makes no ioctls while doing it, so a
+			 * failure there is invisible in the ioctl trace.
+			 */
+			log_open("openat_sys", path, fd);
 		return fd;
 	}
 }
