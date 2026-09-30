@@ -38,5 +38,6 @@
       "gpu_pa": 31977304064,
       "size": 67108864
     }
-  ]
+  ],
+  "device_info_path": "/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/reports/device-info.bin"
 }

@@ -70,8 +70,12 @@ static inline int mt_memory_parse(const void *raw, u32 length, u64 bar_size,
 					return -EINVAL;
 			}
 			if ((bits & 3) && !first_size) {
-				/* Normal private pool: skip 8 MiB, retain the next 24 MiB. */
-				if (cursor != 0x200000 || size < 0x2000000 || (bits & 4))
+				/* Normal private pool: skip 8 MiB, retain the next 24 MiB.
+				 * Host memory allocator on cold boot may fragment the initial
+				 * 80 MiB pool into 16 MiB (0x1000000) + 64 MiB (0x4000000).
+				 * Allow first segment >= 16 MiB.
+				 */
+				if (cursor != 0x200000 || size < 0x1000000 || (bits & 4))
 					return -EOPNOTSUPP;
 				layout.pool[MT_POOL_NORMAL] = (struct mt_memory_range){
 					cursor + 0x800000, base + 0x800000, 0x1800000};

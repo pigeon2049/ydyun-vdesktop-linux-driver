@@ -1368,4 +1368,25 @@ Linux 首选路径：
   - 扩展 `userspace/mt-3d-check.c`：新增 `check_3d_render_target()` 测试，涵盖 GEM 创建、0x5a 特征填充、3D 渲染绑定执行、Fence 等待、64 KiB VRAM 完整读回核验与释放；
   - 撰写技术报告 `reports/r41-3d-render-target.md`。
 
+## Step 138：OSID 7 碎片化段结构自适应突破与 3D 渲染执行硬件机理深度查明
+
+- **OSID 7 碎片化段结构与 16 MiB 首段分配自适应突破**：
+  - 彻底查明物理冷重启后 probe 失败报 `-95`（`-EOPNOTSUPP`）的硬件根本原因：物理机冷重启后宿主机分配器将原有 80 MiB 连续显存碎片化拆分为 `seg[0]`（16 MiB，base `0x500000000`）和 `seg[1]`（64 MiB，base `0x614000000`）；
+  - 驱动原校验代码硬编码了 `size < 0x2000000`（32 MiB）的过度约束；
+  - 依据 Windows 闭源原厂驱动（ReferenceOracle `140026390` 行为）实测验证，原厂驱动无此单个段 32 MiB 的限制；
+  - 在 [kernel/mt_memory_layout.h](file:///opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/mt_memory_layout.h) 中将首段大小限制放宽至 `size < 0x1000000`（16 MiB）；
+  - 全套 99 个单元测试与 9 种段表变异测试 100% 通过；
+  - 真机硬件执行 `fresh-trial.py --runtime-context --run` 一次性握手成功，硬件会话完美恢复至 `connected=1, guest=2, firmware=2 started=1 events=1`。
+- **全功能统一 DRM 驱动注册与设备节点顺利生成**：
+  - `mt_live_3d_drm.ko` 成功加载，向内核注册 `mtvgpu 0.3.0`，生成标准图形设备节点 `/dev/dri/card1` 与 `/dev/dri/renderD128`；
+  - 用户态工具 `mt-3d-check` 打开节点并查询到完整加速能力 `capabilities = 0x7`（COPY + FILL + 3D）。
+- **3D Universal 队列超时与 GPU MMU 范围机理查明**：
+  - 用户态提交 3D 任务时触发 `-ETIMEDOUT`，硬件游标停在 `head=1 tail=0` 且固件状态归零；
+  - 经深入反汇编与数据排查，锁定两大根本机理：
+    1. **Render Target 显存范围与Extent不匹配**：Slot 0/1 槽位大小仅为 64 KiB（对应 128x128 像素），但包内光栅化 Extent 被配置为了 1024x1024（需要 4 MiB 显存），光栅化单元访问未映射的虚拟地址直接引发 GPU MMU Fault 导致固件重置；
+    2. **未绑定目标时的模板残留地址**：当 `target_handle = 0` 时，模板末端 `+0x4668` 处残留了原厂抓包时的远端基址 `0xed00000000`，未在当前 VM 空间映射；
+    3. **超时 Fence 级联效应**：超时后内核 `s->pending` 队列残留废弃 fence，导致后续提交检查 `s->total` 报 `-EBUSY`（-16）；
+  - 解决方案明确：将 Render Target 尺寸规范化为与实际显存大小严格匹配的 Extent（如 128x128 / 64 KiB），并在无外部目标时填入已映射的静默缓冲基址，实现完全健壮的图形渲染流水线。
+
+
 
