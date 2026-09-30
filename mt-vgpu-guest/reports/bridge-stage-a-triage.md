@@ -162,12 +162,33 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 - 给 Stage B 的输入（新增）：堆表 11 项真实范围（shim 内 `heap_ranges[]`
   即 KMD 将来要上报的值）；`DEVMEMINTHEAPCREATE` OUT 句柄必须互异。
 
-## 7. 下一步（bA5）
+## 11. bA5：devmem 上下文创建成功（USC 堆命名是钥匙）
 
-1. PSC context 创建需求：读 `RGXConstructDeviceMemContext`
-  （`0x6FD00-0x70500` 区）在堆建完后、PSC 创建前还查什么
-  （堆名？usc 堆？特性开关？）；候选：让 details 回堆名
-  （需 UMD 传 BufSz>0 的调用）或补 AppHint 默认。
-2. 然后：Sync alloc（动态复核 memType=2）→ RGX render ctx →
-   `RGXKICKTA3D3`（看清尾部 8 字节）。
-3. 输出「渲染主路径最小命令集 + 打桩表」，作为 Stage B（内核侧实现）的输入。
+- DebugPrintf 抓取（gdb 断 `0x92c30` 读参）：失败链为
+  `DevmemFindHeapByName → "Failed to find USC heap"
+  (INVALID_HEAP_INDEX) → Destroy → double-free`。
+  PDS 命名（heap 7）一次即中；缺的是 **USC**。
+- `heap_names[8] = "USC Code"` 后：11 堆全建、无 teardown、
+  `Ext` 返回 1（成功码！之前返回 0 恰是吞错路径），
+  `o1=o2=非零 ctx`。堆名来自 `RGX_*_HEAP_IDENT`（2.3 `rgx_heaps.h`），
+  经 details 的 160B UMD 缓冲写入（BufSz=160，我方之前漏写）。
+- 成功后新桥（T，零伪造即过，待按头文件补真值）：
+  - `0x6:0x9 PHYSMEMNEWRAMBACKEDPMR` ×3（in72/out24，RAM 后备 PMR）；
+  - `0x6:0x15 DEVMEMINTRESERVERANGE` ×3（in24/out12）；
+  - `0x6:0x13 DEVMEMINTMAPPMR` ×3（in32/out12，设备映射）。
+  另有 mmap×5/munmap×3（info 页之外的新映射行为，待分类）。
+  56-op 成功序列见 `reports/umd-bridge-devmem-trace.jsonl`。
+- 附带方法：ASan（exe+shim 同插）实锤 UMD 错误路径 double-free；
+  `MTSRVFindHeapByName`/`DevmemFindHeapByName` 导出确认按名找堆；
+  `Ext` 返回值语义：1=成功，0=吞错失败——只信 trace/dump。
+- 给 Stage B 的输入（新增）：堆名表（`heap_names[]` 即上报值）；
+  devmem 流程需要 named heaps（General/PDS/USC 至少三者）。
+
+## 7. 下一步（bA6）
+
+1. 用已建好的 devmem ctx 调 `RGXCreateRenderContext`
+  （`RGXCreateRenderContextCCB` 参数：rdi=conn/dev？rsi=参数块
+  +0x30/+0x34 尺寸非零，elj 第 7 参数为 out 句柄；harness 已支持 8 参数）；
+  目标：Sync alloc 动态现身（复核 memType=2）。
+2. 然后：`RGXKICKTA3D3`（看清尾部 8 字节）→ 最小命令集 + 打桩表（Stage B 输入）。
+3. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。

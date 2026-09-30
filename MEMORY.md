@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA4：devmem 流程 + PSC 门定位 + ASan 实锤 UMD double-free；未提交）
+最后更新：2026-09-30（bA5：devmem ctx 成功，USC 堆命名；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,36 @@
 
 ---
 
-## 本次会话进展（bA4：devmem 上下文 + PSC 门，未提交）
+## 本次会话进展（bA5：devmem 上下文创建成功，未提交）
+
+接 bA4（同一会话连续推进）。
+
+### 1. USC 堆是钥匙，devmem ctx 成功
+
+- DebugPrintf 抓取（断 `0x92c30` 读参）：失败链
+  `DevmemFindHeapByName → "Failed to find USC heap"
+  (INVALID_HEAP_INDEX) → Destroy → double-free`。
+- `heap_names[8]="USC Code"` 后：11 堆全建、无 teardown、
+  `Ext` 返回 1（成功码；0=吞错）、`o1=o2=非零 ctx`。
+- 成功后新桥（零伪造即过）：`0x6:0x9` RAM 后备 PMR ×3、
+  `0x6:0x15` 预留 ×3、`0x6:0x13` 设备映射 ×3；
+  另 mmap×5/munmap×3。56-op 序列见 `reports/umd-bridge-devmem-trace.jsonl`。
+- 方法：ASan（exe+shim 同插）定位 UMD 错误路径 double-free；
+  `Ext` 返回值语义澄清（1=成功）。
+
+### 2. 给 Stage B 的新增输入
+
+堆名表（General/PDS/USC）；devmem 需要 named heaps；
+`HEAPCREATE` 句柄互异；11 堆真实范围。
+
+### 3. 下一步（bA6）
+
+用已建 devmem ctx 调 `RGXCreateRenderContext`（harness 已支持 8 参数），
+目标 Sync alloc 动态现身；然后 kick；回填 0x6:0x9/0x15/0x13 真值。
+
+---
+
+## 上次会话进展（bA4：devmem 上下文 + PSC 门，未提交）
 
 接 bA3（同一会话连续推进）。
 

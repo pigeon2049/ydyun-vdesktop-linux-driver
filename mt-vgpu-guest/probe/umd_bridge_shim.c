@@ -151,6 +151,13 @@ static const struct heap_range heap_ranges[11] = {
 	{0xf000000000ULL, 0x100000000ULL},
 };
 
+/* Heap names for FindHeapByName (RGX_*_HEAP_IDENT). Only 0 and 7 assigned;
+ * UMD names any other missing heap in its next error. BufSz is 160. */
+static const char *heap_names[11] = {
+	"General", NULL, NULL, NULL, NULL, NULL, NULL,
+	"PDS Code and Data", "USC Code", NULL, NULL,
+};
+
 static void fabricate_heap_details(const uint8_t *in, uint32_t in_size,
 				   uint8_t *out, uint32_t out_size)
 {
@@ -159,10 +166,19 @@ static void fabricate_heap_details(const uint8_t *in, uint32_t in_size,
 	 * IN (20B): nameptr u64@0, config u32@8, heap u32@12, bufsz u32@16. */
 	uint32_t idx = 0;
 	uint64_t base = 0xf000000000ULL, size = 0x100000000ULL;
-	if (in_size >= 16) {
-		uint32_t i;
+	if (in_size >= 20) {
+		uint32_t i, bufsz = 0;
+		uint64_t nameptr = 0;
 		memcpy(&i, in + 12, 4);
+		memcpy(&nameptr, in, 8);
+		memcpy(&bufsz, in + 16, 4);
 		idx = i;
+		if (nameptr && bufsz && idx < 11 && heap_names[idx]) {
+			size_t n = strlen(heap_names[idx]) + 1;
+			if (n > bufsz)
+				n = bufsz;
+			memcpy((void *)(uintptr_t)nameptr, heap_names[idx], n);
+		}
 	}
 	if (idx < 11 && heap_ranges[idx].size) {
 		base = heap_ranges[idx].base;
