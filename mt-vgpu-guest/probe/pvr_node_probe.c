@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	struct mt_pvr_sync_block_in sync_in = { .mem_type = MT_PVR_SYNC_MEM_TYPE };
 	struct mt_pvr_sync_block_out sync_out;
 	struct mt_pvr_handle_out handle_out;
-	uint64_t heap_count = 0;
+	struct mt_pvr_heap_count_out heap_count_out;
 	uint8_t name_buffer[160];
 	int fd;
 
@@ -168,16 +168,16 @@ int main(int argc, char **argv)
 	       (unsigned long long)handle_out.handle,
 	       (unsigned long long)handle_out.handle);
 
+	/* heap_name_out must be armed on *every* call: the driver copies the
+	 * name into it, and a NULL pointer there is correctly refused with
+	 * EFAULT. That is a probe bug, not a driver bug.
+	 */
 	memset(&heap_in, 0, sizeof(heap_in));
-	heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
-	step("0x6:0x1e HeapCfgHeapCount",
-	     bridge(fd, 0x6, 0x1e, NULL, 0, &heap_count, sizeof(heap_count)));
-	printf("%-28s count=%llu\n", "", (unsigned long long)heap_count);
-
 	memset(&heap_out, 0, sizeof(heap_out));
-	memset(name_buffer, 0, sizeof(name_buffer));
+	heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
 	heap_in.heap_config_index = 0;
 	heap_in.heap_name_buf_size = sizeof(name_buffer);
+	memset(name_buffer, 0, sizeof(name_buffer));
 	step("0x6:0x20 HeapCfgHeapDetails[0]",
 	     bridge(fd, 0x6, 0x20, &heap_in, sizeof(heap_in), &heap_out,
 		    sizeof(heap_out)));
@@ -242,6 +242,27 @@ int main(int argc, char **argv)
 	 * was exactly info_base + 0x48, so a plain read here separates "the
 	 * mapping is unusable" from "the contents are wrong".
 	 */
+	/* eError first, then the count -- see mt_pvr_heap_count_out in the wire
+	 * header. Reading a bare u64 here reported the count because the driver
+	 * used to write it at offset 0; the UMD read that as eError and cached
+	 * zero heaps, so the probe must read it where the UMD reads it.
+	 */
+	memset(&heap_count_out, 0, sizeof(heap_count_out));
+	step("0x6:0x1e HeapCfgHeapCount",
+	     bridge(fd, 0x6, 0x1e, NULL, 0, &heap_count_out,
+		    sizeof(heap_count_out)));
+	printf("%-28s eError=%u num_heaps=%u\n", "", heap_count_out.error,
+	       heap_count_out.num_heaps);
+	if (heap_count_out.error != 0) {
+		printf("%-28s driver reported error %u\n", "MISMATCH:",
+		       heap_count_out.error);
+		mismatches++;
+	}
+	if (heap_count_out.num_heaps == 0) {
+		printf("%-28s UMD would cache zero heaps here\n", "MISMATCH:");
+		mismatches++;
+	}
+
 	{
 		struct mt_pvr_handle_out info = { 0 };
 		struct mt_pvr_import_in imp_in;

@@ -356,4 +356,23 @@ static inline u32 mt_pvr_heaps_count(const struct mt_pvr_heap_table *table)
 	return table->count;
 }
 
+/* Is this base address one the config table actually published?
+ *
+ * DevmemIntHeapCreate names its heap by base address, not by name or index, so
+ * the only way to tell a legitimate request from the UMD working from a base we
+ * never handed out is to look the address up. Unnamed slots are included: the
+ * UMD creates heaps for them too.
+ */
+static inline int mt_pvr_heaps_have_base(const struct mt_pvr_heap_table *table,
+					 u64 base)
+{
+	u32 i;
+
+	for (i = 0; i < table->count; i++) {
+		if (table->entries[i].base == base)
+			return 1;
+	}
+	return 0;
+}
+
 #endif /* MT_PVR_QUEUE_H */

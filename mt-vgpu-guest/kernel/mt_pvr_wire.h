@@ -123,6 +123,47 @@ struct MT_PVR_PACKED mt_pvr_import_out {
 	u32 error;
 };
 
+/* 0x6:1e MM:HeapCfgHeapCount -- no IN, 8-byte OUT.
+ *
+ * The order matters and was wrong for several rounds:
+ *
+ *   MTGPU_BRIDGE_OUT_HEAPCFGHEAPCOUNT = { MTGPU_ERROR eError;
+ *                                         MT_UINT32 ui32NumHeaps; }
+ *
+ * eError is FIRST. The bridge used to write a bare count at offset 0, so the
+ * UMD read our count (11) as eError and ui32NumHeaps as 0 -- it then cached
+ * "no heaps" at device-connect time and every later heap lookup failed, which
+ * is why RGXCreateDeviceMemContext stopped with FLIP_CHAIN_EXISTS before it
+ * ever issued a single allocation.
+ */
+struct MT_PVR_PACKED mt_pvr_heap_count_out {
+	u32 error;
+	u32 num_heaps;
+};
+
+/* 0x6:0x11 MM:DevmemIntHeapCreate -- 28-byte IN, 12-byte OUT.
+ *
+ *   MTGPU_BRIDGE_IN_DEVMEMINTHEAPCREATE  = { sHeapBaseAddr, uiHeapLength,
+ *                                            hDevmemCtx, ui32Log2DataPageSize }
+ *   MTGPU_BRIDGE_OUT_DEVMEMINTHEAPCREATE = { hDevmemHeapPtr, eError }
+ *
+ * This was previously routed to the PMR-map handler, which read a different
+ * 28-byte struct and therefore rejected a perfectly good request with -EINVAL.
+ * Note the (2) variant differs only in ui32PageSizeBitMask vs
+ * ui32Log2DataPageSize; only the non-(2) form is CMD_FIRST+17.
+ */
+struct MT_PVR_PACKED mt_pvr_heap_create_in {
+	u64 heap_base_addr;
+	u64 heap_length;
+	u64 devmem_ctx;
+	u32 log2_data_page_size;
+};
+
+struct MT_PVR_PACKED mt_pvr_heap_create_out {
+	u64 devmem_heap_ptr;
+	u32 error;
+};
+
 /* 0x6:0x20 MM:HeapCfgHeapDetails -- 20-byte IN, 44-byte OUT. */
 struct MT_PVR_PACKED mt_pvr_heap_details_in {
 	u64 heap_name_out;
@@ -240,6 +281,9 @@ static_assert(sizeof(struct mt_pvr_hwperf_release_out) == 4, "0x86:0x5 out");
  * the 8-byte header form would truncate the handle away. */
 static_assert(sizeof(struct mt_pvr_import_out) == 28, "0x6:0x6 out");
 static_assert(sizeof(struct mt_pvr_heap_details_in) == 20, "0x6:0x20 in");
+static_assert(sizeof(struct mt_pvr_heap_count_out) == 8, "0x6:0x1e out");
+static_assert(sizeof(struct mt_pvr_heap_create_in) == 28, "0x6:0x11 in");
+static_assert(sizeof(struct mt_pvr_heap_create_out) == 12, "0x6:0x11 out");
 static_assert(sizeof(struct mt_pvr_heap_details_out) == 44, "0x6:0x20 out");
 static_assert(sizeof(struct mt_pvr_pmr_in) == 72, "0x6:0x9 in (wire 72)");
 static_assert(sizeof(struct mt_pvr_pmr_out) == 24, "0x6:0x9 out (wire 24)");

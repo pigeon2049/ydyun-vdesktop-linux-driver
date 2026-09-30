@@ -1,11 +1,63 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA24：**设备连接打通**——第 2 参是 DRM 节点索引，不是 0）
+最后更新：2026-10-01（bA25：堆表结构错位修复，UMD 走完整个堆表；新墙在用户态 double free）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA24：设备连接成功；bA13 配方第 2 参一直是错的）
+## 本次会话进展（bA25：两个 MM 命令结构错位；UMD 现在遍历完整堆表）
+
+接 bA24。`RGXCreateDeviceMemContext` 从 **11 → 37**，并推进到**用户态崩溃**（无 oops）。
+
+### 1. Bug：`0x6:0x1e` HeapCfgHeapCount 字段顺序错
+
+- 厂商 OUT 是 `{ eError; ui32NumHeaps; }`，**eError 在前**（5.2.0 生成头 L718）。
+- 我们原来在 offset 0 直接写 count ⇒ **UMD 把 count(11) 当成 eError**，
+  `ui32NumHeaps` 读到 0 ⇒ 设备连接时缓存「零个堆」，
+  之后所有 `FindHeapByName` 失败 ⇒ `RGXCreateDeviceMemContext` 报 FLIP_CHAIN_EXISTS。
+- 这就是错误 11 的真正来源。已加 `mt_pvr_heap_count_out` 修正。
+
+### 2. Bug：`0x6:0x11` DevmemIntHeapCreate 路由错
+
+- 我们把 `case 0x11` 和 `case 0x13` 一起指向 `pvr_cmd_pmr_map`（**PMR 映射**的 handler），
+  它按另一个 28 字节结构解析 ⇒ 合法请求被判 `-EINVAL`。
+- 真实结构（5.2.0 L448）：`{ sHeapBaseAddr, uiHeapLength, hDevmemCtx, ui32Log2DataPageSize }`，
+  OUT `{ hDevmemHeapPtr, eError }`（12 字节）。
+- 新增 `pvr_cmd_heap_create()`，并用 `mt_pvr_heaps_have_base()` 校验
+  base 必须是堆表里发布过的（防止 UMD 拿着我们没给过的 base 来建堆）。
+
+### 3. 结果：UMD 现在遍历**完整堆表**
+
+```
+0x6:0x1e HeapCfgHeapCount   → 0   (eError=0, num_heaps=11)
+0x6:0x20 ×11 HeapCfgHeapDetails → 0
+0x6:0x11 ×11 DevmemIntHeapCreate → 0   ← 11 个堆全建
+0x6:0x12 ×11 DevmemIntHeapDestroy → 0
+0x6:0x10 DevmemIntCtxDestroy  → 0
+```
+错误 11 消失，UMD 一路走到 `RGXCreateDeviceMemContext` 的静态 BO 序列
+（r36 记录的 PDS/General/USC 三堆）就绪。
+
+### 4. 新的墙：纯**用户态** `double free or corruption (fasttop)`
+
+- 内核侧**无 oops/WARN**（dmesg 已确认），所以不是我们驱动崩的。
+- 发生在 UMD 处理完堆表销毁之后。**推测**：`0x6:0x12` DevmemIntHeapDestroy
+  目前是 `pvr_stub_ok()` 空桩，**不消费 hDevmemHeapPtr 也不释放对象**，
+  UMD 可能拿到重复/野指针后重复释放。
+- **下一步**：把 `0x6:0x12` 从空桩改成真正按 handle 释放堆对象，
+  再看崩溃是否消失。
+
+### 5. 门禁与状态
+
+- 3 个新结构（`heap_count_out` / `heap_create_in` / `heap_create_out`）
+  登记进 `test_pvr_wire_sizes.py` 的 MAPPING + DIRECTION；**门禁立刻抓到漏登记**
+  （第一次跑就 FAILED），登记后 **123 项全绿**。线尺寸与真实 UMD 实测一致（in=28/out=12）。
+- `verify-runtime-integration.py` 通过（170 RAM + `W=1` + ABI 门）；探针全绿；
+  **伪造模式仍复现 bA13 的 4 步全 0**。
+
+---
+
+## 上次会话进展（bA24：设备连接成功；bA13 配方第 2 参一直是错的）
 
 接 bA23。真机继续（全程未重启）。
 

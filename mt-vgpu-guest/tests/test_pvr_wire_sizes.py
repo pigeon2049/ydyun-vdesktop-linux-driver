@@ -56,6 +56,14 @@ MAPPING = {
     # MUSA:MUSAReleaseHWPerfSettings and declares the in as a single handle.
     "mt_pvr_hwperf_release_in": (0x86, 0x5),
     "mt_pvr_hwperf_release_out": (0x86, 0x5),
+    # 0x6:0x1e carries {eError, ui32NumHeaps} -- eError FIRST. Writing the
+    # count at offset 0 made the UMD cache zero heaps and fail every later
+    # heap lookup (bA25).
+    "mt_pvr_heap_count_out": (0x6, 0x1E),
+    # 0x6:0x11 was misrouted to the PMR-map handler, which parsed a different
+    # 28-byte struct and answered -EINVAL (bA25).
+    "mt_pvr_heap_create_in": (0x6, 0x11),
+    "mt_pvr_heap_create_out": (0x6, 0x11),
 }
 
 # Which table size each struct corresponds to: "in", "out" or "dispatch".
@@ -72,6 +80,8 @@ DIRECTION = {
     "mt_pvr_sync_block_in": "in", "mt_pvr_sync_block_out": "out",
     "mt_pvr_ctx_create_in": "in", "mt_pvr_ctx_create_out": "out",
     "mt_pvr_hwperf_release_in": "in", "mt_pvr_hwperf_release_out": "out",
+    "mt_pvr_heap_count_out": "out",
+    "mt_pvr_heap_create_in": "in", "mt_pvr_heap_create_out": "out",
 }
 
 # Table key holding the wire size for each direction.

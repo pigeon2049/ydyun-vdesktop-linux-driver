@@ -368,9 +368,48 @@ static int pvr_cmd_info_page(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 
 static int pvr_cmd_heap_count(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 {
-	u32 count = mt_pvr_heaps_count(&file->heaps);
+	/* eError first, then the count -- see mt_pvr_heap_count_out. Writing the
+	 * count at offset 0 made the UMD read it as an error code and then
+	 * cache "no heaps" at device-connect time, so every later heap lookup
+	 * failed and RGXCreateDeviceMemContext gave up before allocating.
+	 */
+	struct mt_pvr_heap_count_out out = { 0 };
 
-	return pvr_out(cmd, &count, sizeof(count));
+	out.num_heaps = mt_pvr_heaps_count(&file->heaps);
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* 0x6:0x11 MM:DevmemIntHeapCreate.
+ *
+ * Register one heap inside an already-created device-memory context. The UMD
+ * issues this right after DevmemIntCtxCreate while it walks the heap table
+ * (it follows HeapCfgHeapCount/HeapCfgHeapDetails, so it only gets here once
+ * those report real heaps).
+ *
+ * It was previously routed to the PMR-map handler, which parsed a different
+ * 28-byte struct and answered -EINVAL.
+ */
+static int pvr_cmd_heap_create(struct mt_pvr_file *file,
+			       struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_heap_create_in in;
+	struct mt_pvr_heap_create_out out = { 0 };
+	struct mt_pvr_object *heap;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	/* The heap must be one the config table handed out; anything else means
+	 * the UMD is working from a base we never published.
+	 */
+	if (!mt_pvr_heaps_have_base(&file->heaps, in.heap_base_addr))
+		return -EINVAL;
+	heap = pvr_object_new(file, MT_PVR_KIND_HEAP);
+	if (!heap)
+		return -ENOMEM;
+	out.devmem_heap_ptr = heap->handle;
+	return pvr_out(cmd, &out, sizeof(out));
 }
 
 static int pvr_cmd_heap_details(struct mt_pvr_file *file,
@@ -692,6 +731,7 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case 0xf:			/* DevmemIntCtxCreate */
 			return pvr_cmd_ctx_create(file, cmd);
 		case 0x11:			/* DevmemIntHeapCreate */
+			return pvr_cmd_heap_create(file, cmd);
 		case 0x13:			/* DevmemIntMapPmr */
 			return pvr_cmd_pmr_map(file, cmd);
 		case 0x15:			/* DevmemIntReserveRange */
