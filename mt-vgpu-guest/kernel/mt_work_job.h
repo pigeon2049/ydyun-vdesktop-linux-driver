@@ -10,8 +10,9 @@
 enum mt_work_job_state { MT_JOB_EMPTY, MT_JOB_HELD, MT_JOB_PUBLISHED };
 struct mt_work_job {
 	struct mt_gpu_vm *vm;
-	struct mt_bo *bos[MT_BOOT_MAX_RANGES + 1];
-	u32 count;
+	/* One exclusive GPU pin per distinct mapped BO, plus the page tables. */
+	struct mt_bo **bos;
+	u32 count, capacity;
 	enum mt_work_job_state state;
 	u8 packet[MT_FW_COMMAND_BYTES];
 };
@@ -25,6 +26,8 @@ static inline int mt_work_job_move(struct mt_work_job *to, struct mt_work_job *f
 	memset(from, 0, sizeof(*from));
 	return 0;
 }
+
+
 
 static inline int mt_work_job_prepare(struct mt_work_job *job,
 		struct mt_gpu_vm *vm, struct mt_bo *command,
@@ -42,6 +45,12 @@ static inline int mt_work_job_prepare(struct mt_work_job *job,
 		return -EINVAL;
 	if (vm->active_uses)
 		return -EBUSY;
+	/* At most one pin per binding plus the tables; duplicates collapse below. */
+	if (vm->count + 1 > vm->max_ranges)
+		return -ENOSPC;
+	next.bos = mt_gpu_vm_zalloc((size_t)(vm->count + 1) * sizeof(*next.bos));
+	if (!next.bos)
+		return -ENOMEM;
 	/* Aliases own mapping refs, but require only one exclusive GPU pin. */
 	next.bos[next.count++] = vm->tables;
 	for (i = 0; i < vm->count; i++) {
@@ -56,6 +65,8 @@ static inline int mt_work_job_prepare(struct mt_work_job *job,
 		if (ret) {
 			while (i)
 				mt_bo_gpu_end(next.bos[--i]);
+			/* The pin array is local until the final struct move. */
+			mt_gpu_vm_free(next.bos);
 			return ret;
 		}
 	}
@@ -73,6 +84,7 @@ static inline void mt_work_job_release(struct mt_work_job *job)
 	while (job->count)
 		mt_bo_gpu_end(job->bos[--job->count]);
 	job->vm->active_uses--;
+	mt_gpu_vm_free(job->bos);
 	memset(job, 0, sizeof(*job));
 }
 static inline int mt_work_job_cancel(struct mt_work_job *job)

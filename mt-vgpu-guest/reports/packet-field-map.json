@@ -1,0 +1,1510 @@
+{
+  "packet_bytes": 18160,
+  "descriptors": {
+    "job": {
+      "bytes": 1976,
+      "parameter": 0
+    },
+    "surface": {
+      "bytes": 1536,
+      "parameter": 1
+    },
+    "render": {
+      "bytes": 512,
+      "parameter": 2
+    },
+    "vertex": {
+      "bytes": 320,
+      "parameter": 3
+    },
+    "context": {
+      "bytes": 816,
+      "parameter": 4
+    }
+  },
+  "probe_dword": "0x5a3c69f1",
+  "probed": [
+    "context",
+    "render",
+    "vertex"
+  ],
+  "reachable_words": 121,
+  "fields": [
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 16,
+      "packet_spans": [
+        [
+          "0x46c4",
+          "0x46c7"
+        ]
+      ],
+      "packet_offset": "0x46c4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 20,
+      "packet_spans": [
+        [
+          "0x13f0",
+          "0x13f3"
+        ]
+      ],
+      "packet_offset": "0x13f0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 24,
+      "packet_spans": [
+        [
+          "0x13f4",
+          "0x13f7"
+        ]
+      ],
+      "packet_offset": "0x13f4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 28,
+      "packet_spans": [
+        [
+          "0x13f8",
+          "0x13fb"
+        ]
+      ],
+      "packet_offset": "0x13f8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 32,
+      "packet_spans": [
+        [
+          "0x13fc",
+          "0x13ff"
+        ]
+      ],
+      "packet_offset": "0x13fc"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 36,
+      "packet_spans": [
+        [
+          "0x1400",
+          "0x1403"
+        ]
+      ],
+      "packet_offset": "0x1400"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 40,
+      "packet_spans": [
+        [
+          "0x1404",
+          "0x1407"
+        ]
+      ],
+      "packet_offset": "0x1404"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 44,
+      "packet_spans": [
+        [
+          "0x1408",
+          "0x140b"
+        ]
+      ],
+      "packet_offset": "0x1408"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 48,
+      "packet_spans": [
+        [
+          "0x140c",
+          "0x140f"
+        ]
+      ],
+      "packet_offset": "0x140c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 52,
+      "packet_spans": [
+        [
+          "0x46a4",
+          "0x46a7"
+        ]
+      ],
+      "packet_offset": "0x46a4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 56,
+      "packet_spans": [
+        [
+          "0x13a0",
+          "0x13a3"
+        ],
+        [
+          "0x13c8",
+          "0x13cb"
+        ]
+      ],
+      "packet_offset": "0x13a0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 60,
+      "packet_spans": [
+        [
+          "0x469c",
+          "0x469f"
+        ]
+      ],
+      "packet_offset": "0x469c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 64,
+      "packet_spans": [
+        [
+          "0x4698",
+          "0x469b"
+        ]
+      ],
+      "packet_offset": "0x4698"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 68,
+      "packet_spans": [
+        [
+          "0x12d8",
+          "0x12db"
+        ]
+      ],
+      "packet_offset": "0x12d8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 72,
+      "packet_spans": [
+        [
+          "0x46cc",
+          "0x46cf"
+        ]
+      ],
+      "packet_offset": "0x46cc"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 84,
+      "packet_spans": [
+        [
+          "0x1340",
+          "0x1340"
+        ],
+        [
+          "0x1344",
+          "0x1347"
+        ]
+      ],
+      "packet_offset": "0x1340"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 96,
+      "packet_spans": [
+        [
+          "0x4670",
+          "0x4673"
+        ]
+      ],
+      "packet_offset": "0x4670"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 100,
+      "packet_spans": [
+        [
+          "0x4674",
+          "0x4677"
+        ]
+      ],
+      "packet_offset": "0x4674"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 104,
+      "packet_spans": [
+        [
+          "0x4680",
+          "0x4683"
+        ]
+      ],
+      "packet_offset": "0x4680"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 108,
+      "packet_spans": [
+        [
+          "0x4684",
+          "0x4687"
+        ]
+      ],
+      "packet_offset": "0x4684"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 112,
+      "packet_spans": [
+        [
+          "0x4678",
+          "0x467b"
+        ]
+      ],
+      "packet_offset": "0x4678"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 116,
+      "packet_spans": [
+        [
+          "0x467c",
+          "0x467f"
+        ]
+      ],
+      "packet_offset": "0x467c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 128,
+      "packet_spans": [
+        [
+          "0x1358",
+          "0x135b"
+        ],
+        [
+          "0x1360",
+          "0x1363"
+        ]
+      ],
+      "packet_offset": "0x1358"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 132,
+      "packet_spans": [
+        [
+          "0x135c",
+          "0x135f"
+        ],
+        [
+          "0x1364",
+          "0x1367"
+        ]
+      ],
+      "packet_offset": "0x135c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 144,
+      "packet_spans": [
+        [
+          "0x1348",
+          "0x134b"
+        ],
+        [
+          "0x1350",
+          "0x1353"
+        ]
+      ],
+      "packet_offset": "0x1348"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 148,
+      "packet_spans": [
+        [
+          "0x134c",
+          "0x134f"
+        ],
+        [
+          "0x1354",
+          "0x1357"
+        ]
+      ],
+      "packet_offset": "0x134c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 160,
+      "packet_spans": [
+        [
+          "0x1380",
+          "0x1383"
+        ]
+      ],
+      "packet_offset": "0x1380"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 164,
+      "packet_spans": [
+        [
+          "0x1384",
+          "0x1387"
+        ]
+      ],
+      "packet_offset": "0x1384"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 168,
+      "packet_spans": [
+        [
+          "0x1388",
+          "0x138b"
+        ]
+      ],
+      "packet_offset": "0x1388"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 172,
+      "packet_spans": [
+        [
+          "0x138c",
+          "0x138f"
+        ]
+      ],
+      "packet_offset": "0x138c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 176,
+      "packet_spans": [
+        [
+          "0x1390",
+          "0x1393"
+        ]
+      ],
+      "packet_offset": "0x1390"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 180,
+      "packet_spans": [
+        [
+          "0x1394",
+          "0x1397"
+        ]
+      ],
+      "packet_offset": "0x1394"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 184,
+      "packet_spans": [
+        [
+          "0x1398",
+          "0x139b"
+        ]
+      ],
+      "packet_offset": "0x1398"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 188,
+      "packet_spans": [
+        [
+          "0x139c",
+          "0x139f"
+        ]
+      ],
+      "packet_offset": "0x139c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 192,
+      "packet_spans": [
+        [
+          "0x45a0",
+          "0x45a3"
+        ]
+      ],
+      "packet_offset": "0x45a0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 196,
+      "packet_spans": [
+        [
+          "0x45a4",
+          "0x45a7"
+        ]
+      ],
+      "packet_offset": "0x45a4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 200,
+      "packet_spans": [
+        [
+          "0x45a8",
+          "0x45ab"
+        ]
+      ],
+      "packet_offset": "0x45a8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 204,
+      "packet_spans": [
+        [
+          "0x45ac",
+          "0x45af"
+        ]
+      ],
+      "packet_offset": "0x45ac"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 208,
+      "packet_spans": [
+        [
+          "0x45b0",
+          "0x45b3"
+        ]
+      ],
+      "packet_offset": "0x45b0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 212,
+      "packet_spans": [
+        [
+          "0x45b4",
+          "0x45b7"
+        ]
+      ],
+      "packet_offset": "0x45b4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 216,
+      "packet_spans": [
+        [
+          "0x45b8",
+          "0x45bb"
+        ]
+      ],
+      "packet_offset": "0x45b8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 220,
+      "packet_spans": [
+        [
+          "0x45bc",
+          "0x45bf"
+        ]
+      ],
+      "packet_offset": "0x45bc"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 224,
+      "packet_spans": [
+        [
+          "0x45c0",
+          "0x45c3"
+        ]
+      ],
+      "packet_offset": "0x45c0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 228,
+      "packet_spans": [
+        [
+          "0x45c4",
+          "0x45c7"
+        ]
+      ],
+      "packet_offset": "0x45c4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 232,
+      "packet_spans": [
+        [
+          "0x45c8",
+          "0x45cb"
+        ]
+      ],
+      "packet_offset": "0x45c8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 236,
+      "packet_spans": [
+        [
+          "0x45cc",
+          "0x45cf"
+        ]
+      ],
+      "packet_offset": "0x45cc"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 240,
+      "packet_spans": [
+        [
+          "0x45d0",
+          "0x45d3"
+        ]
+      ],
+      "packet_offset": "0x45d0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 244,
+      "packet_spans": [
+        [
+          "0x45d4",
+          "0x45d7"
+        ]
+      ],
+      "packet_offset": "0x45d4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 248,
+      "packet_spans": [
+        [
+          "0x45d8",
+          "0x45db"
+        ]
+      ],
+      "packet_offset": "0x45d8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 252,
+      "packet_spans": [
+        [
+          "0x45dc",
+          "0x45df"
+        ]
+      ],
+      "packet_offset": "0x45dc"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 256,
+      "packet_spans": [
+        [
+          "0x45e0",
+          "0x45e3"
+        ]
+      ],
+      "packet_offset": "0x45e0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 260,
+      "packet_spans": [
+        [
+          "0x45e4",
+          "0x45e7"
+        ]
+      ],
+      "packet_offset": "0x45e4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 264,
+      "packet_spans": [
+        [
+          "0x45e8",
+          "0x45eb"
+        ]
+      ],
+      "packet_offset": "0x45e8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 268,
+      "packet_spans": [
+        [
+          "0x45ec",
+          "0x45ef"
+        ]
+      ],
+      "packet_offset": "0x45ec"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 272,
+      "packet_spans": [
+        [
+          "0x45f0",
+          "0x45f3"
+        ]
+      ],
+      "packet_offset": "0x45f0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 276,
+      "packet_spans": [
+        [
+          "0x45f4",
+          "0x45f7"
+        ]
+      ],
+      "packet_offset": "0x45f4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 280,
+      "packet_spans": [
+        [
+          "0x45f8",
+          "0x45fb"
+        ]
+      ],
+      "packet_offset": "0x45f8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 284,
+      "packet_spans": [
+        [
+          "0x45fc",
+          "0x45ff"
+        ]
+      ],
+      "packet_offset": "0x45fc"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 288,
+      "packet_spans": [
+        [
+          "0x4600",
+          "0x4603"
+        ]
+      ],
+      "packet_offset": "0x4600"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 292,
+      "packet_spans": [
+        [
+          "0x4604",
+          "0x4607"
+        ]
+      ],
+      "packet_offset": "0x4604"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 296,
+      "packet_spans": [
+        [
+          "0x4608",
+          "0x460b"
+        ]
+      ],
+      "packet_offset": "0x4608"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 300,
+      "packet_spans": [
+        [
+          "0x460c",
+          "0x460f"
+        ]
+      ],
+      "packet_offset": "0x460c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 304,
+      "packet_spans": [
+        [
+          "0x4610",
+          "0x4613"
+        ]
+      ],
+      "packet_offset": "0x4610"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 308,
+      "packet_spans": [
+        [
+          "0x4614",
+          "0x4617"
+        ]
+      ],
+      "packet_offset": "0x4614"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 312,
+      "packet_spans": [
+        [
+          "0x4618",
+          "0x461b"
+        ]
+      ],
+      "packet_offset": "0x4618"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 316,
+      "packet_spans": [
+        [
+          "0x461c",
+          "0x461f"
+        ]
+      ],
+      "packet_offset": "0x461c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 320,
+      "packet_spans": [
+        [
+          "0x4620",
+          "0x4623"
+        ]
+      ],
+      "packet_offset": "0x4620"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 324,
+      "packet_spans": [
+        [
+          "0x4624",
+          "0x4627"
+        ]
+      ],
+      "packet_offset": "0x4624"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 328,
+      "packet_spans": [
+        [
+          "0x4628",
+          "0x462b"
+        ]
+      ],
+      "packet_offset": "0x4628"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 332,
+      "packet_spans": [
+        [
+          "0x462c",
+          "0x462f"
+        ]
+      ],
+      "packet_offset": "0x462c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 336,
+      "packet_spans": [
+        [
+          "0x4630",
+          "0x4633"
+        ]
+      ],
+      "packet_offset": "0x4630"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 340,
+      "packet_spans": [
+        [
+          "0x4634",
+          "0x4637"
+        ]
+      ],
+      "packet_offset": "0x4634"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 344,
+      "packet_spans": [
+        [
+          "0x4638",
+          "0x463b"
+        ]
+      ],
+      "packet_offset": "0x4638"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 348,
+      "packet_spans": [
+        [
+          "0x463c",
+          "0x463f"
+        ]
+      ],
+      "packet_offset": "0x463c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 352,
+      "packet_spans": [
+        [
+          "0x4640",
+          "0x4643"
+        ]
+      ],
+      "packet_offset": "0x4640"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 356,
+      "packet_spans": [
+        [
+          "0x4644",
+          "0x4647"
+        ]
+      ],
+      "packet_offset": "0x4644"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 360,
+      "packet_spans": [
+        [
+          "0x4648",
+          "0x464b"
+        ]
+      ],
+      "packet_offset": "0x4648"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 364,
+      "packet_spans": [
+        [
+          "0x464c",
+          "0x464f"
+        ]
+      ],
+      "packet_offset": "0x464c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 368,
+      "packet_spans": [
+        [
+          "0x4650",
+          "0x4653"
+        ]
+      ],
+      "packet_offset": "0x4650"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 372,
+      "packet_spans": [
+        [
+          "0x4654",
+          "0x4657"
+        ]
+      ],
+      "packet_offset": "0x4654"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 376,
+      "packet_spans": [
+        [
+          "0x4658",
+          "0x465b"
+        ]
+      ],
+      "packet_offset": "0x4658"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 380,
+      "packet_spans": [
+        [
+          "0x465c",
+          "0x465f"
+        ]
+      ],
+      "packet_offset": "0x465c"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 384,
+      "packet_spans": [
+        [
+          "0x4660",
+          "0x4663"
+        ]
+      ],
+      "packet_offset": "0x4660"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 388,
+      "packet_spans": [
+        [
+          "0x4664",
+          "0x4667"
+        ]
+      ],
+      "packet_offset": "0x4664"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 392,
+      "packet_spans": [
+        [
+          "0x13d0",
+          "0x13d3"
+        ]
+      ],
+      "packet_offset": "0x13d0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 396,
+      "packet_spans": [
+        [
+          "0x13d4",
+          "0x13d7"
+        ]
+      ],
+      "packet_offset": "0x13d4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 400,
+      "packet_spans": [
+        [
+          "0x13d8",
+          "0x13db"
+        ]
+      ],
+      "packet_offset": "0x13d8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 404,
+      "packet_spans": [
+        [
+          "0x13dc",
+          "0x13df"
+        ]
+      ],
+      "packet_offset": "0x13dc"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 408,
+      "packet_spans": [
+        [
+          "0x13e0",
+          "0x13e3"
+        ]
+      ],
+      "packet_offset": "0x13e0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 412,
+      "packet_spans": [
+        [
+          "0x13e4",
+          "0x13e7"
+        ]
+      ],
+      "packet_offset": "0x13e4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 416,
+      "packet_spans": [
+        [
+          "0x13a8",
+          "0x13ab"
+        ]
+      ],
+      "packet_offset": "0x13a8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 420,
+      "packet_spans": [
+        [
+          "0x13ac",
+          "0x13af"
+        ]
+      ],
+      "packet_offset": "0x13ac"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 424,
+      "packet_spans": [
+        [
+          "0x13b0",
+          "0x13b3"
+        ]
+      ],
+      "packet_offset": "0x13b0"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 428,
+      "packet_spans": [
+        [
+          "0x13b4",
+          "0x13b7"
+        ]
+      ],
+      "packet_offset": "0x13b4"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 432,
+      "packet_spans": [
+        [
+          "0x13b8",
+          "0x13bb"
+        ]
+      ],
+      "packet_offset": "0x13b8"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 436,
+      "packet_spans": [
+        [
+          "0x13bc",
+          "0x13bf"
+        ]
+      ],
+      "packet_offset": "0x13bc"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 500,
+      "packet_spans": [
+        [
+          "0x1368",
+          "0x136b"
+        ]
+      ],
+      "packet_offset": "0x1368"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 504,
+      "packet_spans": [
+        [
+          "0x1370",
+          "0x1373"
+        ]
+      ],
+      "packet_offset": "0x1370"
+    },
+    {
+      "descriptor": "render",
+      "parameter": 2,
+      "source_offset": 508,
+      "packet_spans": [
+        [
+          "0x1378",
+          "0x137b"
+        ]
+      ],
+      "packet_offset": "0x1378"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 16,
+      "packet_spans": [
+        [
+          "0x44e8",
+          "0x44eb"
+        ]
+      ],
+      "packet_offset": "0x44e8"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 20,
+      "packet_spans": [
+        [
+          "0x44ec",
+          "0x44ef"
+        ]
+      ],
+      "packet_offset": "0x44ec"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 24,
+      "packet_spans": [
+        [
+          "0x4510",
+          "0x4513"
+        ]
+      ],
+      "packet_offset": "0x4510"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 28,
+      "packet_spans": [
+        [
+          "0x4514",
+          "0x4517"
+        ]
+      ],
+      "packet_offset": "0x4514"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 32,
+      "packet_spans": [
+        [
+          "0x4518",
+          "0x451b"
+        ]
+      ],
+      "packet_offset": "0x4518"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 36,
+      "packet_spans": [
+        [
+          "0x451c",
+          "0x451f"
+        ]
+      ],
+      "packet_offset": "0x451c"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 40,
+      "packet_spans": [
+        [
+          "0x44f8",
+          "0x44fb"
+        ]
+      ],
+      "packet_offset": "0x44f8"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 44,
+      "packet_spans": [
+        [
+          "0x44fc",
+          "0x44ff"
+        ]
+      ],
+      "packet_offset": "0x44fc"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 48,
+      "packet_spans": [
+        [
+          "0x4530",
+          "0x4533"
+        ]
+      ],
+      "packet_offset": "0x4530"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 52,
+      "packet_spans": [
+        [
+          "0x4534",
+          "0x4537"
+        ]
+      ],
+      "packet_offset": "0x4534"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 56,
+      "packet_spans": [
+        [
+          "0x4538",
+          "0x453b"
+        ]
+      ],
+      "packet_offset": "0x4538"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 60,
+      "packet_spans": [
+        [
+          "0x453c",
+          "0x453f"
+        ]
+      ],
+      "packet_offset": "0x453c"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 64,
+      "packet_spans": [
+        [
+          "0x4528",
+          "0x452b"
+        ]
+      ],
+      "packet_offset": "0x4528"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 68,
+      "packet_spans": [
+        [
+          "0x452c",
+          "0x452f"
+        ]
+      ],
+      "packet_offset": "0x452c"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 72,
+      "packet_spans": [
+        [
+          "0x4520",
+          "0x4523"
+        ]
+      ],
+      "packet_offset": "0x4520"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 76,
+      "packet_spans": [
+        [
+          "0x4524",
+          "0x4527"
+        ]
+      ],
+      "packet_offset": "0x4524"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 96,
+      "packet_spans": [
+        [
+          "0x4554",
+          "0x4557"
+        ]
+      ],
+      "packet_offset": "0x4554"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 100,
+      "packet_spans": [
+        [
+          "0x4550",
+          "0x4553"
+        ]
+      ],
+      "packet_offset": "0x4550"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 104,
+      "packet_spans": [
+        [
+          "0x4548",
+          "0x454b"
+        ]
+      ],
+      "packet_offset": "0x4548"
+    },
+    {
+      "descriptor": "vertex",
+      "parameter": 3,
+      "source_offset": 288,
+      "packet_spans": [
+        [
+          "0x12b5",
+          "0x12b5"
+        ]
+      ],
+      "packet_offset": "0x12b5"
+    },
+    {
+      "descriptor": "context",
+      "parameter": 4,
+      "source_offset": 152,
+      "packet_spans": [
+        [
+          "0x4598",
+          "0x459b"
+        ]
+      ],
+      "packet_offset": "0x4598"
+    },
+    {
+      "descriptor": "context",
+      "parameter": 4,
+      "source_offset": 156,
+      "packet_spans": [
+        [
+          "0x459c",
+          "0x459f"
+        ]
+      ],
+      "packet_offset": "0x459c"
+    }
+  ]
+}

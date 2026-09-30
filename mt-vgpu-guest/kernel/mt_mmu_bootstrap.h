@@ -7,11 +7,37 @@
 /* CPU-side construction for disjoint VA ranges with contiguous or explicit
  * page-list backing. Not a live mapper or a GPU TLB invalidation interface.
  * Allocation order matches 140019074/1400197b4: root, then PD/PT as first used.
+ *
+ * The walk is three levels (mt_mmu.h): 1024 root entries of 4 B, 512 directory
+ * entries of 8 B and 512 table entries of 8 B over 4 KiB pages. A directory
+ * entry therefore spans 2 MiB and one table page describes 512 pages. The
+ * hardware imposes no cap on the number of mappings; what bounds one address
+ * space is the page-table page budget, because every mapping needs at least one
+ * table entry. Earlier revisions used a literal 24-range ceiling here, which was
+ * a driver array bound and not a property of the MMU.
  */
-#define MT_BOOT_MAX_RANGES 24U
+#define MT_BOOT_ROOT_PAGES 1U
+#define MT_BOOT_PC_ENTRIES 1024U
+#define MT_BOOT_PD_ENTRIES 512U
+#define MT_BOOT_PT_ENTRIES 512U
+#define MT_BOOT_PT_SPAN (MT_BOOT_PT_ENTRIES * 4096ULL)
 #define MT_BOOT_MAX_TABLE_PAGES 64U
 #define MT_BOOT_MAX_MAPPED_BYTES 0x4000000U
 #define MT_MMU_DUMMY_BYTES 0x3000U
+
+/* Mappings one table-page budget can describe. Contiguous callers far exceed
+ * the derived figure before pages run out; a mapping that needs its own table
+ * page is the worst case. Returns zero for a budget that cannot even hold the
+ * root page. */
+static inline u32 mt_boot_max_ranges(u32 table_pages)
+{
+	u64 slots, bytes;
+	if (table_pages <= MT_BOOT_ROOT_PAGES)
+		return 0;
+	slots = (u64)(table_pages - MT_BOOT_ROOT_PAGES) * MT_BOOT_PT_ENTRIES;
+	bytes = MT_BOOT_MAX_MAPPED_BYTES / 4096ULL;
+	return (u32)(slots < bytes ? slots : bytes);
+}
 
 /* Windows MMUMapPage flags, NOT Linux MMU_PROTFLAGS or POSIX RW bits.
  * 018bd0 -> 02a8d8 maps bit 0 to the hardware PTE read-only bit (1).
@@ -56,9 +82,14 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 	u32 pc_value;
 	u8 *bytes = out;
 	int pd, pt;
-	if (!out || !used_pages || !ranges || !count || count > MT_BOOT_MAX_RANGES ||
+	if (!out || !used_pages || !ranges || !count ||
 	    capacity < 4096 || (capacity & 4095) || (table_pa & 4095) ||
 	    table_pa >= (1ULL << MT_GPU_VA_BITS))
+		return -EINVAL;
+	/* A caller-supplied budget smaller than the compile-time ceiling may hold
+	 * fewer mappings. Exhaustion past this point is reported by the page loop
+	 * below as -ENOSPC, which is the real hardware-adjacent limit. */
+	if (count > mt_boot_max_ranges(capacity / 4096))
 		return -EINVAL;
 	/* Preflight the entire plan before changing a byte of output. */
 	for (i = 0; i < count; i++) {

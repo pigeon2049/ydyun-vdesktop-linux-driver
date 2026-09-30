@@ -20,7 +20,7 @@ def main():
     build = ROOT / 'build/runtime-test'
     inc = build / 'include/linux'
     inc.mkdir(parents=True, exist_ok=True)
-    for name in ('delay.h', 'module.h', 'sched.h', 'lockdep.h', 'mutex.h', 'slab.h', 'vmalloc.h', 'mm.h'):
+    for name in ('delay.h', 'module.h', 'sched.h', 'lockdep.h', 'mutex.h', 'slab.h', 'vmalloc.h', 'mm.h', 'gfp.h'):
         (inc / name).write_text('/* OS primitives supplied by userspace lifetime harness. */\n')
     drm_inc = inc.parent / 'drm'
     drm_inc.mkdir(exist_ok=True)
@@ -33,11 +33,18 @@ def main():
     flags = ['cc', '-std=gnu11', '-Wall', '-Wextra', '-Werror', '-O2',
              '-fsanitize=undefined', '-fno-sanitize-recover=all']
     checks = {}
+    # Sanitizer targets: the lifetime and mapping harnesses own heap buffers
+    # and reference counts, so a leak or use-after-free must fail the build.
+    asan = ('bo_lifetime_test', 'gpu_vm_test', 'gpu_vm_scale_test', 'gem_lifetime_test',
+            'work_job_test', 'execution_context_test', 'tqx_program_test', 'tqx_upload_test',
+            'tqx_dma_test', 'tqx_submission_test', 'boot_bo_lifetime_test',
+            'system_memory_test', 'boot_resource_stage_test')
     test_names = ('runtime_context_test', 'trial_lifetime_test', 'bo_lifetime_test', 'gpu_vm_test',
+                  'gpu_vm_scale_test',
                   'gem_lifetime_test', 'work_job_test', 'execution_context_test', 'runtime_submit_gate_test', 'tqx_program_test', 'tqx_upload_test', 'tqx_dma_test', 'tqx_submission_test', 'boot_bo_lifetime_test', 'system_memory_test', 'boot_resource_stage_test')
     for source in test_names:
         binary = build / source
-        run(flags + (['-fsanitize=address'] if source in ('bo_lifetime_test', 'gpu_vm_test', 'gem_lifetime_test', 'work_job_test', 'execution_context_test', 'tqx_program_test', 'tqx_upload_test', 'tqx_dma_test', 'tqx_submission_test', 'boot_bo_lifetime_test', 'system_memory_test', 'boot_resource_stage_test') else []) +
+        run(flags + (['-fsanitize=address'] if source in asan else []) +
             ['-I', inc.parent, ROOT / 'tests' / (source + '.c'), '-o', binary])
         checks[source] = run([binary] + ([ROOT / 'reports/device-info.bin']
                                         if source == 'runtime_context_test' else []))
@@ -51,9 +58,31 @@ def main():
     old, new = [run(['pahole', '-C', 'mt_guest', p]) for p in (backups[0], module)]
     if old != new:
         raise RuntimeError('Shared mt_guest ABI differs from the recovery module')
+    # Every recovery module reads address-space and mapping state that the main
+    # module allocated, so a layout change in any of these silently misreads a
+    # live session. The original check covered only mt_guest, which let the
+    # mt_gpu_vm mapping-table change pass unnoticed. Compare the full set
+    # against a recorded baseline and gate on any drift.
+    abi_structs = ('mt_guest', 'mt_guest_device', 'mt_gpu_vm', 'mt_vm_binding',
+                   'mt_vm_vram', 'mt_vm_store', 'mt_work_job')
+    abi = {name: hashlib.sha256(run(['pahole', '-C', name, module]).encode()).hexdigest()
+           for name in abi_structs}
+    baseline_path = ROOT / 'reports/shared-abi-baseline.json'
+    if baseline_path.exists():
+        baseline = json.loads(baseline_path.read_text())
+        drift = sorted(k for k in abi if baseline.get('abi', {}).get(k) != abi[k])
+        if drift:
+            raise RuntimeError(
+                'Shared ABI changed for ' + ', '.join(drift) +
+                '. Recovery modules and the main module must be rebuilt and the '
+                'main module reloaded together; a live session would be misread.')
+    else:
+        baseline_path.write_text(json.dumps(
+            dict(utc=datetime.now(timezone.utc).isoformat(), abi=abi), indent=2) + '\n')
     report = dict(utc=datetime.now(timezone.utc).isoformat(), passed=True,
                   checks=checks, module_sha256=hashlib.sha256(module.read_bytes()).hexdigest(),
                   shared_mt_guest_abi_matches_backup=True,
+                  shared_abi_structures=abi,
                   abi_backup_sha256=hashlib.sha256(backups[0].read_bytes()).hexdigest(),
                   module_loaded=False, hardware_written=False,
                   limits='Userspace RAM/OS models and kernel compilation; no live successful connection, context publication, context withdrawal, or GPU rendering verified.')

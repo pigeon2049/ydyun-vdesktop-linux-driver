@@ -263,12 +263,18 @@ value=`0x0005000500070002` → 收到兼容回复 → 通知 type=2/subtype=1 �
 
 ### 5. 3D Render Target 寄存器布局与 Dual VM Space 架构 (r41)
 
-- **硬件 VM Space 映射数量限制 (`MT_BOOT_MAX_RANGES 24U`)**：
-  - S3000 vGPU MMU 单个虚拟地址空间最多容纳 24 个 mapping ranges；
-  - 采用双空间隔离策略：
-    - `space_2d`（20 ranges）：4 个 2D 控制切片 + 8 个 GEM 槽位切片 + 8 个私有切片；
-    - `space_3d`（23 ranges）：11 个上下文 BO + 1 个 3D 命令包 BO + 9 个 boot-shared/私有切片 + 2 个 Render Target 表面切片（Slot 0 @ `0x60000000ULL`，Slot 1 @ `0x61000000ULL`）；
-  - 保持在 23 ranges <= 24 ranges 物理安全阈值内，彻底消除了 `-ENOSPC` 限制。
+- **~~硬件 VM Space 映射数量限制 (`MT_BOOT_MAX_RANGES 24U`)~~ — 此条已由 r42 订正**：
+  - r41 曾把「S3000 vGPU MMU 单个虚拟地址空间最多容纳 24 个 mapping ranges」记为硬件
+    物理上限。**这是错误的**：`MT_BOOT_MAX_RANGES 24U` 是驱动自己的编译期常量，
+    唯一实际用途是 `struct mt_gpu_vm` 中 `bindings[24]` 内联数组的长度；
+  - 真实 MMU 为三级页表 walk：PC 1024×4B（每项 1 GiB）→ PD 512×8B（每项 2 MiB）
+    → PT 512×8B（每项 4 KiB）。**硬件对映射数量无上限**，单个地址空间的实际上限来自
+    页表页预算（见 r42）。生产配置（32 页）上限为 15872 mappings；
+  - 双空间隔离策略本身仍然正确且必要，与 r42 不冲突：
+    - `space_2d`：2D 控制切片 + 8 个 GEM 槽位切片 + 私有切片；
+    - `space_3d`：11 个上下文 BO + 1 个 3D 命令包 BO + boot-shared/私有切片
+      + 2 个 Render Target 表面切片；
+  - 详见 `reports/r42-vm-mapping-scale.md`。
 - **Render Target 0 寄存器编解码规范**：
   - 3D Universal 命令包末端 `+0x44e0` 为寄存器块，其中 Fragment 寄存器起始于 `+0x4590`；
   - 每个 Render Target 占 24 字节（`0x18`）：
@@ -277,5 +283,38 @@ value=`0x0005000500070002` → 收到兼容回复 → 通知 type=2/subtype=1 �
     - `+0x45b0`: RT0 范围与图层（64 位，如 `(1024 << 16) | 1024`）；
     - `+0x4668`: Render Target Framebuffer Base（64 位）；
   - 结合 `dma_resv_reserve_fences` 与 `dma_resv_add_fence` 保证 VRAM 硬件写入并发安全性。
+
+### 6. 3D 上下文 BO 实际内容与光栅化前置条件 (r42 核查)
+
+- **11 个上下文 BO 的非零字节统计**（`kernel/mt_gfx_context_data.h`，取自
+  `LinuxGfxContextOracle.create()` 的参考执行）：
+
+  | BO | 字节 | 非零 | 内容 |
+  | --- | --- | --- | --- |
+  | 0 | 3072 | 227 | PDS 上下文切换程序 |
+  | 1 | 6144 | 1216 | USC shader |
+  | 2 | 776 | 0 | DCE context switch snapshot |
+  | 3 | 468 | 0 | **TA state** |
+  | 4, 5 | 1024 | 0 | PDS |
+  | 6, 7 | 16400 | 0 | **VDM uniform PDS state** |
+  | 8, 9 | 16400 | 0 | **DDM uniform PDS state** |
+  | 10 | 8192 | 0 | **Rasterisation context state** |
+
+- **结论**：TA state、光栅化上下文、以及全部 VDM/DDM 程序**全为零**，当前 3D 上下文
+  只有「上下文切换」能力，没有「绘制」能力。硬件上能消费包并返回 `result=0`，
+  不等于发生了光栅化。
+- **原因**：`FUN_00183d30` 的原厂错误字符串即
+  `RGXGenerateContextSwitchUniformTasks: Failed to create USC task`。它只负责生成
+  uniform 存取程序，且因为上下文描述符（`CONTEXT` fixture 全零）而直接失败。
+  真正的顶点取数程序由原厂 **PSC 编译器闭包**（`001a4fc0`..`001b6e40`）现场生成，
+  不是可以手写常量填入的模板。
+- **对 r41 结论的影响**：r41 写的下一步「顶点缓冲 + 单三角形光栅化」实际被这条硬依赖
+  挡住，工作量远大于该阶段本身。可达路径只有两条：
+  1. 逆向重实现 PSC 编译器以合成顶点取数程序；
+  2. 实现 PVRSRV ioctl 桥接，让原厂 UMD 的渲染路径跑在自研驱动上。
+- **辅助工具**：`scripts/trace-packet-field-map.py` 对原厂 Linux UMD 逐 word 差分探测，
+  建立 5 个描述符字段到包内偏移的数据依赖表（121 个可达 word，落盘
+  `reports/packet-field-map.json`）。该表是后续定位顶点/图元寄存器字段的基础，
+  但只给数据依赖，不解释寄存器语义。
 
 

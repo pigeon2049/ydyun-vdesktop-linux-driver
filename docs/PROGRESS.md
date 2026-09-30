@@ -1396,3 +1396,77 @@ Linux 首选路径：
 
 
 
+
+## Step 139：GPU VA 映射可扩展化——移除 24 mappings 假上限 (r42)
+
+- **订正 r41 的一处错误结论**：
+  - r41 报告与 `PROTOCOL-NOTES.md` 把「S3000 vGPU MMU 单个虚拟地址空间最多容纳
+    24 个 mapping ranges」写成硬件物理上限。核查确认这是**驱动自己的编译期常量**：
+    `MT_BOOT_MAX_RANGES 24U` 唯一的实际用途是 `struct mt_gpu_vm` 中
+    `bindings[24]` 内联数组的长度，以及 `mt_gpu_vm_plan()` 里两个同长的**内核栈数组**；
+  - 真实 MMU 是三级页表 walk（`mt_mmu.h`，逆向自 `mtkm64.sys`）：
+    PC 1024×4B（每项 1 GiB）→ PD 512×8B（每项 2 MiB）→ PT 512×8B（每项 4 KiB）。
+    **硬件对映射数量没有任何上限**；单个地址空间的实际上限来自页表页预算，
+    即 `MT_BOOT_MAX_MAPPED_BYTES`(64 MiB) 对应的 16384 个页表项；
+  - 这是任何真实图形栈（需要成百上千个 buffer 映射）的前置阻塞项。
+- **上限改为从页表几何推导**：
+  - 新增 `mt_boot_max_ranges(table_pages)`：`(table_pages - 1) × 512` 与
+    `MT_BOOT_MAX_MAPPED_BYTES / 4096` 取小；root 页不可用于映射；
+  - 生产配置（32 页）实测上限为 **15872**，而非 24；
+  - `mt_mmu_build_pages()` 的硬拒绝改为按调用方实际页预算校验，页预算耗尽仍由
+    既有循环返回 `-ENOSPC`（那才是贴近硬件的真实边界）。
+- **映射表与规划暂存移出内联数组和内核栈**：
+  - `struct mt_gpu_vm.bindings[24]` → 按需增长的堆指针，并新增 `ranges` / `page_lists`
+    暂存数组。直接把 24 改成 15872 内联会让结构膨胀到约 500 KB，且每次
+    `mt_gpu_vm_bind_many()` 在 16 KB 内核栈上压入两个大数组——直接爆栈；
+  - `mt_gpu_vm_grow()` 按 2 的幂增长，稳态不重复分配；分配失败保留旧数组与旧
+    `count`，被拒绝的 bind 不污染既有 plan；
+  - `mt_work_job.bos[]` 同样按映射数定长内联，一并改为精确分配的指针。
+- **事务性语义与 errno 保持不变**：
+  - `bind_many()` 改为**先整批校验、再 grow、最后原地暂存到尾部**；重叠检测从
+    planner 内部提升到校验循环，故冲突请求既不增长数组，也不改变 image / count /
+    页数 / 任何引用计数；
+  - 范围预检顺序与 planner 自身一致（`va >= 1<<40` → `-EINVAL`，
+    `bytes > (1<<40)-va` → `-ERANGE`），调用者观察到的 errno 不变；
+  - `mt_gpu_vm_commit()` 改为只清空退役尾部（原整体 memset+memcpy 与原地暂存矛盾）；
+  - 修正一处陈旧指针隐患：`plan()` 中 `page_lists[i]` 原先仅在 BO 有 `page_pa` 时
+    写入，否则沿用上次 plan 的值——改为复用暂存数组后这会成为真实映射错误来源。
+- **共享 ABI 校验补全**：
+  - `verify-runtime-integration.py` 原先只比对 `mt_guest` 一个结构；
+    `mt_guest_device` 内嵌 `address_spaces`，所有 recovery 模块都直接读主模块分配的
+    `mt_gpu_vm` / `mt_vm_vram` 字段——本次 `mt_gpu_vm` 布局变更正是因此被静默放过；
+  - 现对 7 个共享结构取 pahole 摘要、写入 `reports/shared-abi-baseline.json` 并
+    后续构建上门禁，任何漂移直接失败并提示「主模块与 recovery 模块必须一起重建、
+    一起重新加载」。
+- **UAPI**：`struct drm_mt_query` 尾部追加三个只读字段（56 → 80 字节），
+  既有偏移不变，让用户态可直接看到地址空间余量；`mt-3d-check` 增加
+  `vm3d_max_mappings > 24` 断言。
+- **验证**：
+  - 新增 `tests/gpu_vm_scale_test.c`（ASan + UBSan）：推导上限、**512 个同时存在的
+    映射**（旧上限 21 倍，共 6 个页表页，对全部 512×4 个页面做独立三级 walk 逐页
+    核对物理地址）、以及拒绝路径不变式（image / count / 页数 / 数组容量 / 引用计数
+    全部未变）；
+  - 全量 21 个测试通过，`kernel/`、`kernel/recovery/`、`kernel/selftest/` 三处
+    `W=1` 零警告；
+  - 过程中 ASan 抓到一处真实泄漏：`mt_work_job_prepare()` 在
+    `mt_bo_gpu_begin()` 失败回滚时漏掉了新分配的 pin 数组，已修。
+- **真机验证未完成，原因明确**：当前 `mt_guest_probe` 仍在运行，且是用**旧
+  `mt_gpu_vm` 布局**编译的（内联 `bindings[24]`，`sizeof` 与字段偏移均不同）。
+  recovery 模块按新布局访问主模块分配的对象，`space_2d->vm.max_ranges` 读到 0，
+  `create()` 在 `mt_gpu_vm_init()` 处失败，insmod 报 `-EBUSY`。要完成真机验证必须
+  重新加载主模块，这会销毁已建立的固件会话（Guest=2 / FW=2 / started=1），
+  属影响硬件状态的操作，未擅自执行。
+- **同时查明：r41 写的下一步「顶点缓冲 + 单三角形光栅化」被另一条硬依赖挡住**：
+  - 核查 11 个 3D 上下文 BO 实际内容：仅 BO0（PDS 上下文切换程序，227 非零字节）
+    与 BO1（USC shader，1216 非零字节）有内容；**BO3 TA state、BO10 光栅化上下文、
+    以及 BO6/7/8/9 全部 VDM/DDM 程序非零字节均为 0**；
+  - `FUN_00183d30` 原厂字符串即 `RGXGenerateContextSwitchUniformTasks`，只负责生成
+    uniform 存取程序，且因上下文描述符全零而直接失败（`Failed to create USC task`）；
+  - 真正的顶点取数程序由原厂 PSC 编译器闭包（`001a4fc0`..`001b6e40`）现场生成，
+    无法绕过。可达路径只有两条：逆向重实现 PSC 编译器，或让原厂 UMD 渲染路径
+    跑在自研驱动上。
+- **新增工具** `scripts/trace-packet-field-map.py`：对原厂 Linux UMD 逐 word 差分
+  探测（121 个可达 word），把 5 个描述符字段映射到包内偏移，落盘
+  `reports/packet-field-map.json`。这是后续定位顶点/图元寄存器字段的工具基础，
+  但它给出数据依赖，不解释寄存器语义。
+- 完整技术报告见 `mt-vgpu-guest/reports/r42-vm-mapping-scale.md`。

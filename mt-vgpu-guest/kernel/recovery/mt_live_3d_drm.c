@@ -68,7 +68,7 @@ static u64 slot_va(u32 i) { return 0x40100000ULL + i * 0x100000ULL; }
 struct lease { struct drm_gem_object base; struct slot *slot; };
 static_assert(sizeof(struct mt_guest_device) == 30784);
 static_assert(offsetof(struct mt_guest_device, markers) == 29888);
-static_assert(sizeof(struct drm_mt_query) == 56);
+static_assert(sizeof(struct drm_mt_query) == 80);
 static_assert(sizeof(struct drm_mt_create) == 16);
 static_assert(sizeof(struct drm_mt_rw) == 4120);
 static_assert(sizeof(struct drm_mt_copy) == 48);
@@ -183,7 +183,10 @@ static int query_ioctl(struct drm_device *dev, void *data, struct drm_file *file
 		.slot_bytes = MT_LIVE_SLOT_MAX, .leased = leased, .faulted = faulted,
 		.retained = retained, .submitted = submitted, .completed = completed,
 		.capabilities = MT_DRM_CAP_COPY | MT_DRM_CAP_FILL | (ready_3d ? MT_DRM_CAP_3D : 0),
-		.last_sequence = last_sequence};
+		.last_sequence = last_sequence,
+		.vm2d_mappings = space_2d ? space_2d->vm.count : 0,
+		.vm3d_mappings = space_3d ? space_3d->vm.count : 0,
+		.vm3d_max_mappings = space_3d ? space_3d->vm.max_ranges : 0};
 	mutex_unlock(&d->state.trial_lock);
 	mutex_unlock(&slot_lock);
 	return 0;
@@ -703,7 +706,7 @@ static int prepare_context(void)
 	if (ret || cores != d->gem.tqx_cores)
 		return ret ? ret : -EINVAL;
 
-	/* --- 1. Prepare 2D Graphics Context (space_2d, 20 ranges <= 24) --- */
+	/* --- 1. Prepare 2D Graphics Context --- */
 	ret = d->address_spaces.ops->create(&d->address_spaces, 32, &space_2d);
 	if (ret)
 		return ret;
@@ -757,7 +760,7 @@ static int prepare_context(void)
 	if (ret)
 		return ret;
 
-	/* --- 2. Prepare 3D Universal Context (space_3d, 21 ranges <= 24) --- */
+	/* --- 2. Prepare 3D Universal Context --- */
 	ret = d->address_spaces.ops->create(&d->address_spaces, 32, &space_3d);
 	if (ret)
 		return ret;
@@ -849,8 +852,11 @@ static int prepare_context(void)
 		return ret;
 
 	ready_3d = true;
-	pr_info("mt_live_3d_drm: prepared unified 2D VM (pages=%u) & 3D VM (pages=%u)\n",
-		space_2d->vm.used_pages, space_3d->vm.used_pages);
+	/* Mapping headroom is derived from the page-table budget, not a fixed
+	 * constant. Report it so the next mapping stage is measurable. */
+	pr_info("mt_live_3d_drm: prepared unified 2D VM (pages=%u, maps=%u/%u) & 3D VM (pages=%u, maps=%u/%u)\n",
+		space_2d->vm.used_pages, space_2d->vm.count, space_2d->vm.max_ranges,
+		space_3d->vm.used_pages, space_3d->vm.count, space_3d->vm.max_ranges);
 
 	return 0;
 }

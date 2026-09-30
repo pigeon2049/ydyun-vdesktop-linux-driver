@@ -19,6 +19,11 @@ struct drm_mt_query {
 	__u32 abi, slot_count, slot_bytes, leased;
 	__u32 faulted, retained, capabilities, reserved;
 	__u64 submitted, completed, last_sequence;
+	/* Mappings currently installed in each GPU address space. Reported so a
+	 * client can see address-space headroom without guessing. */
+	__u64 vm2d_mappings, vm3d_mappings;
+	/* Derived mapping ceiling of the 3D space, from the page-table budget. */
+	__u64 vm3d_max_mappings;
 };
 struct drm_mt_create { __u32 bytes, flags, handle, reserved; };
 /* Explicit CPU transfer, at most one page per call. No mmap/PRIME yet. */

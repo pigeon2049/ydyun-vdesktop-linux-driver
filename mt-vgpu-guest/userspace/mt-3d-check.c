@@ -21,6 +21,13 @@ static void check_3d_execution(int fd, int frames)
 		!!(q.capabilities & MT_DRM_CAP_FILL),
 		!!(q.capabilities & MT_DRM_CAP_3D));
 	REQUIRE(q.capabilities & MT_DRM_CAP_3D);
+	/* Address-space headroom is reported, and the mapping count must fit the
+	 * derived ceiling. Earlier revisions capped this at 24 by driver constant. */
+	REQUIRE(q.vm3d_max_mappings > 24);
+	REQUIRE(q.vm3d_mappings <= q.vm3d_max_mappings);
+	printf("[*] GPU VA mappings: 2D=%"PRIu64"  3D=%"PRIu64"/%"PRIu64" (page-budget derived)\n",
+		(uint64_t)q.vm2d_mappings, (uint64_t)q.vm3d_mappings,
+		(uint64_t)q.vm3d_max_mappings);
 
 	printf("[*] Submitting %d 3D frames via DRM_IOCTL_MT_SUBMIT_3D...\n", frames);
 

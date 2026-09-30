@@ -47,7 +47,7 @@ static u64 slot_va(u32 i) { return 0x40100000ULL + i * 0x100000ULL; }
 struct lease { struct drm_gem_object base; struct slot *slot; };
 static_assert(sizeof(struct mt_guest_device) == 30784);
 static_assert(offsetof(struct mt_guest_device, markers) == 29888);
-static_assert(sizeof(struct drm_mt_query) == 56);
+static_assert(sizeof(struct drm_mt_query) == 80);
 static_assert(sizeof(struct drm_mt_create) == 16);
 static_assert(sizeof(struct drm_mt_rw) == 4120);
 static_assert(sizeof(struct drm_mt_copy) == 48);
