@@ -64,6 +64,8 @@ MAPPING = {
     # 28-byte struct and answered -EINVAL (bA25).
     "mt_pvr_heap_create_in": (0x6, 0x11),
     "mt_pvr_heap_create_out": (0x6, 0x11),
+    "mt_pvr_heap_destroy_in": (0x6, 0x12),
+    "mt_pvr_heap_destroy_out": (0x6, 0x12),
 }
 
 # Which table size each struct corresponds to: "in", "out" or "dispatch".
@@ -82,6 +84,7 @@ DIRECTION = {
     "mt_pvr_hwperf_release_in": "in", "mt_pvr_hwperf_release_out": "out",
     "mt_pvr_heap_count_out": "out",
     "mt_pvr_heap_create_in": "in", "mt_pvr_heap_create_out": "out",
+    "mt_pvr_heap_destroy_in": "in", "mt_pvr_heap_destroy_out": "out",
 }
 
 # Table key holding the wire size for each direction.

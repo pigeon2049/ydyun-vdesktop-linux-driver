@@ -141,6 +141,25 @@ struct MT_PVR_PACKED mt_pvr_heap_count_out {
 	u32 num_heaps;
 };
 
+/* 0x6:0x12 MM:DevmemIntHeapDestroy -- 8-byte IN, 4-byte OUT.
+ *
+ * The handle here is the one DevmemIntHeapCreate returned. This was an empty
+ * stub that ignored both, so the UMD's heap objects were never released and
+ * it went on to free them itself.
+ *
+ * The 5.2.0 header declares the in as a 4-byte MT_HANDLE, but the driver
+ * actually sends 8: it widens handles to 64 bits, the same widening that
+ * MTGPU_BRIDGE_OUT_MUSAACQUIREHWPERFSETTING shows (see mt_pvr_handle_out).
+ * The captured size is authoritative here, not the older header.
+ */
+struct MT_PVR_PACKED mt_pvr_heap_destroy_in {
+	u64 devmem_heap;
+};
+
+struct MT_PVR_PACKED mt_pvr_heap_destroy_out {
+	u32 error;
+};
+
 /* 0x6:0x11 MM:DevmemIntHeapCreate -- 28-byte IN, 12-byte OUT.
  *
  *   MTGPU_BRIDGE_IN_DEVMEMINTHEAPCREATE  = { sHeapBaseAddr, uiHeapLength,
@@ -284,6 +303,8 @@ static_assert(sizeof(struct mt_pvr_heap_details_in) == 20, "0x6:0x20 in");
 static_assert(sizeof(struct mt_pvr_heap_count_out) == 8, "0x6:0x1e out");
 static_assert(sizeof(struct mt_pvr_heap_create_in) == 28, "0x6:0x11 in");
 static_assert(sizeof(struct mt_pvr_heap_create_out) == 12, "0x6:0x11 out");
+static_assert(sizeof(struct mt_pvr_heap_destroy_in) == 8, "0x6:0x12 in");
+static_assert(sizeof(struct mt_pvr_heap_destroy_out) == 4, "0x6:0x12 out");
 static_assert(sizeof(struct mt_pvr_heap_details_out) == 44, "0x6:0x20 out");
 static_assert(sizeof(struct mt_pvr_pmr_in) == 72, "0x6:0x9 in (wire 72)");
 static_assert(sizeof(struct mt_pvr_pmr_out) == 24, "0x6:0x9 out (wire 24)");

@@ -379,6 +379,43 @@ static int pvr_cmd_heap_count(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* 0x6:0x12 MM:DevmemIntHeapDestroy -- release the object Create handed out.
+ *
+ * This was an empty stub. The UMD therefore never saw its heap go away and
+ * freed it again itself, which is where "double free or corruption (fasttop)"
+ * came from. Freeing it here, exactly once, is also just correct: a handle the
+ * driver issued must be retirable by the handle the driver was given.
+ *
+ * No locking here: pvr_ioctl_bridge() already holds file->lock across the whole
+ * dispatch, and it is a plain mutex, so taking it again self-deadlocks. An
+ * earlier version of this function did exactly that and hung the UMD in
+ * uninterruptible sleep inside pvr_bridge_dispatch, where it could not even be
+ * killed.
+ */
+static int pvr_cmd_heap_destroy(struct mt_pvr_file *file,
+				struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_heap_destroy_in in;
+	struct mt_pvr_heap_destroy_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == in.devmem_heap && obj->kind == MT_PVR_KIND_HEAP) {
+			list_del(&obj->link);
+			kfree(obj);
+			return pvr_out(cmd, &out, sizeof(out));
+		}
+	}
+	/* Refuse a handle we never issued, or one already destroyed, rather than
+	 * silently succeeding.
+	 */
+	return -ENOENT;
+}
+
 /* 0x6:0x11 MM:DevmemIntHeapCreate.
  *
  * Register one heap inside an already-created device-memory context. The UMD
@@ -725,7 +762,7 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case 0x7:			/* PmrUnrefPmr */
 		case 0x10:			/* DevmemIntCtxDestroy */
 		case 0x12:			/* DevmemIntHeapDestroy */
-			return pvr_stub_ok(cmd);
+			return pvr_cmd_heap_destroy(file, cmd);
 		case 0x9:			/* PhysMemNewRamBackedPmr */
 			return pvr_cmd_pmr_alloc(file, cmd);
 		case 0xf:			/* DevmemIntCtxCreate */
