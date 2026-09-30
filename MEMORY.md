@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA11：SyncPrim 现状与 kick 路线；未提交）
+最后更新：2026-09-30（bA12：Stage A 收官评估 + Stage B 提案；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,27 @@
 
 ---
 
-## 本次会话进展（bA11：SyncPrim 现状，未提交）
+## 本次会话进展（bA12：Stage A 收官评估，未提交）
+
+接 bA11。kick 入口已探明，要求事件过滤器对象（`[renderctx+0x50]`），
+我方流程未建——属 UMD 内部对象图缺失，非线格式问题。
+
+### Stage A 结论：离线 triage 已覆盖全链路骨架
+
+节点选择、Connect、BVNC、info 页、堆表＋名、sync 全家、双连接、
+devmem、renderctx 创建、PMR/reserve/map、OOM-stats、kick 入口形状。
+剩余三项（kick 包内容、Sync memType 动态、事件过滤器）必须真实 KMD
+数据，伪造边际收益已尽。详见报告 §19。
+
+### Stage B 提案（待用户拍板）
+
+最小内核桥（新模块，不碰活会话）：`pvr` 节点＋INIT＋Connect＋
+info/mmap＋堆表＋PMR 真后备＋sync 全家＋双连接；然后 UMD 跑真实数据，
+Sync/kick/PSC 自然落地。详见报告 §7。
+
+---
+
+## 上次会话进展（bA11：SyncPrim 现状，未提交）
 
 接 bA10。
 

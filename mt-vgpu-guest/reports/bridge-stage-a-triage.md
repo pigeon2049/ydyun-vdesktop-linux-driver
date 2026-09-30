@@ -287,10 +287,29 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 - 给 Stage B 的输入（新增）：sync 分配是 lazy 的（注册与分配分离）；
   kick 前置为 renderctx + devctx + device-conn 三件套。
 
-## 7. 下一步（bA12）
+## 19. bA12：kick 入口与事件过滤器需求（Stage A 收官评估）
 
-1. SyncPrim 的 features 槽写入者（第二 Connect 调用是否死代码？
-   InitMTFeatures 的 rdx 目标？），或绕过：kick 准备是否自带 sync 初始化。
-2. ZS buffer → kick 包捕获（只审包不上交）→ PSC 输出格式对照
-   （r41 阻塞的正面回答）→ 最小命令集 + 打桩表（Stage B 输入）。
-3. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。
+- kick 入口 `RGXKickTA(renderctx?, kickparams?, ...)`：
+  参数块 `+0x30` 非空；首调用 `MTSRVGetClientEventFilter` 即崩
+  （`[renderctx+0x50]` 未初始化，`[r14+rax*4+8]` 野读）。
+- `[renderctx+0x50]`（事件过滤器对象）应在 renderctx 创建时建立，
+  我方流程未建——属 UMD 内部对象图缺失，非线格式问题。
+- 到此 Stage A 离线 triage 已覆盖：节点选择、Connect 全序列、
+  Bvnc、info 页、堆表＋名、sync ioctl 全家、双连接、devmem 全流程、
+  renderctx 创建、PMR/reserve/map、OOM-stats、kick 入口形状。
+  剩余（kick 包内容、Sync memType 动态值、事件过滤器初始化）
+  均需**真实 KMD 数据**才能继续——伪造边际收益已尽。
+
+## 7. 下一步（Stage B 提案，待用户拍板）
+
+最小内核桥（新 recovery/test 模块，不碰主模块会话）：
+1. DRM 节点（version 名 `pvr`）+ `INIT(1/2)` + Connect（含 Bvnc其一、
+   caps、arch）+ 7 个共享结构 ABI 对齐。
+2. info 页（64KB @mmap `0x1001000`：设备数/`+0x44`/`+0x48`）+
+   堆表（11 项真实范围＋名）+ PMR/import/reserve/map 真后备
+   （复用现有 BO/VM/VRAM 代码）。
+3. sync ioctl 全家（rename/create-fence/inc）+ 双连接支持。
+4. 然后 UMD 跑真实数据：Sync memType 动态值、事件过滤器、
+   kick 包捕获（审包对 PSC）自然落地。
+5. 成功标准：UMD 走完 connect→devmem→renderctx→kick-submit
+   全链路（先只审包不上交硬件），输出最小命令集终版。
