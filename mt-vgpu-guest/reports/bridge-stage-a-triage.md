@@ -236,25 +236,32 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 - 给 Stage B 的输入（新增）：UMD 工具链本身必须确定性；
   OOM-stats 桥需实现（计数器语义）。
 
-## 15. bA8 收尾：注册表内容确认（ resolve 了名字归属）
+## 15. bA10：render context 创建成功（TA timeline 是钥匙）
 
-- 注册表 dump（gdb 在 `0x94a60` 入口读参 + 逐 entry 读名）：
-  registry（count=11）entries 0-6 名为 "General"，7 为
+- `PVRFDSyncOpen` 的 `PVR_SYNC_IOC_RENAME`（`0x40206441`）在假 fd 上
+  报 ENOTTY → 无 TA timeline → renderctx 失败。shim 对 DRM `pvr`
+  系列 ioctl（`0x6440-0x6445`，桥包除外）一律回 0 后：
+  **`RGXCreateRenderContext(...) -> 0`，outptr 为非零 ctx！**
+- 101-op 成功序列见 `reports/umd-bridge-renderctx-trace.jsonl`：
+  devmem/堆/PMR 之后 `0x82:0x8 RGXCREATERENDERCONTEXT(hRenderContext=0x6000)`、
+  `0x1:0x4 EVENTOBJECTOPEN(0x7000)`、第二 render 节点 open + `INIT(2)`、
+  两次 SYNC_RENAME（TA/3D timeline？），无 teardown，直接返回 0。
+- 给 Stage B 的输入（新增）：KMD 必须实现整套 PVR sync ioctl
+  （rename/create-fence/inc 等，不止桥包）；render 节点要能多开
+  （UMD 开第二个节点做 sync）。
+- 仍 open：Sync alloc 动态值（kick 前必现）、ZS buffer、kick 本体。
+
+## 16. bA8 附记：注册表内容（已由 bA10 证实有用）
+
+- 注册表 dump：registry（count=11）entries 0-6 名为 "General"，7 为
   "PDS Code and Data"，8-10 为 "USC Code"。
 - 机制：UMD 在每次 details→heapcreate 间隙**同步拷贝**名到堆对象；
-  未命名堆继承共享栈槽的上次残留（1-6 得 "General"，9-10 得 "USC Code"）。
-  名字稳定——名字本身不是问题。
-- devmem 期三次查找（PDS/General/USC）全中；renderctx 期
-  `DevmemFindHeapByName` 报 INVALID_HEAP_INDEX 后 DCE 缓冲失败返回 1——
-  找的是**另一名字或另一注册表**（renderctx 用 `[r12+0x8]` 链，
-  非 devmem 注册表），是 bA10 的抓捕目标。
-- 副产出：`heap_names[]` 三命名即 KMD 上报名；`Ext` 返回语义、
-  DebugPrintf 抓因法、ASan 同插法均已验证可复用。
+  未命名堆继承共享栈槽的上次残留。名字稳定。
+- `heap_names[]` 即 KMD 上报名（General/PDS/USC/Component Control 均已验证）。
 
-## 7. 下一步（bA10）
+## 7. 下一步（bA11）
 
-1. 抓 renderctx 期 `DevmemFindHeapByName` 的查找名与注册表
-   （0x94a60 断点放过前三次，只看第四次起；读 rdi/rsi/返回值）。
-2. 然后：Sync alloc 动态现身（复核 memType=2）→ `RGXKICKTA3D3`
+1. renderctx 已建成，推进 ZS buffer（`RGXCreateZSBuffer` 参数确认）→
+   Sync alloc 动态现身（复核 memType=2）→ `RGXKICKTA3D3`
    （看清尾部 8 字节）→ 最小命令集 + 打桩表（Stage B 输入）。
-3. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。
+2. 回填 `0x6:0x9/0x15/0x13` 的真值伪造（按 2.3 头文件结构体）。

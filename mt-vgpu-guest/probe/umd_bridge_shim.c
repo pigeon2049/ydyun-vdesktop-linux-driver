@@ -133,6 +133,16 @@ static const struct canned_out canned[] = {
 	  0x01, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	  0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00},
 	 24},
+	/* RGXTA3D:RGXCREATERENDERCONTEXT -> nonzero render ctx handle. */
+	{0x82, 0x8,
+	 {0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x00, 0x00},
+	 12},
+	/* SRVCORE:EVENTOBJECTOPEN -> nonzero OS event handle. */
+	{0x1, 0x4,
+	 {0x00, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	  0x00, 0x00, 0x00, 0x00},
+	 12},
 };
 
 /* Heap 0-10 base/length from mt_guest_plan_heaps (S3000 Guest layout). */
@@ -142,11 +152,11 @@ static const struct heap_range heap_ranges[11] = {
 	{0x8100000000ULL, 0x100000000ULL},
 	{0x8400000000ULL, 0x100000000ULL},
 	{0xa000000000ULL, 0x1000000ULL},
-	{0, 0},
+	{0xd000000000ULL, 0x100000ULL},
 	{0, 0},
 	{0xe1c0000000ULL, 0x100000000ULL},
-	{0xec00000000ULL, 0x8000ULL},
-	{0xec40000000ULL, 0x1000ULL},
+	{0xec00000000ULL, 0x800000ULL},
+	{0xec40000000ULL, 0x100000ULL},
 	{0xeb00000000ULL, 0x100000000ULL},
 	{0xf000000000ULL, 0x100000000ULL},
 };
@@ -154,7 +164,7 @@ static const struct heap_range heap_ranges[11] = {
 /* Heap names for FindHeapByName (RGX_*_HEAP_IDENT). Only 0 and 7 assigned;
  * UMD names any other missing heap in its next error. BufSz is 160. */
 static const char *heap_names[11] = {
-	"General", NULL, NULL, NULL, NULL, NULL, NULL,
+	"General", NULL, NULL, NULL, "Component Control", NULL, NULL,
 	"PDS Code and Data", "USC Code", NULL, NULL,
 };
 
@@ -199,6 +209,19 @@ static void fabricate_heap_details(const uint8_t *in, uint32_t in_size,
 /* Distinct PMR handles per allocation (OUT 24B: hPMR u64@0).
  * Zero handles alias and break later unref/map steps. */
 static uint64_t next_pmr = 0x5000;
+static uint64_t next_mapping = 0x8000;
+static uint64_t next_reservation = 0x9000;
+
+static void fabricate_handle_out(uint64_t *counter, uint8_t *out,
+				 uint32_t out_size, uint32_t body)
+{
+	uint64_t h;
+	memset(out, 0, out_size < body ? out_size : body);
+	if (out_size >= 8) {
+		h = (*counter)++;
+		memcpy(out, &h, 8);
+	}
+}
 
 static void fabricate_pmr_alloc(const uint8_t *in, uint32_t in_size,
 				uint8_t *out, uint32_t out_size)
@@ -494,6 +517,14 @@ int ioctl(int fd, unsigned long req, ...)
 					(const uint8_t *)(uintptr_t)cmd.in_ptr,
 					cmd.in_size,
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x13)
+				fabricate_handle_out(&next_mapping,
+						     (uint8_t *)(uintptr_t)cmd.out_ptr,
+						     n, 12);
+			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x15)
+				fabricate_handle_out(&next_reservation,
+						     (uint8_t *)(uintptr_t)cmd.out_ptr,
+						     n, 12);
 			else
 				apply_canned(cmd.bridge_id, cmd.bridge_func_id,
 					     (void *)(uintptr_t)cmd.out_ptr, n);
@@ -507,6 +538,20 @@ int ioctl(int fd, unsigned long req, ...)
 		if (logf)
 			fprintf(logf, ",\"ret\":0}\n");
 		return 0;
+	}
+
+	/* PVR sync ioctl family on DRM nodes (SYNC_RENAME 0x41 and
+	 * siblings): succeed silently so sync-timeline setup proceeds. */
+	if (arg && ((req >> 8) & 0xff) == 0x64) {
+		unsigned nr = req & 0xff;
+		if (nr >= 0x40 && nr <= 0x45 && req != SRVKM_CMD) {
+			ensure_log();
+			if (logf)
+				fprintf(logf, "{\"seq\":%lu,\"op\":\"pvr_sync_ioctl\","
+					"\"fd\":%d,\"req\":\"0x%lx\",\"ret\":0}\n",
+					++seq, fd, req);
+			return 0;
+		}
 	}
 
 	ret = S_(SYS_ioctl, fd, req, (long)arg, 0, 0, 0);

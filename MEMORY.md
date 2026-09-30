@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA9：工具稳定性修复 + OOM-stats；未提交）
+最后更新：2026-09-30（bA10：render context 创建成功；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,29 @@
 
 ---
 
-## 本次会话进展（bA9：稳定性修复 + OOM-stats，未提交）
+## 本次会话进展（bA10：render context 创建成功，未提交）
+
+接 bA9（同一会话连续推进）。
+
+### 1. TA timeline 是钥匙，renderctx 建成
+
+- `PVR_SYNC_IOC_RENAME`（`0x40206441`）在假 fd 上 ENOTTY →
+  无 TA timeline → 失败。shim 对 DRM pvr 系列 ioctl
+  （`0x6440-0x6445`，桥包除外）回 0 后：
+  **`RGXCreateRenderContext(...) -> 0`，outptr 非零！**
+- 101-op 序列：`0x82:0x8`（hRenderContext=0x6000）、
+  `0x1:0x4`（hOSEvent=0x7000）、第二节点 open + `INIT(2)`、
+  两次 SYNC_RENAME，无 teardown。
+- 给 Stage B 的输入：整套 PVR sync ioctl 必须实现；
+  render 节点要能多开。
+
+### 2. 下一步（bA11）
+
+ZS buffer → Sync alloc（memType 复核）→ kick → 最小命令集。
+
+---
+
+## 上次会话进展（bA9：稳定性修复 + OOM-stats，未提交）
 
 接 bA8（同一会话连续推进）。
 
