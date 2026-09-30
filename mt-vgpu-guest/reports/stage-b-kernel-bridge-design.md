@@ -401,11 +401,15 @@ cd mt-vgpu-guest
 python3 scripts/build-stage-b-bridge-requirements.py
 
 # 离线会话（connect → device-conn → devmem → renderctx → sync）
+# $IDX 必须是本节点真实的 render minor：UMD 在 0xa4af0 处按 `index-0x80` 校验，
+# 只接受 0x80..0xbf（bA24）。旧配方写的是 u0，在伪造 shim 下看不出来，
+# 打真驱动会直接 MTSRV_ERROR_INIT_FAILURE(4) 且一条 ioctl 都不发。
+IDX=$(basename "$(ls /dev/dri/renderD* | head -1)" | sed 's/renderD//')
 UMD=/tmp/mtt-linux-umd-5.2.0/root/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0
 UMD_TRACE=/tmp/opencode/umda/sess.jsonl \
 LD_PRELOAD=$PWD/build/probe/umd_bridge_shim.so \
 timeout 20 ./build/probe/umd_connect_harness $UMD \
-  connect 0 buf 7 64 call PVRSRVConnectionCreateDevice b7 u0 u0 \
+  connect 0 buf 7 64 call PVRSRVConnectionCreateDevice b7 u$IDX u0 \
   buf 5 16 call RGXCreateDeviceMemContext b7* b5 b5+8 \
   buf 6 256 u64 6 16 'b5*+0' u32 6 48 u1 u32 6 52 u1 \
   buf 9 8 call RGXCreateRenderContext b7* b6 b9 \

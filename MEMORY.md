@@ -1,11 +1,74 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA23：修 trace 洪泛（8GB 灌满 /tmp）+ 记录 bA22 定位结果）
+最后更新：2026-10-01（bA24：**设备连接打通**——第 2 参是 DRM 节点索引，不是 0）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA23：trace 洪泛修复；/tmp 被灌满的连锁故障）
+## 本次会话进展（bA24：设备连接成功；bA13 配方第 2 参一直是错的）
+
+接 bA23。真机继续（全程未重启）。
+
+### 1. 里程碑：设备连接成功
+
+`PVRSRVConnectionCreateDevice` 由 **4 → 0**，并跑出 **14 条桥命令**；
+UMD 随后**自己第二次 open `renderD130`**，完整跑了第二套连接
+（Connect / GlobalEventObject / AcquireInfoPage / PmrLocalImportPmr /
+info 页 mmap 成功 / hwperf / GetMultiCoreInfo / AlignmentCheck），
+再走 `0x6:0xf` DevmemIntCtxCreate、`0x6:0x1e` HeapCfgHeapCount、
+`0x6:0x10` DevmemIntCtxDestroy。
+
+### 2. 真正的原因：**配方第 2 参是 DRM 节点索引**，bA13 却传了 `u0`
+
+真实机器码（UMD `0xa4af0`）：
+
+```
+lea   -0x80(%rdi),%eax     ; index-0x80
+cmp   $0x3f,%eax           ; 只接受 0x80..0xbf
+ja    ->1                 ; 越界即 -1
+...  snprintf("/dev/dri/renderD%d") + open64
+```
+
+- 传 `u130`（本节点真实 render minor）⇒ **成功**；
+  传 `u128` ⇒ 仍失败 ⇒ UMD 要的是**我们这个** minor，不是「第一个 render minor」；
+  传 `u0` ⇒ `0-0x80` 越界 ⇒ 立刻 `-1` ⇒ `MTSRV_ERROR_INIT_FAILURE(4)`。
+- **bA21/bA22 的 busid / MISMATCH / udev / controlD 全部是它的下游症状**：
+  失败发生在 `ConnectionCreate` 内、一条 ioctl 都不发的地方。
+- **为什么这么久没发现**：bA13 配方是**在伪造 shim 下调通的**，shim 对任何
+  open 都返回 `/dev/null` 的 dup，索引传错完全看不出来。
+  **教训：伪造环境下调通的「调用配方」必须在真驱动上重新推导。**
+
+### 3. 顺带查清 DRM 6.12 的节点编号（无法自选）
+
+- `drm_dev_register(dev, flags)` 的第 2 参是 **flags 不是 minor**，6.12 已改；
+  minor 由 `drm_minor_register()` 经全局 xarray 分配 ⇒ **驱动不能指定自己的号**。
+- **primary 与 render 共用同一个 xarray**（`drm_minor_get_xa`），
+  render 窗口 `[128,191]`、`xa_alloc` 先到先得。
+- 本机现状：QXL 占 0，`mtgpu` 曾注册（minor 4，已无节点），
+  本次启动早前若干次加载**泄漏**了 128/129 ⇒ 我们拿到 **renderD130**。
+  （`/sys/kernel/debug/dri` 只有 0/3/130，但 128/129 已被占，符合 xa 泄漏特征。）
+
+### 4. 新的墙：`RGXCreateDeviceMemContext` → 11
+
+- 11 = **`MTSRV_ERROR_FLIP_CHAIN_EXISTS`**（用 gdb 调 `PVRSRVGetErrorString` 得到）。
+- gdb 看到三个入参 buffer **除长度字段 `0x21` 外全是 0** ⇒ 又是**配方/缓冲不足**，
+  不是驱动 bug。bA13 的 `buf 5 16` 明显偏小（真实 `DevmemCtxCreateParams` 更大）。
+  **下一步：按 `PVRSRV_DEVMEMCTXCREATEPARAMS` 真实布局把 `buf 5` 放大后重试。**
+
+### 5. 门禁与状态
+
+- 新增 `tests/test_device_conn_arg_contract.py`（3 项）：
+  钉住「render minor 必须落在 UMD 接受的 `0x80..0xbf` 窗口」，
+  并**在可执行命令块里禁止 `PVRSRVConnectionCreateDevice b7 u0`**。
+  首次运行就抓出 3 处（其中 1 处是设计文档里真能粘贴的命令，已改成 `u$IDX` 并加注释；
+  另 2 处是 triage 报告的历史记录，**保留原文 + 就地加 bA24 订正注**，不篡改历史）。
+- 全量 **123 项 Python**（120 + 3）全绿；`verify-runtime-integration.py` 通过；
+  节点探针全绿；**伪造模式仍复现 bA13 的 4 步全 0**。
+- 模块已卸载复原：`mt_guest_probe` 62 引用、taint 12800、仅 `card0`。
+
+---
+
+## 上次会话进展（bA23：trace 洪泛修复；/tmp 被灌满的连锁故障）
 
 接 bA22。**本轮先修工具，再谈驱动。**
 

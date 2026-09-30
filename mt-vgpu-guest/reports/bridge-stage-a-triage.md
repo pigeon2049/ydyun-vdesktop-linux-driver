@@ -249,6 +249,11 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 
 - `PVRSRVConnectionCreateDevice(b7,u0,u0)` 跑出**第二套完整 Connect 序列**
   在 device-conn 上重做 devmem＋renderctx：
+  > **bA24 订正**：这里的 `u0` 是**错的**，只是伪造 shim 下看不出来。
+  > 该函数第 2 参是 **DRM 节点索引**；UMD 在 `0xa4af0` 处算 `index-0x80`
+  > 并只接受 `0x80..0xbf`，所以 `0` 直接被拒，表现为
+  > `MTSRV_ERROR_INIT_FAILURE(4)` 且**一条 ioctl 都不发**。
+  > 打真驱动必须传本节点真实 render minor（如 `u130`）。
   **`RGXCreateRenderContext(...) -> 0`，outptr 非零 render ctx！**
 - 120-op 成功序列见 `reports/umd-bridge-renderctx-trace.jsonl`：
   PMR/reserve/map 若干轮 → `0x82:0x8`（hRenderContext=0x6000）→
@@ -348,6 +353,7 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 ### 20.3 `CreateSyncPrim → 0` 会话配方与 sync 伪造
 
 - 最小成功序列（单进程，`build/probe/umd_connect_harness`）：
+  > **bA24 订正**：`u0` 应为真实 render minor（`u130`），见上。
   `connect 0` → `PVRSRVConnectionCreateDevice(b7,u0,u0)` →
   `RGXCreateDeviceMemContext(b7*,b5,b5+8)`（`o1=o2=0x30` RGX ctx，
   `*param_2=*param_3=__ptr`，见 `0016f970` 尾）→ params（`+0x10=devctx` 直接指针、
