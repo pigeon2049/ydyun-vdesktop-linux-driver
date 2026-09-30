@@ -1,5 +1,7 @@
 # MT vGPU Guest：本机适配与实验
 
+**最新 3D Render Target 显存帧缓冲动态绑定与绘制读回验证（2026-09-30，r41）**：成功实现硬件 3D Universal 命令流中 Render Target 0 目标显存表面的动态编解码与绑定。通过独立 `slot_lock` 彻底剥离 GEM 槽位分配与全局 `submit_lock`，杜绝进程异常退出死锁。在 `space_3d` 空间中将渲染目标显存切片（Slot 0 & Slot 1）分别映射至 GPU VA `0x60000000ULL` 与 `0x61000000ULL`，总 mapping range 严格控制在 23 ranges（物理上限 24）。扩展 `struct drm_mt_submit_3d` 引入 `target_handle` 并保持 32 字节 ABI 兼容；升级 [userspace/mt-3d-check.c](userspace/mt-3d-check.c) 完成 GEM 创建、0x5a 特征填充、3D 渲染执行、Fence 等待与 64 KiB VRAM 完整读回核验全闭环！详见 [r41 渲染目标报告](reports/r41-3d-render-target.md)。
+
 **最新用户态 DRM 3D 渲染执行接口打通（2026-09-30，r40）**：成功注册统一全功能 DRM 驱动 `mtvgpu 0.3.0`（`/dev/dri/card1`、`/dev/dri/renderD128`），宣告 `0x7` 全能力（2D Copy + Native Fill + 3D Universal）。引入 2D 与 3D 独立双 VM Space 隔离架构突破单个 MMU 空间 24-range 限制。纯用户态程序 [userspace/mt-3d-check.c](userspace/mt-3d-check.c) 通过标准 `DRM_IOCTL_MT_SUBMIT_3D` 直接发起 3D 渲染执行，每一帧成功绑定并核验 Linux 原生 syncobj 与 sync_file 异步栅栏，执行延迟仅 52 微秒，硬件队列同步推进，实现用户态到 GPU 硬件的完整闭环！详见 [r40 用户态 3D 报告](reports/r40-userspace-drm-3d.md)。
 
 **真机 3D 渲染多帧批量压测与环形回绕突破（2026-09-30，r39）**：升级 [kernel/recovery/mt_live_3d.c](kernel/recovery/mt_live_3d.c) 支持多帧连续提交、动态参数注入与纳秒级性能采样。物理真机累计执行 **106 帧** 真实 3D Universal 任务，成功率 **100%**。零延迟极限压测下 50 帧总耗时仅 4.568 毫秒，平均单帧耗时仅 **60 微秒**（最低 48 微秒），等效吞吐超过 16,000 FPS。成功验证了 **硬件 Ring 队列跨越 64-slot 边界的自动回绕**（游标 61 -> 17 -> 42）。详见 [r39 压测报告](reports/r39-3d-batch-stress.md)。

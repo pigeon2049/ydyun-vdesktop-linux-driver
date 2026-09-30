@@ -261,3 +261,21 @@ value=`0x0005000500070002` → 收到兼容回复 → 通知 type=2/subtype=1 �
 - **完成/事件队列（Ring 2）**：Firmware 是 Producer，更新 head；Guest 是 Consumer，更新 tail。重连或会话复位时，Guest 必须将 `cursor + 8`（tail）写入与 head 相同的值，以清空历史事件并完成对齐。
 - 全局 `d->service.poll_session` 回调必须保持只引用常驻驱动符号，临时加载的诊断或恢复模块严禁留下野指针。
 
+### 5. 3D Render Target 寄存器布局与 Dual VM Space 架构 (r41)
+
+- **硬件 VM Space 映射数量限制 (`MT_BOOT_MAX_RANGES 24U`)**：
+  - S3000 vGPU MMU 单个虚拟地址空间最多容纳 24 个 mapping ranges；
+  - 采用双空间隔离策略：
+    - `space_2d`（20 ranges）：4 个 2D 控制切片 + 8 个 GEM 槽位切片 + 8 个私有切片；
+    - `space_3d`（23 ranges）：11 个上下文 BO + 1 个 3D 命令包 BO + 9 个 boot-shared/私有切片 + 2 个 Render Target 表面切片（Slot 0 @ `0x60000000ULL`，Slot 1 @ `0x61000000ULL`）；
+  - 保持在 23 ranges <= 24 ranges 物理安全阈值内，彻底消除了 `-ENOSPC` 限制。
+- **Render Target 0 寄存器编解码规范**：
+  - 3D Universal 命令包末端 `+0x44e0` 为寄存器块，其中 Fragment 寄存器起始于 `+0x4590`；
+  - 每个 Render Target 占 24 字节（`0x18`）：
+    - `+0x45a0`: RT0 GPU 虚拟基址（64 位，指向目标 GEM 显存）；
+    - `+0x45a8`: RT0 步长与格式（64 位，如 `1024 * 4`）；
+    - `+0x45b0`: RT0 范围与图层（64 位，如 `(1024 << 16) | 1024`）；
+    - `+0x4668`: Render Target Framebuffer Base（64 位）；
+  - 结合 `dma_resv_reserve_fences` 与 `dma_resv_add_fence` 保证 VRAM 硬件写入并发安全性。
+
+

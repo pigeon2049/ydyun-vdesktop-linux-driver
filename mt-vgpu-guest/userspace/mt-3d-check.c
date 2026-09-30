@@ -36,7 +36,7 @@ static void check_3d_execution(int fd, int frames)
 			.frame_tag = (uint64_t)(f + 1),
 			.sequence = 0,
 			.latency_us = 0,
-			.reserved = 0,
+			.target_handle = 0,
 		};
 
 		int ret = ioctl(fd, DRM_IOCTL_MT_SUBMIT_3D, &sub);
@@ -59,6 +59,58 @@ static void check_3d_execution(int fd, int frames)
 	printf("[*] Completed: submitted=%"PRIu64" completed=%"PRIu64" last_sequence=%"PRIu64"\n",
 		(uint64_t)q.submitted, (uint64_t)q.completed, (uint64_t)q.last_sequence);
 	REQUIRE(q.completed >= (uint64_t)frames);
+}
+
+static void check_3d_render_target(int fd)
+{
+	printf("[*] Testing 3D Render Target binding & VRAM readback...\n");
+	unsigned int target = create(fd);
+	printf("    Created target GEM handle: %u (64 KiB)\n", target);
+
+	/* Initialize target buffer with clear pattern 0x5a */
+	memset(source, 0x5a, 65536);
+	buffer_io(fd, target, source, 1);
+
+	/* Verify initial content */
+	buffer_io(fd, target, observed, 0);
+	REQUIRE(!memcmp(source, observed, 65536));
+	printf("    Verified initial target VRAM contents (0x5a filled)\n");
+
+	/* Create DRM syncobj */
+	unsigned int sync = 0;
+	struct drm_syncobj_create sc = {0};
+	REQUIRE(ioctl(fd, DRM_IOCTL_SYNCOBJ_CREATE, &sc) == 0);
+	sync = sc.handle;
+
+	/* Submit 3D workload bound to this Render Target */
+	struct drm_mt_submit_3d sub = {
+		.out_syncobj = sync,
+		.target_handle = target,
+		.flags = 0,
+		.frame_tag = 0x3d7001,
+		.sequence = 0,
+		.latency_us = 0,
+	};
+
+	int ret = ioctl(fd, DRM_IOCTL_MT_SUBMIT_3D, &sub);
+	if (ret != 0) {
+		fprintf(stderr, "[!] DRM_IOCTL_MT_SUBMIT_3D with render target failed: ret=%d errno=%d\n", ret, errno);
+		exit(1);
+	}
+
+	/* Verify native fence and sync_file */
+	verify_fence(fd, sync);
+	printf("    Render Target 3D Frame executed: seq=%"PRIu64" latency=%u us [OK]\n",
+		(uint64_t)sub.sequence, sub.latency_us);
+
+	/* Read back Render Target from VRAM */
+	buffer_io(fd, target, observed, 0);
+	printf("    Successfully read back Render Target VRAM (64 KiB) after GPU execution [OK]\n");
+
+	struct drm_syncobj_destroy sd = {.handle = sync};
+	REQUIRE(ioctl(fd, DRM_IOCTL_SYNCOBJ_DESTROY, &sd) == 0);
+	close_handle(fd, target);
+	printf("    Released Render Target GEM handle: %u [OK]\n", target);
 }
 
 int main(int argc, char **argv)
@@ -84,6 +136,7 @@ int main(int argc, char **argv)
 	printf("[*] Opened DRM device node: %s (fd=%d)\n", node, fd);
 
 	check_3d_execution(fd, frames);
+	check_3d_render_target(fd);
 
 	close(fd);
 	printf("=== Test Passed Successfully ===\n");

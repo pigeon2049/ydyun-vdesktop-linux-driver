@@ -55,7 +55,7 @@ struct drm_mt_submit_3d {
 	__u64 frame_tag;     /* Frame sequence identifier */
 	__u64 sequence;      /* Hardware fence sequence output */
 	__u32 latency_us;    /* Measured hardware execution latency (us) */
-	__u32 reserved;      /* Must be 0 */
+	__u32 target_handle; /* Optional target GEM object handle (0 if none) */
 };
 #define DRM_MT_QUERY 0x00
 #define DRM_MT_CREATE 0x01

@@ -1351,4 +1351,21 @@ Linux 首选路径：
   - 彻底修复 `mt_live_3d_drm.c` 中 2D copy/fill ioctl 在 Linux 6.12 内核下调用 `dma_resv_add_fence` 前必须先调用 `dma_resv_reserve_fences` 预留 slot 的并发安全要求；
   - 重启后全套自检通过：统一 DRM 节点顺利上线，用户态 3D 任务 10/10 成功，2D copy smoke 1/1 成功，系统洁净稳定。
 
+## Step 137：3D Render Target 显存帧缓冲动态绑定与绘制读回验证 (r41)
+
+- **并发锁与对象生命周期深度解耦**：
+  - 将驱动内部全局 `submit_lock`（专职硬件 DM2 提交保护）与 GEM 槽位锁 `slot_lock` 彻底剥离；
+  - `query_ioctl`、`create_ioctl`、`rw_ioctl` 与 `lease_free` 迁移至 `slot_lock`，彻底杜绝进程异常退出时 `drm_release -> lease_free` 的重入死锁问题。
+- **3D VM Space 双重显存切片映射（突破硬件 24 ranges 阈值）**：
+  - 在 `space_3d` 建立 11 个上下文 BO 与 1 个命令包 BO 的基础上，将渲染目标表面切片（Slot 0 & Slot 1）分别映射至 GPU VA `0x60000000ULL` 与 `0x61000000ULL`；
+  - 总 mapping range 数精准控制在 **23 ranges**（硬编码物理上限为 24），兼顾了全功能渲染目标与硬件安全边界。
+- **动态 3D 命令包 Render Target 寄存器编解码**：
+  - 逆向精确定位 Linux 3D Universal 包（全长 18,160 字节）内末端 Fragment 寄存器布局；
+  - 在 `submit_3d_ioctl` 中新增 `target_handle` 支持：动态在 `+0x45a0`（RT0 目标基址）、`+0x45a8`（步长与格式）、`+0x45b0`（分辨率与范围）以及 `+0x4668`（Framebuffer 平铺基址）写入目标显存参数；
+  - 同步集成 GEM reservation lock 保护与 `dma_resv_add_fence` 硬件写入栅栏生命周期跟踪。
+- **UAPI 稳定演进与用户态全链路测试**：
+  - `include/mt_drm_uapi.h`：`struct drm_mt_submit_3d` 引入 `target_handle`，结构体尺寸维持 32 字节，保持 100% 二进制与 ABI 兼容；
+  - 扩展 `userspace/mt-3d-check.c`：新增 `check_3d_render_target()` 测试，涵盖 GEM 创建、0x5a 特征填充、3D 渲染绑定执行、Fence 等待、64 KiB VRAM 完整读回核验与释放；
+  - 撰写技术报告 `reports/r41-3d-render-target.md`。
+
 

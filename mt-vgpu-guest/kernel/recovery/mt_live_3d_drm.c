@@ -44,11 +44,12 @@ static u8 csw_3d[MT_GFX_CONTEXT_CSW_BYTES];
 static bool ready_3d;
 
 static DEFINE_MUTEX(submit_lock);
+static DEFINE_MUTEX(slot_lock);
 static bool ready, retained, faulted;
 static u64 submitted, completed, last_sequence;
 static u32 cores, leased;
 
-struct slot { struct mt_bo bo; u64 va; bool leased; };
+struct slot { struct mt_bo bo; u64 va; u64 va_3d; bool leased; };
 static struct slot slots[MT_DRM_SLOT_COUNT];
 
 #ifdef MT_LIVE_LARGE_SURFACES
@@ -131,7 +132,7 @@ static int allowed(void)
 static void lease_free(struct drm_gem_object *obj)
 {
 	struct lease *l = container_of(obj, struct lease, base);
-	mutex_lock(&submit_lock);
+	mutex_lock(&slot_lock);
 	mutex_lock(&d->state.trial_lock);
 	if (l->slot) {
 		l->slot->leased = false;
@@ -139,7 +140,7 @@ static void lease_free(struct drm_gem_object *obj)
 		WARN_ON(mt_bo_put(&l->slot->bo));
 	}
 	mutex_unlock(&d->state.trial_lock);
-	mutex_unlock(&submit_lock);
+	mutex_unlock(&slot_lock);
 	kfree(l);
 }
 
@@ -176,7 +177,7 @@ static int query_ioctl(struct drm_device *dev, void *data, struct drm_file *file
 	int ret = allowed();
 	if (ret)
 		return ret;
-	mutex_lock(&submit_lock);
+	mutex_lock(&slot_lock);
 	mutex_lock(&d->state.trial_lock);
 	*q = (struct drm_mt_query){.abi = MT_DRM_ABI, .slot_count = MT_DRM_SLOT_COUNT,
 		.slot_bytes = MT_LIVE_SLOT_MAX, .leased = leased, .faulted = faulted,
@@ -184,7 +185,7 @@ static int query_ioctl(struct drm_device *dev, void *data, struct drm_file *file
 		.capabilities = MT_DRM_CAP_COPY | MT_DRM_CAP_FILL | (ready_3d ? MT_DRM_CAP_3D : 0),
 		.last_sequence = last_sequence};
 	mutex_unlock(&d->state.trial_lock);
-	mutex_unlock(&submit_lock);
+	mutex_unlock(&slot_lock);
 	return 0;
 }
 
@@ -201,7 +202,7 @@ static int create_ioctl(struct drm_device *dev, void *data, struct drm_file *fil
 	l = kzalloc(sizeof(*l), GFP_KERNEL);
 	if (!l)
 		return -ENOMEM;
-	mutex_lock(&submit_lock);
+	mutex_lock(&slot_lock);
 	mutex_lock(&d->state.trial_lock);
 	ret = faulted ? -EIO : idle();
 	if (ret)
@@ -226,7 +227,7 @@ static int create_ioctl(struct drm_device *dev, void *data, struct drm_file *fil
 	}
 unlock:
 	mutex_unlock(&d->state.trial_lock);
-	mutex_unlock(&submit_lock);
+	mutex_unlock(&slot_lock);
 	if (ret) {
 		kfree(l);
 		return ret;
@@ -258,11 +259,11 @@ static int rw_ioctl(void *data, struct drm_file *file, bool write)
 		goto put;
 	}
 	l = container_of(obj, struct lease, base);
-	mutex_lock(&submit_lock);
+	mutex_lock(&slot_lock);
 	mutex_lock(&d->state.trial_lock);
 	ret = transfer(&l->slot->bo, r->offset, r->data, r->bytes, write);
 	mutex_unlock(&d->state.trial_lock);
-	mutex_unlock(&submit_lock);
+	mutex_unlock(&slot_lock);
 put:
 	drm_gem_object_put(obj);
 	return ret;
@@ -493,21 +494,47 @@ static int submit_3d_ioctl(struct drm_device *dev, void *data, struct drm_file *
 	struct drm_mt_submit_3d *r = data;
 	struct drm_syncobj *sync = NULL;
 	struct dma_fence *fence = NULL;
+	struct drm_gem_object *target_obj = NULL;
+	struct lease *target_lease = NULL;
+	struct ww_acquire_ctx acquire;
 	struct mt_execution_request req;
 	ktime_t t_start, t_end;
 	long waited;
+	bool locked_resv = false;
 	int ret = allowed();
 	if (ret)
 		return ret;
-	if (r->flags || r->reserved || r->sequence)
+	if (r->flags || r->sequence)
 		return -EINVAL;
 	if (!ready_3d)
 		return -ENODEV;
 
+	if (r->target_handle) {
+		target_obj = lookup(file, r->target_handle);
+		if (!target_obj)
+			return -ENOENT;
+		target_lease = container_of(target_obj, struct lease, base);
+		if (!target_lease->slot || !target_lease->slot->va_3d) {
+			ret = -EINVAL;
+			goto put_target;
+		}
+		ret = drm_gem_lock_reservations(&target_obj, 1, &acquire);
+		if (ret)
+			goto put_target;
+		ret = dma_resv_reserve_fences(target_obj->resv, 1);
+		if (ret) {
+			drm_gem_unlock_reservations(&target_obj, 1, &acquire);
+			goto put_target;
+		}
+		locked_resv = true;
+	}
+
 	if (r->out_syncobj) {
 		sync = drm_syncobj_find(file, r->out_syncobj);
-		if (!sync)
-			return -ENOENT;
+		if (!sync) {
+			ret = -ENOENT;
+			goto unlock_resv;
+		}
 	}
 
 	mutex_lock(&submit_lock);
@@ -516,14 +543,24 @@ static int submit_3d_ioctl(struct drm_device *dev, void *data, struct drm_file *
 	if (ret) {
 		mutex_unlock(&d->state.trial_lock);
 		mutex_unlock(&submit_lock);
-		if (sync) drm_syncobj_put(sync);
-		return ret;
+		goto put_sync;
 	}
 
 	/* Dynamic variation: write frame_tag into Envelope header +0x08 */
 	if (r->frame_tag) {
 		u64 tag = r->frame_tag;
 		write_bo(&command_3d, 0x08, &tag, 8);
+	}
+
+	/* Dynamic Render Target binding if target GEM handle provided */
+	if (target_lease) {
+		u64 rt_va = target_lease->slot->va_3d;
+		u64 rt_stride = 1024ULL * 4;
+		u64 rt_extent = (1024ULL << 16) | 1024ULL;
+		write_bo(&command_3d, 0x45a0, &rt_va, 8);
+		write_bo(&command_3d, 0x45a8, &rt_stride, 8);
+		write_bo(&command_3d, 0x45b0, &rt_extent, 8);
+		write_bo(&command_3d, 0x4668, &rt_va, 8);
 	}
 
 	req.command_va = command_3d_va;
@@ -540,13 +577,15 @@ static int submit_3d_ioctl(struct drm_device *dev, void *data, struct drm_file *
 	if (ret) {
 		mutex_unlock(&d->state.trial_lock);
 		mutex_unlock(&submit_lock);
-		if (sync) drm_syncobj_put(sync);
-		return ret;
+		goto put_sync;
 	}
 
 	submitted++;
 	last_sequence = fence->seqno;
 	r->sequence = fence->seqno;
+
+	if (target_obj)
+		dma_resv_add_fence(target_obj->resv, fence, DMA_RESV_USAGE_WRITE);
 
 	if (sync)
 		drm_syncobj_replace_fence(sync, fence);
@@ -570,9 +609,18 @@ static int submit_3d_ioctl(struct drm_device *dev, void *data, struct drm_file *
 	}
 
 	mutex_unlock(&submit_lock);
-	dma_fence_put(fence);
+
+put_sync:
+	if (fence)
+		dma_fence_put(fence);
 	if (sync)
 		drm_syncobj_put(sync);
+unlock_resv:
+	if (locked_resv)
+		drm_gem_unlock_reservations(&target_obj, 1, &acquire);
+put_target:
+	if (target_obj)
+		drm_gem_object_put(target_obj);
 	return ret;
 }
 
@@ -758,6 +806,17 @@ static int prepare_context(void)
 	ret = d->address_spaces.ops->bind(space_3d, &command_3d, command_3d_va, 0, 32768, MT_GPU_MAP_DEFAULT);
 	if (ret)
 		return ret;
+
+	/* Bind slots 0 & 1 as potential 3D Render Targets into space_3d */
+	for (i = 0; i < 2; i++) {
+		u64 rt_va = 0x60000000ULL + i * 0x1000000ULL;
+		slots[i].va_3d = rt_va;
+		ret = d->address_spaces.ops->bind(space_3d, &slots[i].bo, rt_va, 0, slot_bytes(i), MT_GPU_MAP_DEFAULT);
+		if (ret) {
+			pr_err("mt_live_3d_drm: failed to bind slot %u to 3D space: %d\n", i, ret);
+			return ret;
+		}
+	}
 
 	ret = d->address_spaces.ops->bind_boot_shared(space_3d, &d->gem.profile);
 	if (ret)
