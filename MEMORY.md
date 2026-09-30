@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（提交 r44：r42 新布局真机验证通过；卸载期 WARN 新发现已记录）
+最后更新：2026-09-30（bA1：桥接离线 triage 起步，tracer 跑通 Connect 序列；见下）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,49 @@
 
 ---
 
-## 本次会话进展（r44：r42 真机验证完成 + 卸载 WARN 新发现）
+## 本次会话进展（bA1：桥接 Stage A 离线 triage，未提交）
+
+用户决定：按 PVRSRV 桥接推进。先做阶段 A（离线 triage），第一步已落地。
+
+### 1. 工具：UMD 桥接 tracer（新增入库，未提交）
+
+- `probe/umd_bridge_shim.c`（LD_PRELOAD）：拦截 `/dev/dri/*` open、
+  `0xc0206440` 桥包 / `0x40046445` INIT ioctl（输出清零 + 按表回填），
+  记录 mmap/read/pread/lseek；只读零写，不碰硬件。
+- `probe/umd_connect_harness.c`：dlopen + dlsym 驱动 UMD 导出函数。
+- 结论全部可复现：`UMD_TRACE=... LD_PRELOAD=... ./build/probe/umd_connect_harness <lib> PVRSRVConnect 0`。
+
+### 2. 材料恢复（重启后 /tmp 被清空）
+
+- `build/legacy-umd-pvr-connect-candidate/rootfs/` 的 UMD 经 sha 确认无损，
+  已复制回 `/tmp/mtt-linux-umd-5.2.0/root/`；审计脚本重跑 205/205 零 diff。
+- 教训：`/tmp` 易失，关键结论必须落盘 `reports/`（本次已做）。
+
+### 3. 关键发现
+
+- **节点选择**：UMD 扫 render 节点，比 version 名**全等 `pvr`** 才停
+  （`mtgpu` 会连扫 256 个节点；另有 `PVRDRMGetRenderFromFD` 比 `mtgpu`，
+  Connect 走 `pvr` 这条）。未来自研 DRM 节点给 UMD 用的 version 名取 `pvr`。
+- **Connect 序列**（伪造下走 7 步后主动断开，句柄链自洽）：
+  `INIT(1) → Connect(0x1:0x0, in=80000850/0/10000/20) → event → infopage(hPMR=0x1000)
+  → import(align/size=0x1000,hPMR=0x1001) → unref → release → disconnect`，返回 78。
+  info 页未被读取（无 mmap/pread）；最可能是 Connect OUT 17B
+ （Bvnc/caps/arch）全零未过检查——下一步伪造它。
+- **Sync memType**：全库唯一 `(0x02:0x00)` 调用链顶端传 `edx=0x2`，
+  证据指向恒为 2；待走通后动态复核。5.2 KMD 源码里该字段只出现在声明中。
+- 26 缺失 ID 分组已列（SYNC 事件组/MM 扩展/RGXCMP/RGXTA3D 高编号/PFM 等），
+  Connect 序列未命中任何一个。
+
+详见 `reports/bridge-stage-a-triage.md` + `reports/umd-bridge-connect-trace.jsonl`。
+
+### 4. 下一步（bA2）
+
+伪造 Connect OUT（Bvnc+caps+arch）越过 disconnect；Bvnc 真值候选为 UMD 内
+expected 常量或硬件只读寄存器（另起只读 helper）。
+
+---
+
+## 上次会话进展（r44：r42 真机验证完成 + 卸载 WARN 新发现）
 
 用户指令：重启后在本机继续测试。
 
