@@ -19,6 +19,7 @@
 #include <string.h>
 #include <execinfo.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
@@ -68,6 +69,30 @@ static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 static int passthrough;
 
 static void ensure_log(void);
+
+static int resolving_stat_flag;
+static int resolving_stat(void) { return resolving_stat_flag; }
+static void set_resolving_stat(int v) { resolving_stat_flag = v; }
+
+/* Record path probes the UMD makes without opening.
+ *
+ * The device-connection failure happens with no ioctl at all, so anything the
+ * UMD learns by stat()ing a device node is invisible in the ioctl and open
+ * traces. PVR has always shipped a /dev/dri/controlD* node and the UMD's own
+ * node-enumeration function handles "controlD" explicitly, so whether it even
+ * looks for one is a cheap question to answer before building a control node.
+ * Only paths under /dev/dri are logged, so volume stays negligible.
+ */
+static void log_path_probe(const char *op, const char *path, int ret)
+{
+	if (!path || !strstr(path, "/dev/dri"))
+		return;
+	ensure_log();
+	if (logf)
+		fprintf(logf,
+			"{\"seq\":%lu,\"op\":\"%s\",\"path\":\"%s\",\"ret\":%d}\n",
+			++seq, op, path, ret);
+}
 
 /* Record every open the UMD makes, whichever libc entry point it used.
  *
@@ -1002,4 +1027,90 @@ void *realloc(void *ptr, size_t size)
 	if (getenv("UMD_LOG_ALLOC"))
 		log_alloc("realloc", p, size);
 	return p;
+}
+
+/* Path probes (record-only mode). Each forwards unchanged and, in
+ * passthrough mode, logs /dev/dri paths. glibc 2.41 exports stat/stat64 directly
+ * and keeps __xstat/__xstat64 as compat symbols, and the decompiled UMD calls
+ * __xstat64, so all four spellings are covered.
+ */
+static int probe_log_path(const char *op, const char *path, int ret)
+{
+	if (pvr_passthrough())
+		log_path_probe(op, path, ret);
+	return ret;
+}
+
+int stat(const char *path, struct stat *st)
+{
+	static int (*real)(const char *, struct stat *);
+	int r;
+
+	if (!real) {
+		if (resolving_stat())
+			return -1;
+		set_resolving_stat(1);
+		real = dlsym(RTLD_NEXT, "stat");
+		set_resolving_stat(0);
+		if (!real)
+			return -1;
+	}
+	r = real(path, st);
+	return probe_log_path("stat", path, r);
+}
+
+int stat64(const char *path, struct stat64 *st)
+{
+	static int (*real)(const char *, struct stat64 *);
+	int r;
+
+	if (!real) {
+		if (resolving_stat())
+			return -1;
+		set_resolving_stat(1);
+		real = dlsym(RTLD_NEXT, "stat64");
+		set_resolving_stat(0);
+		if (!real)
+			return -1;
+	}
+	r = real(path, st);
+	return probe_log_path("stat64", path, r);
+}
+
+int statx(int dirfd, const char *path, int flags, unsigned int mask,
+	  struct statx *stx)
+{
+	static int (*real)(int, const char *, int, unsigned int,
+			   struct statx *);
+	int r;
+
+	if (!real) {
+		if (resolving_stat())
+			return -1;
+		set_resolving_stat(1);
+		real = dlsym(RTLD_NEXT, "statx");
+		set_resolving_stat(0);
+		if (!real)
+			return -1;
+	}
+	r = real(dirfd, path, flags, mask, stx);
+	return probe_log_path("statx", path, r);
+}
+
+int access(const char *path, int mode)
+{
+	static int (*real)(const char *, int);
+	int r;
+
+	if (!real) {
+		if (resolving_stat())
+			return -1;
+		set_resolving_stat(1);
+		real = dlsym(RTLD_NEXT, "access");
+		set_resolving_stat(0);
+		if (!real)
+			return -1;
+	}
+	r = real(path, mode);
+	return probe_log_path("access", path, r);
 }

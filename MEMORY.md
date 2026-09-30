@@ -1,13 +1,75 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA21：设备连接阻塞点收窄；busid 之谜是我自己的探针 bug）
+最后更新：2026-10-01（bA22：用 gdb 定位设备连接失败点 = MTSRV_ERROR_INIT_FAILURE）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA21：设备连接阻塞点收窄，一次自测纠错）
+## 本次会话进展（bA22：gdb + 真实机器码定位设备连接失败点）
 
-接 bA20。真机继续（全程未重启）。
+接 bA21。真机继续（全程未重启）。
+
+### 1. 第二次自我纠错：上一轮「connect helper 从未被调用」也是错的
+
+- 我用 gdb 下断点时把地址算错了（`base+0x3b8a9` 写成 `…72778a9`，应为 `…72788a9`），
+  于是「断点没命中」被误读成「代码没走到」。
+- 用 python 算地址后重测：**两次连接都走到了 connect helper**，
+  第一次成功、第二次返回 4。**教训：断点没命中，先怀疑地址算错。**
+- 顺带确认反编译函数 ID 的基准是 **0x100000**
+  （`PVRSRVConnect`：反编译 `0x148c60` / 符号表 `0x48c60`）。
+
+### 2. 真实错误码：4 = MTSRV_ERROR_INIT_FAILURE
+
+在 `ConnectionCreate` 尾声（vaddr `0x3ba19`）断下，直接问 UMD 自己：
+
+| 调用 | rdi | esi | edx | 尾声 r14d | 名称 |
+|---|---|---|---|---|---|
+| `PVRSRVConnect` | 栈地址 | 0xffffffff | 0xffffffff | 0 | `MTSRV_OK` |
+| `PVRSRVConnectionCreateDevice` | `0x555555567680` | 0xffffffff | 0 | **4** | **`MTSRV_ERROR_INIT_FAILURE`** |
+
+（此前 harness 打印的 "4" 恰与此一致；我一度以为它做了错误映射，其实没有。）
+
+### 3. 失败链（全部来自真实机器码 + gdb，非反编译）
+
+```
+PVRSRVConnectionCreateDevice            vaddr 0x48f80
+  └─ ConnectionCreate(conn,-1,devIdx,0) vaddr 0x3b7c0
+       └─ helper                        vaddr 0x92550   ← 两次都到达
+            ├─ edi<0 且 esi==-1  → 通用路径（成功）
+            └─ edi>=0           → 设备路径
+                 └─ call 0xa3ab0  (打开/定位 DRM 节点，含 dup@plt)
+                      └─ call 0xa4af0  → 返回 -1   ★真正的失败点
+                           → "open FAILED" 分支
+```
+
+### 4. 还发现一个**调用方契约问题**（可能才是根因）
+
+两次调用 `ConnectionCreate` 的 **第 1 个参数完全不同**：
+
+- `PVRSRVConnect` 传的 `rdi` 是**一个栈地址**；
+- `PVRSRVConnectionCreateDevice` 传的 `rdi` 是 `0x555555567680` —— 正是 harness 里
+  `buf 7` 的**用户态缓冲地址**（harness 打印过同一地址）。
+
+即：harness 的 bA13 配方 `PVRSRVConnectionCreateDevice(b7, u0, u0)` 里，
+b7 很可能**不是**该函数要的东西（该函数第 1 参在真实二进制里是
+`mov %esi,%edx; mov $-1,%esi` 后直接透传给 `ConnectionCreate`，
+且成功路径里被当作可解引用的指针使用）。bA13 配方是在**伪造模式**下调通的，
+不能当作设备连接的真契约。
+
+### 5. controlD 假设被证伪
+
+给 shim 加了 `/dev/dri` 路径的 `stat/stat64/statx/access` 记录
+（记录模式下只记 `/dev/dri` 前缀，量很小）。实测 **0 次**：
+UMD 从不对 `/dev/dri` 做 stat/access，只 open。⇒ 它没在找 control 节点。
+
+### 6. 门禁与状态
+
+120 Python + 170 RAM + `W=1` + ABI 全绿；节点探针全绿；伪造模式仍 4 步全 0。
+模块已卸载，`mt_guest_probe` 62 引用、taint 12800、仅 `card0`。
+
+---
+
+## 上次会话进展（bA21：设备连接阻塞点收窄，一次自测纠错）
 
 ### 1. 自我纠错：上一轮「节点没有 busid」的结论是错的，那是探针的 bug
 
