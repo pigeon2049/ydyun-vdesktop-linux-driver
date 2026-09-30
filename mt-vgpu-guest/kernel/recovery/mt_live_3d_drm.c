@@ -555,8 +555,8 @@ static int submit_3d_ioctl(struct drm_device *dev, void *data, struct drm_file *
 	/* Dynamic Render Target binding if target GEM handle provided */
 	if (target_lease) {
 		u64 rt_va = target_lease->slot->va_3d;
-		u64 rt_stride = 1024ULL * 4;
-		u64 rt_extent = (1024ULL << 16) | 1024ULL;
+		u64 rt_stride = 128ULL * 4;
+		u64 rt_extent = (128ULL << 16) | 128ULL;
 		write_bo(&command_3d, 0x45a0, &rt_va, 8);
 		write_bo(&command_3d, 0x45a8, &rt_stride, 8);
 		write_bo(&command_3d, 0x45b0, &rt_extent, 8);
@@ -809,13 +809,24 @@ static int prepare_context(void)
 
 	/* Bind slots 0 & 1 as potential 3D Render Targets into space_3d */
 	for (i = 0; i < 2; i++) {
-		u64 rt_va = 0x60000000ULL + i * 0x1000000ULL;
+		u64 rt_va = 0x48100000ULL + i * 0x100000ULL;
 		slots[i].va_3d = rt_va;
 		ret = d->address_spaces.ops->bind(space_3d, &slots[i].bo, rt_va, 0, slot_bytes(i), MT_GPU_MAP_DEFAULT);
 		if (ret) {
 			pr_err("mt_live_3d_drm: failed to bind slot %u to 3D space: %d\n", i, ret);
 			return ret;
 		}
+	}
+
+	/* Overwrite packet template's unmapped remote address with safe default RT0 */
+	{
+		u64 def_rt_va = slots[0].va_3d;
+		u64 def_rt_stride = 128ULL * 4;
+		u64 def_rt_extent = (128ULL << 16) | 128ULL;
+		write_bo(&command_3d, 0x45a0, &def_rt_va, 8);
+		write_bo(&command_3d, 0x45a8, &def_rt_stride, 8);
+		write_bo(&command_3d, 0x45b0, &def_rt_extent, 8);
+		write_bo(&command_3d, 0x4668, &def_rt_va, 8);
 	}
 
 	ret = d->address_spaces.ops->bind_boot_shared(space_3d, &d->gem.profile);
