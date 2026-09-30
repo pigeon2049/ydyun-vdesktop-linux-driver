@@ -1,11 +1,71 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA19：S1 验收加载模块，真实 UMD 打真实 ioctls；6 个真 bug）
+最后更新：2026-10-01（bA20：`return 0` 空桩才是 Connect 拦路虎；真 UMD Connect 首次成功）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA19：S1 验收——加载模块跑真 UMD，抓出 6 个真 bug）
+## 本次会话进展（bA20：Connect 打通——空桩必须写 OUT；设备连接卡在 busid 比对）
+
+接 bA19。真机继续（无需重启，模块加载/卸载即可）。
+
+### 1. 里程碑：真实 UMD 的 Connect 首次返回 0
+
+`CONNECT(0) -> 0 conn=0x…`（此前一直是 37，bA1 伪造阶段是 78）。**连接对象非空**，
+真 UMD 在真内核 ioctl 上完整走通 Connect 序列（16 条命令）。
+
+### 2. 真正的拦路虎：空桩 `return 0` 不等于成功
+
+- 所有 SRVCORE/MM/SYNC 的「已支持但空实现」命令都写成裸 `return 0`，**完全不写 OUT 缓冲**。
+- 但这些 OUT 结构第一个字段就是 `eError`，**UMD 是从自己的缓冲里读它的**。
+- `PVRSRVConnect` 的逻辑（`decompiled.c:22015`）是：Connect 成功能过，
+  再取 `AlignmentCheck`（`0x1:0xa`）的返回值，**非 0 就整体失败**。
+  我们 `return 0` 但缓冲没写 ⇒ UMD 读到残留垃圾 ⇒ 报 37。
+- 修法：新增 `pvr_stub_ok()`，按 UMD 声明的 `out_size` 把 OUT 清零再返回
+  （上限 64 字节）。三个空桩组全部改用它。
+  **教训：桥接里「成功」= 返回 0 **且**写好 OUT；只做前者等于随机失败。**
+
+### 3. `0x86:0x4` 必须返回真 PMR
+
+- 原来 hwperf 处理返回全 0 结构，于是 `hPMR=0`；UMD 紧接着拿它去
+  `PmrLocalImportPmr` ⇒ `-ENOENT`。
+- 依 `MTGPU_BRIDGE_OUT_MUSAACQUIREHWPERFSETTING`（`hPMR`）改为真分配 PMR；
+  顺带补上 `0x86:0x5 MUSARELEASEHWPERFSETTINGS`（新增 `pvr_pmr_put()` 真正释放）。
+- 线格式按 UMD 实测（in=8/out=4）建模，并**补进 `test_pvr_wire_sizes.py` 的
+  MAPPING/DIRECTION**——门禁立刻抓到漏登记，这正是它该干的事。
+
+### 4. 设备连接（`PVRSRVConnectionCreateDevice`）仍返回 4，已定位到具体函数
+
+- 它与 Connect 的差别：**传的是具体设备节点索引（0）而不是 -1**，
+  所以走枚举路径；失败发生在**一条 ioctl 都没发**之前。
+- 给 shim 的 `open64/openat` 补了 open 日志（原来只有 `open()` 记），直接看到真相：
+  UMD 依次 open `renderD128/129/130`（选中我们的 renderD130，name `pvr`），
+  然后遍历 **card0(QXL) → card1(不存在) → card2(不存在) → card3(我们的 primary)**，
+  对 card3 发了 `GET_UNIQUE`，然后放弃。
+- UMD 里对应 `FUN_00503c60`（即 libdrm 的 `drmOpenByBusid`）：按 minor 枚举、
+  校验节点名、再用 **`strcasecmp(drmGetBusid(), 目标busid)`** 比对。
+  ⇒ **下一步是弄清 UMD 期待的 busid 字符串与我们节点的 `dev->unique` 为何不匹配。**
+- **被证伪并已回滚的假设**：我曾加一个名为 `mtgpu` 的第二节点（依据 bA1 记的
+  「`PVRDRMGetRenderFromFD` 比 `mtgpu`」）。实测 UMD **从未打开它**——它优先命中
+  `pvr` 节点的 primary（card3）。该改动已完全删除（`grep mtgpu` = 0）。
+  **教训：反编译笔记里的次要路径不等于本 UMD 实际走的路径，必须用 open 日志证实。**
+
+### 5. 附带修好的工具缺陷
+
+- `umd_bridge_shim.c`：`ensure_log` 在文件后部定义，新增 helper 处需前向声明。
+- 自伤一次：用 Python 切片删「第二节点」代码块时，结束标记误用了函数里**更早**的
+  `pci_dev_put(pdev);`，导致大段重复、文件从 902 行涨到 1806 行、无法编译。
+  靠「数重复定义 + 用已备份的 1..929 行重拼尾部」修回。**教训：批量改代码用 edit
+  工具做定点替换，别用字符串切片做范围删除。**
+
+### 6. 门禁与状态
+
+- 120 项 Python 全绿；`verify-runtime-integration.py` 通过（170 RAM + `W=1` + ABI 门）。
+- 修复后已重新验证：`pvr_node_probe` 全绿、真 UMD `Connect -> 0`。
+
+---
+
+## 上次会话进展（bA19：S1 验收——加载模块跑真 UMD，抓出 6 个真 bug）
 
 接 bA18。用户选 A（insmod + 直通验收 + rmmod）。**已加载、已验收、已卸载复原**。
 

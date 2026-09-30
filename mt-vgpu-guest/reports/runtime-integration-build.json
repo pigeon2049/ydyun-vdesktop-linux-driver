@@ -1,5 +1,5 @@
 {
-  "utc": "2026-09-30T16:18:19.206158+00:00",
+  "utc": "2026-09-30T16:40:12.703841+00:00",
   "passed": true,
   "checks": {
     "runtime_context_test": "PASS: atomic preparation, 31 blocked publication states, ordered publication, repeat rejection and retained lifetime\n",

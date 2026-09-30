@@ -554,14 +554,90 @@ static int pvr_cmd_handle_only(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* Drop a PMR from the file's table and free it. Returns -ENOENT if the handle
+ * is unknown, so a double release is visible instead of silently accepted.
+ */
+static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle)
+{
+	struct mt_pvr_pmr *pmr;
+
+	pmr = pvr_pmr_find(file, handle);
+	if (!pmr)
+		return -ENOENT;
+	list_del(&pmr->link);
+	vfree(pmr->host);
+	kfree(pmr);
+	return 0;
+}
+
+/* 0x86:0x4 MUSAAcquireHWPerfSettings: hand back a real PMR.
+ *
+ * The offline session passed with a zeroed block, but that was only true
+ * because the shim zeroed it. Against the real UMD a zero hPMR is fatal: the
+ * very next command is MM:PmrLocalImportPmr with that handle, which found no
+ * PMR and returned -ENOENT. MTGPU_BRIDGE_OUT_MUSAACQUIREHWPERFSETTING declares
+ * hPMR, so this must allocate one like any other PMR-returning command.
+ *
+ * The block holds counters we cannot back, so it is zeroed and read-only in
+ * practice; the UMD only needs the handle to import and map it.
+ */
 static int pvr_cmd_hwperf(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 {
 	struct mt_pvr_handle_out out = { 0 };
+	struct mt_pvr_pmr *pmr;
 
-	/* The offline session passed with a zeroed block; do not invent
-	 * counters we cannot back.
-	 */
+	pmr = pvr_pmr_new(file, 0x1000, 12);
+	if (!pmr)
+		return -ENOMEM;
+	out.handle = pmr->handle;
 	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* 0x86:0x5 MUSAReleaseHWPerfSettings: takes the handle back. */
+static int pvr_cmd_hwperf_release(struct mt_pvr_file *file,
+				  struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_hwperf_release_in in;
+	struct mt_pvr_hwperf_release_out out = { 0 };
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	ret = pvr_pmr_put(file, in.pmr);
+	if (ret)
+		return ret;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* Succeed at a command whose only observable output is eError (and, for some,
+ * a little zeroed data), by actually zeroing the caller's OUT buffer.
+ *
+ * A bare "return 0" is NOT equivalent. Every one of these out structs starts
+ * with eError, and the UMD reads it out of its own buffer: PVRSRVConnect()
+ * returns the value BridgeAlignmentCheck put there, so leaving the buffer
+ * untouched makes the UMD read whatever was already in that memory and report
+ * a bogus error. That is exactly how PVRSRVConnect came to return 37 while
+ * every ioctl had returned 0.
+ *
+ * The whole declared out_size is zeroed because the 5.2 wire structs are wider
+ * than the older headers in-tree describe (see mt_pvr_wire.h), so writing only
+ * the field we recognise could still leave a tail the UMD reads. The cap keeps
+ * a corrupt out_size from becoming a large copy.
+ */
+#define MT_PVR_STUB_OUT_MAX 64U
+
+static int pvr_stub_ok(struct mt_pvr_cmd *cmd)
+{
+	u8 zeros[MT_PVR_STUB_OUT_MAX];
+	u32 bytes = cmd->out_size;
+
+	memset(zeros, 0, sizeof(zeros));
+	if (!bytes || !cmd->out_ptr)
+		return 0;
+	if (bytes > sizeof(zeros))
+		bytes = sizeof(zeros);
+	return pvr_out(cmd, zeros, bytes);
 }
 
 static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
@@ -576,7 +652,7 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_cmd_connect(file, cmd);
 		case 0x1:			/* Disconnect */
 		case 0x10:			/* ReleaseInfoPage */
-			return 0;
+			return pvr_stub_ok(cmd);
 		case 0x2:			/* AcquireGlobalEventObject */
 		case 0x4:			/* EventObjectOpen */
 			return pvr_cmd_event_handle(file, cmd);
@@ -586,7 +662,7 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case 0xa:			/* AlignmentCheck */
 		case 0xc:			/* GetMultiCoreInfo */
 		case 0xd:			/* EventObjectWaitTimeout */
-			return 0;
+			return pvr_stub_ok(cmd);
 		case 0xf:			/* AcquireInfoPage */
 			return pvr_cmd_info_page(file, cmd);
 		default:
@@ -598,7 +674,7 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_cmd_sync_block(file, cmd);
 		case 0x1:			/* FreeSyncPrimitiveBlock */
 		case 0x7:			/* SyncAllocEvent */
-			return 0;
+			return pvr_stub_ok(cmd);
 		default:
 			return -ENOTTY;
 		}
@@ -610,7 +686,7 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case 0x7:			/* PmrUnrefPmr */
 		case 0x10:			/* DevmemIntCtxDestroy */
 		case 0x12:			/* DevmemIntHeapDestroy */
-			return 0;
+			return pvr_stub_ok(cmd);
 		case 0x9:			/* PhysMemNewRamBackedPmr */
 			return pvr_cmd_pmr_alloc(file, cmd);
 		case 0xf:			/* DevmemIntCtxCreate */
@@ -636,9 +712,14 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 						    MT_PVR_KIND_CONTEXT);
 		return -ENOTTY;
 	case MT_PVR_BRIDGE_RGXHWPERF:
-		if (function == 0x4)		/* RGXAcquireHWPerfSetting */
+		switch (function) {
+		case 0x4:		/* MUSA:MUSAAcquireHWPerfSettings */
 			return pvr_cmd_hwperf(file, cmd);
-		return -ENOTTY;
+		case 0x5:		/* MUSA:MUSAReleaseHWPerfSettings */
+			return pvr_cmd_hwperf_release(file, cmd);
+		default:
+			return -ENOTTY;
+		}
 	default:
 		return -ENOTTY;
 	}
@@ -875,11 +956,11 @@ static int __init pvr_start(void)
 		pci_dev_put(pdev);
 		return ret;
 	}
-	pci_dev_put(pdev);
 	pvr_drm = drm;
+	pci_dev_put(pdev);
 	WRITE_ONCE(pvr_ready, true);
-	pr_info("mt_pvr_bridge: registered '%s' node, bridge stage 1: main module %s\n",
-		MT_PVR_DRV_NAME,
+	pr_info("mt_pvr_bridge: registered '%s' node, bridge stage 1: "
+		"main module %s\n", MT_PVR_DRV_NAME,
 		pvr_device_owned_by_main() ? "still owns the device (no binding)"
 					   : "not bound");
 	return 0;

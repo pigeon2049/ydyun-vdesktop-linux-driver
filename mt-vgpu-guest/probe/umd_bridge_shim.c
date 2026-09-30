@@ -67,6 +67,23 @@ static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
  */
 static int passthrough;
 
+static void ensure_log(void);
+
+/* Record every open the UMD makes, whichever libc entry point it used.
+ *
+ * The UMD reaches DRM nodes through open64()/openat() as often as open(), and
+ * those paths logged nothing, so "which node did the UMD actually pick?" had no
+ * answer. In record-only mode the file name is the only evidence of whether the
+ * device connection landed on our node or on the unrelated QXL card0.
+ */
+static void log_open(const char *op, const char *path, int fd)
+{
+	ensure_log();
+	if (logf)
+		fprintf(logf, "{\"seq\":%lu,\"op\":\"%s\",\"path\":\"%s\","
+			"\"fd\":%d}\n", ++seq, op, path, fd);
+}
+
 static int pvr_passthrough(void)
 {
 	const char *mode = getenv("UMD_SHIM_PASSTHROUGH");
@@ -409,7 +426,13 @@ int open64(const char *path, int flags, ...)
 	}
 	if (is_dri(path) && !pvr_passthrough())
 		return dri_open(path);
-	return (int)S_(SYS_openat, AT_FDCWD, (long)path, flags, mode, 0, 0);
+	{
+		int fd = (int)S_(SYS_openat, AT_FDCWD, (long)path, flags, mode, 0, 0);
+
+		if (pvr_passthrough())
+			log_open("open_real", path, fd);
+		return fd;
+	}
 }
 
 int openat(int dirfd, const char *path, int flags, ...)
@@ -423,7 +446,13 @@ int openat(int dirfd, const char *path, int flags, ...)
 	}
 	if (path[0] == '/' && is_dri(path) && !pvr_passthrough())
 		return dri_open(path);
-	return (int)S_(SYS_openat, dirfd, (long)path, flags, mode, 0, 0);
+	{
+		int fd = (int)S_(SYS_openat, dirfd, (long)path, flags, mode, 0, 0);
+
+		if (pvr_passthrough() && path[0] == '/')
+			log_open("openat_real", path, fd);
+		return fd;
+	}
 }
 
 int openat64(int dirfd, const char *path, int flags, ...)

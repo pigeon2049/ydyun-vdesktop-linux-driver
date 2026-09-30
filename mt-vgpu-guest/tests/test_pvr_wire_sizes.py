@@ -50,6 +50,12 @@ MAPPING = {
     "mt_pvr_sync_block_out": (0x2, 0x0),
     "mt_pvr_ctx_create_in": (0x6, 0xF),
     "mt_pvr_ctx_create_out": (0x6, 0xF),
+    # 0x86:0x4 reuses mt_pvr_handle_out. 0x86:0x5 appeared in the S2 real-UMD
+    # trace (in=8, out=4), past the 19-command scope, and needed for the UMD
+    # to keep going; the 5.2 generated header calls them
+    # MUSA:MUSAReleaseHWPerfSettings and declares the in as a single handle.
+    "mt_pvr_hwperf_release_in": (0x86, 0x5),
+    "mt_pvr_hwperf_release_out": (0x86, 0x5),
 }
 
 # Which table size each struct corresponds to: "in", "out" or "dispatch".
@@ -65,6 +71,7 @@ DIRECTION = {
     "mt_pvr_reserve_in": "in", "mt_pvr_reserve_out": "out",
     "mt_pvr_sync_block_in": "in", "mt_pvr_sync_block_out": "out",
     "mt_pvr_ctx_create_in": "in", "mt_pvr_ctx_create_out": "out",
+    "mt_pvr_hwperf_release_in": "in", "mt_pvr_hwperf_release_out": "out",
 }
 
 # Table key holding the wire size for each direction.

@@ -90,6 +90,27 @@ struct MT_PVR_PACKED mt_pvr_event_open_out {
 	u32 error;
 };
 
+/* 0x86:0x4 MUSA:MUSAAcquireHWPerfSettings -- no IN, 12-byte OUT.
+ *
+ * The 5.2.0 generated header declares
+ *   typedef struct MTGPU_BRIDGE_OUT_MUSAACQUIREHWPERFSETTING_TAG {
+ *       MTGPU_ERROR eError; MT_HANDLE hPMR;
+ *   } __packed ...;
+ * which is 8 bytes, but the UMD sends out_size=12 for this command. That is the
+ * same widening that MT_HANDLE's 64-bit form implies everywhere else: an S1 run
+ * proved the UMD reads a handle from offset 0 of these 12-byte outs, because the
+ * handle it then passed to PmrLocalImportPmr matched a real PMR. So hPMR is 8
+ * bytes and the trailing 4 are the error, i.e. exactly mt_pvr_handle_out.
+ */
+struct MT_PVR_PACKED mt_pvr_hwperf_release_in {
+	u64 pmr;
+};
+
+/* 0x86:0x5 MUSA:MUSAReleaseHWPerfSettings -- 8-byte IN, 4-byte OUT. */
+struct MT_PVR_PACKED mt_pvr_hwperf_release_out {
+	u32 error;
+};
+
 /* 0x6:0x6 MM:PmrLocalImportPmr -- 8-byte IN, 28-byte OUT. */
 struct MT_PVR_PACKED mt_pvr_import_in {
 	u64 ext_handle;
@@ -213,6 +234,10 @@ static_assert(sizeof(struct mt_pvr_handle_out) == 12, "0x1:0x2/0x1:0xf out");
 static_assert(sizeof(struct mt_pvr_event_open_in) == 8, "0x1:0x4 in");
 static_assert(sizeof(struct mt_pvr_event_open_out) == 12, "0x1:0x4 out");
 static_assert(sizeof(struct mt_pvr_import_in) == 8, "0x6:0x6 in");
+static_assert(sizeof(struct mt_pvr_hwperf_release_in) == 8, "0x86:0x5 in");
+static_assert(sizeof(struct mt_pvr_hwperf_release_out) == 4, "0x86:0x5 out");
+/* 0x86:0x4 reuses mt_pvr_handle_out; its 12 bytes are the UMD's out_size, and
+ * the 8-byte header form would truncate the handle away. */
 static_assert(sizeof(struct mt_pvr_import_out) == 28, "0x6:0x6 out");
 static_assert(sizeof(struct mt_pvr_heap_details_in) == 20, "0x6:0x20 in");
 static_assert(sizeof(struct mt_pvr_heap_details_out) == 44, "0x6:0x20 out");
