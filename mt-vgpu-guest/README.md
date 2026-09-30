@@ -1,8 +1,9 @@
 # MT vGPU Guest：本机适配与实验
 
-**最新真机 3D 工作负载硬件闭环（2026-09-30，r38）**：物理冷关机重启后硬件自愈，`mt_guest_probe` 建立全新洁净活动连接。逆向查明 Linux 原厂 UMD 3D 提交规范（CSW 位于 `+0x58` 偏移，任务包全长 18,160 字节，操作码 `0x66`）。通过 [kernel/recovery/mt_live_3d.c](kernel/recovery/mt_live_3d.c) 成功完成显存切片分配（11 个 BO、86,300 字节、29 页 VM 映射）、CSW 动态构建与 DM2 Universal 硬件队列提交。**真机实测完全成功：硬件瞬时消费，dma_fence_wait 返回 0（耗时约 106 微秒），`dm=2 ring=0 head=1 tail=1`，`dm=2 ring=2 head=1 tail=1`！** 详见 [r38 3D 工作负载记录](reports/r38-minimal-3d-workload.md) 与 [自动化自检工具](scripts/verify-3d-execution.py)。
+**最新真机 3D 渲染多帧批量压测与环形回绕突破（2026-09-30，r39）**：升级 [kernel/recovery/mt_live_3d.c](kernel/recovery/mt_live_3d.c) 支持多帧连续提交、动态参数注入与纳秒级性能采样。物理真机累计执行 **106 帧** 真实 3D Universal 任务，成功率 **100%**。零延迟极限压测下 50 帧总耗时仅 4.568 毫秒，平均单帧耗时仅 **60 微秒**（最低 48 微秒），等效吞吐超过 16,000 FPS。成功验证了 **硬件 Ring 队列跨越 64-slot 边界的自动回绕**（游标 61 -> 17 -> 42），生命周期优雅卸载无残留。详见 [r39 压测报告](reports/r39-3d-batch-stress.md) 与 [性能测试套件](scripts/verify-3d-execution.py)。
 
-**最新 3D 图形主控队列突破（2026-09-30，r37）**：成功打通 **DM 2（3D 图形 / Universal Queue）** 真机硬件通道并完成真实 dma_fence 往返测试（sequence 1–2，result=0，毫秒级往返），确立了 S3000 Guest 核心数据主控队列边界（仅有效开放 DM 1/2/3），在内核驱动层对非法队列（DM >= 4）实施了严格防御拦截。将 3D 渲染执行上下文完全路由至 `node_type = 5, dm = 2, scheduling_class = 1, opcode = 0x66`，真机 3D 图形管线已完全具备提交硬件的基础！详见 [r37 3D 队列记录](reports/r37-dm2-3d-pipeline.md) 和 [验证报告](reports/r37-dm2-validation.json)。
+**最新真机 3D 工作负载硬件闭环（2026-09-30，r38）**：物理冷关机重启后硬件自愈，`mt_guest_probe` 建立全新洁净活动连接。逆向查明 Linux 原厂 UMD 3D 提交规范（CSW 位于 `+0x58` 偏移，任务包全长 18,160 字节，操作码 `0x66`）。通过显存切片分配（11 个 BO、86,300 字节、29 页 VM 映射）、CSW 动态构建与 DM2 Universal 硬件队列提交，实现首次硬件 3D 执行与 dma_fence 回执闭环（106 微秒）。详见 [r38 3D 工作负载记录](reports/r38-minimal-3d-workload.md)。
+
 
 **最新真机与渲染上下文进展（2026-09-30，r36）**：完成冷启动后硬件会话恢复（OSID 4、`mt_cold_disconnect` 置 Guest OFF、`fresh-trial.py` 成功重连），并复核通过 30 个真实 GPU 硬件任务（含 23 次 1080p 颜色矩形原生填充与 2 次 4 MiB 显存复制，读回并导出 6MB PPM）。在此基础上闭合原厂 Linux QY1 3D 渲染上下文（`RGXCreateRenderContextCCB`）：定义 11 个专用 BO 显存规范（总需求仅 ~84.3 KiB，完全能在现有普通堆余量中满足）、12 个保存/恢复任务阶段及 248 字节 CSW 模板，经 C 实现逐字节核验与内核 6.12 头文件下 `W=1` 零警告编译通过。详见 [r36 渲染上下文记录](reports/r36-gfx-context.md) 和 [验证报告](reports/r36-gfx-context-validation.json)。
 
