@@ -218,22 +218,40 @@ Connect 序列至今未命中其中任何一个；`RGXKICKTA3D3(0x82:0x0e)` 在�
 - 工具：`strat` 字符串读、`dumpat`、`bID*+OFF`/`bID@OFF`/`bID@@OFF`、
   `conn+OFF`、8 参数调用。
 
-## 14. bA8：堆名解析机制落定（UMD 同步拷贝，无生命周期问题）
+## 14. bA9：工具稳定性修复 + OOM-stats 定位（进行中）
 
-- 注册表_dump（gdb 在 `0x94a60` 入口读参 + 逐 entry 读名）：
+- **重大纠正**：此前三态非确定性（崩溃/挂起/返回）主要源于
+  shim 自身 malloc/calloc/realloc/free 拦截的竞态（`resolving` 非原子、
+  tmp 回退、日志递归），而非 UMD 本义行为。现默认关闭拦截
+  （`UMD_ALLOC_WRAP=1` 才开），连续运行已确定性复现
+  （connect/devmem/renderctx-attempt 全程无崩溃无挂起）。
+  此前在非稳定工具下得到的“堆损坏”结论**降级为待复核**；
+  ASan 实锤的 devmem-teardown double-free 仍成立
+  （ASan 下自有分配器，我方拦截被屏蔽）。
+- 新桥：`0x6:0x27 PVRSRVUPDATEOOMSTATS`（in8=`aea50000 1e000000`，
+  OOM 上报），位于 renderctx PMR 分配之后、unref 之前。
+- PMR 伪造现状：句柄递增互异、`uiOutFlags=IN(0x1233)`、
+  `isSystemMem=1`；仍触发 OOM 路径。下一步看分配后本地校验
+  （import？map？ legislate OUT 字段？）。
+- 给 Stage B 的输入（新增）：UMD 工具链本身必须确定性；
+  OOM-stats 桥需实现（计数器语义）。
+
+## 15. bA8 收尾：注册表内容确认（ resolve 了名字归属）
+
+- 注册表 dump（gdb 在 `0x94a60` 入口读参 + 逐 entry 读名）：
   registry（count=11）entries 0-6 名为 "General"，7 为
   "PDS Code and Data"，8-10 为 "USC Code"。
 - 机制：UMD 在每次 details→heapcreate 间隙**同步拷贝**名到堆对象；
   未命名堆继承共享栈槽的上次残留（1-6 得 "General"，9-10 得 "USC Code"）。
-  名字稳定，无生命周期问题——bA7 的头号嫌疑**排除**。
+  名字稳定——名字本身不是问题。
 - devmem 期三次查找（PDS/General/USC）全中；renderctx 期
   `DevmemFindHeapByName` 报 INVALID_HEAP_INDEX 后 DCE 缓冲失败返回 1——
   找的是**另一名字或另一注册表**（renderctx 用 `[r12+0x8]` 链，
-  非 devmem 注册表），待 bA9 抓现行（同款断点法，只需放过前三次）。
+  非 devmem 注册表），是 bA10 的抓捕目标。
 - 副产出：`heap_names[]` 三命名即 KMD 上报名；`Ext` 返回语义、
   DebugPrintf 抓因法、ASan 同插法均已验证可复用。
 
-## 7. 下一步（bA9）
+## 7. 下一步（bA10）
 
 1. 抓 renderctx 期 `DevmemFindHeapByName` 的查找名与注册表
    （0x94a60 断点放过前三次，只看第四次起；读 rdi/rsi/返回值）。

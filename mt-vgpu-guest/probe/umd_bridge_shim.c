@@ -212,8 +212,10 @@ static void fabricate_pmr_alloc(const uint8_t *in, uint32_t in_size,
 		memcpy(out, &h, 8);
 	}
 	if (out_size >= 20) {
-		/* RAM-backed PMRs live in system memory. */
-		uint32_t one = 1;
+		/* RAM-backed PMRs live in system memory; echo back a
+		 * plausible flag set (IN asks 0x1233-class). */
+		uint32_t one = 1, flags = 0x1233;
+		memcpy(out + 12, &flags, 4);
 		memcpy(out + 16, &one, 4);
 	}
 }
@@ -734,6 +736,13 @@ static void log_alloc(const char *op, void *ptr, size_t size)
 void free(void *ptr)
 {
 	static int busy;
+	if (!getenv("UMD_ALLOC_WRAP")) {
+		if (!real_free)
+			real_free = dlsym(RTLD_NEXT, "free");
+		if (real_free)
+			real_free(ptr);
+		return;
+	}
 	if (!real_free) {
 		resolve_alloc("free", (void **)&real_free);
 		if (!real_free)
@@ -769,6 +778,10 @@ void free(void *ptr)
 void *malloc(size_t size)
 {
 	void *p;
+	if (!getenv("UMD_ALLOC_WRAP")) {
+		resolve_alloc("malloc", (void **)&real_malloc);
+		return real_malloc ? real_malloc(size) : NULL;
+	}
 	resolve_alloc("malloc", (void **)&real_malloc);
 	if (!real_malloc)
 		return tmp_alloc(size);
@@ -781,6 +794,10 @@ void *malloc(size_t size)
 void *calloc(size_t n, size_t size)
 {
 	void *p;
+	if (!getenv("UMD_ALLOC_WRAP")) {
+		resolve_alloc("calloc", (void **)&real_calloc);
+		return real_calloc ? real_calloc(n, size) : NULL;
+	}
 	resolve_alloc("calloc", (void **)&real_calloc);
 	if (!real_calloc) {
 		p = tmp_alloc(n * size);
@@ -797,6 +814,10 @@ void *calloc(size_t n, size_t size)
 void *realloc(void *ptr, size_t size)
 {
 	void *p;
+	if (!getenv("UMD_ALLOC_WRAP")) {
+		resolve_alloc("realloc", (void **)&real_realloc);
+		return real_realloc ? real_realloc(ptr, size) : NULL;
+	}
 	resolve_alloc("realloc", (void **)&real_realloc);
 	if (!real_realloc) {
 		p = tmp_alloc(size);

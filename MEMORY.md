@@ -1,6 +1,6 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-09-30（bA8：堆名同步拷贝确认，生命周期嫌疑排除；未提交）
+最后更新：2026-09-30（bA9：工具稳定性修复 + OOM-stats；未提交）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
@@ -16,7 +16,33 @@
 
 ---
 
-## 本次会话进展（bA8：堆名机制落定，未提交）
+## 本次会话进展（bA9：稳定性修复 + OOM-stats，未提交）
+
+接 bA8（同一会话连续推进）。
+
+### 1. 重大纠正：非确定性主要源于自家工具
+
+shim 的 malloc/calloc/realloc/free 拦截有竞态（非原子 resolve、
+tmp 回退、日志递归），污染了之前所有“三态”观察。现默认关闭
+（`UMD_ALLOC_WRAP=1` 才开）——连续运行已确定性复现
+（connect/devmem/renderctx-attempt 无崩溃无挂起）。
+此前“堆损坏”结论降级为待复核；ASan 实锤（自有分配器、拦截被屏蔽）
+不受影响，依然成立。
+
+### 2. OOM-stats 与 PMR 伪造现状
+
+- 新桥 `0x6:0x27 UPDATEOOMSTATS`（in8=`aea50000 1e000000`）在
+  renderctx PMR 分配后、unref 前触发；PMR 句柄递增互异、
+  `uiOutFlags=0x1233`、`isSystemMem=1` 仍未越过。
+- 给 Stage B 的输入：OOM-stats 需实现；工具链必须确定性。
+
+### 3. 下一步（bA10）
+
+抓 renderctx 期 FindHeap 名与注册表；然后 Sync → kick → 最小命令集。
+
+---
+
+## 上次会话进展（bA8：堆名机制落定，未提交）
 
 接 bA7（同一会话连续推进）。
 
