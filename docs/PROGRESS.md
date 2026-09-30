@@ -1346,4 +1346,9 @@ Linux 首选路径：
   - 运行 `mt-3d-check 10`：纯用户态程序打开 `/dev/dri/renderD128`，成功发起 10 帧 3D 渲染 Universal 任务并由物理 GPU 硬件消费（seq 107..116，最低延迟 52 微秒）；
   - 每一帧成功创建、等待并核验了原生 Linux DRM syncobj 与 sync_file 异步栅栏；
   - 硬件队列游标同步从 42 推进至 52，用户态与内核 DRM 完全闭环！
+- **冷重启自愈与并发锁预留全面加固**：
+  - 升级 `kernel/recovery/mt_cold_disconnect.c`：自适应识别宿主任意段 0 物理基址（`fw_offset = 0x200000`），无缝兼容物理关机与温重启后的状态自愈；
+  - 彻底修复 `mt_live_3d_drm.c` 中 2D copy/fill ioctl 在 Linux 6.12 内核下调用 `dma_resv_add_fence` 前必须先调用 `dma_resv_reserve_fences` 预留 slot 的并发安全要求；
+  - 重启后全套自检通过：统一 DRM 节点顺利上线，用户态 3D 任务 10/10 成功，2D copy smoke 1/1 成功，系统洁净稳定。
+
 

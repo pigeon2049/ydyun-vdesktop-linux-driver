@@ -56,13 +56,9 @@ static int __init cold_disconnect_init(void)
 	fw_pa = readq(custom + 0x30);
 	if (fw_pa == 0x771fef000ULL)
 		fw_offset = 0x3f000000ULL;
-	else if ((fw_pa & 0xff0000000ULL) == 0x600000000ULL)
+	else
 		fw_offset = 0x200000ULL;
-	else {
-		pr_err("MT_COLD_DISCONNECT: unknown fw_pa=%#llx\n", fw_pa);
-		ret = -EPROTO;
-		goto out;
-	}
+	pr_info("MT_COLD_DISCONNECT: fw_pa=%#llx fw_offset=%#llx\n", fw_pa, fw_offset);
 
 	fw = ioremap(pci_resource_start(pdev, 2) + fw_offset, FW_SIZE);
 	if (!fw) {

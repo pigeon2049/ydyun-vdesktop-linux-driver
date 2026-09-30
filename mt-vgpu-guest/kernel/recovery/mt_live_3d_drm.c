@@ -426,6 +426,11 @@ static int fill_ioctl(struct drm_device *dev, void *data, struct drm_file *file)
 	ret = drm_gem_lock_reservations(objects, 1, &acquire);
 	if (ret)
 		goto put;
+	ret = dma_resv_reserve_fences(objects[0]->resv, 1);
+	if (ret) {
+		drm_gem_unlock_reservations(objects, 1, &acquire);
+		goto put;
+	}
 	mutex_lock(&submit_lock);
 	mutex_lock(&d->state.trial_lock);
 	ret = faulted ? -EIO : idle();
