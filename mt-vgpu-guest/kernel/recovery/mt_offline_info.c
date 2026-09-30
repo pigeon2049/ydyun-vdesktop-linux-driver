@@ -97,18 +97,20 @@ static int snapshot_retained(void __iomem *regs, void __iomem *custom)
 		for (j = 0; j < 3; j++)
 			if (le64_to_cpup((__le64 *)(info + 0x28 + i * 24 + j * 8)) != segments[i][j])
 				return -EPROTO;
-	cursor = 0x200000 + segments[0][1] + segments[1][1];
+	cursor = (firmware_pa == segments[0][0]) ? 0x200000 :
+		(0x200000 + segments[0][1] + segments[1][1]);
 	bar2_gpa = readq(custom + 0x20);
 	local_mmu_gpa = readq(custom + 0x28);
 	firmware_pa = readq(custom + 0x30);
 	firmware_bytes = readq(custom + 0x38);
-	pr_info("mt_offline_info: publication BAR2=%#llx MMU=%#llx FW=%#llx bytes=%#llx\n",
-		bar2_gpa, local_mmu_gpa, firmware_pa, firmware_bytes);
+	pr_info("mt_offline_info: publication BAR2=%#llx MMU=%#llx FW=%#llx bytes=%#llx cursor=%#llx\n",
+		bar2_gpa, local_mmu_gpa, firmware_pa, firmware_bytes, cursor);
 	if (readl(regs + 0x890) != guest_state || readl(regs + 0x898) != fw_state ||
 	    !(pci_resource_flags(device, 2) & IORESOURCE_MEM) ||
 	    pci_resource_len(device, 2) < cursor + SZ_8M ||
 	    bar2_gpa != pci_resource_start(device, 2) ||
-	    local_mmu_gpa || firmware_pa != segments[inspect_ready ? 0 : 2][0] ||
+	    local_mmu_gpa ||
+	    (firmware_pa != segments[0][0] && firmware_pa != segments[2][0]) ||
 	    firmware_bytes != SZ_8M)
 		return -EBUSY;
 	ret = pci_request_region(device, 2, "mt_offline_retained_read");

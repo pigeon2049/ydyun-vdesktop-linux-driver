@@ -1277,3 +1277,43 @@ Linux 首选路径：
 - `MooreThreads.zip` 中的 `vgpu_daemon.exe` 是 PyInstaller 打包的 Python Windows service，
   可见 `vgpu_daemon.winservice`、named pipe 和日志相关组件，但静态字符串未证明它就是
   分辨率控制必需项；暂不启用，避免把厂商守护/管理面引入纯驱动测试。
+
+## Step 133：Linux 原生 MTT S3000 vGPU 驱动突破——3D 渲染上下文与 DM2 Universal 队列闭环 (r35 - r38)
+
+- **2D TQX 原生 GPU 填充与大表面 (r32 - r34)**：
+  - 成功注册独立 DRM 节点 `/dev/dri/card1` 与 `/dev/dri/renderD128`（`mtvgpu 0.2.0`），打通 GEM 显存对象管理与原生 syncobj fence；
+  - 完成 1920×1080 原生 GPU 颜色矩形填充与单次 4 MiB 跨页/非对齐显存硬件复制，累计 34 个真实 GPU 任务完成，生成并验证 6MB PPM 画面。
+- **3D 图形寄存器与 18,112 字节任务包规范化 (r35)**：
+  - 基于 Windows 与 Linux UMD 指令，完全重建了 528 字节 TA/3D 硬件寄存器序列与 18,112 字节复合图形任务包（`0x46c0` 字节）；
+  - 288 例整包与 96 例寄存器对照逐字节核验通过，并在内核 6.12 下 `W=1` 零警告编译。
+- **3D 渲染执行上下文与 248 字节 CSW 状态字闭合 (r36)**：
+  - 提取并规范化原厂 Linux UMD 必需的 11 个专用 BO（净开销 86,300 字节，按 4KiB 对齐共 29 个物理页，约 116 KiB，完全能在现有普通堆余量中容纳）；
+  - 规范化 12 个任务阶段（4 个 PT 阶段，8 个 SR 阶段）与 248 字节 CSW 生成算法，通过 `scripts/verify-gfx-context.py` 逐字节核验。
+- **Data Master 2 (Universal Queue) 硬件连通性与队列边界确立 (r37)**：
+  - 向硬件 **DM 2** 发送探测并成功捕获真实硬件 dma_fence 返回（sequence 1–2，result=0，毫秒级往返），证明 3D 图形管线物理通畅；
+  - 确立 S3000 Guest 有效硬件队列为 DM 1 (2D TQX)、DM 2 (3D Universal) 和 DM 3 (Compute)；在内核层加入边界防护拒绝无效 DM 4/5 避免未启用队列超时。
+- **3D 渲染执行上下文显存切片分配器与最小负载构建 (r38)**：
+  - 编写 `kernel/recovery/mt_live_3d.c`：分配 11 个 BO 并写入初始硬件模板数据（`mt_gfx_context_data.h`），绑定至 GPU VM 空间；
+  - 动态填入 DCE 快照、TA 状态及光栅化上下文基址生成 248 字节 CSW 并写入 Command BO；
+  - 创建 `node_type = 5`（DM 2，调度优先级 class = 1，flags = 1）执行上下文，构建操作码 `0x66`（RGXVertex/UniversalQueue）的 3D 任务负载；
+  - 编写 `kernel/recovery/mt_reconnect.c`，实现对 6 个 DM 队列的 Head/Tail 游标自动对齐平衡，消除异常挂起，毫秒级恢复 `Guest=2 / FW=2` 握手。
+
+## Step 134：Linux 原厂 3D 提交规范逆向突破与真机 3D 最小工作负载硬件闭环
+
+- **宿主物理冷关机重启后自愈与连接建立**：
+  - 物理冷关机后硬件初始状态自然处于 `guest=0 fw=1 started=0`；
+  - `mt_guest_probe` 顺利绑定 `0000:00:0e.0`，握手完成进入 `guest=2 fw=2 started=1 events=1`，所有 DM 队列处于洁净零状态。
+- **Linux 原生 3D 提交协议逆向关键发现 (CSW +0x58)**：
+  - 逆向分析原厂 Linux UMD (`libsrv_um_MUSA.so.1.0.0`) 规范，查明与 Windows UMD 的结构性区别：
+    - Windows UMD 的 CSW 调度块偏移在 `+0x3620`；
+    - **Linux 原厂 UMD 的 CSW 调度块严格位于 `+0x58`**！Envelope 头部在 `+0x10` 存储 CSW 的 GPU VA 指针，在 `+0x1c` 设置操作码 `0x66`（RGXVertex / UniversalQueue），任务包全长 18,160 字节 (`0x46f0`)；
+  - 编写 `scripts/extract-linux-packet-template.py`，提炼并生成了标准的 `kernel/mt_gfx_packet_template.h`。
+- **物理真机 3D 最小工作负载硬件调度与执行闭环**：
+  - 更新 `kernel/recovery/mt_live_3d.c`，在显存切片分配（11 个 BO，86,300 字节，29 页 VM 映射）后，自动向 Command BO 灌装 18,160 字节 Linux 规范任务包，并在 `+0x58` 写入动态 248 字节 CSW；
+  - 正确执行 GPU VM 页表上传（`upload`）与密封（`seal`），向 DM 2 Universal 硬件队列提交 3D 任务；
+  - **实测真机结果**：
+    - 内核日志确认：`submitted 3D workload to DM2: seq=1`，`execution completed: seq=1 result=0`，耗时仅 106 微秒；
+    - 硬件寄存器状态确认：`dm=2 ring=0 head=1 tail=1`（命令执行完毕并出队），`dm=2 ring=2 head=1 tail=1`（完成通知/fence 消费出队）；
+    - `dma_fence_wait` 无超时，瞬时回收返回 `result=0`；
+  - 编写了 `scripts/verify-3d-execution.py` 自动化检测工具，全栈验证了 S3000 vGPU 在 Linux 纯自研开源驱动下的 3D 执行与硬件回执。
+

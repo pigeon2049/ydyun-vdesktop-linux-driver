@@ -10,9 +10,11 @@ import subprocess
 
 ROOT=Path(__file__).resolve().parents[1]
 out=ROOT/'build/r35-gfx/kernel-compile';out.mkdir(parents=True,exist_ok=True)
-(out/'gfx_kernel_compile.c').write_text('#include <linux/module.h>\n#include "'+
-    str(ROOT/'tests/gfx_packet_oracle_wrapper.c')+'"\nMODULE_LICENSE("GPL");\n'
-    'MODULE_DESCRIPTION("Compile-only GFX CPU encoder verification");\n')
+(out/'gfx_kernel_compile.c').write_text('#include <linux/module.h>\n'
+    '#include "'+str(ROOT/'tests/gfx_packet_oracle_wrapper.c')+'"\n'
+    '#include "'+str(ROOT/'tests/gfx_context_oracle_wrapper.c')+'"\n'
+    'MODULE_LICENSE("GPL");\n'
+    'MODULE_DESCRIPTION("Compile-only GFX CPU encoder and context verification");\n')
 (out/'Makefile').write_text('obj-m += gfx_kernel_compile.o\n')
 result=subprocess.run(['make','-C',f'/lib/modules/{platform.release()}/build',
     f'M={out}','W=1','modules'],text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

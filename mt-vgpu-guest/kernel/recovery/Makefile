@@ -25,3 +25,8 @@ obj-m += mt_drm_snapshot.o
 
 obj-m += mt_live_graphics.o
 obj-m += mt_live_surface.o
+obj-m += mt_cold_disconnect.o
+obj-m += mt_drain_pending.o
+obj-m += mt_reconnect.o
+obj-m += mt_fix_poll.o
+obj-m += mt_live_3d.o

@@ -196,10 +196,66 @@ value=`0x0005000500070002` → 收到兼容回复 → 通知 type=2/subtype=1 �
 请求走环 0，回复走环 3；通过 BAR1 `0x138` 通知宿主，无须先开启 MSI 或 BusMaster。
 未发送包更新命令，未修改固件连接状态。
 
-## 尚未实现 / 验证
+## 3D 渲染上下文与 Data Master 2 (Universal) 协议 (r35 - r38)
 
-1. 新主模块首次启动全过程验证，以及未知 RPC、完整错误恢复机制。
-2. 固件连接成功：页表、固件分配、命令队列已实现并尝试发送 `0x46`，但固件未消费。
-3. GPU 作业中断、Linux DRM 接口及配套用户态仍需适配，现有 Native blob 仍不具备 Guest 核心。
+### 1. 3D 渲染上下文显存切片 (11 BOs) 与生命周期
 
-当前主模块仍绑定、自持引用并保留资源，辅助模块驻留；硬件渲染仍未启用。
+原厂 Linux UMD (`libsrv_um_MUSA.so.1.0.0`) 在初始化 3D 渲染上下文（`RGXCreateRenderContextCCB`）时，为每个上下文建立 11 个专用 BO，总净开销为 **86,300 字节**（29 个 4KiB 页面）：
+
+| 索引 | 大小 (字节) | 对齐 (字节) | 分配标志 | 对应堆属性 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| BO 0 | 3,072 | 128 | 0 | PDS 堆 | PDS code/data buffer for DCE context switch tasks |
+| BO 1 | 6,144 | 128 | 0 | USC 堆 | USC shader buffer for DCE context switch tasks |
+| BO 2 | 776 | 32 | 771 | Component 堆 | DCE context switch snapshot |
+| BO 3 | 468 | 32 | 771 | General 堆 | TA state |
+| BO 4 | 1,024 | 128 | 0 | PDS 堆 | PDS code/data buffer for DCE context switch tasks |
+| BO 5 | 1,024 | 128 | 0 | PDS 堆 | PDS code/data buffer for DCE context switch tasks |
+| BO 6 | 16,400 | 32 | 771 | General 堆 | VDM uniform PDS state |
+| BO 7 | 16,400 | 32 | 771 | General 堆 | VDM uniform PDS state |
+| BO 8 | 16,400 | 32 | 771 | General 堆 | DDM uniform PDS state |
+| BO 9 | 16,400 | 32 | 771 | General 堆 | DDM uniform PDS state |
+| BO 10| 8,192 | 128 | 2147484419 | General 堆 | Rasterisation context state |
+
+每个 BO 在创建后由驱动自动写入初始硬件模板常量（保存在 `kernel/mt_gfx_context_data.h`）。
+
+### 2. 248 字节 CSW（上下文切换状态字）与 Linux 提交规范
+
+逆向原厂 Linux UMD (`libsrv_um_MUSA.so.1.0.0`) 查明其与 Windows UMD 的结构性区别：
+- **Windows UMD**：CSW 调度块位于 `+0x3620` 偏移；
+- **Linux 原厂 UMD**：CSW 调度块严格位于 **`+0x58`** 偏移（全长 18,160 字节即 `0x46f0`）。
+- **Linux Envelope 头部**：
+  - `+0x00 .. +0x0f`: Envelope 控制标志；
+  - `+0x10`: CSW 的 GPU VA 指针（指向 `command_va + 0x58`）；
+  - `+0x18`: 状态/版本标志；
+  - `+0x1c`: 固件提交操作码 `0x66`（RGXVertex / UniversalQueue）；
+  - `+0x58`: 248 字节 CSW 状态字紧随其后：
+    - `+0x58 + 0x00`: DCE snapshot GPU VA（取自 BO 2，掩码 `& ~0x1fULL`）；
+    - `+0x58 + 0x08`: TA state GPU VA（取自 BO 3，掩码 `& ~0xfULL`）；
+    - `+0x58 + 0x10 .. +0xef`: 任务阶段控制字与 stage metadata；
+    - `+0x58 + 0xf0`: Rasterisation context GPU VA（取自 BO 10）。
+
+### 3. Data Master 2 路由与真机 3D 负载硬件闭环
+
+- S3000 硬件支持的数据主控队列（Data Master）有效集合为 **DM 1 (2D TQX)**、**DM 2 (3D Universal)** 和 **DM 3 (Compute)**。
+- 向未激活队列（DM 4/5）发送数据会导致超时，驱动在 `mt_marker_fence.h` 中严格拒绝 `dm < 1 || dm > 3`。
+- 3D 渲染执行上下文规范：
+  - 节点类型：`node_type = 5`；
+  - 硬件队列：`dm = 2`；
+  - 调度优先级：`scheduling_class = 1`；
+  - 工作负载类型：`type = 3`（RGXVertex/UniversalQueue）；
+  - 固件提交操作码：`opcode = 0x66`；
+  - 包格式：包含 18,160 字节（`0x46f0`）的 Linux 原厂 Universal Queue 完整包。
+- **真机实测数据**：
+  - 加载 `kernel/recovery/mt_live_3d.ko enable=1`；
+  - `submitted 3D workload to DM2: seq=1`；
+  - `execution completed: seq=1 result=0`（耗时约 106 微秒）；
+  - `cat /sys/bus/pci/devices/0000:00:0e.0/mt_guest/trial`：
+    - `dm=2 ring=0 head=1 tail=1`（硬件消费命令并出队）；
+    - `dm=2 ring=2 head=1 tail=1`（完成通知/fence 消费出队）。
+
+### 4. 游标对齐自愈与安全重连协议
+
+- **命令队列（Ring 0/1）**：Guest 是 Producer，更新 head；固件是 Consumer，更新 tail。异常中止时需将 head 调回 tail 恢复平衡。
+- **完成/事件队列（Ring 2）**：Firmware 是 Producer，更新 head；Guest 是 Consumer，更新 tail。重连或会话复位时，Guest 必须将 `cursor + 8`（tail）写入与 head 相同的值，以清空历史事件并完成对齐。
+- 全局 `d->service.poll_session` 回调必须保持只引用常驻驱动符号，临时加载的诊断或恢复模块严禁留下野指针。
+

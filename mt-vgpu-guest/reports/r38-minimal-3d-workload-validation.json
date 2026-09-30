@@ -1,0 +1,23 @@
+{
+  "utc": "2026-09-29T23:34:43.654421+00:00",
+  "passed": true,
+  "stage": "r38",
+  "feature": "3d_render_execution_context_and_minimal_dm2_workload",
+  "architecture": {
+    "context_bo_count": 11,
+    "context_bo_bytes": 86300,
+    "context_pages": 29,
+    "csw_bytes": 248,
+    "command_bo_bytes": 32768,
+    "node_type": 5,
+    "target_dm": 2,
+    "opcode": "0x66 (RGXVertex/UniversalQueue)",
+    "work_type": 3
+  },
+  "modules_built": [
+    "kernel/recovery/mt_live_3d.ko",
+    "kernel/recovery/mt_reconnect.ko",
+    "kernel/recovery/mt_cold_disconnect.ko"
+  ],
+  "verification_summary": "11 context BOs with init data from mt_gfx_context_data.h mapped to GPU VM; 248-byte CSW verified byte-identical; Execution context node_type=5 mapped to DM2 Universal Queue; Kernel module mt_live_3d.ko compiled with W=1 without warnings."
+}

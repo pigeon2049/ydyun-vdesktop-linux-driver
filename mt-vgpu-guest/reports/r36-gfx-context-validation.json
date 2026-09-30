@@ -1,0 +1,211 @@
+{
+  "utc": "2026-09-29T21:56:25.915949+00:00",
+  "passed": true,
+  "bo_count": 11,
+  "task_count": 12,
+  "total_bo_bytes": 86300,
+  "csw_bytes": 248,
+  "csw_sha256": "90079a1896e61ee46b4c0728208d1d9d5ede9f3e607c8b74bc99786d37318fc4",
+  "bos": [
+    {
+      "heap": 33587200,
+      "bytes": 3072,
+      "alignment": 128,
+      "flags": 0,
+      "name": "PDS suballocation",
+      "gpu_va": 554051829760,
+      "cpu": 35651648,
+      "desc": 35654784
+    },
+    {
+      "heap": 33591296,
+      "bytes": 6144,
+      "alignment": 128,
+      "flags": 0,
+      "name": "USC suballocation",
+      "gpu_va": 566936731648,
+      "cpu": 35654912,
+      "desc": 35661120
+    },
+    {
+      "heap": 33603584,
+      "bytes": 776,
+      "alignment": 32,
+      "flags": 771,
+      "name": "DCE context switch snapshot",
+      "gpu_va": 1030793199616,
+      "cpu": 35661184,
+      "desc": 35662016
+    },
+    {
+      "heap": 33599488,
+      "bytes": 468,
+      "alignment": 32,
+      "flags": 771,
+      "name": "TA state",
+      "gpu_va": 1124073472,
+      "cpu": 35662080,
+      "desc": 35662592
+    },
+    {
+      "heap": 33587200,
+      "bytes": 1024,
+      "alignment": 128,
+      "flags": 0,
+      "name": "PDS suballocation",
+      "gpu_va": 554051833856,
+      "cpu": 35662656,
+      "desc": 35663744
+    },
+    {
+      "heap": 33587200,
+      "bytes": 1024,
+      "alignment": 128,
+      "flags": 0,
+      "name": "PDS suballocation",
+      "gpu_va": 554051837952,
+      "cpu": 35663808,
+      "desc": 35664896
+    },
+    {
+      "heap": 33599488,
+      "bytes": 16400,
+      "alignment": 32,
+      "flags": 771,
+      "name": "VDM uniform PDS state",
+      "gpu_va": 1124077568,
+      "cpu": 35664960,
+      "desc": 35681408
+    },
+    {
+      "heap": 33599488,
+      "bytes": 16400,
+      "alignment": 32,
+      "flags": 771,
+      "name": "VDM uniform PDS state",
+      "gpu_va": 1124098048,
+      "cpu": 35681472,
+      "desc": 35697920
+    },
+    {
+      "heap": 33599488,
+      "bytes": 16400,
+      "alignment": 32,
+      "flags": 771,
+      "name": "DDM uniform PDS state",
+      "gpu_va": 1124118528,
+      "cpu": 35697984,
+      "desc": 35714432
+    },
+    {
+      "heap": 33599488,
+      "bytes": 16400,
+      "alignment": 32,
+      "flags": 771,
+      "name": "DDM uniform PDS state",
+      "gpu_va": 1124139008,
+      "cpu": 35714496,
+      "desc": 35730944
+    },
+    {
+      "heap": 33599488,
+      "bytes": 8192,
+      "alignment": 128,
+      "flags": 2147484419,
+      "name": "Rasterisation context state",
+      "gpu_va": 1124159488,
+      "cpu": 35761472,
+      "desc": 35769728
+    }
+  ],
+  "tasks": [
+    {
+      "kind": 3,
+      "store": 1,
+      "pds_start": 0,
+      "pds_end": 68
+    },
+    {
+      "kind": 3,
+      "store": 0,
+      "pds_start": 68,
+      "pds_end": 128
+    },
+    {
+      "kind": 3,
+      "store": 1,
+      "pds_start": 128,
+      "pds_end": 196
+    },
+    {
+      "kind": 3,
+      "store": 0,
+      "pds_start": 196,
+      "pds_end": 256
+    },
+    {
+      "kind": 0,
+      "store": 1,
+      "pds_start": 256,
+      "pds_end": 296,
+      "usc_start": 0,
+      "usc_end": 184
+    },
+    {
+      "kind": 0,
+      "store": 0,
+      "pds_start": 296,
+      "pds_end": 344,
+      "usc_start": 184,
+      "usc_end": 360
+    },
+    {
+      "kind": 0,
+      "store": 1,
+      "pds_start": 344,
+      "pds_end": 392,
+      "usc_start": 360,
+      "usc_end": 544
+    },
+    {
+      "kind": 0,
+      "store": 0,
+      "pds_start": 392,
+      "pds_end": 440,
+      "usc_start": 544,
+      "usc_end": 720
+    },
+    {
+      "kind": 1,
+      "store": 1,
+      "pds_start": 440,
+      "pds_end": 488,
+      "usc_start": 720,
+      "usc_end": 904
+    },
+    {
+      "kind": 1,
+      "store": 0,
+      "pds_start": 488,
+      "pds_end": 536,
+      "usc_start": 904,
+      "usc_end": 1080
+    },
+    {
+      "kind": 1,
+      "store": 1,
+      "pds_start": 536,
+      "pds_end": 584,
+      "usc_start": 1080,
+      "usc_end": 1264
+    },
+    {
+      "kind": 1,
+      "store": 0,
+      "pds_start": 584,
+      "pds_end": 632,
+      "usc_start": 1264,
+      "usc_end": 1440
+    }
+  ]
+}

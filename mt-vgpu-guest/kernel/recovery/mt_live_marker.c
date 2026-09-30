@@ -7,6 +7,9 @@
 
 static bool enable;
 module_param(enable, bool, 0400);
+static u32 target_dm = 1;
+module_param(target_dm, uint, 0400);
+MODULE_PARM_DESC(target_dm, "Target Data Master queue (1=TQX, 2=3D/Universal, etc.)");
 static int result = -ENODATA;
 module_param(result, int, 0444);
 static unsigned long long sequence;
@@ -66,10 +69,14 @@ static int __init mt_live_marker_init(void)
 	ret = s->can_submit(g);
 	if (ret)
 		goto unlock_session;
+	if (target_dm < 1 || target_dm > 3) {
+		ret = -EOPNOTSUPP;
+		goto unlock_session;
+	}
 	s->ready = true;
 	/* Crucial: invoke code owned by the original module, never this helper's
 	 * inline copy, so the pending fence pins the correct module on timeout. */
-	ret = s->ops->submit(s, 1, &fence);
+	ret = s->ops->submit(s, target_dm, &fence);
 	s->ready = false;
 	if (!ret)
 		sequence = fence->seqno;
@@ -89,8 +96,8 @@ unlock_device:
 		module_put(owner);
 	pci_dev_put(pdev);
 	result = ret;
-	pr_info("mt_live_marker: dm=1 sequence=%llu result=%d workload_enabled=0\n",
-		sequence, result);
+	pr_info("mt_live_marker: dm=%u sequence=%llu result=%d workload_enabled=0\n",
+		target_dm, sequence, result);
 	return 0;
 }
 static void __exit mt_live_marker_exit(void) {}

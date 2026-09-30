@@ -69,8 +69,8 @@ static int mt_marker_submit_common(struct mt_marker_store *s, u32 dm,
 	u8 command[MT_FW_COMMAND_BYTES];
 	int ret;
 	lockdep_assert_held(s->lock);
-	if (!out || !dm || dm >= MT_FW_DM_COUNT)
-		return -EINVAL;
+	if (!out || dm < 1 || dm > 3)
+		return -EOPNOTSUPP;
 	if (!s->ready || !s->can_submit)
 		return -EHOSTDOWN;
 	if (request && (!s->work_ready || !vm || !vm->sealed))
