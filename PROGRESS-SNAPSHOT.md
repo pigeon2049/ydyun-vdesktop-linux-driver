@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：bA33（ vendor 15 项堆表 + mmap 页对齐 + 同步/PMR 收尾）
+**对应提交**：`4df1195`（bA33）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -283,7 +283,11 @@ objdump -dr ... | awk '/^[0-9a-f]+ <.*>:/ {fn=$2}
 
 ## 9. 运行态
 
-- `mt_pvr_bridge` 已加载，refcnt 0，无残留进程，dmesg 干净
+- 本轮真机验证完成后，机器发生了一次外部重启。
+  当前 `mt_pvr_bridge` **未加载**，`/dev/dri` 只有 `card0`，
+  `/tmp` 中的 UMD 与 trace 已清空；树内留档 UMD 仍在，
+  sha256 `b3058c02…` 可恢复。已验证的结果见 §1–§6，
+  重新跑 L3/L4 需要先显式批准加载新模块。
 - `mtgpu` 独占 `00:0e.0`；我们用独立 `pvr` 节点 `renderD128`
 - **不需要重启**（上一轮的自死锁已随重启清除）
 - 厂商 UMD 位置：`/tmp/mtt-linux-umd-5.2.0/root/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0`
