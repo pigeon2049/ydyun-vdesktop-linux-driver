@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：`227b6a5`（bA32）
+**对应提交**：`e3e75e8`（bA32 收尾）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
