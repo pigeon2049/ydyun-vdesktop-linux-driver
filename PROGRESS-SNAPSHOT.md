@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：`cf88a1c`（bA36，S4-1）
+**对应提交**：`7fc2958`（bA36，S4-1；含 L4 一键阶梯）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -236,20 +236,26 @@ RGXCreateRenderContext
 L4 最该做成**阶梯式**：每级一个可独立跑的用例，失败就停在那级并打印该级桥命令序列。
 现在这个信息每次都要手工解析 trace 才能拿到。
 
-### Make 流程规范化：目标接口
+### Make 流程规范化：目标接口（bA36 已落地为 `mt-vgpu-guest/Makefile`）
 
 ```
 make check          # L1+L2，默认门禁，不碰硬件
 make check-offline  # 仅 L1
 make probe          # L3（自动 insmod/rmmod，必须用 trap 保证清理）
-make umd            # L4 阶梯，逐级打印桥命令
-make kernel         # 显式外移构建
+make umd            # L4 阶梯 8 级，逐级打印，每级独立 trace
+make kernel         # 全部模块 W=1 构建，不加载
 make clean          # 含 in-tree 产物
 make help
 ```
 
 关键约束：**`make check` 绝不能加载模块或碰 PCI**；
-L3/L4 必须用 `trap` 保证 `rmmod`——这正是本轮那个 `D` 态自死锁的教训。
+L3/L4 必须用 `trap` 保证 `rmmod`——这正是 bA26 那个 `D` 态自死锁的教训。
+已验证：`make probe` / `make umd` 全绿，结束后模块已卸载。
+
+教训：make 变量展开发生在 shell 引号移除之后，
+配方里的 `'b5*+0'` 会带着引号原文到达 harness（必须不带引号）。
+所有 rung 经 `eval` 转一手，让引号被重新处理——
+render 级曾因此静默地跑错参数，修完后 8 级全绿。
 
 ---
 
