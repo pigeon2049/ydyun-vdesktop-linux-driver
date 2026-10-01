@@ -105,6 +105,7 @@ enum mt_pvr_kind {
 	MT_PVR_KIND_CONTEXT,
 	MT_PVR_KIND_RESERVATION,
 	MT_PVR_KIND_COMPUTE,
+	MT_PVR_KIND_ZSBUFFER,
 	/* A kick-sync context is a CONTEXT-shaped object but must never be
 	 * mistaken for a render context: ctx_create() reuses the first object
 	 * of its kind, so sharing the kind would alias the two.
@@ -607,6 +608,53 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 	if (ret)
 		close_fd(fence_fd);
 	return ret;
+}
+
+/* 0x82:0x2 RGXCreateZSBuffer and 0x82:0x3 RGXDestroyZSBuffer.
+ *
+ * Object lifecycle only: create mints a per-file handle for the PMR +
+ * reservation pair the UMD already allocated and mapped, destroy retires it.
+ * The UMD-side ZSBuffer object (with its mutex and mapping state) lives
+ * entirely in userspace; the bridge only tracks the kernel handle.
+ */
+static int pvr_cmd_zs_create(struct mt_pvr_file *file,
+			     struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_zs_create_in in;
+	struct mt_pvr_zs_create_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	obj = pvr_object_new(file, MT_PVR_KIND_ZSBUFFER);
+	if (!obj)
+		return -ENOMEM;
+	out.zs_buffer_km = obj->handle;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+static int pvr_cmd_zs_destroy(struct mt_pvr_file *file,
+			      struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_zs_destroy_in in;
+	struct mt_pvr_zs_destroy_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == in.zs_buffer &&
+		    obj->kind == MT_PVR_KIND_ZSBUFFER) {
+			list_del(&obj->link);
+			kfree(obj);
+			return pvr_out(cmd, &out, sizeof(out));
+		}
+	}
+	return -ENOENT;
 }
 
 /* 0x81:0x0 RGXCreateComputeContext and 0x81:0x1 RGXDestroyComputeContext.
@@ -1240,6 +1288,10 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		}
 	case MT_PVR_BRIDGE_RGXTA3D:
 		switch (function) {
+		case 0x2:			/* RGXCreateZSBuffer */
+			return pvr_cmd_zs_create(file, cmd);
+		case 0x3:			/* RGXDestroyZSBuffer */
+			return pvr_cmd_zs_destroy(file, cmd);
 		case 0x8:			/* RGXCreateRenderContext */
 			return pvr_cmd_handle_only(file, cmd,
 						    MT_PVR_KIND_CONTEXT);

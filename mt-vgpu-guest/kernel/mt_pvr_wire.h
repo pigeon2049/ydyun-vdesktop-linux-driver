@@ -161,6 +161,36 @@ struct MT_PVR_PACKED mt_pvr_compute_destroy_out {
 	u32 error;
 };
 
+/* 0x82:0x2 RGXCreateZSBuffer -- 24-byte IN, 12-byte OUT.
+ * 0x82:0x3 RGXDestroyZSBuffer -- 8-byte IN, 4-byte OUT.
+ *
+ * IN 0x82:0x2 = { hPMR, hReservation }; the driver maps the already-allocated
+ * PMR into the reservation and returns the kernel mapping handle.
+ * Pure object lifecycle, like the render/compute/kicksync contexts.
+ */
+struct MT_PVR_PACKED mt_pvr_zs_create_in {
+	u64 pmr;
+	u64 reservation;
+	/* PVRSRV_MEMALLOCFLAGS_T uiMapFlags: the 2.7.1 header declares it and
+	 * the UMD sends all 24 bytes. The requirements table only names the
+	 * two handles; the size gate below pins the full width.
+	 */
+	u64 map_flags;
+};
+
+struct MT_PVR_PACKED mt_pvr_zs_create_out {
+	u64 zs_buffer_km;
+	u32 error;
+};
+
+struct MT_PVR_PACKED mt_pvr_zs_destroy_in {
+	u64 zs_buffer;
+};
+
+struct MT_PVR_PACKED mt_pvr_zs_destroy_out {
+	u32 error;
+};
+
 /* 0x88:0x0 RGXCreateKickSyncContext -- 16-byte IN, 12-byte OUT.
  * 0x88:0x1 RGXDestroyKickSyncContext -- 8-byte IN, 4-byte OUT.
  *
@@ -477,6 +507,10 @@ static_assert(sizeof(struct mt_pvr_connect_out) == 17, "0x1:0x0 out");
 static_assert(sizeof(struct mt_pvr_handle_out) == 12, "0x1:0x2/0x1:0xf out");
 static_assert(sizeof(struct mt_pvr_event_open_in) == 8, "0x1:0x4 in");
 static_assert(sizeof(struct mt_pvr_event_open_out) == 12, "0x1:0x4 out");
+static_assert(sizeof(struct mt_pvr_zs_create_in) == 24, "0x82:0x2 in");
+static_assert(sizeof(struct mt_pvr_zs_create_out) == 12, "0x82:0x2 out");
+static_assert(sizeof(struct mt_pvr_zs_destroy_in) == 8, "0x82:0x3 in");
+static_assert(sizeof(struct mt_pvr_zs_destroy_out) == 4, "0x82:0x3 out");
 static_assert(sizeof(struct mt_pvr_compute_create_in) == 60, "0x81:0x0 in");
 static_assert(sizeof(struct mt_pvr_compute_create_out) == 12, "0x81:0x0 out");
 static_assert(sizeof(struct mt_pvr_compute_destroy_in) == 8, "0x81:0x1 in");
