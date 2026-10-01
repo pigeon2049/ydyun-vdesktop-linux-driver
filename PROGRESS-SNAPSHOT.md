@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：`7fc2958`（bA36，S4-1；含 L4 一键阶梯）
+**对应提交**：`9613257`（bA37；ZSBuffer 建销打通）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -39,6 +39,8 @@ compute/kick-sync context 只是对象生命周期管理，不涉及硬件提交
 | 7 | `RGXDestroyKickSyncContext` | **0** |
 | 8 | `RGXCreateComputeContext` | **0** |
 | 9 | `RGXDestroyComputeContext` | **0** |
+| 10 | `RGXCreateZSBuffer` | **0** |
+| 11 | `RGXDestroyZSBuffer` | void（early path，无 bridge 调用） |
 | 10 | `RGXKickSync`（经 `0x88:0x4` 提交） | **0** |
 
 约 128 条记录中无失败的桥命令和同步 ioctl，
@@ -89,6 +91,7 @@ RGXCreateRenderContext
 | 18 | `0x6:0x4` PmrUnmakeLocalImportHandle **未实现** | 同步事件收尾被拒 | bA33 |
 | 19 | `0x88:0x0/0x1` kick-sync context 创建/销毁**未实现** | CCB 返回 37 | bA34 |
 | 20 | `0x81:0x0/0x1` compute context 创建/销毁**未实现** | CCB 返回 37 | bA35 |
+| 21 | `0x82:0x2/0x3` ZSBuffer 建销 handler **未实现**；配方中 heap/连接参数顺序勘误 | 两次用户态段错误（传反了） | bA37 |
 | 21 | `0x88:0x2/0x3/0x4` 提交入口**未实现** | kick 返回 37 | bA36 |
 
 第 8 项值得单独强调：**`double free` 只是三层之外的表象**。

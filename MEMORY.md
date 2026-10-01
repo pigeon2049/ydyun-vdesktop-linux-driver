@@ -4,8 +4,37 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA36 S4-1：**提交路径真实执行**——`RGXKickSync → 0`，`0x88:0x4` 被接受）
+最后更新：2026-10-01（bA37：**ZSBuffer 建销打通**——配方勘误 + `0x82:0x2/0x3` handler）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（bA37：ZSBuffer 建销打通）
+
+```text
+RGXCreateZSBuffer(...) -> 0
+RGXDestroyZSBuffer(...) -> void（early path，无 bridge 调用）
+```
+
+58–80 条记录零失败。create 只用已实现命令；destroy 走 early path。
+
+### 配方勘误（值两次段错误）
+
+`RGXCreateZSBuffer(hHeap, psDevConnection, ...)`：
+param_1 是 heap，**param_2 是连接**。MIW 签名是
+`(psDevConnection, heap, ...)`，我一开始把两者传反，
+伪造 buffer 被当成连接，一路崩进 libc 字符串函数。
+
+bA35 的 MemHeap 描述符理论是错的：MIW 里根本没有名字表 snprintf，
+那段代码在 `FUN_001b9700`（render context 路径）里。
+且 `RGXCreateZSBuffer` 在 UMD 内**零调用者**——它是给应用调的公共 API，
+参数直接来自调用方，无处可抄，只能按 MIW 签名推。
+
+### 门禁
+
+- 线尺寸门禁在第一次构建就抓到 `0x82:0x2` IN 缺 `uiMapFlags`（表里只列两个 handle，
+  头文件声明 24 字节）——门禁按设计工作。
+- 163 Python（1 跳过）、268 C RAM、`W=1`、ABI 门、探针全绿，dmesg 干净。
 
 ---
 
