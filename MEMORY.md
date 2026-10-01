@@ -4,12 +4,34 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA34：**kick-sync context 建销打通**——链路延伸到第六个符号）
+最后更新：2026-10-01（bA35：**compute context 建销打通**——链路延伸到第八个符号）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA34：六个符号全部返回 0）
+## 本次会话进展（bA35：八个符号全部返回 0）
+
+新增：
+
+```text
+RGXCreateComputeContext(...) -> 0
+RGXDestroyComputeContext(...) -> 0
+```
+
+123 条记录零失败。`0x81:0x0`（in=60/out=12）/ `0x81:0x1`（in=8/out=4）
+独立 `MT_PVR_KIND_COMPUTE` kind；`0x81:0x5` 等提交入口故意保持 `-ENOTTY`。
+
+compute 配方（照 render 配方的思路，一次成功）：
+`buf 15 64`，+32 deadline 非零，+16/+48 取 `b5*` 系的值，其余置零。
+
+ZSBuffer 尝试记录（未打通）：13 参数中 param_1 可用
+`MTSRVFindHeapByName(b5*, name, out)` 拿到（该调用本身返回 0），
+但 param_3 要的 psDevMemCtx 不是 `b5` 系 buffer 能冒充的——
+`b5*` 和 `b5*+8` 都在发任何 bridge 之前段错误。
+结论：ZSBuffer/freelist/HWRT 这一串需要先解决“真正的 psDevMemCtx 指针
+从哪里来”，而不是继续猜参数。
+
+## 上次会话进展（bA34：六个符号全部返回 0）
 
 真机配方一次走完：
 
