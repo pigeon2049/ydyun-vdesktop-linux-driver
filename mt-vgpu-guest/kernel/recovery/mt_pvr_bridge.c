@@ -99,6 +99,13 @@ struct mt_pvr_pmr {
 	void *host;		/* system memory until page tables exist */
 	u32 log2_page_size;
 	u32 mapped;
+	/*
+	 * Live references. The PMR's own presence on file->pmrs counts as one,
+	 * so a freshly created PMR starts at 1 and only the list owner can free
+	 * it. Anything that uses the pointer outside file->lock must take its own
+	 * reference first -- see pvr_mmap(), which is the only such path today.
+	 */
+	u32 refcount;
 };
 
 struct mt_pvr_object {
@@ -124,16 +131,26 @@ struct mt_pvr_file {
 static struct drm_device *pvr_drm;
 static bool pvr_ready;
 
+/* Declared here because pvr_file_release() below drops the PMRs' list
+ * references, which are handed back through this.
+ */
+static void pvr_pmr_unref(struct mt_pvr_pmr *pmr);
+static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle);
+
 static void pvr_file_release(struct kref *kref)
 {
 	struct mt_pvr_file *file = container_of(kref, struct mt_pvr_file, ref);
 	struct mt_pvr_pmr *pmr, *tmp;
 	struct mt_pvr_object *obj, *otmp;
 
+	/* Drop the list's reference rather than freeing outright, so the
+	 * refcount path stays uniform. Nothing can be holding another reference
+	 * here: an in-flight mmap pins the file through filp, so this callback
+	 * cannot run while one exists.
+	 */
 	list_for_each_entry_safe(pmr, tmp, &file->pmrs, link) {
 		list_del(&pmr->link);
-		vfree(pmr->host);
-		kfree(pmr);
+		pvr_pmr_unref(pmr);
 	}
 	list_for_each_entry_safe(obj, otmp, &file->objects, link) {
 		list_del(&obj->link);
@@ -247,8 +264,26 @@ static struct mt_pvr_pmr *pvr_pmr_new(struct mt_pvr_file *file, u64 bytes,
 	}
 	pmr->bytes = bytes;
 	pmr->log2_page_size = log2_page_size;
+	pmr->refcount = 1;	/* held by the list itself */
 	list_add_tail(&pmr->link, &file->pmrs);
 	return pmr;
+}
+
+/* Drop one reference and free when the last one goes.
+ *
+ * Must be called without file->lock held for the free path, and the caller
+ * must own a reference. pvr_pmr_put() below is the list-owner side and must be
+ * called *with* file->lock held.
+ */
+static void pvr_pmr_unref(struct mt_pvr_pmr *pmr)
+{
+	if (!pmr)
+		return;
+	WARN_ON_ONCE(pmr->refcount == 0);
+	if (--pmr->refcount)
+		return;
+	vfree(pmr->host);
+	kfree(pmr);
 }
 
 static struct mt_pvr_object *pvr_object_new(struct mt_pvr_file *file, u32 kind)
@@ -379,6 +414,62 @@ static int pvr_cmd_heap_count(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* 0x6:0x7 MM:PmrUnrefPmr -- hand a PMR back.
+ *
+ * This was sharing a case with DevmemIntHeapDestroy, which searches for
+ * MT_PVR_KIND_HEAP objects only. A PMR is not a heap, so the lookup always
+ * missed and the driver answered -ENOENT to a perfectly valid unref.
+ */
+static int pvr_cmd_pmr_unref(struct mt_pvr_file *file,
+			     struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_hwperf_release_in in;
+	struct mt_pvr_hwperf_release_out out = { 0 };
+	int ret;
+
+	/* Same shape as MUSAReleaseHWPerfSettings: a single widened handle. */
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	ret = pvr_pmr_put(file, in.pmr);
+	if (ret)
+		return ret;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* 0x6:0x10 MM:DevmemIntCtxDestroy -- release the device-memory context.
+ *
+ * This was also sharing a case with DevmemIntHeapDestroy, so it looked for
+ * MT_PVR_KIND_HEAP and returned -ENOENT for the MT_PVR_KIND_CONTEXT that
+ * DevmemIntCtxCreate had just published. The UMD reads that -ENOENT as a
+ * failed teardown and walks its own cleanup path twice.
+ *
+ * Like pvr_cmd_heap_destroy(), this runs inside pvr_bridge_dispatch() and must
+ * not take file->lock again.
+ */
+static int pvr_cmd_ctx_destroy(struct mt_pvr_file *file,
+			       struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_heap_destroy_in in;
+	struct mt_pvr_heap_destroy_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	/* Both handles are a single widened MT_HANDLE on the wire. */
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == in.devmem_heap &&
+		    obj->kind == MT_PVR_KIND_CONTEXT) {
+			list_del(&obj->link);
+			kfree(obj);
+			return pvr_out(cmd, &out, sizeof(out));
+		}
+	}
+	return -ENOENT;
+}
+
 /* 0x6:0x12 MM:DevmemIntHeapDestroy -- release the object Create handed out.
  *
  * This was an empty stub. The UMD therefore never saw its heap go away and
@@ -461,7 +552,25 @@ static int pvr_cmd_heap_details(struct mt_pvr_file *file,
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	index = in.heap_config_index;
+	/* Index the table by ui32HeapIndex, NOT ui32HeapConfigIndex.
+	 *
+	 * Measured against the real 5.2 UMD (11 consecutive calls):
+	 *
+	 *   cfg_index=0 heap_index=0
+	 *   cfg_index=0 heap_index=1
+	 *   ...
+	 *   cfg_index=0 heap_index=10
+	 *
+	 * ui32HeapConfigIndex selects a *heap configuration*; there is only one,
+	 * so it is always zero. ui32HeapIndex is the entry within it. Reading
+	 * the config index made every call describe heap 0, so the UMD cached
+	 * eleven copies of the same name and base and its own
+	 * MTSRVFindHeapByName("PDS Code and Data") could never match. It then
+	 * bailed out of RGXCreateDeviceMemContext and ran its error-cleanup
+	 * path, which is where "double free or corruption" came from -- the
+	 * double free was a symptom three layers downstream.
+	 */
+	index = in.heap_index;
 	if (index >= file->heaps.count)
 		return -EINVAL;
 	entry = &file->heaps.entries[index];
@@ -481,7 +590,6 @@ static int pvr_cmd_ctx_create(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 {
 	struct mt_pvr_ctx_create_out out = { 0 };
 	struct mt_pvr_object *ctx;
-	u32 i;
 
 	/* The driver refcounts contexts per connection, so a second create must
 	 * return the same object rather than a new one.
@@ -491,10 +599,14 @@ static int pvr_cmd_ctx_create(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 		ctx = pvr_object_new(file, MT_PVR_KIND_CONTEXT);
 		if (!ctx)
 			return -ENOMEM;
-		for (i = 0; i < file->heaps.count; i++) {
-			if (!pvr_object_new(file, MT_PVR_KIND_HEAP))
-				return -ENOMEM;
-		}
+		/* Heaps are NOT pre-created here. The UMD creates each one
+		 * explicitly with DevmemIntHeapCreate (0x6:0x11), which returns
+		 * the handle it is later given back in DevmemIntHeapDestroy
+		 * (0x6:0x12). Minting a heap object per config entry produced
+		 * eleven handles the UMD never saw, so the eleven destroys
+		 * could not match them and the mismatch surfaced as a userspace
+		 * double free.
+		 */
 		file->conn->devmem_ctx = ctx->handle;
 		file->conn->devmem_refs++;
 	}
@@ -633,6 +745,15 @@ static int pvr_cmd_handle_only(struct mt_pvr_file *file,
 /* Drop a PMR from the file's table and free it. Returns -ENOENT if the handle
  * is unknown, so a double release is visible instead of silently accepted.
  */
+/* Release the PMR's own list reference.
+ *
+ * The PMR may still be alive if something took a reference of its own -- most
+ * importantly an in-flight mmap(), which has to keep using pmr->host after
+ * dropping file->lock. Only unlinking is unconditional; the memory goes away
+ * once the last user is done with it.
+ *
+ * Called with file->lock held (from pvr_bridge_dispatch()).
+ */
 static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle)
 {
 	struct mt_pvr_pmr *pmr;
@@ -641,8 +762,7 @@ static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle)
 	if (!pmr)
 		return -ENOENT;
 	list_del(&pmr->link);
-	vfree(pmr->host);
-	kfree(pmr);
+	pvr_pmr_unref(pmr);
 	return 0;
 }
 
@@ -760,7 +880,9 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case 0x6:			/* PmrLocalImportPmr */
 			return pvr_cmd_pmr_import(file, cmd);
 		case 0x7:			/* PmrUnrefPmr */
+			return pvr_cmd_pmr_unref(file, cmd);
 		case 0x10:			/* DevmemIntCtxDestroy */
+			return pvr_cmd_ctx_destroy(file, cmd);
 		case 0x12:			/* DevmemIntHeapDestroy */
 			return pvr_cmd_heap_destroy(file, cmd);
 		case 0x9:			/* PhysMemNewRamBackedPmr */
@@ -881,6 +1003,7 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 	struct mt_pvr_pmr *pmr;
 	u64 handle, offset;
 	unsigned long length;
+	int ret;
 
 	if (!file)
 		return -ENODEV;
@@ -893,14 +1016,31 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 	}
 	if (length > MT_PVR_MAX_MAP_BYTES)
 		return -EINVAL;
+	/* Take a reference while still under the lock, and give it up at the end.
+	 *
+	 * pvr_pmr_put() runs from a bridge command on this same fd and frees the
+	 * PMR, so between dropping file->lock and finishing the mapping the
+	 * pointer would otherwise be dangling. It is a live use-after-free: the
+	 * reads below can touch freed memory, and vmalloc_to_page() on a stale
+	 * host pointer feeds an arbitrary PFN to remap_pfn_range().
+	 *
+	 * No re-locking here. pvr_bridge_dispatch() holds file->lock for the
+	 * whole call, so taking it again self-deadlocks on a plain mutex.
+	 */
 	mutex_lock(&file->lock);
 	pmr = pvr_pmr_find(file, handle);
+	if (pmr)
+		pmr->refcount++;
 	mutex_unlock(&file->lock);
 	if (!pmr) {
 		pr_info("mt_pvr_bridge: mmap no PMR for handle 0x%llx\n",
 			handle);
 		return -ENOENT;
 	}
+	/* From here on every exit has to drop the reference, so the checks below
+	 * set ret and share one exit rather than returning directly.
+	 */
+	ret = 0;
 	/* `offset` is the mapping's offset *into* the PMR, and remap_vmalloc_range
 	 * maps from the start of `host`, so the bound is the requested length
 	 * against the PMR size. Adding the offset here (as an earlier version
@@ -910,14 +1050,16 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 	if (length > pmr->bytes) {
 		pr_info("mt_pvr_bridge: mmap len %lu > pmr bytes %llu\n",
 			length, pmr->bytes);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out;
 	}
 	/* Refuse a partial page: a short mapping would expose bytes outside
 	 * the PMR.
 	 */
 	if (length & ~PAGE_MASK) {
 		pr_info("mt_pvr_bridge: mmap unaligned length %lu\n", length);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out;
 	}
 	/* remap_vmalloc_range() cannot be used here: it requires the whole
 	 * vmalloc area to match, and vzalloc() appends a guard page when the
@@ -953,7 +1095,6 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 		unsigned long pages = length >> PAGE_SHIFT;
 		unsigned long i;
 		struct page *page;
-		int ret = 0;
 
 		if (!pages) {
 			ret = -EINVAL;
@@ -975,9 +1116,15 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 			if (ret)
 				break;
 		}
-out:
-		return ret;
 	}
+out:
+	/* The mapping is built page by page out of pmr->host, so the PMR has to
+	 * outlive this call even though nothing references it afterwards. Give
+	 * the reference back; the memory is released here unless an mmap of this
+	 * handle is still in flight on another thread.
+	 */
+	pvr_pmr_unref(pmr);
+	return ret;
 }
 
 /* DRM 6.12 refuses to open a node whose file operations do not declare

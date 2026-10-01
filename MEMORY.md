@@ -1,11 +1,117 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA25：堆表结构错位修复，UMD 走完整个堆表；新墙在用户态 double free）
+最后更新：2026-10-01（bA27：**double free 根因找到并修复**——HeapCfgHeapDetails 用错索引字段，UMD 不再崩溃）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA25：两个 MM 命令结构错位；UMD 现在遍历完整堆表）
+## 本次会话进展（bA27：UMD 不再崩溃；RGXCreateDeviceMemContext 首次正常返回）
+
+**`RGXCreateDeviceMemContext` 从「abort + double free」变成「正常返回 82」，进程 exit=0。**
+这是本项目第一次让真实 UMD 在设备内存上下文这步**走完并正常返回**。
+
+### 1. 根因：`0x6:0x20` HeapCfgHeapDetails 索引字段用错
+
+厂商结构里有两个索引：`ui32HeapConfigIndex`（选**堆配置**）和 `ui32HeapIndex`（配置内的条目）。
+**实测真实 5.2 UMD 连续 11 次调用，全部是 `cfg_index=0`、只有 `heap_index` 在 0→10 递增。**
+（只有一个堆配置，所以 config index 恒为 0。）
+
+我们一直读 `heap_config_index` ⇒ **11 次调用全部返回 heap 0** ⇒
+UMD 缓存到的是**11 份一模一样的名字和 base**（都是 "General"）⇒
+它自己的 `MTSRVFindHeapByName("PDS Code and Data")` 永远匹配不上
+⇒ `RGXCreateDeviceMemContext` 中途放弃 ⇒ 走**错误清理路径** ⇒ 用户态 `double free`。
+
+**double free 只是三层之外的表象。** 之前 bA26 以为是 `0x6:0x12` 空桩导致，
+纯属误判：改成真实现后崩溃**依旧**。真正的错误码在这条链路上一个都没暴露
+（所有桥命令 ret 都是 0），所以靠 trace 看不出来。
+
+定位手段：加一行 `pr_info` 打印 UMD 实际传的 `cfg_index`/`heap_index`，
+一眼看出它 11 次都传 cfg_index=0。
+
+### 2. 顺带修掉的两个真 bug
+
+| 命令 | 原状 | 后果 |
+|---|---|---|
+| `0x6:0x10` DevmemIntCtxDestroy | 与 `0x6:0x12` **共用 fallthrough**，只找 `KIND_HEAP` | ctx 是 `KIND_CONTEXT`，查不到 ⇒ 返回 **-2 (ENOENT)** |
+| `0x6:0x7` PmrUnrefPmr | 同上，共用 heap-destroy handler | PMR 不是 heap ⇒ 永远 -ENOENT |
+
+### 3. 顺带修掉的 `ctx_create` 脏逻辑
+
+`pvr_cmd_ctx_create` 里原来会**预分配 11 个 `KIND_HEAP` 对象**，但这些 handle
+UMD 从来没见过、也永远不会还回来（UMD 自己用 `0x6:0x11` 逐个创建）。
+已删除。堆只能由 `DevmemIntHeapCreate` 产生。
+
+### 4. `pvr_mmap` 的 use-after-free（bA26 审计时发现）
+
+`pvr_mmap` 在 `mutex_unlock` 之后仍读 `pmr->bytes` / `pmr->host`，
+而 `pvr_pmr_put()`（由 `0x86:0x5` MUSAReleaseHWPerfSettings 调用）
+会 `vfree + kfree` 同一个 PMR —— **同一 fd、同一 handle 空间**。
+
+窗口：线程 A 在 mmap 里已解锁，线程 B 发 `0x86:0x5` 释放，A 继续解引用野指针。
+`vmalloc_to_page()` 拿到任意值 → `page_to_pfn` → `remap_pfn_range` 映射进用户态
+（理论上是本地提权面）。
+
+已改为**引用计数**：`mt_pvr_pmr.refcount`，`pvr_pmr_new()` 起始为 1（链表自己持有），
+`pvr_mmap` 在锁内 `++`、单一出口 `out:` 处 `pvr_pmr_unref()`，
+`pvr_pmr_put` 只 `list_del` 后委托释放。`pvr_pmr_unref` 减到 0 才真 `vfree+kfree`。
+
+**没有采用**「把检查移进锁内」的轻量方案：它只把窗口从「读 2 个字段」缩到
+「不再解引用 pmr」，看起来像修好了其实没有。
+
+### 5. 我自己犯的两个无效验证（本轮教训）
+
+**都是「什么都没匹配上」被当成阴性结论：**
+
+1. `strings mt_pvr_bridge.ko | grep "self-deadlock"` 返回 0 ⇒ 我当成「修复已编入」。
+   **注释永远不会出现在二进制里**，这条检查什么都不能证明。
+2. `objdump | awk '/<pvr_cmd_heap_destroy>:/'` 返回 0 个 mutex 调用 ⇒ 我当成「没有锁」。
+   实际是 `pvr_cmd_heap_destroy` **被编译器内联了，根本不是符号**，匹配不到而已。
+
+**两个 0 长得一样，含义完全不同。** 正确做法：内核构建的 `mutex_lock` 是 PLT 调用，
+得读**重定位表**并归属到函数：
+```
+objdump -dr ... | awk '/^[0-9a-f]+ <.*>:/ {fn=$2} /R_X86_64_PLT32\tmutex_lock/ {print fn}'
+```
+这样得到 4 处 lock 全部在顶层入口函数、零嵌套，才是有效证据。
+
+另外：`modinfo` 命令**本机根本没装**，之前那条空输出让我一度以为 vermagic 不匹配。
+实际要用 `objcopy -O binary --only-section=.modinfo` 读段。
+
+### 6. 新的墙：错误 82 = `MTSRV_ERROR_DEVICEMEM_UNABLE_TO_CREATE_ARENA`
+
+- 所有 50 条桥命令 **ret 全为 0**，UMD 却仍返回 82 ⇒ **这个错误不是驱动返回的**，
+  是 UMD 本地产生的。
+- decompiled L69928-69931：`FUN_0019da20(...)`（arena 插入）返回 0 ⇒ `iVar4 = 0x52`。
+- 现在 UMD 只遍历**它需要的 5 个堆**（原来是 11 个），说明**名字查找已经对了**。
+- 下一步：查 `FUN_0019da20`（及回调 `FUN_00194560`/`FUN_00194280`）为何返回 0。
+
+### 7. 门禁
+
+新增 **14 项**（`test_pvr_pmr_lifetime.py` 9 项 + `test_pvr_heap_index_field.py` 5 项），
+**两项门禁都做了反向验证**（注入 bug 确认能被抓到，再还原）：
+
+- 还原成未修复版 → 抓 4 项 + 1 error
+- 注入 mmap 二次加锁 → 抓 `test_mmap_does_not_relock`
+- 改回 `heap_config_index` → 抓 `test_lookup_uses_heap_index_not_config_index`
+
+`test_pvr_pmr_lifetime` 自己第一版有 **2 个假失败**（注释被当代码数、`if (!pmr)` 守卫内的
+`return -ENOENT` 被误判），已加 `strip_comments()` 并改成**验证守卫存在**而非猜测。
+
+**137 项 Python 全绿**（123 → 137）、170 RAM、`W=1`、ABI 门、探针全绿、
+dmesg 零 WARN/oops。真实 UMD trace 存 `reports/s1/umd-devmemctx-no-crash-trace.jsonl`。
+
+### 8. 一条运维提醒
+
+`/tmp` 重启后被清空，UMD（`/tmp/mtt-linux-umd-5.2.0/.../libsrv_um_MUSA.so.1.0.0`）丢失。
+从树内留档 `build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/` 恢复，
+**build-id `429e03c4...` 与原文件逐字一致**，sha256 `b3058c02...`。
+这类易失路径以后应优先从树内留档取。
+
+---
+
+## 上次会话进展（bA25/bA26：堆表结构错位 + heap destroy 自死锁）
+
+### bA26 的两个 bug
 
 接 bA24。`RGXCreateDeviceMemContext` 从 **11 → 37**，并推进到**用户态崩溃**（无 oops）。
 

@@ -175,7 +175,14 @@ int main(int argc, char **argv)
 	memset(&heap_in, 0, sizeof(heap_in));
 	memset(&heap_out, 0, sizeof(heap_out));
 	heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
+	/* ui32HeapConfigIndex selects a heap *configuration* and is always 0
+	 * for the single config this driver publishes; ui32HeapIndex is the
+	 * entry within it. The real UMD sends cfg_index=0 with heap_index
+	 * counting 0..10, so the probe must do the same or it stops
+	 * representing what the UMD does.
+	 */
 	heap_in.heap_config_index = 0;
+	heap_in.heap_index = 0;
 	heap_in.heap_name_buf_size = sizeof(name_buffer);
 	memset(name_buffer, 0, sizeof(name_buffer));
 	step("0x6:0x20 HeapCfgHeapDetails[0]",
@@ -197,7 +204,8 @@ int main(int argc, char **argv)
 	memset(&heap_in, 0, sizeof(heap_in));
 	heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
 	heap_in.heap_name_buf_size = sizeof(name_buffer);
-	heap_in.heap_config_index = 8;
+	heap_in.heap_config_index = 0;
+	heap_in.heap_index = 8;
 	memset(name_buffer, 0, sizeof(name_buffer));
 	step("0x6:0x20 HeapCfgHeapDetails[8]",
 	     bridge(fd, 0x6, 0x20, &heap_in, sizeof(heap_in), &heap_out,
@@ -214,7 +222,8 @@ int main(int argc, char **argv)
 	memset(&heap_in, 0, sizeof(heap_in));
 	heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
 	heap_in.heap_name_buf_size = sizeof(name_buffer);
-	heap_in.heap_config_index = 1;
+	heap_in.heap_config_index = 0;
+	heap_in.heap_index = 1;
 	memset(name_buffer, 0, sizeof(name_buffer));
 	step("0x6:0x20 HeapCfgHeapDetails[1] unnamed",
 	     bridge(fd, 0x6, 0x20, &heap_in, sizeof(heap_in), &heap_out,
@@ -229,7 +238,8 @@ int main(int argc, char **argv)
 	memset(&heap_in, 0, sizeof(heap_in));
 	heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
 	heap_in.heap_name_buf_size = sizeof(name_buffer);
-	heap_in.heap_config_index = 0xffff;
+	heap_in.heap_config_index = 0;
+	heap_in.heap_index = 0xffff;
 	memset(name_buffer, 0, sizeof(name_buffer));
 	step_expecting("0x6:0x20 out of range",
 		       bridge(fd, 0x6, 0x20, &heap_in, sizeof(heap_in),
