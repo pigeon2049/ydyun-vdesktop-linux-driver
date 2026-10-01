@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：`9613257`（bA37；ZSBuffer 建销打通）
+**对应提交**：S4-2（真实硬件执行；见 MEMORY.md 本轮记录）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -147,7 +147,12 @@ RGXCreateRenderContext
 
 ## 5. 下一步
 
-1. **S4-1 已完成**：提交路径已真实执行——`RGXKickSync` 返回 0，
+1. **S4-2 已完成**：固件真实执行了命令——空命令 fence 完成
+   （`sequence=1 result=0`）+ 256 字节 TQX 复制读回校验通过
+   （`verified=1`）。链路：解绑 mtgpu → cold-disconnect 置 Guest OFF →
+   probe ladder → live_service → marker/tqx。显示全程存活（QXL）。
+   回滚：rmmod 自研模块 → bind 回 mtgpu 即可。
+2. **S4-1 已完成**：提交路径已真实执行——`RGXKickSync` 返回 0，
    `0x88:0x4`（in=84/out=8）被驱动接受并返回即时完成的 fence。
    纠正一条此前的测绘结论：真正的 TA 提交点是 `0x88:0x4`
   （`BridgeRGXKickTA3D3Submit` → `RGXKICKSYNC3`），不是 `0x82:0x14`

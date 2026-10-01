@@ -4,8 +4,55 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA37：**ZSBuffer 建销打通**——配方勘误 + `0x82:0x2/0x3` handler）
+最后更新：2026-10-01（S4-2：**真实硬件执行**——fence 完成 + TQX 复制校验通过）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（S4-2：固件真实执行了命令）
+
+用户授权不问直推（含 S4）。显示走 QXL（00:02.0 card0），与 mtgpu 无关，
+mtgpu 引用数为 0——解绑不影响桌面，实测全程 kwin 存活。
+
+### 操作链（全部可回滚，每步先验后动）
+
+1. **解绑 mtgpu**：`echo 0000:00:0e.0 > .../mtgpu/unbind`。
+   设备变 driverless，mtgpu 模块保留已加载（可直接 bind 回滚）。
+2. **`mt_guest_probe` 首次绑定失败 `-EBUSY`**：原因不是 PCI COMMAND
+   （读出 `0x0003`，MEMORY 置位、MASTER 已清，符合要求），
+   而是 `query_info` 路径要求 `regs+0x890==0 && +0x898==1`，
+   设备实际是 Guest=2（mtgpu 遗留活会话）。
+3. **cold-disconnect helper**（`mt_cold_disconnect.ko`）：
+   先无 `finish` check-only：rings 全 idle、started=0、FW=1；
+   再 `finish=1` 写 Guest OFF。结果 `guest=0 firmware=1`，显示存活。
+4. **分级走 probe ladder**（每级先验 dmesg 再下一步）：
+   - `enable_probe=1` → 绑定成功，无状态寄存器读写；
+   - `+query_info=1` → `magic=aa557491 version=2 osid=1`；
+   - `+probe_rpc=1` → round-trip `result=0 mode=1`；
+   - `+reserve_memory +prepare_resources +load_firmware`
+     → reservation 0，CPU staging 1105712 字节，固件仅入 CPU 内存；
+   - `+trial_connect=1` → connect=0 disconnect=0，固件通道通；
+   - `+runtime_context=1` → `Guest=2/FW=2/started=1`，published+retained。
+5. **`mt_live_service` 首次加载失败 `-EBUSY`**：它要求
+   `PCI_COMMAND & INTX_DISABLE`，而读出是 `0x0007`。
+   树内无代码置该位；模型是“卡住的电平中断会冲掉共用 IRQ10”，
+   置位是保护性、可逆的标准 PCI 配置写。
+   `setpci COMMAND.w=0400:0400` → 回读 `0407` → 加载成功
+   （`initial replies=0 shared_status=0`）。
+6. **真实执行**：
+   - `mt_live_marker.ko enable=1 target_dm=1` →
+     `dm=1 sequence=1 result=0`（空命令 fence 完成）；
+   - `mt_live_tqx.ko enable=1` → `prepared=1 submitted=1
+     sequence=2 result=0 verified=1`（256 字节 TQX 显存复制，
+     读回校验通过，retained=1）。
+
+### 教训
+
+- `-EBUSY` 有两处不同含义，先读源码再动手：
+  probe 的是“设备状态不符合阶段预期”，service 的是“缺保护位”。
+  前者靠 cold-disconnect 消状态，后者靠 setpci 置位——搞反任何一个都走不通。
+- sysfs `resource0` 直接读 MMIO 会失败（权限/语义），不要用它猜寄存器；
+  用驱动自己的 dmesg + sysfs 状态节点才是正路。
 
 ---
 
