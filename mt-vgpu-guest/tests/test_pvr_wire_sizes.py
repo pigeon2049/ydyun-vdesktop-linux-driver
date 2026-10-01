@@ -68,6 +68,12 @@ MAPPING = {
     # treated that as fatal (bA28).
     "mt_pvr_oom_stats_in": (0x6, 0x27),
     "mt_pvr_oom_stats_out": (0x6, 0x27),
+    # 0x6:0x14 / 0x6:0x16 were -ENOTTY; the UMD issues one of each per
+    # mapping it drops, and the first refusal surfaced as error 38
+    # MTSRV_ERROR_IOCTL_CALL_FAILED (bA30).
+    "mt_pvr_unmap_pmr_in": (0x6, 0x14),
+    "mt_pvr_unmap_out": (0x6, 0x14),
+    "mt_pvr_unreserve_in": (0x6, 0x16),
     "mt_pvr_heap_destroy_in": (0x6, 0x12),
     "mt_pvr_heap_destroy_out": (0x6, 0x12),
 }
@@ -88,6 +94,8 @@ DIRECTION = {
     "mt_pvr_hwperf_release_in": "in", "mt_pvr_hwperf_release_out": "out",
     "mt_pvr_heap_count_out": "out",
     "mt_pvr_heap_create_in": "in", "mt_pvr_heap_create_out": "out",
+    "mt_pvr_unmap_pmr_in": "in", "mt_pvr_unmap_out": "out",
+    "mt_pvr_unreserve_in": "in",
     "mt_pvr_heap_destroy_in": "in", "mt_pvr_heap_destroy_out": "out",
     "mt_pvr_oom_stats_in": "in", "mt_pvr_oom_stats_out": "out",
 }

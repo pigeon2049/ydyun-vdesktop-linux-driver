@@ -516,6 +516,41 @@ static int pvr_cmd_heap_destroy(struct mt_pvr_file *file,
 	return -ENOENT;
 }
 
+/* 0x6:0x14 MM:DevmemIntUnmapPMR and 0x6:0x16 MM:DevmemIntUnreserveRange.
+ *
+ * The teardown counterparts of 0x6:0x13 and 0x6:0x15. Both take a single
+ * widened handle and expect only eError back.
+ *
+ * They were falling through to -ENOTTY. The UMD issues one of each per mapping
+ * it drops, so during RGXCreateRenderContext this was refused eight times over
+ * and the first refusal came back as 38 = MTSRV_ERROR_IOCTL_CALL_FAILED.
+ */
+static int pvr_cmd_unmap_pmr(struct mt_pvr_file *file,
+			     struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_unmap_pmr_in in;
+	struct mt_pvr_unmap_out out = { 0 };
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+static int pvr_cmd_unreserve_range(struct mt_pvr_file *file,
+				   struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_unreserve_in in;
+	struct mt_pvr_unmap_out out = { 0 };
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
 /* 0x6:0x27 MM:MTGPUUpdateOOMStats.
  *
  * Out-of-memory accounting only: the UMD reports a pid and a stat type, and
@@ -773,6 +808,33 @@ static int pvr_cmd_handle_only(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* Hand a handle back: the teardown counterpart of pvr_cmd_handle_only().
+ *
+ * Called with file->lock already held by pvr_bridge_dispatch(), so it must not
+ * take it again.
+ */
+static int pvr_cmd_handle_release(struct mt_pvr_file *file,
+				  struct mt_pvr_cmd *cmd, u32 kind)
+{
+	struct mt_pvr_heap_destroy_in in;
+	struct mt_pvr_unmap_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	/* A single widened MT_HANDLE, as in the 5.2 destroy structs. */
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == in.devmem_heap && obj->kind == kind) {
+			list_del(&obj->link);
+			kfree(obj);
+			return pvr_out(cmd, &out, sizeof(out));
+		}
+	}
+	return -ENOENT;
+}
+
 /* Drop a PMR from the file's table and free it. Returns -ENOENT if the handle
  * is unknown, so a double release is visible instead of silently accepted.
  */
@@ -924,8 +986,12 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_cmd_heap_create(file, cmd);
 		case 0x13:			/* DevmemIntMapPmr */
 			return pvr_cmd_pmr_map(file, cmd);
+		case 0x14:			/* DevmemIntUnmapPMR */
+			return pvr_cmd_unmap_pmr(file, cmd);
 		case 0x15:			/* DevmemIntReserveRange */
 			return pvr_cmd_pmr_reserve(file, cmd);
+		case 0x16:			/* DevmemIntUnreserveRange */
+			return pvr_cmd_unreserve_range(file, cmd);
 		case 0x1e:			/* HeapCfgHeapCount */
 			return pvr_cmd_heap_count(file, cmd);
 		case 0x20:			/* HeapCfgHeapDetails */
@@ -936,13 +1002,20 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return -ENOTTY;
 		}
 	case MT_PVR_BRIDGE_RGXTA3D:
-		/* RGXCreateRenderContext: the driver allocates a dozen PMRs
-		 * around this call and only needs a nonzero context back.
-		 */
-		if (function == 0x8)
+		switch (function) {
+		case 0x8:			/* RGXCreateRenderContext */
 			return pvr_cmd_handle_only(file, cmd,
 						    MT_PVR_KIND_CONTEXT);
-		return -ENOTTY;
+		case 0x9:			/* RGXDestroyRenderContext */
+			/* The UMD always tears the context down, even when
+			 * creation itself failed partway, so refusing this
+			 * with -ENOTTY leaves the teardown incomplete.
+			 */
+			return pvr_cmd_handle_release(file, cmd,
+						      MT_PVR_KIND_CONTEXT);
+		default:
+			return -ENOTTY;
+		}
 	case MT_PVR_BRIDGE_RGXHWPERF:
 		switch (function) {
 		case 0x4:		/* MUSA:MUSAAcquireHWPerfSettings */

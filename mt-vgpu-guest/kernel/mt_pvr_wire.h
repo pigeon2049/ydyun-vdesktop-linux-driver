@@ -141,6 +141,28 @@ struct MT_PVR_PACKED mt_pvr_heap_count_out {
 	u32 num_heaps;
 };
 
+/* 0x6:0x14 MM:DevmemIntUnmapPMR -- 8-byte IN, 4-byte OUT.
+ * 0x6:0x16 MM:DevmemIntUnreserveRange -- 8-byte IN, 4-byte OUT.
+ *
+ * Both are a single widened handle, matching their Create counterparts
+ * (0x6:0x13 DevmemIntMapPMR and 0x6:0x15 DevmemIntReserveRange).
+ *
+ * Both were refused with -ENOTTY, and the UMD issues one of each per mapping
+ * it drops. During RGXCreateRenderContext that happened eight times over, and
+ * the first refusal surfaced as 38 = MTSRV_ERROR_IOCTL_CALL_FAILED.
+ */
+struct MT_PVR_PACKED mt_pvr_unmap_pmr_in {
+	u64 mapping;
+};
+
+struct MT_PVR_PACKED mt_pvr_unreserve_in {
+	u64 reservation;
+};
+
+struct MT_PVR_PACKED mt_pvr_unmap_out {
+	u32 error;
+};
+
 /* 0x6:0x27 MM:MTGPUUpdateOOMStats -- 8-byte IN, 4-byte OUT.
  *
  *   MTGPU_BRIDGE_IN_MTGPUUPDATEOOMSTATS  = { ui32pid, ui32ui32StatType }
@@ -323,6 +345,9 @@ static_assert(sizeof(struct mt_pvr_heap_count_out) == 8, "0x6:0x1e out");
 static_assert(sizeof(struct mt_pvr_heap_create_in) == 28, "0x6:0x11 in");
 static_assert(sizeof(struct mt_pvr_heap_create_out) == 12, "0x6:0x11 out");
 static_assert(sizeof(struct mt_pvr_heap_destroy_in) == 8, "0x6:0x12 in");
+static_assert(sizeof(struct mt_pvr_unmap_pmr_in) == 8, "0x6:0x14 in");
+static_assert(sizeof(struct mt_pvr_unreserve_in) == 8, "0x6:0x16 in");
+static_assert(sizeof(struct mt_pvr_unmap_out) == 4, "0x6:0x14/0x6:0x16 out");
 static_assert(sizeof(struct mt_pvr_oom_stats_in) == 8, "0x6:0x27 in");
 static_assert(sizeof(struct mt_pvr_oom_stats_out) == 4, "0x6:0x27 out");
 static_assert(sizeof(struct mt_pvr_heap_destroy_out) == 4, "0x6:0x12 out");
