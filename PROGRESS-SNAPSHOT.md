@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：`4df1195`（bA33）
+**对应提交**：`5922d81`（bA34）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -14,9 +14,11 @@
 
 厂商 MASA UMD 已经能在我们的内核桥驱动上走完
 `PVRSRVConnectionCreateDevice` → `RGXCreateDeviceMemContext` →
-`RGXCreateRenderContext` → `CreateSyncPrim`，**四个符号全部返回 0，
-进程正常退出**。这是在官方 15 项 RGX 堆表、页对齐 mmap、
-同步重命名和 PMR 导入/反导入补齐之后首次打通的完整用户态链路。
+`RGXCreateRenderContext` → `CreateSyncPrim` →
+`RGXCreateKickSyncContextCCB` → `RGXDestroyKickSyncContext`，
+**六个符号全部返回 0，进程正常退出**。126 条 trace 记录零失败。
+kick-sync context 只是对象生命周期管理，不涉及硬件提交；
+真正的 kick 提交（`0x88:0x2` 等）仍被拒绝，那是 S4 边界。
 
 ---
 
@@ -32,10 +34,13 @@
 | 3 | `RGXCreateDeviceMemContext` | **0** |
 | 4 | `RGXCreateRenderContext` | **0** |
 | 5 | `CreateSyncPrim` | **0** |
+| 6 | `RGXCreateKickSyncContextCCB` | **0** |
+| 7 | `RGXDestroyKickSyncContext` | **0** |
 
-本轮把第 3 步稳定为 **0**，并把第 4 步从 **1** 推进为 **0**，
-随后第 5 步也返回 **0**。124 条记录中无失败的桥命令和同步 ioctl，
+126 条记录中无失败的桥命令和同步 ioctl，
 进程 `exit=0`，dmesg 无 WARN/BUG/Oops。
+`0x88:0x2 RGXKICKSYNC2` 及其他 kick/submit 入口被**故意**拒绝——
+那是 S4（真实硬件提交）边界，不是实现缺口。
 
 第 4 步的完整失败链（全部由 gdb 实测，不是推测）：
 
@@ -77,6 +82,7 @@ RGXCreateRenderContext
 | 16 | `0x40206441` sync rename **未实现**（`-EINVAL`） | render context 收尾失败，错误 38 | bA33 |
 | 17 | `0x6:0x3` 与 `0x6:0x6` 共用 28 字节 OUT handler | 12 字节 OUT 被判 `-EINVAL`，`CreateSyncPrim` 报 37 | bA33 |
 | 18 | `0x6:0x4` PmrUnmakeLocalImportHandle **未实现** | 同步事件收尾被拒 | bA33 |
+| 19 | `0x88:0x0/0x1` kick-sync context 创建/销毁**未实现** | CCB 返回 37 | bA34 |
 
 第 8 项值得单独强调：**`double free` 只是三层之外的表象**。
 整条链路上一个错误码都没有暴露（50 条桥命令全部 ret=0），
@@ -131,7 +137,7 @@ RGXCreateRenderContext
 
 ## 5. 下一步
 
-1. 当前用户态链路已到 `CreateSyncPrim → 0`。
+1. 当前用户态链路已到 `RGXDestroyKickSyncContext → 0`。
    下一步是真正的 GPU 提交 / kick 路径，属于 **S4，需要单独批准**；
    本轮没有做任何硬件提交。
 

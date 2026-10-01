@@ -4,12 +4,36 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA33：**完整用户态链路打通**——官方堆表 + mmap + 同步/PMR 收尾）
+最后更新：2026-10-01（bA34：**kick-sync context 建销打通**——链路延伸到第六个符号）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA33：四个符号全部返回 0）
+## 本次会话进展（bA34：六个符号全部返回 0）
+
+真机配方一次走完：
+
+```text
+PVRSRVConnectionCreateDevice(...) -> 0
+RGXCreateDeviceMemContext(...) -> 0
+RGXCreateRenderContext(...) -> 0
+CreateSyncPrim(...) -> 0
+RGXCreateKickSyncContextCCB(...) -> 0
+RGXDestroyKickSyncContext(...) -> 0
+```
+
+126 条记录中没有失败的桥命令或同步 ioctl，进程 `exit=0`，
+dmesg 无 WARN/BUG/Oops。
+
+### 本轮新增
+
+- `0x88:0x0` / `0x88:0x1`：建/销 kick-sync context，
+  独立 `MT_PVR_KIND_KICKSYNC` kind（不与 render context 共用，
+  否则 `ctx_create` 的复用逻辑会把两者串起来）。
+- `0x88:0x2 RGXKICKSYNC2` 及其他 kick/submit 入口**故意不实现**：
+  `-ENOTTY` 在这里是 S4 边界，不是缺口。
+
+## 上次会话进展（bA33：四个符号全部返回 0）
 
 真机配方一次走完：
 
