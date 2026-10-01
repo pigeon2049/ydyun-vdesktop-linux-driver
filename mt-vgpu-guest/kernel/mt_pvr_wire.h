@@ -127,6 +127,40 @@ struct MT_PVR_PACKED mt_pvr_make_import_out {
 	u32 error;
 };
 
+/* 0x81:0x0 RGXCreateComputeContext -- 60-byte IN, 12-byte OUT.
+ * 0x81:0x1 RGXDestroyComputeContext -- 8-byte IN, 4-byte OUT.
+ *
+ * Only the handle and eError cross the boundary; the framework command and
+ * static state blobs are UMD-side inputs the bridge does not consume at this
+ * stage. Like the kick-sync context, this is object lifecycle only -- submits
+ * go through 0x81:0x5 RGXKICKSYNC2 and friends, which stay refused (S4).
+ */
+struct MT_PVR_PACKED mt_pvr_compute_create_in {
+	u64 robustness_address;
+	u64 priv_data;
+	u64 framework_cmd;
+	u64 static_state;
+	u32 context_flags;
+	u32 framework_cmd_size;
+	u64 max_deadline_ms;
+	u32 packed_ccb_size;
+	u32 priority;
+	u32 static_state_size;
+};
+
+struct MT_PVR_PACKED mt_pvr_compute_create_out {
+	u64 compute_context;
+	u32 error;
+};
+
+struct MT_PVR_PACKED mt_pvr_compute_destroy_in {
+	u64 compute_context;
+};
+
+struct MT_PVR_PACKED mt_pvr_compute_destroy_out {
+	u32 error;
+};
+
 /* 0x88:0x0 RGXCreateKickSyncContext -- 16-byte IN, 12-byte OUT.
  * 0x88:0x1 RGXDestroyKickSyncContext -- 8-byte IN, 4-byte OUT.
  *
@@ -393,6 +427,10 @@ static_assert(sizeof(struct mt_pvr_connect_out) == 17, "0x1:0x0 out");
 static_assert(sizeof(struct mt_pvr_handle_out) == 12, "0x1:0x2/0x1:0xf out");
 static_assert(sizeof(struct mt_pvr_event_open_in) == 8, "0x1:0x4 in");
 static_assert(sizeof(struct mt_pvr_event_open_out) == 12, "0x1:0x4 out");
+static_assert(sizeof(struct mt_pvr_compute_create_in) == 60, "0x81:0x0 in");
+static_assert(sizeof(struct mt_pvr_compute_create_out) == 12, "0x81:0x0 out");
+static_assert(sizeof(struct mt_pvr_compute_destroy_in) == 8, "0x81:0x1 in");
+static_assert(sizeof(struct mt_pvr_compute_destroy_out) == 4, "0x81:0x1 out");
 static_assert(sizeof(struct mt_pvr_kicksync_create_in) == 16, "0x88:0x0 in");
 static_assert(sizeof(struct mt_pvr_kicksync_create_out) == 12, "0x88:0x0 out");
 static_assert(sizeof(struct mt_pvr_kicksync_destroy_in) == 8, "0x88:0x1 in");

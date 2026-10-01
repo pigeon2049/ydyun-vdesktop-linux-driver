@@ -75,6 +75,12 @@ MAPPING = {
     # 0x6:0x14 / 0x6:0x16 were -ENOTTY; the UMD issues one of each per
     # mapping it drops, and the first refusal surfaced as error 38
     # MTSRV_ERROR_IOCTL_CALL_FAILED (bA30).
+    # 0x81:0x0/0x81:0x1 create and destroy a compute context object.
+    # 0x81:0x5 RGXKICKSYNC2 stays unimplemented on purpose: real submission.
+    "mt_pvr_compute_create_in": (0x81, 0x0),
+    "mt_pvr_compute_create_out": (0x81, 0x0),
+    "mt_pvr_compute_destroy_in": (0x81, 0x1),
+    "mt_pvr_compute_destroy_out": (0x81, 0x1),
     # 0x88:0x0/0x88:0x1 create and destroy a kick-sync context object.
     # 0x88:0x2 RGXKICKSYNC2 stays unimplemented on purpose: real submission.
     "mt_pvr_kicksync_create_in": (0x88, 0x0),
@@ -106,6 +112,8 @@ DIRECTION = {
     "mt_pvr_hwperf_release_in": "in", "mt_pvr_hwperf_release_out": "out",
     "mt_pvr_heap_count_out": "out",
     "mt_pvr_heap_create_in": "in", "mt_pvr_heap_create_out": "out",
+    "mt_pvr_compute_create_in": "in", "mt_pvr_compute_create_out": "out",
+    "mt_pvr_compute_destroy_in": "in", "mt_pvr_compute_destroy_out": "out",
     "mt_pvr_kicksync_create_in": "in", "mt_pvr_kicksync_create_out": "out",
     "mt_pvr_kicksync_destroy_in": "in", "mt_pvr_kicksync_destroy_out": "out",
     "mt_pvr_unmap_pmr_in": "in", "mt_pvr_unmap_out": "out",
