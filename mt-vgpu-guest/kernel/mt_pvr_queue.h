@@ -320,16 +320,36 @@ static inline void mt_pvr_heaps_init(struct mt_pvr_heap_table *table,
 	u32 i;
 
 	memset(table, 0, sizeof(*table));
-	table->count = MT_PVR_HEAP_COUNT;
+	/* Compact away the empty slots.
+	 *
+	 * The plan has 11 fixed positions but two of them (4 and 5) have
+	 * base=0 and size=0 on both the reference and our side. Publishing them
+	 * as zero-sized entries was wrong, and measurably so:
+	 *
+	 *   - the UMD builds one arena per heap table entry
+	 *   - for entry 4 the arena's VA reservation, FUN_0019e7f0(), has
+	 *     nothing to reserve, returns 0, and RGXCreateDeviceMemContext
+	 *     fails with 82 = MTSRV_ERROR_DEVICEMEM_UNABLE_TO_CREATE_ARENA.
+	 *
+	 * A real heap configuration has no empty slots -- the count is the
+	 * number of real heaps. So skip any entry with no base or no size and
+	 * count only what is left. Index then means "the Nth real heap", which
+	 * is what the UMD assumes when it walks 0..count-1.
+	 *
+	 * Names travel with their entry, so the UMD's by-name lookups are
+	 * unaffected.
+	 */
 	for (i = 0; i < MT_PVR_HEAP_COUNT; i++) {
-		table->entries[i].base = plan->heaps[i].base;
-		table->entries[i].size = plan->heaps[i].size;
-		table->entries[i].log2_page_size = 12;
-		/* An unnamed heap stays NULL: the driver only copies a name
-		 * when one exists, and it reports the name it wanted in its
-		 * next error, which is how we discovered the missing ones.
-		 */
-		table->entries[i].name = names ? names[i] : NULL;
+		mt_gpuvaddr base = plan->heaps[i].base;
+		u64 size = plan->heaps[i].size;
+
+		if (!base || !size)
+			continue;
+		table->entries[table->count].name = names ? names[i] : NULL;
+		table->entries[table->count].base = base;
+		table->entries[table->count].size = size;
+		table->entries[table->count].log2_page_size = 12;
+		table->count++;
 	}
 }
 

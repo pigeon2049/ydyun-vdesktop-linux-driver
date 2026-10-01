@@ -83,10 +83,33 @@ class HeapDetailsIndexField(unittest.TestCase):
                 value.strip(), ('0',),
                 'the probe sets heap_config_index to %s; the UMD always '
                 'sends 0 for it and counts in heap_index' % value.strip())
-        self.assertRegex(
+
+    def test_probe_finds_heaps_by_name_not_by_pinned_index(self):
+        # It used to assert `heap_index = 8` and expect "USC Code" there.
+        # That is wrong now: the table compacts its two empty slots away, so
+        # pinned indices drift whenever the geometry changes. The probe walks
+        # the published heaps and compares names, the way the UMD does, which
+        # is what caught the zero-length entries in the first place.
+        self.assertNotRegex(
             self.probe, r'heap_index\s*=\s*8\s*;',
-            'the probe no longer looks up "USC Code" by heap_index, so it '
-            'cannot detect the name-lookup regression')
+            'the probe pins heap_index=8 again; look the heap up by name so '
+            'the check survives changes to the heap geometry')
+        self.assertRegex(
+            self.probe, r'"USC Code"',
+            'the probe no longer checks that "USC Code" is published, which '
+            'is the heap whose absence blocked device-memory-context creation')
+        self.assertRegex(
+            self.probe, r'num_heaps',
+            'the probe no longer walks the published heap count')
+
+    def test_probe_rejects_an_empty_heap(self):
+        # The regression that produced error 82: a heap with no base or no
+        # size. The probe must assert every published entry is usable.
+        self.assertRegex(
+            self.probe, r'!heap_out\.base\s*\|\|\s*!heap_out\.length',
+            'the probe no longer checks that every published heap has a '
+            'non-zero base and size; a zero-length entry makes the UMD fail '
+            'with MTSRV_ERROR_DEVICEMEM_UNABLE_TO_CREATE_ARENA')
 
     def test_measured_convention_is_recorded(self):
         # If the UMD ever changes which field it counts in, this is the record

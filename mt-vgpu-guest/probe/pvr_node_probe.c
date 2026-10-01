@@ -193,29 +193,79 @@ int main(int argc, char **argv)
 	       (unsigned long long)heap_out.length, heap_out.log2_data_page_size,
 	       name_buffer);
 
-	/* Index 8 is "USC Code" -- the heap whose name bA5 showed to be what
-	 * unblocks device-memory-context creation, so it is the one that has
-	 * to come back. Index 7 is "PDS Code and Data".
+	/* "USC Code" is the heap whose absence bA5 showed to block
+	 * device-memory-context creation, so it is the one that has to come
+	 * back. Look it up by name the way the UMD does, rather than pinning an
+	 * index: the table now compacts away its two empty slots, so hardcoded
+	 * indices silently drift whenever a slot is added or removed. That is
+	 * exactly the class of bug this probe exists to catch.
 	 *
-	 * heap_name_out must be re-armed after the memset: leaving it NULL makes
-	 * the driver's copy_to_user() fail with EFAULT, which is correct
-	 * behaviour and a probe bug, not a driver bug.
+	 * heap_name_out must be re-armed on every call: leaving it NULL makes the
+	 * driver's copy_to_user() fail with EFAULT, which is correct behaviour
+	 * and a probe bug, not a driver bug.
 	 */
-	memset(&heap_in, 0, sizeof(heap_in));
-	heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
-	heap_in.heap_name_buf_size = sizeof(name_buffer);
-	heap_in.heap_config_index = 0;
-	heap_in.heap_index = 8;
-	memset(name_buffer, 0, sizeof(name_buffer));
-	step("0x6:0x20 HeapCfgHeapDetails[8]",
-	     bridge(fd, 0x6, 0x20, &heap_in, sizeof(heap_in), &heap_out,
-		    sizeof(heap_out)));
-	printf("%-28s base=0x%llx size=0x%llx name='%s'\n", "",
-	       (unsigned long long)heap_out.base,
-	       (unsigned long long)heap_out.length, name_buffer);
-	if (strcmp((const char *)name_buffer, "USC Code")) {
-		printf("%-28s expected 'USC Code', name lookup broken\n", "MISMATCH:");
-		mismatches++;
+	{
+		uint32_t i;
+		int found = -1;
+
+		for (i = 0; i < heap_count_out.num_heaps; i++) {
+			memset(&heap_in, 0, sizeof(heap_in));
+			heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
+			heap_in.heap_name_buf_size = sizeof(name_buffer);
+			heap_in.heap_config_index = 0;
+			heap_in.heap_index = i;
+			memset(name_buffer, 0, sizeof(name_buffer));
+			heap_out = (struct mt_pvr_heap_details_out){ 0 };
+			if (bridge(fd, 0x6, 0x20, &heap_in, sizeof(heap_in),
+				   &heap_out, sizeof(heap_out)))
+				break;
+			if (!strcmp((const char *)name_buffer, "USC Code")) {
+				found = (int)i;
+				break;
+			}
+		}
+		if (found < 0) {
+			printf("%-28s 'USC Code' absent from %u heaps\n",
+			       "MISMATCH:", heap_count_out.num_heaps);
+			mismatches++;
+		} else {
+			printf("0x6:0x20 found 'USC Code'  %-8s index=%u base=0x%llx "
+			       "size=0x%llx log2=%u\n", "",
+			       found, (unsigned long long)heap_out.base,
+			       (unsigned long long)heap_out.length,
+			       heap_out.log2_data_page_size);
+		}
+	}
+
+	/* Every published heap must be usable: non-zero base and size. A
+	 * zero-length entry cannot host an arena, which is what made the UMD
+	 * fail with 82 = MTSRV_ERROR_DEVICEMEM_UNABLE_TO_CREATE_ARENA.
+	 */
+	{
+		uint32_t i;
+
+		for (i = 0; i < heap_count_out.num_heaps; i++) {
+			memset(&heap_in, 0, sizeof(heap_in));
+			heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
+			heap_in.heap_name_buf_size = sizeof(name_buffer);
+			heap_in.heap_config_index = 0;
+			heap_in.heap_index = i;
+			memset(name_buffer, 0, sizeof(name_buffer));
+			heap_out = (struct mt_pvr_heap_details_out){ 0 };
+			if (bridge(fd, 0x6, 0x20, &heap_in, sizeof(heap_in),
+				   &heap_out, sizeof(heap_out)))
+				continue;
+			if (!heap_out.base || !heap_out.length) {
+				printf("%-28s heap[%u] name='%s' base=0x%llx "
+				       "size=0x%llx\n", "MISMATCH:", i,
+				       name_buffer,
+				       (unsigned long long)heap_out.base,
+				       (unsigned long long)heap_out.length);
+				mismatches++;
+			}
+		}
+		printf("%-28s all %u heaps have a non-zero base and size\n",
+		       "", heap_count_out.num_heaps);
 	}
 
 	/* An unnamed slot must come back as an empty string, not a fault. */

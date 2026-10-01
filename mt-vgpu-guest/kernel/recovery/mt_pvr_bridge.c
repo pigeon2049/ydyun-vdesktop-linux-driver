@@ -178,9 +178,18 @@ static bool pvr_device_owned_by_main(void)
 
 static int pvr_open(struct drm_device *drm, struct drm_file *drm_file)
 {
+	/* One name per *plan* position, and they must line up with the plan:
+	 * mt_pvr_heaps_init() stores names[i] alongside plan->heaps[i].
+	 *
+	 * "Component Control" was listed at position 4, which is an empty slot,
+	 * so it was never published at all -- the name array had drifted one
+	 * position from the geometry. Position 3 is the populated heap at base
+	 * 0xa000000000, so that is where the name belongs. bA5 and bA7 only
+	 * needed "General" and "USC Code", which is why this went unnoticed.
+	 */
 	static const char *const heap_names[MT_PVR_HEAP_COUNT] = {
-		"General", NULL, NULL, NULL, "Component Control", NULL, NULL,
-		"PDS Code and Data", "USC Code", NULL, NULL,
+		"General", NULL, NULL, "Component Control", NULL, NULL,
+		NULL, "PDS Code and Data", "USC Code", NULL, NULL,
 	};
 	struct mt_guest_heap_plan plan;
 	struct mt_pvr_file *file;

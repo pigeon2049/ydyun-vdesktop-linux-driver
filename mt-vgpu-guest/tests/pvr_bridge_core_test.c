@@ -214,9 +214,13 @@ static int test_handles(void)
 
 static int test_heap_table(void)
 {
+	/* Aligned with the plan: one name per plan position. "Component
+	 * Control" belongs at position 3 (base 0xa000000000); position 4 is
+	 * empty and a name there is simply dropped during compaction.
+	 */
 	static const char *const names[MT_PVR_HEAP_COUNT] = {
-		"General", NULL, NULL, NULL, "Component Control", NULL, NULL,
-		"PDS Code and Data", "USC Code", NULL, NULL,
+		"General", NULL, NULL, "Component Control", NULL, NULL,
+		NULL, "PDS Code and Data", "USC Code", NULL, NULL,
 	};
 	struct mt_guest_heap_plan plan;
 	struct mt_pvr_heap_table table;
@@ -225,33 +229,39 @@ static int test_heap_table(void)
 	mt_guest_plan_heaps(&plan);
 	mt_pvr_heaps_init(&table, &plan, names);
 
-	/* The driver asks for the count first; it must see the 11 slots we
-	 * actually serve, not the vendor's 22.
+	/* The count is the number of *populated* heaps, not the table width.
+	 *
+	 * The plan's slots 4 and 5 are empty on the reference side as well. They
+	 * used to be published as zero-length entries, and the real UMD builds one
+	 * arena per heap-table entry: for entry 4 the arena has nothing to
+	 * reserve, FUN_0019e7f0() returns 0, and RGXCreateDeviceMemContext fails
+	 * with 82 = MTSRV_ERROR_DEVICEMEM_UNABLE_TO_CREATE_ARENA. The UMD was then
+	 * measured building exactly 9 arenas, so 9 is the served count.
 	 */
-	CHECK(mt_pvr_heaps_count(&table) == MT_PVR_HEAP_COUNT);
-	CHECK(mt_pvr_heaps_count(&table) == 11);
+	CHECK(mt_pvr_heaps_count(&table) == 9);
 
-	/* Geometry comes from the plan, which matches the vendor table byte for
-	 * byte (reports/windows-heap-table-22.json).
-	 */
+	/* No published entry may be empty: that was the whole bug. */
+	for (index = 0; index < mt_pvr_heaps_count(&table); index++) {
+		CHECK(table.entries[index].base != 0);
+		CHECK(table.entries[index].size != 0);
+	}
+
+	/* Geometry still comes from the plan, in compacted order. */
 	CHECK(table.entries[0].base == 0x40000000ULL);
 	CHECK(table.entries[0].size == 0x8000000000ULL);
 	CHECK(table.entries[1].base == 0x8100000000ULL);
 	CHECK(table.entries[1].size == 0x100000000ULL);
-	CHECK(table.entries[6].base == 0xe1c0000000ULL);
-	CHECK(table.entries[8].size == 0x1000ULL);
-	CHECK(table.entries[10].base == 0xf000000000ULL);
+	CHECK(table.entries[4].base == 0xe1c0000000ULL);  /* was index 6 */
+	CHECK(table.entries[6].size == 0x1000ULL);        /* was index 8 */
+	CHECK(table.entries[8].base == 0xf000000000ULL);  /* was index 10 */
 
-	/* Slots 4 and 5 are empty on both sides. */
-	CHECK(table.entries[4].size == 0 && table.entries[5].size == 0);
-
-	/* The names the UMD looks up, including the one it reported missing
-	 * before we supplied it (bA5).
+	/* Names travel with their entry through the compaction, so every
+	 * by-name lookup the UMD performs still resolves.
 	 */
 	CHECK(mt_pvr_heaps_find(&table, "General", &index) == 0 && index == 0);
-	CHECK(mt_pvr_heaps_find(&table, "PDS Code and Data", &index) == 0 && index == 7);
-	CHECK(mt_pvr_heaps_find(&table, "USC Code", &index) == 0 && index == 8);
-	CHECK(mt_pvr_heaps_find(&table, "Component Control", &index) == 0 && index == 4);
+	CHECK(mt_pvr_heaps_find(&table, "PDS Code and Data", &index) == 0 && index == 5);
+	CHECK(mt_pvr_heaps_find(&table, "USC Code", &index) == 0 && index == 6);
+	CHECK(mt_pvr_heaps_find(&table, "Component Control", &index) == 0 && index == 3);
 
 	/* Unnamed slots must not match an empty query, or every lookup would
 	 * land on heap 2. Prefix queries must not match either: the UMD
