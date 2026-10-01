@@ -4,8 +4,36 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA35：**compute context 建销打通**——链路延伸到第八个符号）
+最后更新：2026-10-01（bA36 S4-1：**提交路径真实执行**——`RGXKickSync → 0`，`0x88:0x4` 被接受）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（bA36 S4-1：第一次提交形状的流量）
+
+```text
+RGXKickSync(...) -> 0          ← 新增（经 0x88:0x4，in=84/out=8）
+```
+
+trace 里出现 `0x88:0x4 ret=0`：UMD 打包了一次 kick 提交，
+桥接受、检查、返回即时完成的 fence，UMD 不挂起、进程正常退出。
+
+### 实现
+
+- `0x88:0x2`（in=56/out=8）、`0x88:0x3`（in=20/out=12）、
+  `0x88:0x4`（in=84/out=8）：accept-and-inspect，
+  fence 是永远就绪的 anon_inode fd（poll 直接返回）。
+- **这不是 GPU 执行**：桥后面没有 firmware 通道、没有页表、
+  没有 doorbell，硬件什么都没干。S4-1 = 提交路径跑通，
+  S4-2（GPU 真正执行）需要 PCI 绑定 + firmware 通道，另议。
+- 构建时抓到两个 API 错误（6.12 的 `eventfd_signal` 是单参数、
+  `eventfd_file_create` 不对模块导出），改用 `anon_inode_getfd`，
+  更简单且全是稳定 API。
+
+### 门禁
+
+- 163 Python（1 跳过，线尺寸门禁当场抓到漏登记）、268 C RAM、
+  `W=1`、ABI 门、探针全绿，dmesg 干净。
 
 ---
 

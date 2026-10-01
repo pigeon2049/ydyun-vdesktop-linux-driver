@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：`85f722f`（bA35）
+**对应提交**：`cf88a1c`（bA36，S4-1）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -39,11 +39,13 @@ compute/kick-sync context 只是对象生命周期管理，不涉及硬件提交
 | 7 | `RGXDestroyKickSyncContext` | **0** |
 | 8 | `RGXCreateComputeContext` | **0** |
 | 9 | `RGXDestroyComputeContext` | **0** |
+| 10 | `RGXKickSync`（经 `0x88:0x4` 提交） | **0** |
 
-123 条记录中无失败的桥命令和同步 ioctl，
+约 128 条记录中无失败的桥命令和同步 ioctl，
 进程 `exit=0`，dmesg 无 WARN/BUG/Oops。
-`0x88:0x2`、`0x81:0x5` 及其他 kick/submit 入口被**故意**拒绝——
-那是 S4（真实硬件提交）边界，不是实现缺口。
+`0x81:0x5` 及真正的 TA3D kick 入口仍保持拒绝——
+S4-2（让 GPU 真正执行）需要 PCI 绑定 + firmware 通道，
+那是另一个独立步骤。
 
 第 4 步的完整失败链（全部由 gdb 实测，不是推测）：
 
@@ -87,6 +89,7 @@ RGXCreateRenderContext
 | 18 | `0x6:0x4` PmrUnmakeLocalImportHandle **未实现** | 同步事件收尾被拒 | bA33 |
 | 19 | `0x88:0x0/0x1` kick-sync context 创建/销毁**未实现** | CCB 返回 37 | bA34 |
 | 20 | `0x81:0x0/0x1` compute context 创建/销毁**未实现** | CCB 返回 37 | bA35 |
+| 21 | `0x88:0x2/0x3/0x4` 提交入口**未实现** | kick 返回 37 | bA36 |
 
 第 8 项值得单独强调：**`double free` 只是三层之外的表象**。
 整条链路上一个错误码都没有暴露（50 条桥命令全部 ret=0），
@@ -141,10 +144,16 @@ RGXCreateRenderContext
 
 ## 5. 下一步
 
-1. 当前用户态链路已到 `RGXDestroyComputeContext → 0`。
-   下一步是真正的 GPU 提交 / kick 路径，属于 **S4，需要单独批准**；
-   本轮没有做任何硬件提交。
-2. `RGXCreateZSBuffer` 的 13 参数形状已摸清，但它要 UMD 内部的
+1. **S4-1 已完成**：提交路径已真实执行——`RGXKickSync` 返回 0，
+   `0x88:0x4`（in=84/out=8）被驱动接受并返回即时完成的 fence。
+   纠正一条此前的测绘结论：真正的 TA 提交点是 `0x88:0x4`
+  （`BridgeRGXKickTA3D3Submit` → `RGXKICKSYNC3`），不是 `0x82:0x14`
+  （那是需求表里的占位项，此 UMD 根本不调它）。
+   本轮没有触碰任何硬件：桥后面没有 firmware 通道，
+   fence 是“永远就绪”的 anon_inode，不是 GPU 完成信号。
+2. **S4-2（让 GPU 真正执行）仍未开始**，需要 PCI 绑定 + firmware 通道，
+   会动 `mtgpu` 独占的 `00:0e.0`，需单独拍板。
+3. `RGXCreateZSBuffer` 的 13 参数形状已摸清，但它要 UMD 内部的
    heap/context 对象，小 buffer 冒充会直接段错误（70+ 条 bridge 之前崩，
    驱动侧无事）。gdb 证明崩溃点在
    `MTSRVAllocExportableDevMem ← MIW` 经 libc 字符串函数：
@@ -152,10 +161,6 @@ RGXCreateRenderContext
    传进去的不是合法 MemHeap 描述符。要驱动它，需要先拿到真正的
    psDevMemCtx/MemHeap 描述符指针，这是 ZSBuffer/freelist/HWRT
    这一串的共同前提。
-3. kick 路径静态测绘（未执行）：`RGXKickTA` 本体 700 行内零直接
-   bridge 调用，全部分包给 `RGXPrepareTA`、`SubmitTADataEnQueue`、
-   sync-prim 设置族，最终提交点是 `BridgeRGXKickTA3D3Submit`
-  （`0x82:0x14`，in=276）。执行其中任何一步都属于 S4。
 
 2. 长期项（不影响当前推进）：
    - 目录结构与 Make 流程规范化（见 §7）
