@@ -146,8 +146,16 @@ RGXCreateRenderContext
    本轮没有做任何硬件提交。
 2. `RGXCreateZSBuffer` 的 13 参数形状已摸清，但它要 UMD 内部的
    heap/context 对象，小 buffer 冒充会直接段错误（70+ 条 bridge 之前崩，
-   驱动侧无事）。要驱动它，需要先拿到真正的 psDevMemCtx 指针，
-   这是 ZSBuffer/freelist/HWRT 这一串的共同前提。
+   驱动侧无事）。gdb 证明崩溃点在
+   `MTSRVAllocExportableDevMem ← MIW` 经 libc 字符串函数：
+   MIW 把 `*param_1` 当 `MemHeap_*` 名字表下标，
+   传进去的不是合法 MemHeap 描述符。要驱动它，需要先拿到真正的
+   psDevMemCtx/MemHeap 描述符指针，这是 ZSBuffer/freelist/HWRT
+   这一串的共同前提。
+3. kick 路径静态测绘（未执行）：`RGXKickTA` 本体 700 行内零直接
+   bridge 调用，全部分包给 `RGXPrepareTA`、`SubmitTADataEnQueue`、
+   sync-prim 设置族，最终提交点是 `BridgeRGXKickTA3D3Submit`
+  （`0x82:0x14`，in=276）。执行其中任何一步都属于 S4。
 
 2. 长期项（不影响当前推进）：
    - 目录结构与 Make 流程规范化（见 §7）
