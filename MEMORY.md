@@ -1,5 +1,9 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
+> **本文件是逐轮过程记录（追加式，不回改）。**
+> **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
+> 两者冲突时以快照为准。
+
 最后更新：2026-10-01（bA32：**找到堆名错绑的决定性证据**——Windows 具名资源反证）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
