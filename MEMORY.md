@@ -1,11 +1,82 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA30：render context 推进到 38；新墙是**堆名与 Windows 表的对应关系无据**）
+最后更新：2026-10-01（bA31：**从驱动二进制直接解出权威堆表**，证明尺寸无误、错的是堆名绑定）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA30：render context 通路打通；下一个墙是数据问题不是代码问题）
+## 本次会话进展（bA31：堆表尺寸已证明正确；错的是「哪个格子叫什么」）
+
+### 1. 直接从 `mtkm64.sys` 解出权威 22 格堆表
+
+不再依赖 JSON 报告的转述，直接读驱动二进制：
+
+- 文件 `/opt/MTT-driver-only/mtkm64.sys`，sha256 `0512ad5a…`（与报告引用一致）
+- 两张表地址来自反编译：`MMU+0x108 == 1` 选 `0x141030fa0`，否则 `0x141030d90`
+- **布局**：步长 `0x18`，表首在标称地址 **+8**，base 在 `+0x8`、size 在 `+0x10`
+
+这个布局是**扫描**出来的：只有这一种组合能逐字复现我们现有的 plan。
+测试里 `test_decoded_layout_reproduces_our_plan` 断言了这一点——
+**步长错一个值就会静默地把所有字段错位**（我试错了两种布局，
+两种都能产出「看起来合理」的数字，这正是必须有断言的原因）。
+
+### 2. 结论：尺寸完全正确，错的是名字绑定
+
+| idx | Windows 权威 size | 我们绑的名字 |
+|---|---|---|
+| 0 | 549755813888 (512 GiB) | General |
+| 3 | 16777216 (16 MiB) | Component Control |
+| **7** | **32768 (32 KiB)** | **PDS Code and Data** ❌ |
+| **8** | **4096 (4 KiB)** | **USC Code** ❌ |
+
+而 UMD 实测要 **0x9000 = 36 KiB**（gdb 抓 `MTSRVSubAllocDeviceMemMIW`）：
+```
+rdi=1  rsi=<ctx>  rdx=36864  rcx=4096  r9="MemHeap:PDS_CODE"
+```
+36 KiB 塞不进 32 KiB ⇒ `_SegmentSplit` 失败 ⇒ 323 ⇒ 转换 83。
+
+**所以「把堆改大」是错的**——`test_windows_heap_table` 已经用 Windows 表挡住了，
+而 bA31 从二进制直接证明了 32768 就是驱动里的值。**要改的是名字↔格子的映射。**
+
+### 3. 顺带发现：MMU mode 1 的 slot 3 是空的
+
+mode 0：slot 3 = `0xa000000000` / 16 MiB（Component Control）
+mode 1：slot 3 = **空**
+
+我们发的是 mode 0 的几何。**S3000 实际报哪个 mode 还没对真机确认过**，
+所以只记录、不下结论。**别在没确认前把 slot 3 抄进 mode 1。**
+
+### 4. 方法论：断点必须实测，不能从反编译推（bA30 已记，此处再次验证）
+
+我又一次把 gdb 断点下在从反编译读出的地址上（`FUN_00183020`、`FUN_00132ce0`、
+`FUN_00133960`），**三个全部没命中**——反编译的调用关系和真实执行路径对不上。
+
+**有效做法**：
+1. 断 `PVRSRVGetErrorString`，一次同时拿到**错误码**和 `bt`（→ 拿到 83）；
+2. 再从 `PVRSRVDebugPrintf` 的调用点**反查**是哪个桥命令（→ `BridgePVRSRVUpdateOOMStats`）；
+3. 最后顺 `DevmemXAllocVirtual` → VMRA → `_SegmentSplit` 才定位到尺寸。
+4. 拿函数返回值要在**其返回地址** `*(void**)$rsp` 下断点，不要用 `finish`
+   （`finish` 放在 breakpoint 的 `commands` 里不给返回值）。
+
+**读代码不如读日志。**
+
+### 5. 本轮成果小结
+
+- `RGXCreateDeviceMemContext` → **0**（bA28）
+- `RGXCreateRenderContext` 错误链 **1 → 38 →（补 3 个 -ENOTTY 后仅剩数据问题）**
+- 桥命令数 46 → **101**
+- 补齐 `0x6:0x14` / `0x6:0x16` / `0x82:0x9` 三个 -ENOTTY
+- **154 项 Python**（123→154）、186 RAM、`W=1`、ABI 门、探针全绿
+
+### 6. 下一步
+
+重新确定堆名↔格子映射。可用的证据：Windows 侧 13 个具名**资源**的
+`resource_heaps[]` 指向哪些堆索引——资源必须放进它所属的堆，
+可以反推哪些格子必然是 PDS/USC。
+
+---
+
+## 上次会话进展（bA30：render context 通路打通）
 
 `RGXCreateDeviceMemContext` 已稳定为 **0**。本轮把它下游的 render context
 推到**错误 38**，并定位到真正的墙：**堆名与尺寸的对应关系缺少依据**。
