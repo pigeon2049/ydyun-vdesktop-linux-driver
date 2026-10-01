@@ -1,11 +1,98 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
-最后更新：2026-10-01（bA27：**double free 根因找到并修复**——HeapCfgHeapDetails 用错索引字段，UMD 不再崩溃）
+最后更新：2026-10-01（bA30：render context 推进到 38；新墙是**堆名与 Windows 表的对应关系无据**）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA27：UMD 不再崩溃；RGXCreateDeviceMemContext 首次正常返回）
+## 本次会话进展（bA30：render context 通路打通；下一个墙是数据问题不是代码问题）
+
+`RGXCreateDeviceMemContext` 已稳定为 **0**。本轮把它下游的 render context
+推到**错误 38**，并定位到真正的墙：**堆名与尺寸的对应关系缺少依据**。
+
+### 1. 修掉的 3 个 -ENOTTY 命令
+
+| 命令 | 名称 | 说明 |
+|---|---|---|
+| `0x6:0x14` | DevmemIntUnmapPMR | `0x6:0x13` 的回收侧，单个加宽 handle |
+| `0x6:0x16` | DevmemIntUnreserveRange | `0x6:0x15` 的回收侧 |
+| `0x82:0x9` | RGXDestroyRenderContext | UMD 即使创建失败也会走拆除路径，拒绝它会让拆除不完整 |
+
+新增 `pvr_cmd_handle_release()`（`pvr_cmd_handle_only()` 的回收侧）。
+每个 handle 都必须可被归还——这条在 bA25 的 `0x6:0x12` 上已经吃过一次教训。
+
+### 2. 定位 38 = `MTSRV_ERROR_IOCTL_CALL_FAILED`
+
+UMD 在 render context 阶段会建 **8 套** PMR/map，每套拆除各发一次
+`0x6:0x14` + `0x6:0x16`。第一次被拒就整条序列中断。
+补上后**桥命令数 46 → 101**，非零 ret 只剩 `0x82:0x9`（也已补）。
+
+### 3. 之前那堵墙（错误 1）的真正原因：堆太小
+
+完整链条（全部由 gdb 实测，不是推测）：
+
+```
+RGXCreateRenderContext
+ └ FUN_00183050 RGXCreateDevmemBufferMemHeap
+    └ MTSRVSubAllocDeviceMemMIW(len=0x9000, heap="MemHeap:PDS_CODE")
+       └ DevmemXAllocVirtual → VMRA
+          └ RA_Alloc_Range → _SegmentSplit 失败
+             ⇒ 323 = MTSRV_ERROR_RA_REQUEST_ALLOC_FAIL
+          ⇒ UMD 转换为 83 = MTSRV_ERROR_DEVICEMEM_OUT_OF_DEVICE_VM
+```
+
+**实测参数**：`MTSRVSubAllocDeviceMemMIW(rdi=1, rsi=<ctx>, rdx=36864, rcx=4096, r9="MemHeap:PDS_CODE")`
+即向 PDS 堆申请 **0x9000 = 36 KiB**。
+
+而我们以 `"PDS Code and Data"` 之名发布的那一格只有 **0x8000 = 32 KiB**。
+36 KiB 塞不进 32 KiB ⇒ `_SegmentSplit` 无解 ⇒ 323。
+
+**验证**：把两个具名堆临时放大到 4 GiB，错误 **1 → 38**，且命令数 46→101。
+诊断确认成立。
+
+### 4. 但那个尺寸**不能就这么定**——这是本轮最关键的结论
+
+`reports/windows-heap-table-22.json` 明确写着：entry 7 = 32768、entry 8 = 4096，
+与我们的 plan 完全一致，而且 `test_windows_heap_table` **强制**两者相等
+（我把堆改大时它立刻 FAILED——门禁按预期生效）。
+
+问题不在尺寸本身，而在**「哪一格叫 PDS Code and Data」**：
+
+> `reports/windows-kmd-crosscheck.md:61-64` 已经记录了这个缺口：
+> **Windows 侧只给 13 个「资源」命名，从不给 22 个「堆」命名。**
+> `General / PDS Code and Data / USC Code / Component Control`
+> **只存在于 Linux PVRSRV UMD 侧。**
+
+也就是说：我们把 PVR 的堆名绑到 Windows 的索引上，**这一步是推断，没有依据**。
+而这个推断现在被实测证伪了——它把 UMD 的 36 KiB 请求塞进了 32 KiB 的格子。
+
+**下一步应该做的是重新确定名字↔格子的映射，而不是把格子改大。**
+依据可能来自：Windows 侧 13 个具名**资源**的 `resource_heaps[]` 指向哪些堆索引，
+用它反推哪些格子必然是 PDS/USC（资源是要放进这些堆的）。
+
+### 5. 本轮又一次「无效验证」的教训（补充 bA27 的记录）
+
+我一度把 gdb 断点下在 `FUN_00183020`、`FUN_00132ce0`、`FUN_00133960` 上，
+**全部没命中**。原因是我从反编译里读出的调用点，和真实执行路径对不上
+（反编译**部分不可靠**，这是已知事实）。
+
+**断点地址必须实测得到，不能从反编译推。** 可靠办法是：
+- 先在**函数入口**下断点确认可达，再在其**返回地址**（`*(void**)$rsp`）下断点取返回值；
+- 或直接断 `PVRSRVGetErrorString`，一次拿到错误码 + `bt`。
+
+最后正是靠断 `PVRSRVGetErrorString` 才拿到 `83`，
+再顺着 `PVRSRVDebugPrintf` 的调用点反查到 `BridgePVRSRVUpdateOOMStats`，
+最终定位到 `_SegmentSplit`。**读代码不如读日志。**
+
+### 6. 门禁
+
+- 新增 3 个 wire 结构登记进 `test_pvr_wire_sizes.py`（线尺寸与实测一致）。
+- **144 项 Python 全绿**、186 RAM、`W=1`、ABI 门、探针全绿、dmesg 零 WARN。
+- `test_windows_heap_table` 在我改大堆尺寸时**当场失败**，把我的临时实验挡了下来。
+
+---
+
+## 上次会话进展（bA27/bA28/bA29：double free 根因 + 堆槽压实）
 
 **`RGXCreateDeviceMemContext` 从「abort + double free」变成「正常返回 82」，进程 exit=0。**
 这是本项目第一次让真实 UMD 在设备内存上下文这步**走完并正常返回**。
