@@ -227,5 +227,41 @@ class PmrImportRouting(unittest.TestCase):
             'the node probe does not exercise 0x6:0x4')
 
 
+class ZsBufferRouting(unittest.TestCase):
+    """0x82:0x2/0x82:0x3 mint and retire a dedicated object kind."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = strip_comments(SOURCE.read_text())
+        cls.probe = strip_comments(
+            (SOURCE.parents[2] / 'probe' / 'pvr_node_probe.c').read_text())
+
+    def test_zs_handlers_use_their_own_kind(self):
+        # Sharing a kind with render/compute/kicksync contexts would let a
+        # destroy for one retire an object of another.
+        for func in ('pvr_cmd_zs_create', 'pvr_cmd_zs_destroy'):
+            body = function_body(func, self.text)
+            self.assertIn('MT_PVR_KIND_ZSBUFFER', body,
+                          f'{func} does not use the ZSBUFFER kind')
+        self.assertRegex(
+            self.text,
+            r'case\s+0x2:.*\n.*pvr_cmd_zs_create',
+            '0x82:0x2 is not routed to its own handler')
+        self.assertRegex(
+            self.text,
+            r'case\s+0x3:.*\n.*pvr_cmd_zs_destroy',
+            '0x82:0x3 is not routed to its own handler')
+
+    def test_probe_round_trips_a_zsbuffer(self):
+        self.assertRegex(
+            self.probe,
+            r'bridge\(fd,\s*0x82,\s*0x2,\s*&zs_in',
+            'the node probe does not exercise 0x82:0x2')
+        self.assertRegex(
+            self.probe,
+            r'bridge\(fd,\s*0x82,\s*0x3,\s*&zsd_in',
+            'the node probe does not exercise 0x82:0x3')
+
+
 if __name__ == '__main__':
     unittest.main()

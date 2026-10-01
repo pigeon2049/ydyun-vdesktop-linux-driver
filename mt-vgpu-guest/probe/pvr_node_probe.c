@@ -450,6 +450,46 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/* A PMR + reservation pair must round-trip through the ZSBuffer
+	 * lifecycle. The reservation comes from DevmemIntReserveRange on the
+	 * sync PMR; both handles are real, so this exercises the same path
+	 * the UMD's RGXCreateZSBuffer would take with param_8 set.
+	 */
+	{
+		struct mt_pvr_reserve_in res_in = { 0 };
+		struct mt_pvr_reserve_out res_out = { 0 };
+		struct mt_pvr_zs_create_in zs_in = { 0 };
+		struct mt_pvr_zs_create_out zs_out = { 0 };
+		struct mt_pvr_zs_destroy_in zsd_in = { 0 };
+		struct mt_pvr_zs_destroy_out zsd_out = { 0 };
+
+		res_in.server_heap = sync_out.sync_pmr;
+		res_in.length = 0x1000;
+		step("0x6:0x15 ReserveRange (for ZS)",
+		     bridge(fd, 0x6, 0x15, &res_in, sizeof(res_in),
+			    &res_out, sizeof(res_out)));
+		zs_in.pmr = sync_out.sync_pmr;
+		zs_in.reservation = res_out.reservation;
+		step("0x82:0x2 RGXCreateZSBuffer",
+		     bridge(fd, 0x82, 0x2, &zs_in, sizeof(zs_in),
+			    &zs_out, sizeof(zs_out)));
+		printf("%-28s zs=0x%llx error=%u\n", "",
+		       (unsigned long long)zs_out.zs_buffer_km, zs_out.error);
+		if (!zs_out.zs_buffer_km || zs_out.error) {
+			printf("%-28s ZSBuffer create failed\n", "MISMATCH:");
+			mismatches++;
+		}
+		zsd_in.zs_buffer = zs_out.zs_buffer_km;
+		step("0x82:0x3 RGXDestroyZSBuffer",
+		     bridge(fd, 0x82, 0x3, &zsd_in, sizeof(zsd_in),
+			    &zsd_out, sizeof(zsd_out)));
+		if (zsd_out.error) {
+			printf("%-28s ZSBuffer destroy reported error %u\n",
+			       "MISMATCH:", zsd_out.error);
+			mismatches++;
+		}
+	}
+
 	/* An unknown command must be refused, not silently accepted. */
 	{
 		uint32_t out = 0;
