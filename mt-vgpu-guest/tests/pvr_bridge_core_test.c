@@ -212,13 +212,37 @@ static int test_handles(void)
 	return 0;
 }
 
+static int test_mmap_page_count(void)
+{
+	/* The render-context path maps the exact PMR byte counts 39935 and
+	 * 174079. Rounding down would leave the tail unmapped; rejecting a
+	 * non-multiple fails the mapping outright.
+	 */
+	CHECK(mt_pvr_mmap_page_count(1, 4096) == 1);
+	CHECK(mt_pvr_mmap_page_count(4096, 4096) == 1);
+	CHECK(mt_pvr_mmap_page_count(4097, 4096) == 2);
+	CHECK(mt_pvr_mmap_page_count(39935, 4096) == 10);
+	CHECK(mt_pvr_mmap_page_count(174079, 4096) == 43);
+	CHECK(mt_pvr_mmap_page_count(0, 4096) == 0);
+	CHECK(mt_pvr_mmap_page_count(4096, 0) == 0);
+	CHECK(mt_pvr_mmap_page_count(4096, 1000) == 0);
+	/* The kernel rounds the VMA length before pvr_mmap() sees it. */
+	CHECK(mt_pvr_mmap_fits(40960, 39935, 4096));
+	CHECK(mt_pvr_mmap_fits(176128, 174079, 4096));
+	CHECK(mt_pvr_mmap_fits(4096, 4096, 4096));
+	CHECK(!mt_pvr_mmap_fits(8192, 4096, 4096));
+	CHECK(!mt_pvr_mmap_fits(4096, 0, 4096));
+	return 0;
+}
+
 static int test_heap_table(void)
 {
-	/* Aligned with the plan: one name per plan position. "Component
-	 * Control" belongs at position 3 (base 0xa000000000); position 4 is
-	 * empty and a name there is simply dropped during compaction.
+	/* Aligned with the guest physical plan: one name per plan position.
+	 * "Component Control" belongs at position 3 (base 0xa000000000);
+	 * position 4 is empty and a name there is simply dropped during
+	 * compaction.
 	 */
-	static const char *const names[MT_PVR_HEAP_COUNT] = {
+	static const char *const names[MT_PVR_PLAN_HEAP_COUNT] = {
 		"General", NULL, NULL, "Component Control", NULL, NULL,
 		NULL, "PDS Code and Data", "USC Code", NULL, NULL,
 	};
@@ -227,7 +251,7 @@ static int test_heap_table(void)
 	u32 index = 0xffffffff;
 
 	mt_guest_plan_heaps(&plan);
-	mt_pvr_heaps_init(&table, &plan, names);
+	mt_pvr_heaps_init(&table, &plan, names, MT_PVR_PLAN_HEAP_COUNT);
 
 	/* The count is the number of *populated* heaps, not the table width.
 	 *
@@ -372,6 +396,46 @@ static int test_device_layout(void)
 	return 0;
 }
 
+static int test_rgx_app_table(void)
+{
+	struct mt_pvr_heap_table table;
+	u32 index = 0xffffffff;
+
+	/* The bridge must serve the vendor application blueprint, not the
+	 * guest physical plan. In particular, the two allocations that blocked
+	 * RGXCreateRenderContext have to resolve to 4 GiB heaps.
+	 */
+	mt_pvr_rgx_app_heaps_init(&table);
+	CHECK(mt_pvr_heaps_count(&table) == MT_PVR_HEAP_COUNT);
+	CHECK(mt_pvr_heaps_count(&table) == 15);
+	CHECK(table.entries[0].base == 0x4000000000ULL);
+	CHECK(table.entries[0].size == 274877906944ULL);
+	CHECK(table.entries[1].base == 0x8000000000ULL);
+	CHECK(table.entries[1].size == 137438953472ULL);
+	CHECK(table.entries[3].base == 0xda00000000ULL);
+	CHECK(table.entries[3].size == 4294967296ULL);
+	CHECK(table.entries[3].reserved_size == 65536ULL);
+	CHECK(table.entries[4].base == 0xe000000000ULL);
+	CHECK(table.entries[4].size == 4294967296ULL);
+	CHECK(table.entries[4].reserved_size == 65536ULL);
+	CHECK(table.entries[8].base == 0xec00000000ULL);
+	CHECK(table.entries[8].size == 2097152ULL);
+	CHECK(table.entries[14].base == 0xf200000000ULL);
+	CHECK(table.entries[14].size == 2097152ULL);
+	CHECK(mt_pvr_heaps_find(&table, "PDS Code and Data", &index) == 0 && index == 3);
+	CHECK(mt_pvr_heaps_find(&table, "USC Code", &index) == 0 && index == 4);
+	CHECK(mt_pvr_heaps_find(&table, "General", &index) == 0 && index == 1);
+	CHECK(mt_pvr_heaps_find(&table, "Component Control", &index) == 0 && index == 7);
+	CHECK(mt_pvr_heaps_find(&table, "FBCDC", &index) == 0 && index == 8);
+	CHECK(mt_pvr_heaps_find(&table, "Texture State", &index) == 0 && index == 13);
+	for (index = 0; index < mt_pvr_heaps_count(&table); index++) {
+		CHECK(table.entries[index].name != NULL);
+		CHECK(table.entries[index].base != 0);
+		CHECK(table.entries[index].size != 0);
+	}
+	return 0;
+}
+
 int main(void)
 {
 	CHECK(test_wire_offsets() == 0);
@@ -381,7 +445,9 @@ int main(void)
 	CHECK(test_queue_fault() == 0);
 	CHECK(test_offset_codec() == 0);
 	CHECK(test_handles() == 0);
+	CHECK(test_mmap_page_count() == 0);
 	CHECK(test_heap_table() == 0);
+	CHECK(test_rgx_app_table() == 0);
 	printf("pvr_bridge_core_test OK (%d checks)\n", checks);
 	return 0;
 }

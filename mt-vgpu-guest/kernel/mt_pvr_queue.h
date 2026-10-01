@@ -245,6 +245,39 @@ static inline int mt_pvr_handle_of(u64 offset, u64 *handle)
 	return *handle ? 0 : -EINVAL;
 }
 
+/* Number of pages needed to cover an mmap request.
+ *
+ * A PMR size is a byte count, while mmap works in pages. The UMD maps the
+ * exact byte length it allocated (39935 and 174079 in the render-context
+ * path), so rounding down would leave the tail unmapped and rejecting a
+ * non-multiple would fail the mapping outright. Round up instead; vzalloc()
+ * backs the whole final page.
+ */
+static inline unsigned long mt_pvr_mmap_page_count(unsigned long length,
+						   unsigned long page_size)
+{
+	if (!length || !page_size || (page_size & (page_size - 1)))
+		return 0;
+	return (length + page_size - 1) / page_size;
+}
+
+/* True when a page-granular mapping can cover a byte-granular PMR.
+ *
+ * The kernel rounds an mmap VMA up to whole pages, so vma length is already
+ * rounded by the time pvr_mmap() sees it. Comparing that rounded length
+ * against the exact PMR byte count would reject every non-page-multiple PMR,
+ * even though vzalloc() backs its whole final page. Compare page counts
+ * instead.
+ */
+static inline int mt_pvr_mmap_fits(unsigned long map_length, u64 pmr_bytes,
+				   unsigned long page_size)
+{
+	unsigned long want = mt_pvr_mmap_page_count(map_length, page_size);
+	unsigned long have = mt_pvr_mmap_page_count(pmr_bytes, page_size);
+
+	return want && want <= have;
+}
+
 /* Handle allocator.
  *
  * Every observable handle in the traces came out of one small space
@@ -293,19 +326,26 @@ static inline void mt_pvr_handles_free(struct mt_pvr_handles *h, u64 handle)
  * "USC Code" was supplied, and bA7 found the render context failing on a
  * missing "General".
  *
- * The geometry comes from mt_guest_plan_heaps(), which now matches the vendor
- * driver's own 22-entry table entry for entry (see
- * reports/windows-heap-table-22.json). Only the 11 slots we fill are served;
- * index 4 and 5 are empty on both sides and are reported as zero-sized, which
- * is what the reference does.
+ * The bridge geometry comes from mt_pvr_rgx_app_heaps_init(), which
+ * transcribes the vendor's gasRGXHeapLayoutApp blueprint.  The Windows
+ * physical heap plan remains the source for guest-side VM resources, but it
+ * is a different table and must not be served as the PVR heap configuration.
  */
-#define MT_PVR_HEAP_COUNT 11U
+/* The legacy MUSA UMD expects the vendor's 15-entry RGX application heap
+ * configuration.  Eleven was the width of the Windows guest physical heap
+ * plan, not the PVR device heap configuration, and that mismatch placed the
+ * PDS/USC names on slots that could not hold their allocations.
+ */
+#define MT_PVR_HEAP_COUNT 15U
+#define MT_PVR_PLAN_HEAP_COUNT 11U
 
 struct mt_pvr_heap_entry {
 	const char *name;
 	mt_gpuvaddr base;
 	u64 size;
-	u32 log2_page_size;
+	u64 reserved_size;
+	u32 log2_data_page_size;
+	u32 log2_import_alignment;
 };
 
 struct mt_pvr_heap_table {
@@ -315,31 +355,32 @@ struct mt_pvr_heap_table {
 
 static inline void mt_pvr_heaps_init(struct mt_pvr_heap_table *table,
 				     const struct mt_guest_heap_plan *plan,
-				     const char *const *names)
+				     const char *const *names,
+				     u32 plan_count)
 {
 	u32 i;
 
 	memset(table, 0, sizeof(*table));
 	/* Compact away the empty slots.
 	 *
-	 * The plan has 11 fixed positions but two of them (4 and 5) have
-	 * base=0 and size=0 on both the reference and our side. Publishing them
-	 * as zero-sized entries was wrong, and measurably so:
+	 * The guest physical plan has 11 in-scope positions but two of them
+	 * (4 and 5) have base=0 and size=0. Publishing them as zero-sized
+	 * entries was wrong, and measurably so:
 	 *
 	 *   - the UMD builds one arena per heap table entry
 	 *   - for entry 4 the arena's VA reservation, FUN_0019e7f0(), has
 	 *     nothing to reserve, returns 0, and RGXCreateDeviceMemContext
 	 *     fails with 82 = MTSRV_ERROR_DEVICEMEM_UNABLE_TO_CREATE_ARENA.
 	 *
-	 * A real heap configuration has no empty slots -- the count is the
-	 * number of real heaps. So skip any entry with no base or no size and
-	 * count only what is left. Index then means "the Nth real heap", which
-	 * is what the UMD assumes when it walks 0..count-1.
+	 * A heap configuration served to the UMD has no empty slots -- the
+	 * count is the number of real heaps. So skip any entry with no base or
+	 * no size and count only what is left. Index then means "the Nth real
+	 * heap", which is what the UMD assumes when it walks 0..count-1.
 	 *
 	 * Names travel with their entry, so the UMD's by-name lookups are
 	 * unaffected.
 	 */
-	for (i = 0; i < MT_PVR_HEAP_COUNT; i++) {
+	for (i = 0; i < plan_count; i++) {
 		mt_gpuvaddr base = plan->heaps[i].base;
 		u64 size = plan->heaps[i].size;
 
@@ -348,7 +389,52 @@ static inline void mt_pvr_heaps_init(struct mt_pvr_heap_table *table,
 		table->entries[table->count].name = names ? names[i] : NULL;
 		table->entries[table->count].base = base;
 		table->entries[table->count].size = size;
-		table->entries[table->count].log2_page_size = 12;
+		table->entries[table->count].reserved_size = 0;
+		table->entries[table->count].log2_data_page_size = 12;
+		table->entries[table->count].log2_import_alignment = 12;
+		table->count++;
+	}
+}
+
+/* Vendor RGX application heap configuration served by the bridge.
+ *
+ * This transcribes gasRGXHeapLayoutApp from the vendor-supplied
+ * mtgpu_core.o_binary (fifteen blueprints, 0x38 bytes each, with the name
+ * pointer followed by base, length, reserved length, log2 data page size,
+ * and log2 import alignment). Quyuan/S3000 uses the App layout;
+ * gasRGXHeapLayoutAppPH1 is the PingHu1 alternate. That table places PDS
+ * Code and Data at 0xda00000000+0x100000000 and USC Code at
+ * 0xe000000000+0x100000000. The earlier eleven-entry table put those names
+ * on 0x8000 and 0x1000 slots, which cannot hold the UMD's measured 0x9000
+ * PDS suballocation.
+ */
+static inline void mt_pvr_rgx_app_heaps_init(struct mt_pvr_heap_table *table)
+{
+	static const struct mt_pvr_heap_entry app_heaps[] = {
+		{ "General SVM", 0x4000000000ULL, 274877906944ULL, 2097152ULL, 0, 0 },
+		{ "General", 0x8000000000ULL, 137438953472ULL, 65536ULL, 0, 0 },
+		{ "General NON-4K", 0xb800000000ULL, 34359738368ULL, 0ULL, 0, 0 },
+		{ "PDS Code and Data", 0xda00000000ULL, 4294967296ULL, 65536ULL, 0, 0 },
+		{ "USC Code", 0xe000000000ULL, 4294967296ULL, 65536ULL, 0, 0 },
+		{ "Vulkan Capture Replay", 0xe900000000ULL, 1073741824ULL, 0ULL, 0, 0 },
+		{ "Signals", 0xea00000000ULL, 65536ULL, 0ULL, 0, 0 },
+		{ "Component Control", 0xeb00000000ULL, 4294967296ULL, 0ULL, 0, 0 },
+		{ "FBCDC", 0xec00000000ULL, 2097152ULL, 0ULL, 0, 0 },
+		{ "Large FBCDC", 0xec40000000ULL, 2097152ULL, 0ULL, 0, 0 },
+		{ "PDS Indirect State", 0xed00000000ULL, 16777216ULL, 0ULL, 0, 0 },
+		{ "Compute Mission RMW", 0xee00000000ULL, 1073741824ULL, 0ULL, 0, 0 },
+		{ "Compute Safety RMW", 0xef00000000ULL, 1073741824ULL, 0ULL, 0, 0 },
+		{ "Texture State", 0xf000000000ULL, 4294967296ULL, 0ULL, 0, 0 },
+		{ "Visibility Test", 0xf200000000ULL, 2097152ULL, 0ULL, 0, 0 },
+	};
+	u32 i;
+
+	_Static_assert(sizeof(app_heaps) / sizeof(app_heaps[0]) ==
+		       MT_PVR_HEAP_COUNT,
+		       "RGX application heap count changed");
+	memset(table, 0, sizeof(*table));
+	for (i = 0; i < MT_PVR_HEAP_COUNT; i++) {
+		table->entries[i] = app_heaps[i];
 		table->count++;
 	}
 }

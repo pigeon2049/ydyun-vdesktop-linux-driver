@@ -9,20 +9,21 @@ existing plan byte for byte (0x18 stride, base at +0x8, size at +0x10):
 
     MMU+0x108 == 1 selects the table at 0x141030fa0, otherwise 0x141030d90.
 
-The point of decoding it here is that it settles a naming question. The Windows
-driver names its 13 resources but never its 22 heaps, so which slot is
-"PDS Code and Data" has always been our inference. The UMD suballocates 0x9000
-bytes from MemHeap:PDS_CODE, and slot 7 -- the one we call PDS Code and Data --
-is only 0x8000, so that inference is wrong. The sizes themselves are correct
-and must not be "fixed" to make the symptom go away.
+The Windows table is the guest physical heap plan, not the PVR device heap
+configuration served over HeapCfgHeapDetails. Confusing the two put the PDS
+and USC names on small physical slots. The bridge now serves the vendor RGX
+application blueprint instead; the Windows table remains the authority only
+for guest-side physical resources.
 """
 import hashlib
 import json
+import re
 import struct
 import unittest
 from pathlib import Path
 
 GUEST = Path(__file__).resolve().parents[1]
+QUEUE_H = GUEST / 'kernel/mt_pvr_queue.h'
 DRIVER = Path('/opt/MTT-driver-only/mtkm64.sys')
 
 MTKM64_SHA256 = '0512ad5a75dcf16680d608e0a20b5154564798451d6b42224be9ae8e67d6ef33'
@@ -37,7 +38,8 @@ ENTRY_STRIDE = 0x18
 ENTRY_OFFSET = 8
 HEAP_SLOTS = 11
 
-# What we currently publish, and the name we bind to each slot.
+# The guest physical plan served to guest-side VM resources (not the PVR heap
+# configuration served to the UMD).
 PLAN_BASES = [
     0x40000000, 0x8100000000, 0x8400000000, 0xa000000000, 0, 0,
     0xe1c0000000, 0xec00000000, 0xec40000000, 0xeb00000000, 0xf000000000,
@@ -46,13 +48,6 @@ PLAN_SIZES = [
     0x8000000000, 0x100000000, 0x100000000, 0x1000000, 0, 0,
     0x100000000, 0x8000, 0x1000, 0x100000000, 0x100000000,
 ]
-NAME_BY_SLOT = {
-    0: 'General',
-    3: 'Component Control',
-    7: 'PDS Code and Data',
-    8: 'USC Code',
-}
-
 # Measured against the live 5.2 UMD under gdb.
 UMD_PDS_SUBALLOC = 0x9000
 UMD_PDS_HEAP_NAME = 'MemHeap:PDS_CODE'
@@ -155,48 +150,44 @@ class WindowsHeapTableDecoded(unittest.TestCase):
             if size == 0:
                 self.assertEqual(self.mode0[i][0], 0)
 
-    def test_pds_slot_is_too_small_for_what_the_umd_asks(self):
-        # The reason the render context fails. Recorded as a fact about the
-        # driver's geometry, so that raising slot 7's size is visibly a
-        # contradiction of this table rather than a plausible fix.
-        pds = self.mode0[7][1]
-        self.assertEqual(pds, 0x8000)
-        self.assertLess(pds, UMD_PDS_SUBALLOC,
-                        'slot 7 is now big enough for the UMD request; if this '
-                        'fires, re-check whether the naming mapping below has '
-                        'been fixed properly instead of by enlarging the heap')
+    def test_windows_physical_slot_7_is_small(self):
+        # This is a fact about the guest physical plan, not the PVR heap
+        # served to the UMD. It must not be read as the size of PDS Code and
+        # Data; confusing the two tables caused the render-context failure.
+        self.assertEqual(self.mode0[7][1], 0x8000)
+        self.assertLess(self.mode0[7][1], UMD_PDS_SUBALLOC)
 
     def test_slots_that_could_satisfy_the_umd_request(self):
-        # Which slots are even large enough, for whoever re-derives the
-        # name-to-slot mapping.
+        # Physical slots large enough for the measured request. This remains a
+        # resource-planning fact; it is not the PVR heap lookup.
         big = [i for i, (_, size) in enumerate(self.mode0)
                if size >= UMD_PDS_SUBALLOC]
-        self.assertIn(0, big, 'the General heap must remain able to serve it')
-        self.assertNotIn(7, big,
-                         'slot 7 is expected to be too small; if this fires the '
-                         'binding has been fixed properly rather than by '
-                         'enlarging the slot')
+        self.assertIn(0, big)
+        self.assertNotIn(7, big)
 
-    def test_both_small_slots_are_bound_to_names_we_cannot_support(self):
-        # Slots 7 (32 KiB) and 8 (4 KiB) are the two the UMD could never
-        # allocate from, yet both carry names. That is the whole defect, so it
-        # is asserted rather than described in a comment.
-        self.assertEqual(self.mode0[7][1], 0x8000)
-        self.assertEqual(self.mode0[8][1], 0x1000)
-        for slot in (7, 8):
-            self.assertIn(slot, NAME_BY_SLOT)
-            self.assertLess(self.mode0[slot][1], UMD_PDS_SUBALLOC,
-                            f'slot {slot} carries a name but is far too small '
-                            'for the allocation the UMD attempts against it')
+    def test_bridge_does_not_reuse_windows_physical_slots_for_pds(self):
+        # The bridge must serve the vendor RGX blueprint, where PDS and USC
+        # are 4 GiB heaps at 0xda and 0xe0 rather than the small Windows
+        # physical slots.
+        text = QUEUE_H.read_text()
+        m = re.search(
+            r'static const struct mt_pvr_heap_entry app_heaps\[\]\s*=\s*\{(.*?)\};',
+            text, re.S)
+        self.assertIsNotNone(m, 'the bridge blueprint is gone')
+        rows = re.findall(
+            r'\{\s*"([^"]+)"\s*,\s*(0x[0-9a-fA-F]+)ULL\s*,\s*([0-9]+)ULL',
+            m.group(1))
+        by_name = {name: (int(base, 16), int(size)) for name, base, size in rows}
+        self.assertEqual(by_name['PDS Code and Data'], (0xda00000000, 0x100000000))
+        self.assertEqual(by_name['USC Code'], (0xe000000000, 0x100000000))
 
     def test_the_naming_mapping_is_documented_as_unproven(self):
-        # Windows names resources, not heaps, so every name in NAME_BY_SLOT is
-        # an inference, and the PDS one is now known to be wrong. The caveat
-        # must stay in the crosscheck until the mapping is re-derived.
+        # Windows names resources, not heaps. The caveat must stay in the
+        # crosscheck so the physical table is never again mistaken for the
+        # PVR heap configuration.
         report = (GUEST / 'reports/windows-kmd-crosscheck.md').read_text()
         self.assertIn('从不给 22 个', report,
-                      'the naming gap is no longer recorded in the crosscheck; '
-                      're-derive the mapping before removing that caveat')
+                      'the naming gap is no longer recorded in the crosscheck')
 
 
 if __name__ == '__main__':

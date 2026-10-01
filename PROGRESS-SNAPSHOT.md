@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：`e3e75e8`（bA32 收尾）
+**对应提交**：bA33（ vendor 15 项堆表 + mmap 页对齐 + 同步/PMR 收尾）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -12,10 +12,11 @@
 
 ## 1. 一句话现状
 
-厂商 MASA UMD 已经能在我们的内核桥驱动上**走完设备连接和设备内存上下文创建**，
-`RGXCreateDeviceMemContext` 返回 **0**；下一个卡点是**渲染上下文创建**，
-根因已定位为一个**数据问题**：我们把 `PDS Code and Data` / `USC Code` 两个堆名
-绑定到了尺寸装不下它们的格子上。
+厂商 MASA UMD 已经能在我们的内核桥驱动上走完
+`PVRSRVConnectionCreateDevice` → `RGXCreateDeviceMemContext` →
+`RGXCreateRenderContext` → `CreateSyncPrim`，**四个符号全部返回 0，
+进程正常退出**。这是在官方 15 项 RGX 堆表、页对齐 mmap、
+同步重命名和 PMR 导入/反导入补齐之后首次打通的完整用户态链路。
 
 ---
 
@@ -29,9 +30,12 @@
 | 1 | `PVRSRVConnect` | **0** |
 | 2 | `PVRSRVConnectionCreateDevice` | **0** |
 | 3 | `RGXCreateDeviceMemContext` | **0** |
-| 4 | `RGXCreateRenderContext` | **1** ← 当前墙 |
+| 4 | `RGXCreateRenderContext` | **0** |
+| 5 | `CreateSyncPrim` | **0** |
 
-第 3 步是本轮突破点：它曾长期返回 11 / 37 / 82，并伴随用户态 `double free` 崩溃。
+本轮把第 3 步稳定为 **0**，并把第 4 步从 **1** 推进为 **0**，
+随后第 5 步也返回 **0**。124 条记录中无失败的桥命令和同步 ioctl，
+进程 `exit=0`，dmesg 无 WARN/BUG/Oops。
 
 第 4 步的完整失败链（全部由 gdb 实测，不是推测）：
 
@@ -68,6 +72,11 @@ RGXCreateRenderContext
 | 11 | `0x6:0x27` MTGPUUpdateOOMStats **未实现**（`-ENOTTY`） | render context 直接失败 | bA29 |
 | 12 | `0x6:0x14` / `0x6:0x16` UnmapPMR / UnreserveRange **未实现** | 每轮拆除各被拒一次 → 错误 38 | bA30 |
 | 13 | `0x82:0x9` RGXDestroyRenderContext **未实现** | 拆除不完整 | bA30 |
+| 14 | 桥接堆表误用 Windows 11 项物理计划 | PDS/USC 名字落在 32 KiB / 4 KiB 槽，装不下 36 KiB 请求 → 错误 83 | bA33 |
+| 15 | `pvr_mmap` 用页对齐后的 VMA 长度直接对比 PMR 字节数 | 39935 / 174079 等非整页映射被拒，UMD 解引用失败地址后崩溃 | bA33 |
+| 16 | `0x40206441` sync rename **未实现**（`-EINVAL`） | render context 收尾失败，错误 38 | bA33 |
+| 17 | `0x6:0x3` 与 `0x6:0x6` 共用 28 字节 OUT handler | 12 字节 OUT 被判 `-EINVAL`，`CreateSyncPrim` 报 37 | bA33 |
+| 18 | `0x6:0x4` PmrUnmakeLocalImportHandle **未实现** | 同步事件收尾被拒 | bA33 |
 
 第 8 项值得单独强调：**`double free` 只是三层之外的表象**。
 整条链路上一个错误码都没有暴露（50 条桥命令全部 ret=0），
@@ -75,7 +84,7 @@ RGXCreateRenderContext
 
 ---
 
-## 4. 当前墙：堆名与槽位的映射错误（**数据问题，不是代码问题**）
+## 4. bA33：堆名映射已按厂商蓝图修正（原“当前墙”已消除）
 
 ### 已证明的事实
 
@@ -113,24 +122,20 @@ RGXCreateRenderContext
 
 ### 结论
 
-**两条独立证据（驱动二进制尺寸表 + 具名资源 profile）同时否定「改大尺寸」这个方案。**
-正确做法是把 `PDS Code and Data` / `USC Code` 重新绑到 0,1,2,3,6,9,10 中的某两格。
+桥接堆表已改为厂商 `gasRGXHeapLayoutApp` 的 15 项蓝图，
+`PDS Code and Data` 在 `0xda00000000+0x100000000`，
+`USC Code` 在 `0xe000000000+0x100000000`。该表的
+每一项都已用随包预编译对象逐项核对，不再依赖 Windows 物理计划推断名字。
 
 ---
 
 ## 5. 下一步
 
-1. **重新推导堆名 ↔ 槽位映射**（当前唯一阻塞项）。
-   仍需一步外部确认：UMD 按这两个名字查找时期望的**堆大小/用途**。
-   已实测 PDS 需 ≥ `0x9000`；可用 gdb 在
-   `MTSRVSubAllocDeviceMemMIW` 上取全部请求来反推。
-   候选槽位 0,1,2,3,6,9,10 的 size 分别为 512 GiB / 4 GiB / 4 GiB / 16 MiB /
-   4 GiB / 4 GiB / 4 GiB。
+1. 当前用户态链路已到 `CreateSyncPrim → 0`。
+   下一步是真正的 GPU 提交 / kick 路径，属于 **S4，需要单独批准**；
+   本轮没有做任何硬件提交。
 
-2. 映射确定后，`RGXCreateRenderContext` 应能越过 arena 分配，
-   继续推进到真正的 GPU 提交（S4 阶段，需单独批准）。
-
-3. 长期项（不影响当前推进）：
+2. 长期项（不影响当前推进）：
    - 目录结构与 Make 流程规范化（见 §7）
    - 门禁不可复现问题（依赖 gitignore 的 `build/` 产物）
 
@@ -140,8 +145,8 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **159 项全绿**（本轮 123 → 159） |
-| C RAM 模型测试 | **186 checks**（170 → 186） |
+| Python 测试 | **163 项通过，1 项跳过**（本轮 123 → 163） |
+| C RAM 模型测试 | **268 checks**（170 → 268） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构） | PASS |
 | 节点探针 `pvr_node_probe` | 0 failing step、0 value mismatch |
@@ -152,15 +157,14 @@ RGXCreateRenderContext
 
 | 文件 | 项数 | 守住什么 |
 |---|---|---|
-| `test_pvr_pmr_lifetime.py` | 9 | PMR 引用计数、mmap 不重复加锁、释放只能走 `pvr_pmr_unref` |
+| `test_pvr_pmr_lifetime.py` | 11 | PMR 引用计数、mmap 不重复加锁、释放只能走 `pvr_pmr_unref`；`0x6:0x3/0x6:0x4` 各有独立 handler 且探针覆盖 |
 | `test_pvr_heap_index_field.py` | 6 | `heap_index` 而非 `heap_config_index`；探针按名查找 |
-| `test_pvr_heap_table_geometry.py` | 5 | 压掉空槽；count 由实际存入数派生 |
-| `test_windows_heap_table_decoded.py` | 10 | 从驱动二进制解表并逐字比对；MMU mode 差异 |
-| `test_pvr_heap_name_evidence.py` | 5 | 把堆名错绑登记为**显式已知缺陷** |
+| `test_pvr_heap_table_geometry.py` | 7 | 压掉空槽；count 由实际存入数派生；厂商蓝图逐项核对 |
+| `test_windows_heap_table_decoded.py` | 10 | 从驱动二进制解表并逐字比对；MMU mode 差异；物理表与 PVR 蓝图不再混用 |
+| `test_pvr_heap_name_evidence.py` | 5 | 厂商蓝图上的 PDS/USC 槽位与桥接初始化一致 |
 
-设计要点：`test_pvr_heap_name_evidence.py` **不**断言掉当前缺陷，
-而是把它记录成一条「已知缺陷」测试。**映射被真正重推时它会失败——
-那就是该重写该文件、并删除其中描述的临时手段的信号。**
+设计要点：`test_pvr_heap_name_evidence.py` 已从“已知缺陷记录”
+改为“正确映射断言”。厂商蓝图一旦漂移，它会直接失败。
 
 ---
 
@@ -197,7 +201,7 @@ RGXCreateRenderContext
 
 | 层 | 内容 | 需 root/硬件 | 时长 |
 |---|---|---|---|
-| **L1 纯离线** | 159 py + 50 C RAM | 否 | ~3 s |
+| **L1 纯离线** | 163 py + 268 C checks | 否 | ~3 s |
 | **L2 构建+ABI** | `W=1`、ABI 漂移、线尺寸门 | 否 | ~90 s |
 | **L3 节点探针** | 加载模块、`pvr_node_probe` | 是（不碰硬件） | ~2 s |
 | **L4 UMD 端到端** | 真实 UMD 阶梯 | 是 | 每级几秒 |

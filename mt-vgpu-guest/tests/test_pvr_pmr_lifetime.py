@@ -186,5 +186,46 @@ class PmrLifetime(unittest.TestCase):
                          '0x86:0x5 is no longer routed to pvr_cmd_hwperf_release')
 
 
+class PmrImportRouting(unittest.TestCase):
+    """0x6:0x3 and 0x6:0x6 have different OUT sizes and handlers."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = strip_comments(SOURCE.read_text())
+        cls.make_import = function_body('pvr_cmd_pmr_make_import', cls.text)
+        cls.probe = strip_comments(
+            (SOURCE.parents[2] / 'probe' / 'pvr_node_probe.c').read_text())
+
+    def test_make_import_has_its_own_handler(self):
+        self.assertRegex(
+            self.text,
+            r'case\s+0x3:.*\n.*pvr_cmd_pmr_make_import',
+            '0x6:0x3 is not routed to its own handler')
+        self.assertRegex(
+            self.text,
+            r'case\s+0x4:.*\n.*pvr_cmd_pmr_unmake_import',
+            '0x6:0x4 is not routed to its own handler')
+        self.assertRegex(
+            self.text,
+            r'case\s+0x6:.*\n.*pvr_cmd_pmr_import',
+            '0x6:0x6 is not routed to its own handler')
+        self.assertIn('mt_pvr_make_import_in', self.make_import)
+        self.assertIn('mt_pvr_make_import_out', self.make_import)
+        self.assertIn('pvr_pmr_find(file', self.make_import)
+        self.assertIn('out.ext_mem = pmr->handle', self.make_import)
+
+    def test_probe_covers_make_import(self):
+        self.assertRegex(
+            self.probe,
+            r'bridge\(fd,\s*0x6,\s*0x3,\s*&make_in',
+            'the node probe does not exercise 0x6:0x3')
+        self.assertIn('make_out.ext_mem != sync_out.sync_pmr', self.probe,
+                      'the node probe does not check the exported handle')
+        self.assertRegex(
+            self.probe,
+            r'bridge\(fd,\s*0x6,\s*0x4,\s*&unmake_in',
+            'the node probe does not exercise 0x6:0x4')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include "../kernel/mt_pvr_wire.h"
+#include "../kernel/mt_pvr_queue.h"
 
 struct drm_version {
 	int32_t major, minor, patch;
@@ -41,6 +42,7 @@ struct drm_version {
  */
 #define BRIDGE_IOCTL 0xc0206440UL	/* _IOWR('d', 0x40, srvkm_cmd)   */
 #define INIT_IOCTL 0x40046445UL		/* _IOW ('d', 0x45, init_data)  */
+#define SYNC_RENAME_IOCTL 0x40206441UL	/* _IOW ('d', 0x41, sync rename) */
 
 static int failures;
 static int mismatches;
@@ -168,6 +170,41 @@ int main(int argc, char **argv)
 	       (unsigned long long)handle_out.handle,
 	       (unsigned long long)handle_out.handle);
 
+	/* The render path renames the timeline on its second node. */
+	{
+		char timeline[32] = { 0 };
+
+		memcpy(timeline, "pvr-node-probe", sizeof("pvr-node-probe"));
+		step("SYNC_RENAME", ioctl(fd, SYNC_RENAME_IOCTL, timeline));
+	}
+
+	/* eError first, then the count -- see mt_pvr_heap_count_out in the wire
+	 * header. Reading a bare u64 here reported the count because the driver
+	 * used to write it at offset 0; the UMD read that as eError and cached
+	 * zero heaps, so the probe must read it where the UMD reads it. This
+	 * has to happen before any loop below uses heap_count_out.
+	 */
+	memset(&heap_count_out, 0, sizeof(heap_count_out));
+	step("0x6:0x1e HeapCfgHeapCount",
+	     bridge(fd, 0x6, 0x1e, NULL, 0, &heap_count_out,
+		    sizeof(heap_count_out)));
+	printf("%-28s eError=%u num_heaps=%u\n", "", heap_count_out.error,
+	       heap_count_out.num_heaps);
+	if (heap_count_out.error != 0) {
+		printf("%-28s driver reported error %u\n", "MISMATCH:",
+		       heap_count_out.error);
+		mismatches++;
+	}
+	if (heap_count_out.num_heaps == 0) {
+		printf("%-28s UMD would cache zero heaps here\n", "MISMATCH:");
+		mismatches++;
+	}
+	if (heap_count_out.num_heaps != MT_PVR_HEAP_COUNT) {
+		printf("%-28s expected %u heaps from the vendor blueprint\n",
+		       "MISMATCH:", MT_PVR_HEAP_COUNT);
+		mismatches++;
+	}
+
 	/* heap_name_out must be armed on *every* call: the driver copies the
 	 * name into it, and a NULL pointer there is correctly refused with
 	 * EFAULT. That is a probe bug, not a driver bug.
@@ -195,10 +232,10 @@ int main(int argc, char **argv)
 
 	/* "USC Code" is the heap whose absence bA5 showed to block
 	 * device-memory-context creation, so it is the one that has to come
-	 * back. Look it up by name the way the UMD does, rather than pinning an
-	 * index: the table now compacts away its two empty slots, so hardcoded
-	 * indices silently drift whenever a slot is added or removed. That is
-	 * exactly the class of bug this probe exists to catch.
+	 * back. Look it up by name the way the UMD does. The vendor blueprint
+	 * also fixes it at index 4, so check that binding as well: the earlier
+	 * table put this name on a 4 KiB slot that could not hold the UMD's
+	 * allocations.
 	 *
 	 * heap_name_out must be re-armed on every call: leaving it NULL makes the
 	 * driver's copy_to_user() fail with EFAULT, which is correct behaviour
@@ -234,6 +271,16 @@ int main(int argc, char **argv)
 			       found, (unsigned long long)heap_out.base,
 			       (unsigned long long)heap_out.length,
 			       heap_out.log2_data_page_size);
+			if (found != 4 ||
+			    heap_out.base != 0xe000000000ULL ||
+			    heap_out.length != 4294967296ULL ||
+			    heap_out.reserved_length != 65536ULL ||
+			    heap_out.log2_data_page_size != 0 ||
+			    heap_out.log2_import_alignment != 0) {
+				printf("%-28s 'USC Code' is not on the vendor "
+				       "blueprint\n", "MISMATCH:");
+				mismatches++;
+			}
 		}
 	}
 
@@ -268,19 +315,32 @@ int main(int argc, char **argv)
 		       "", heap_count_out.num_heaps);
 	}
 
-	/* An unnamed slot must come back as an empty string, not a fault. */
+	/* The vendor blueprint names every heap, so index 1 must be General.
+	 * The earlier guest-physical table left this slot unnamed; that table
+	 * is no longer the heap configuration served by the bridge.
+	 */
 	memset(&heap_in, 0, sizeof(heap_in));
+	memset(&heap_out, 0, sizeof(heap_out));
 	heap_in.heap_name_out = (uint64_t)(uintptr_t)name_buffer;
 	heap_in.heap_name_buf_size = sizeof(name_buffer);
 	heap_in.heap_config_index = 0;
-	heap_in.heap_index = 1;
+	heap_in.heap_index = 3;
 	memset(name_buffer, 0, sizeof(name_buffer));
-	step("0x6:0x20 HeapCfgHeapDetails[1] unnamed",
+	step("0x6:0x20 HeapCfgHeapDetails[3] PDS",
 	     bridge(fd, 0x6, 0x20, &heap_in, sizeof(heap_in), &heap_out,
 		    sizeof(heap_out)));
-	printf("%-28s name='%s' (expect empty)\n", "", name_buffer);
-	if (name_buffer[0]) {
-		printf("%-28s unnamed slot returned a name\n", "MISMATCH:");
+	printf("%-28s name='%s' base=0x%llx size=0x%llx reserved=0x%llx\n", "",
+	       name_buffer, (unsigned long long)heap_out.base,
+	       (unsigned long long)heap_out.length,
+	       (unsigned long long)heap_out.reserved_length);
+	if (strcmp((const char *)name_buffer, "PDS Code and Data") ||
+	    heap_out.base != 0xda00000000ULL ||
+	    heap_out.length != 4294967296ULL ||
+	    heap_out.reserved_length != 65536ULL ||
+	    heap_out.log2_data_page_size != 0 ||
+	    heap_out.log2_import_alignment != 0) {
+		printf("%-28s 'PDS Code and Data' is not on the vendor blueprint\n",
+		       "MISMATCH:");
 		mismatches++;
 	}
 
@@ -302,27 +362,6 @@ int main(int argc, char **argv)
 	 * was exactly info_base + 0x48, so a plain read here separates "the
 	 * mapping is unusable" from "the contents are wrong".
 	 */
-	/* eError first, then the count -- see mt_pvr_heap_count_out in the wire
-	 * header. Reading a bare u64 here reported the count because the driver
-	 * used to write it at offset 0; the UMD read that as eError and cached
-	 * zero heaps, so the probe must read it where the UMD reads it.
-	 */
-	memset(&heap_count_out, 0, sizeof(heap_count_out));
-	step("0x6:0x1e HeapCfgHeapCount",
-	     bridge(fd, 0x6, 0x1e, NULL, 0, &heap_count_out,
-		    sizeof(heap_count_out)));
-	printf("%-28s eError=%u num_heaps=%u\n", "", heap_count_out.error,
-	       heap_count_out.num_heaps);
-	if (heap_count_out.error != 0) {
-		printf("%-28s driver reported error %u\n", "MISMATCH:",
-		       heap_count_out.error);
-		mismatches++;
-	}
-	if (heap_count_out.num_heaps == 0) {
-		printf("%-28s UMD would cache zero heaps here\n", "MISMATCH:");
-		mismatches++;
-	}
-
 	{
 		struct mt_pvr_handle_out info = { 0 };
 		struct mt_pvr_import_in imp_in;
@@ -374,6 +413,42 @@ int main(int argc, char **argv)
 	       (unsigned long long)sync_out.sync_handle,
 	       (unsigned long long)sync_out.sync_pmr, sync_out.block_size,
 	       (unsigned long long)sync_out.vaddr);
+
+	/* A sync PMR must be exportable through the smaller 0x6:0x3 response.
+	 * Routing this to the 0x6:0x6 handler fails because that response does
+	 * not fit in the 12 bytes the caller supplies.
+	 */
+	{
+		struct mt_pvr_make_import_in make_in = { 0 };
+		struct mt_pvr_make_import_out make_out = { 0 };
+
+		make_in.buffer = sync_out.sync_pmr;
+		step("0x6:0x3 PmrMakeLocalImportHandle",
+		     bridge(fd, 0x6, 0x3, &make_in, sizeof(make_in),
+			    &make_out, sizeof(make_out)));
+		printf("%-28s ext_mem=0x%llx error=%u\n", "",
+		       (unsigned long long)make_out.ext_mem, make_out.error);
+		if (make_out.ext_mem != sync_out.sync_pmr || make_out.error) {
+			printf("%-28s local import did not return the PMR\n",
+			       "MISMATCH:");
+			mismatches++;
+		}
+	}
+
+	{
+		struct mt_pvr_unmake_import_in unmake_in = { 0 };
+		struct mt_pvr_unmake_import_out unmake_out = { 0 };
+
+		unmake_in.ext_mem = sync_out.sync_pmr;
+		step("0x6:0x4 PmrUnmakeLocalImportHandle",
+		     bridge(fd, 0x6, 0x4, &unmake_in, sizeof(unmake_in),
+			    &unmake_out, sizeof(unmake_out)));
+		if (unmake_out.error) {
+			printf("%-28s local unimport reported error %u\n",
+			       "MISMATCH:", unmake_out.error);
+			mismatches++;
+		}
+	}
 
 	/* An unknown command must be refused, not silently accepted. */
 	{

@@ -4,12 +4,48 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA32：**找到堆名错绑的决定性证据**——Windows 具名资源反证）
+最后更新：2026-10-01（bA33：**完整用户态链路打通**——官方堆表 + mmap + 同步/PMR 收尾）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（bA32：堆名错绑已被证据坐实；「把堆改大」确定是错解）
+## 本次会话进展（bA33：四个符号全部返回 0）
+
+真机配方一次走完：
+
+```text
+PVRSRVConnectionCreateDevice(...) -> 0
+RGXCreateDeviceMemContext(...) -> 0
+RGXCreateRenderContext(...) -> 0
+CreateSyncPrim(...) -> 0
+```
+
+124 条记录中没有失败的桥命令或同步 ioctl，进程 `exit=0`，
+dmesg 无 WARN/BUG/Oops。
+
+### 修掉的阻塞点
+
+1. **桥接堆表改用厂商 15 项 RGX 蓝图**
+   `gasRGXHeapLayoutApp`，不再用 Windows 11 项物理计划。
+   PDS 在 `0xda00000000+0x100000000`，USC 在 `0xe000000000+0x100000000`。
+2. **mmap 按页数比较 PMR 是否放得下**
+   内核看到的 VMA 长度已经按页取整，直接和 PMR 字节数比大小会误拒
+   39935 / 174079 等合法映射；`vzalloc` 本来就 backed 了最后一整页。
+3. **实现 `0x40206441` sync rename**
+   名字做有效字符串校验后随文件保存，render 收尾不再报 38。
+4. **拆分 `0x6:0x3` 和 `0x6:0x6`**
+   前者 OUT 只有 12 字节，共用 28 字节 handler 会 `-EINVAL`，
+   `CreateSyncPrim` 因此报 37。
+5. **实现 `0x6:0x4` 反导入**
+   只校验 handle，不提前释放 PMR 本体。
+
+### 门禁
+
+- Python **163 项通过、1 项跳过**
+- C RAM **268 checks**
+- `W=1`、ABI 门、探针全绿
+
+## 上次会话进展（bA32：堆名错绑已被证据坐实；「把堆改大」确定是错解）
 
 bA31 证明了尺寸正确、名字绑定错误。bA32 找到了**为什么**名字绑定错。
 

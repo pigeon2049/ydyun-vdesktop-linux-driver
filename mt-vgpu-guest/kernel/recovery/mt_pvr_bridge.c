@@ -53,18 +53,27 @@ struct mt_pvr_init_data {
 	u32 init_module;
 };
 
+struct mt_pvr_sync_rename_data {
+	char name[32];
+};
+
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
+#define DRM_IOCTL_PVR_SYNC_RENAME _IOW('d', 0x41, struct mt_pvr_sync_rename_data)
 
-/* Both numbers are wire contract, so pin them rather than trusting the spelling
+/* These numbers are wire contract, so pin them rather than trusting the spelling
  * above to keep matching the vendor UMD.
  */
 static_assert(DRM_IOCTL_PVR_BRIDGE == 0xc0206440, "bridge ioctl number drifted");
 static_assert(DRM_IOCTL_PVR_INIT == 0x40046445, "init ioctl number drifted");
+static_assert(DRM_IOCTL_PVR_SYNC_RENAME == 0x40206441, "sync rename ioctl number drifted");
 static_assert(_IOC_SIZE(DRM_IOCTL_PVR_BRIDGE) == sizeof(struct mt_pvr_cmd),
 	      "bridge payload must be copied by drm_ioctl");
 static_assert(_IOC_SIZE(DRM_IOCTL_PVR_INIT) == 4,
 	      "init payload must be 4 bytes or the argument never reaches us");
+static_assert(_IOC_SIZE(DRM_IOCTL_PVR_SYNC_RENAME) ==
+	      sizeof(struct mt_pvr_sync_rename_data),
+	      "sync rename payload must be copied by drm_ioctl");
 
 #define MT_PVR_DRV_NAME "pvr"
 
@@ -125,6 +134,7 @@ struct mt_pvr_file {
 	void *info_page;
 	struct list_head pmrs;
 	struct list_head objects;
+	char sync_timeline[32];
 	u32 init_module;
 };
 
@@ -178,20 +188,6 @@ static bool pvr_device_owned_by_main(void)
 
 static int pvr_open(struct drm_device *drm, struct drm_file *drm_file)
 {
-	/* One name per *plan* position, and they must line up with the plan:
-	 * mt_pvr_heaps_init() stores names[i] alongside plan->heaps[i].
-	 *
-	 * "Component Control" was listed at position 4, which is an empty slot,
-	 * so it was never published at all -- the name array had drifted one
-	 * position from the geometry. Position 3 is the populated heap at base
-	 * 0xa000000000, so that is where the name belongs. bA5 and bA7 only
-	 * needed "General" and "USC Code", which is why this went unnoticed.
-	 */
-	static const char *const heap_names[MT_PVR_HEAP_COUNT] = {
-		"General", NULL, NULL, "Component Control", NULL, NULL,
-		NULL, "PDS Code and Data", "USC Code", NULL, NULL,
-	};
-	struct mt_guest_heap_plan plan;
 	struct mt_pvr_file *file;
 
 	if (!READ_ONCE(pvr_ready)) {
@@ -209,8 +205,7 @@ static int pvr_open(struct drm_device *drm, struct drm_file *drm_file)
 	INIT_LIST_HEAD(&file->objects);
 	mt_pvr_handles_init(&file->handles);
 	mt_pvr_queue_init(&file->queue, MT_PVR_RING_ENTRIES);
-	mt_guest_plan_heaps(&plan);
-	mt_pvr_heaps_init(&file->heaps, &plan, heap_names);
+	mt_pvr_rgx_app_heaps_init(&file->heaps);
 	/* GetFeatures(conn) returns conn+0xa0+0x620, so the block the UMD reads
 	 * starts 0x620 bytes into the allocation.
 	 */
@@ -642,8 +637,9 @@ static int pvr_cmd_heap_details(struct mt_pvr_file *file,
 	entry = &file->heaps.entries[index];
 	out.base = entry->base;
 	out.length = entry->size;
-	out.log2_data_page_size = entry->log2_page_size;
-	out.log2_import_alignment = entry->log2_page_size;
+	out.reserved_length = entry->reserved_size;
+	out.log2_data_page_size = entry->log2_data_page_size;
+	out.log2_import_alignment = entry->log2_import_alignment;
 	out.heap_name_out = in.heap_name_out;
 	ret = pvr_copy_heap_name(file, index, in.heap_name_buf_size,
 				 in.heap_name_out);
@@ -699,6 +695,44 @@ static int pvr_cmd_pmr_alloc(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	out.pmr = pmr->handle;
 	out.out_flags = in.flags;
 	out.is_system_mem = 1;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* 0x6:0x3 MM:PmrMakeLocalImportHandle -- export a PMR to this file.
+ *
+ * The handle stays in the same per-file handle space, so the exported handle
+ * is the PMR's own handle. A missing PMR is -ENOENT, not a size error.
+ */
+static int pvr_cmd_pmr_make_import(struct mt_pvr_file *file,
+				   struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_make_import_in in;
+	struct mt_pvr_make_import_out out = { 0 };
+	struct mt_pvr_pmr *pmr;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	pmr = pvr_pmr_find(file, in.buffer);
+	if (!pmr)
+		return -ENOENT;
+	out.ext_mem = pmr->handle;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+static int pvr_cmd_pmr_unmake_import(struct mt_pvr_file *file,
+				     struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_unmake_import_in in;
+	struct mt_pvr_unmake_import_out out = { 0 };
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	if (!pvr_pmr_find(file, in.ext_mem))
+		return -ENOENT;
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -970,6 +1004,9 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 	case MT_PVR_BRIDGE_MM:
 		switch (function) {
 		case 0x3:			/* PmrMakeLocalImportHandle */
+			return pvr_cmd_pmr_make_import(file, cmd);
+		case 0x4:			/* PmrUnmakeLocalImportHandle */
+			return pvr_cmd_pmr_unmake_import(file, cmd);
 		case 0x6:			/* PmrLocalImportPmr */
 			return pvr_cmd_pmr_import(file, cmd);
 		case 0x7:			/* PmrUnrefPmr */
@@ -1088,9 +1125,32 @@ static int pvr_ioctl_init(struct drm_device *drm, void *raw,
 	return 0;
 }
 
+/* The render path opens a second node and names its sync timeline. The name is
+ * only diagnostic at this stage, but it must be a valid string and it is
+ * retained with the file so later fence work can use the right timeline.
+ */
+static int pvr_ioctl_sync_rename(struct drm_device *drm, void *raw,
+				 struct drm_file *drm_file)
+{
+	struct mt_pvr_file *file = drm_file->driver_priv;
+	struct mt_pvr_sync_rename_data *data = raw;
+
+	(void)drm;
+	if (!file)
+		return -ENODEV;
+	if (!memchr(data->name, '\0', sizeof(data->name)))
+		return -EINVAL;
+	mutex_lock(&file->lock);
+	memcpy(file->sync_timeline, data->name, sizeof(file->sync_timeline));
+	mutex_unlock(&file->lock);
+	return 0;
+}
+
 static const struct drm_ioctl_desc pvr_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(PVR_BRIDGE, pvr_ioctl_bridge, DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(PVR_INIT, pvr_ioctl_init, DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF_DRV(PVR_SYNC_RENAME, pvr_ioctl_sync_rename,
+			  DRM_RENDER_ALLOW),
 };
 
 /* Map one of this file's PMRs. The UMD maps by DRM offset, and the offset is
@@ -1147,26 +1207,25 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 	 * set ret and share one exit rather than returning directly.
 	 */
 	ret = 0;
-	/* `offset` is the mapping's offset *into* the PMR, and remap_vmalloc_range
-	 * maps from the start of `host`, so the bound is the requested length
-	 * against the PMR size. Adding the offset here (as an earlier version
-	 * did) rejects every full-PMR mapping, because offset is the handle
-	 * shifted up by 12 and is far larger than the PMR.
+	/* `offset` is the mapping's offset *into* the PMR, and the mapping starts
+	 * from `host`, so bound the requested pages against the PMR's pages.
+	 * Adding the offset here (as an earlier version did) rejects every
+	 * full-PMR mapping, because offset is the handle shifted up by 12 and
+	 * is far larger than the PMR. Comparing the already page-rounded VMA
+	 * length against the exact PMR byte count would likewise reject every
+	 * non-page-multiple PMR, even though vzalloc() backs its final page.
 	 */
-	if (length > pmr->bytes) {
-		pr_info("mt_pvr_bridge: mmap len %lu > pmr bytes %llu\n",
+	if (!mt_pvr_mmap_fits(length, pmr->bytes, PAGE_SIZE)) {
+		pr_info("mt_pvr_bridge: mmap len %lu does not fit pmr bytes %llu\n",
 			length, pmr->bytes);
 		ret = -EINVAL;
 		goto out;
 	}
-	/* Refuse a partial page: a short mapping would expose bytes outside
-	 * the PMR.
+	/* A PMR size is a byte count, while mmap works in pages. The UMD maps
+	 * the exact allocated length, which is not always page-aligned. Round
+	 * the mapping up: vzalloc() backs the whole final page, so no bytes
+	 * outside the PMR are exposed.
 	 */
-	if (length & ~PAGE_MASK) {
-		pr_info("mt_pvr_bridge: mmap unaligned length %lu\n", length);
-		ret = -EINVAL;
-		goto out;
-	}
 	/* remap_vmalloc_range() cannot be used here: it requires the whole
 	 * vmalloc area to match, and vzalloc() appends a guard page when the
 	 * size is not a power of two, so it rejected every mapping with
@@ -1198,7 +1257,7 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 	 * backed, which is what makes this a remap rather than a copy.
 	 */
 	{
-		unsigned long pages = length >> PAGE_SHIFT;
+		unsigned long pages = mt_pvr_mmap_page_count(length, PAGE_SIZE);
 		unsigned long i;
 		struct page *page;
 

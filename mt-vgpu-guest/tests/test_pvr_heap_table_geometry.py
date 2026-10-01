@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """Gate the heap table the UMD is served.
 
-Two rules, both learned the hard way from the real UMD:
+The bridge serves the vendor's fifteen-entry RGX application blueprint. The
+older eleven-entry guest physical plan is still used for guest-side VM
+resources and is covered below only as a compatibility helper. Two rules, both
+learned the hard way from the real UMD:
 
-  1. Every published heap needs a non-zero base and size. The plan has two
-     slots (4 and 5) that are empty on the reference side too. Publishing
-     them as zero-length entries made the UMD build an arena with nothing to
-     reserve; FUN_0019e7f0() returned 0 and RGXCreateDeviceMemContext failed
-     with 82 = MTSRV_ERROR_DEVICEMEM_UNABLE_TO_CREATE_ARENA.
+  1. Every published heap needs a non-zero base and size. Publishing a
+     zero-length entry made the UMD build an arena with nothing to reserve;
+     FUN_0019e7f0() returned 0 and RGXCreateDeviceMemContext failed with 82 =
+     MTSRV_ERROR_DEVICEMEM_UNABLE_TO_CREATE_ARENA.
 
-  2. Empty slots must be compacted out, not merely zeroed. The UMD walks
-     indices 0..count-1 and builds one arena per entry, so "count = 11 with
-     two holes" is not a table it can use.
+  2. PDS and USC must resolve to heaps large enough for the UMD's measured
+     0x9000-byte PDS suballocation. The earlier table put those names on
+     0x8000 and 0x1000 slots; the vendor blueprint puts them on 4 GiB heaps.
 
-These read the plan tables directly rather than the runtime table, so they
-catch the geometry before a module is ever loaded.
+These read the tables directly rather than the runtime table, so they catch
+the geometry before a module is ever loaded.
 """
 import re
 import unittest
@@ -33,6 +35,42 @@ def c_array(text, name):
         raise AssertionError(f'{name} not found in {HEAPS_H}')
     body = re.sub(r'/\*.*?\*/', '', m.group(1), flags=re.S)
     return [v.strip() for v in body.split(',') if v.strip()]
+
+
+def app_blueprint_rows(text):
+    """Parse the vendor RGX application blueprint in mt_pvr_queue.h."""
+    m = re.search(
+        r'static const struct mt_pvr_heap_entry app_heaps\[\]\s*=\s*\{(.*?)\};',
+        text, re.S)
+    if not m:
+        raise AssertionError('app_heaps not found in mt_pvr_queue.h')
+    rows = re.findall(
+        r'\{\s*"([^"]+)"\s*,\s*(0x[0-9a-fA-F]+)ULL\s*,\s*([0-9]+)ULL\s*,'
+        r'\s*([0-9]+)ULL\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*\}',
+        m.group(1))
+    if not rows:
+        raise AssertionError('app_heaps has no parseable blueprint rows')
+    return [(name, int(base, 16), int(size), int(reserved), int(log2), int(align))
+            for name, base, size, reserved, log2, align in rows]
+
+
+EXPECTED_APP_BLUEPRINT = [
+    ("General SVM", 0x4000000000, 274877906944, 2097152, 0, 0),
+    ("General", 0x8000000000, 137438953472, 65536, 0, 0),
+    ("General NON-4K", 0xb800000000, 34359738368, 0, 0, 0),
+    ("PDS Code and Data", 0xda00000000, 4294967296, 65536, 0, 0),
+    ("USC Code", 0xe000000000, 4294967296, 65536, 0, 0),
+    ("Vulkan Capture Replay", 0xe900000000, 1073741824, 0, 0, 0),
+    ("Signals", 0xea00000000, 65536, 0, 0, 0),
+    ("Component Control", 0xeb00000000, 4294967296, 0, 0, 0),
+    ("FBCDC", 0xec00000000, 2097152, 0, 0, 0),
+    ("Large FBCDC", 0xec40000000, 2097152, 0, 0, 0),
+    ("PDS Indirect State", 0xed00000000, 16777216, 0, 0, 0),
+    ("Compute Mission RMW", 0xee00000000, 1073741824, 0, 0, 0),
+    ("Compute Safety RMW", 0xef00000000, 1073741824, 0, 0, 0),
+    ("Texture State", 0xf000000000, 4294967296, 0, 0, 0),
+    ("Visibility Test", 0xf200000000, 2097152, 0, 0, 0),
+]
 
 
 class HeapTableGeometry(unittest.TestCase):
@@ -102,6 +140,27 @@ class HeapTableGeometry(unittest.TestCase):
         self.assertRegex(
             self.queue, r'if\s*\(\s*!base\s*\|\|\s*!size\s*\)\s*\n\s*continue',
             'no guard against publishing an empty heap entry exists')
+
+    def test_bridge_serves_the_vendor_application_blueprint(self):
+        rows = app_blueprint_rows(self.queue)
+        self.assertEqual(
+            rows, EXPECTED_APP_BLUEPRINT,
+            'the bridge heap blueprint drifted from the vendor table')
+        for name, base, size, _, _, _ in rows:
+            self.assertTrue(name)
+            self.assertNotEqual(base, 0)
+            self.assertNotEqual(size, 0)
+
+    def test_pds_and_usc_resolve_to_four_gib_heaps(self):
+        rows = dict((name, (base, size))
+                    for name, base, size, _, _, _ in app_blueprint_rows(self.queue))
+        for name in ('PDS Code and Data', 'USC Code'):
+            base, size = rows[name]
+            self.assertGreaterEqual(
+                size, 0x9000,
+                f'{name} cannot hold the measured PDS suballocation')
+        self.assertEqual(rows['PDS Code and Data'][0], 0xda00000000)
+        self.assertEqual(rows['USC Code'][0], 0xe000000000)
 
 
 if __name__ == '__main__':

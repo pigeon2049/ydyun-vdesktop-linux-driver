@@ -17,11 +17,13 @@ from pathlib import Path
 
 GUEST = Path(__file__).resolve().parents[1]
 SOURCE = GUEST / 'kernel/recovery/mt_pvr_bridge.c'
+QUEUE = GUEST / 'kernel/mt_pvr_queue.h'
 PROBE = GUEST / 'probe/pvr_node_probe.c'
 
-# Measured from the live 5.2 UMD: eleven calls, this shape every time.
+# Measured from the live 5.2 UMD: one call per published heap, this shape every
+# time. The vendor table now publishes fifteen heaps.
 MEASURED_CALLS = [
-    {'heap_config_index': 0, 'heap_index': n} for n in range(11)
+    {'heap_config_index': 0, 'heap_index': n} for n in range(15)
 ]
 
 
@@ -116,13 +118,14 @@ class HeapDetailsIndexField(unittest.TestCase):
         # that should make the change visible.
         for call in MEASURED_CALLS:
             self.assertEqual(call['heap_config_index'], 0)
-            self.assertLess(call['heap_index'], 11)
+            self.assertLess(call['heap_index'], 15)
 
     def test_heap_names_include_the_three_the_umd_needs(self):
         # FUN_001705f0 looks up exactly these before allocating the static
         # PDS/USC objects. All three must be published.
-        names = re.search(r'heap_names\s*\[\s*\w*\s*\]\s*=\s*\{(.*?)\}',
-                       self.text, re.S)
+        names = re.search(
+            r'static const struct mt_pvr_heap_entry app_heaps\[\]\s*=\s*\{(.*?)\};',
+            QUEUE.read_text(), re.S)
         self.assertIsNotNone(names, 'the heap name table is gone')
         for required in ('General', 'PDS Code and Data', 'USC Code'):
             self.assertIn(required, names.group(1),

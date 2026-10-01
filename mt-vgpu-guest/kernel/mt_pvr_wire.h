@@ -111,6 +111,36 @@ struct MT_PVR_PACKED mt_pvr_hwperf_release_out {
 	u32 error;
 };
 
+/* 0x6:0x3 MM:PmrMakeLocalImportHandle -- 8-byte IN, 12-byte OUT.
+ *
+ * This was sharing the 0x6:0x6 handler, whose 28-byte OUT no longer fits the
+ * 12 bytes the UMD supplies here. The undersized OUT buffer made pvr_out()
+ * reject a valid request with -EINVAL, which CreateSyncPrim reports as error
+ * 37.
+ */
+struct MT_PVR_PACKED mt_pvr_make_import_in {
+	u64 buffer;
+};
+
+struct MT_PVR_PACKED mt_pvr_make_import_out {
+	u64 ext_mem;
+	u32 error;
+};
+
+/* 0x6:0x4 MM:PmrUnmakeLocalImportHandle -- 8-byte IN, 4-byte OUT.
+ *
+ * The bridge does not mint a separate object for a local import: the exported
+ * handle is the PMR's own handle. Unmaking therefore only validates the handle;
+ * the PMR itself stays alive until 0x6:0x7 releases it.
+ */
+struct MT_PVR_PACKED mt_pvr_unmake_import_in {
+	u64 ext_mem;
+};
+
+struct MT_PVR_PACKED mt_pvr_unmake_import_out {
+	u32 error;
+};
+
 /* 0x6:0x6 MM:PmrLocalImportPmr -- 8-byte IN, 28-byte OUT. */
 struct MT_PVR_PACKED mt_pvr_import_in {
 	u64 ext_handle;
@@ -334,6 +364,10 @@ static_assert(sizeof(struct mt_pvr_connect_out) == 17, "0x1:0x0 out");
 static_assert(sizeof(struct mt_pvr_handle_out) == 12, "0x1:0x2/0x1:0xf out");
 static_assert(sizeof(struct mt_pvr_event_open_in) == 8, "0x1:0x4 in");
 static_assert(sizeof(struct mt_pvr_event_open_out) == 12, "0x1:0x4 out");
+static_assert(sizeof(struct mt_pvr_unmake_import_in) == 8, "0x6:0x4 in");
+static_assert(sizeof(struct mt_pvr_unmake_import_out) == 4, "0x6:0x4 out");
+static_assert(sizeof(struct mt_pvr_make_import_in) == 8, "0x6:0x3 in");
+static_assert(sizeof(struct mt_pvr_make_import_out) == 12, "0x6:0x3 out");
 static_assert(sizeof(struct mt_pvr_import_in) == 8, "0x6:0x6 in");
 static_assert(sizeof(struct mt_pvr_hwperf_release_in) == 8, "0x86:0x5 in");
 static_assert(sizeof(struct mt_pvr_hwperf_release_out) == 4, "0x86:0x5 out");

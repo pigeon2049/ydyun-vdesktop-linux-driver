@@ -215,9 +215,9 @@ static const struct canned_out canned[] = {
 	  0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	  0x00, 0x00, 0x00, 0x00},
 	 28},
-	/* MM:HEAPCFGHEAPCOUNT -> 11 heaps (retest with distinct handles). */
+	/* MM:HEAPCFGHEAPCOUNT -> 15 heaps (retest with distinct handles). */
 	{0x6, 0x1e,
-	 {0x00, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00},
+	 {0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00},
 	 8},
 	/* MM:DEVMEMINTCTXCREATE -> nonzero server ctx/priv + 64B cache line. */
 	{0x6, 0xf,
@@ -237,27 +237,34 @@ static const struct canned_out canned[] = {
 	 12},
 };
 
-/* Heap 0-10 base/length from mt_guest_plan_heaps (S3000 Guest layout). */
-struct heap_range { uint64_t base, size; };
-static const struct heap_range heap_ranges[11] = {
-	{0x40000000ULL, 0x8000000000ULL},
-	{0x8100000000ULL, 0x100000000ULL},
-	{0x8400000000ULL, 0x100000000ULL},
-	{0xa000000000ULL, 0x1000000ULL},
-	{0xd000000000ULL, 0x100000ULL},
-	{0, 0},
-	{0xe1c0000000ULL, 0x100000000ULL},
-	{0xec00000000ULL, 0x800000ULL},
-	{0xec40000000ULL, 0x100000ULL},
-	{0xeb00000000ULL, 0x100000000ULL},
-	{0xf000000000ULL, 0x100000000ULL},
+/* Heap 0-14 base/length/reserved from the vendor RGX application heap
+ * configuration (S3000 Guest layout). */
+struct heap_range { uint64_t base, size, reserved; };
+static const struct heap_range heap_ranges[15] = {
+	{0x4000000000ULL, 274877906944ULL, 2097152ULL},
+	{0x8000000000ULL, 137438953472ULL, 65536ULL},
+	{0xb800000000ULL, 34359738368ULL, 0ULL},
+	{0xda00000000ULL, 4294967296ULL, 65536ULL},
+	{0xe000000000ULL, 4294967296ULL, 65536ULL},
+	{0xe900000000ULL, 1073741824ULL, 0ULL},
+	{0xea00000000ULL, 65536ULL, 0ULL},
+	{0xeb00000000ULL, 4294967296ULL, 0ULL},
+	{0xec00000000ULL, 2097152ULL, 0ULL},
+	{0xec40000000ULL, 2097152ULL, 0ULL},
+	{0xed00000000ULL, 16777216ULL, 0ULL},
+	{0xee00000000ULL, 1073741824ULL, 0ULL},
+	{0xef00000000ULL, 1073741824ULL, 0ULL},
+	{0xf000000000ULL, 4294967296ULL, 0ULL},
+	{0xf200000000ULL, 2097152ULL, 0ULL},
 };
 
-/* Heap names for FindHeapByName (RGX_*_HEAP_IDENT). Only 0 and 7 assigned;
- * UMD names any other missing heap in its next error. BufSz is 160. */
-static const char *heap_names[11] = {
-	"General", NULL, NULL, NULL, "Component Control", NULL, NULL,
-	"PDS Code and Data", "USC Code", NULL, NULL,
+/* Heap names for FindHeapByName (RGX_*_HEAP_IDENT). Every blueprint is named.
+ * BufSz is 160. */
+static const char *heap_names[15] = {
+	"General SVM", "General", "General NON-4K", "PDS Code and Data",
+	"USC Code", "Vulkan Capture Replay", "Signals", "Component Control",
+	"FBCDC", "Large FBCDC", "PDS Indirect State", "Compute Mission RMW",
+	"Compute Safety RMW", "Texture State", "Visibility Test",
 };
 
 static void fabricate_heap_details(const uint8_t *in, uint32_t in_size,
@@ -275,27 +282,25 @@ static void fabricate_heap_details(const uint8_t *in, uint32_t in_size,
 		memcpy(&nameptr, in, 8);
 		memcpy(&bufsz, in + 16, 4);
 		idx = i;
-		if (nameptr && bufsz && idx < 11 && heap_names[idx]) {
+		if (nameptr && bufsz && idx < 15 && heap_names[idx]) {
 			size_t n = strlen(heap_names[idx]) + 1;
 			if (n > bufsz)
 				n = bufsz;
 			memcpy((void *)(uintptr_t)nameptr, heap_names[idx], n);
 		}
 	}
-	if (idx < 11 && heap_ranges[idx].size) {
+	if (idx < 15 && heap_ranges[idx].size) {
 		base = heap_ranges[idx].base;
 		size = heap_ranges[idx].size;
 	}
 	memset(out, 0, out_size < 44 ? out_size : 44);
-	if (out_size >= 16) {
+	if (out_size >= 24) {
+		uint64_t reserved = idx < 15 ? heap_ranges[idx].reserved : 0;
 		memcpy(out, &base, 8);
 		memcpy(out + 8, &size, 8);
+		memcpy(out + 16, &reserved, 8);
 	}
-	if (out_size >= 44) {
-		uint32_t v = 12;
-		memcpy(out + 36, &v, 4);
-		memcpy(out + 40, &v, 4);
-	}
+	/* The vendor blueprint reports zero log2 page and alignment values. */
 }
 
 /* Distinct PMR handles per allocation (OUT 24B: hPMR u64@0).
@@ -365,7 +370,7 @@ static void fabricate_heap_create(const uint8_t *in, uint32_t in_size,
 	uint32_t i;
 	if (in_size >= 8)
 		memcpy(&base, in, 8);
-	for (i = 0; i < 11; i++) {
+	for (i = 0; i < 15; i++) {
 		if (heap_ranges[i].base == base) {
 			h = (uint64_t)(i + 1);
 			break;
