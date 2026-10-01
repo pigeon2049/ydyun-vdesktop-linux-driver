@@ -141,6 +141,25 @@ struct MT_PVR_PACKED mt_pvr_heap_count_out {
 	u32 num_heaps;
 };
 
+/* 0x6:0x27 MM:MTGPUUpdateOOMStats -- 8-byte IN, 4-byte OUT.
+ *
+ *   MTGPU_BRIDGE_IN_MTGPUUPDATEOOMSTATS  = { ui32pid, ui32ui32StatType }
+ *   MTGPU_BRIDGE_OUT_MTGPUUPDATEOOMSTATS = { eError }
+ *
+ * The UMD issues this while creating a render context. It only records
+ * out-of-memory statistics, so there is nothing for the driver to act on; it
+ * was refused with -ENOTTY, which the UMD treats as a hard failure and turns
+ * into error 1.
+ */
+struct MT_PVR_PACKED mt_pvr_oom_stats_in {
+	u32 pid;
+	u32 stat_type;
+};
+
+struct MT_PVR_PACKED mt_pvr_oom_stats_out {
+	u32 error;
+};
+
 /* 0x6:0x12 MM:DevmemIntHeapDestroy -- 8-byte IN, 4-byte OUT.
  *
  * The handle here is the one DevmemIntHeapCreate returned. This was an empty
@@ -304,6 +323,8 @@ static_assert(sizeof(struct mt_pvr_heap_count_out) == 8, "0x6:0x1e out");
 static_assert(sizeof(struct mt_pvr_heap_create_in) == 28, "0x6:0x11 in");
 static_assert(sizeof(struct mt_pvr_heap_create_out) == 12, "0x6:0x11 out");
 static_assert(sizeof(struct mt_pvr_heap_destroy_in) == 8, "0x6:0x12 in");
+static_assert(sizeof(struct mt_pvr_oom_stats_in) == 8, "0x6:0x27 in");
+static_assert(sizeof(struct mt_pvr_oom_stats_out) == 4, "0x6:0x27 out");
 static_assert(sizeof(struct mt_pvr_heap_destroy_out) == 4, "0x6:0x12 out");
 static_assert(sizeof(struct mt_pvr_heap_details_out) == 44, "0x6:0x20 out");
 static_assert(sizeof(struct mt_pvr_pmr_in) == 72, "0x6:0x9 in (wire 72)");

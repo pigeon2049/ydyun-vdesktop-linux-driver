@@ -516,6 +516,28 @@ static int pvr_cmd_heap_destroy(struct mt_pvr_file *file,
 	return -ENOENT;
 }
 
+/* 0x6:0x27 MM:MTGPUUpdateOOMStats.
+ *
+ * Out-of-memory accounting only: the UMD reports a pid and a stat type, and
+ * expects nothing back but eError. There is no memory to reclaim here, so the
+ * input is validated and the call succeeds with a zeroed eError.
+ *
+ * This was falling through to -ENOTTY. The UMD issued it while creating a
+ * render context, treated that as fatal, and returned error 1.
+ */
+static int pvr_cmd_oom_stats(struct mt_pvr_file *file,
+			     struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_oom_stats_in in;
+	struct mt_pvr_oom_stats_out out = { 0 };
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
 /* 0x6:0x11 MM:DevmemIntHeapCreate.
  *
  * Register one heap inside an already-created device-memory context. The UMD
@@ -908,6 +930,8 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_cmd_heap_count(file, cmd);
 		case 0x20:			/* HeapCfgHeapDetails */
 			return pvr_cmd_heap_details(file, cmd);
+		case 0x27:			/* MTGPUUpdateOOMStats */
+			return pvr_cmd_oom_stats(file, cmd);
 		default:
 			return -ENOTTY;
 		}

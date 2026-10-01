@@ -64,6 +64,10 @@ MAPPING = {
     # 28-byte struct and answered -EINVAL (bA25).
     "mt_pvr_heap_create_in": (0x6, 0x11),
     "mt_pvr_heap_create_out": (0x6, 0x11),
+    # 0x6:0x27 MTGPUUpdateOOMStats fell through to -ENOTTY and the UMD
+    # treated that as fatal (bA28).
+    "mt_pvr_oom_stats_in": (0x6, 0x27),
+    "mt_pvr_oom_stats_out": (0x6, 0x27),
     "mt_pvr_heap_destroy_in": (0x6, 0x12),
     "mt_pvr_heap_destroy_out": (0x6, 0x12),
 }
@@ -85,6 +89,7 @@ DIRECTION = {
     "mt_pvr_heap_count_out": "out",
     "mt_pvr_heap_create_in": "in", "mt_pvr_heap_create_out": "out",
     "mt_pvr_heap_destroy_in": "in", "mt_pvr_heap_destroy_out": "out",
+    "mt_pvr_oom_stats_in": "in", "mt_pvr_oom_stats_out": "out",
 }
 
 # Table key holding the wire size for each direction.
