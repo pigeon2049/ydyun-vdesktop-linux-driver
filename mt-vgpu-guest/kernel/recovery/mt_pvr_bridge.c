@@ -22,7 +22,10 @@
 #include <drm/drm_file.h>
 #include <drm/drm_gem.h>
 #include <drm/drm_ioctl.h>
+#include <linux/anon_inodes.h>
+#include <linux/fdtable.h>
 #include <linux/ioctl.h>
+#include <linux/poll.h>
 #include <linux/kref.h>
 #include <linux/mm.h>
 #include <linux/pgtable.h>
@@ -517,6 +520,93 @@ static int pvr_cmd_heap_destroy(struct mt_pvr_file *file,
 	 * silently succeeding.
 	 */
 	return -ENOENT;
+}
+
+/* Completion fence: always ready. See pvr_cmd_kicksync_submit(). */
+static __poll_t pvr_fence_poll(struct file *file, struct poll_table_struct *pt)
+{
+	return EPOLLIN | EPOLLOUT;
+}
+
+static const struct file_operations pvr_fence_fops = {
+	.poll = pvr_fence_poll,
+	.llseek = noop_llseek,
+};
+
+/* 0x88:0x2 RGXKickSync2, 0x88:0x3 RGXSetKickSyncContextProperty and
+ * 0x88:0x4 RGXKickSync3 (TA submit).
+ *
+ * Accept-and-inspect: validate the wire sizes and the context handle, then
+ * complete immediately with a signalled eventfd. This lets the UMD run its
+ * full submit-then-wait state machine. It is NOT GPU execution -- there is no
+ * firmware channel, no page tables and no doorbell behind this bridge, so
+ * nothing here can or does touch hardware.
+ *
+ * No locking: pvr_bridge_dispatch() already holds file->lock, and taking it
+ * again self-deadlocks (bA26). The 0x88:0x4 IN layout is the 2.7.1 header's;
+ * the 5.2 UMD sends the same 84 bytes with the context handle first, which is
+ * the only field read here.
+ */
+static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
+				   struct mt_pvr_cmd *cmd, u32 function)
+{
+	struct mt_pvr_kicksync2_in in2;
+	struct mt_pvr_kicksync_prop_in in_prop;
+	u8 in84[84];
+	struct mt_pvr_kicksync2_out out2 = { 0 };
+	struct mt_pvr_kicksync_prop_out out_prop = { 0 };
+	struct mt_pvr_kicksync3_out out3 = { 0 };
+	struct mt_pvr_object *obj;
+	int fence_fd;
+	u64 handle;
+	int ret;
+
+	if (function == 0x2) {
+		ret = pvr_in(cmd, &in2, sizeof(in2));
+		if (ret)
+			return ret;
+		handle = in2.kicksync_context;
+	} else if (function == 0x3) {
+		ret = pvr_in(cmd, &in_prop, sizeof(in_prop));
+		if (ret)
+			return ret;
+		handle = in_prop.kicksync_context;
+	} else {
+		ret = pvr_in(cmd, in84, sizeof(in84));
+		if (ret)
+			return ret;
+		handle = *(u64 *)in84;
+	}
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == handle && obj->kind == MT_PVR_KIND_KICKSYNC)
+			break;
+	}
+	if (&obj->link == &file->objects)
+		return -ENOENT;
+	/* A property query has no fence to complete. */
+	if (function == 0x3)
+		return pvr_out(cmd, &out_prop, sizeof(out_prop));
+	/* A fence that is already complete: poll/select on it returns at once.
+	 * Bridge-stage completion only -- the GPU did nothing, because there is
+	 * no channel by which this bridge could ask it to.
+	 */
+	fence_fd = anon_inode_getfd("pvr-fence", &pvr_fence_fops, NULL,
+				    O_RDWR | O_CLOEXEC);
+	if (fence_fd < 0)
+		return fence_fd;
+	if (function == 0x2) {
+		out2.update_fence_fd = fence_fd;
+		ret = pvr_out(cmd, &out2, sizeof(out2));
+	} else {
+		out3.update_fence_fd = fence_fd;
+		ret = pvr_out(cmd, &out3, sizeof(out3));
+	}
+	/* The fd is live in the caller's table now; if the OUT write failed
+	 * the number never reached userspace, so drop our reference.
+	 */
+	if (ret)
+		close_fd(fence_fd);
+	return ret;
 }
 
 /* 0x81:0x0 RGXCreateComputeContext and 0x81:0x1 RGXDestroyComputeContext.
@@ -1169,10 +1259,11 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_cmd_kicksync_create(file, cmd);
 		case 0x1:			/* RGXDestroyKickSyncContext */
 			return pvr_cmd_kicksync_destroy(file, cmd);
+		case 0x2:			/* RGXKickSync2 */
+		case 0x3:			/* RGXSetKickSyncContextProperty */
+		case 0x4:			/* RGXKickSync3 (TA submit) */
+			return pvr_cmd_kicksync_submit(file, cmd, function);
 		default:
-			/* 0x88:0x2 RGXKICKSYNC2 and friends submit real work;
-			 * refusing them is the S4 boundary, not a gap.
-			 */
 			return -ENOTTY;
 		}
 	case MT_PVR_BRIDGE_RGXHWPERF:

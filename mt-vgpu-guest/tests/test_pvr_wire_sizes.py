@@ -82,7 +82,13 @@ MAPPING = {
     "mt_pvr_compute_destroy_in": (0x81, 0x1),
     "mt_pvr_compute_destroy_out": (0x81, 0x1),
     # 0x88:0x0/0x88:0x1 create and destroy a kick-sync context object.
-    # 0x88:0x2 RGXKICKSYNC2 stays unimplemented on purpose: real submission.
+    # 0x88:0x2/0x88:0x3/0x88:0x4 are the submit path: accept-and-inspect with
+    # an always-ready fence (S4-1, bridge-stage completion, no GPU work).
+    "mt_pvr_kicksync2_in": (0x88, 0x2),
+    "mt_pvr_kicksync2_out": (0x88, 0x2),
+    "mt_pvr_kicksync_prop_in": (0x88, 0x3),
+    "mt_pvr_kicksync_prop_out": (0x88, 0x3),
+    "mt_pvr_kicksync3_out": (0x88, 0x4),
     "mt_pvr_kicksync_create_in": (0x88, 0x0),
     "mt_pvr_kicksync_create_out": (0x88, 0x0),
     "mt_pvr_kicksync_destroy_in": (0x88, 0x1),
@@ -114,6 +120,9 @@ DIRECTION = {
     "mt_pvr_heap_create_in": "in", "mt_pvr_heap_create_out": "out",
     "mt_pvr_compute_create_in": "in", "mt_pvr_compute_create_out": "out",
     "mt_pvr_compute_destroy_in": "in", "mt_pvr_compute_destroy_out": "out",
+    "mt_pvr_kicksync2_in": "in", "mt_pvr_kicksync2_out": "out",
+    "mt_pvr_kicksync_prop_in": "in", "mt_pvr_kicksync_prop_out": "out",
+    "mt_pvr_kicksync3_out": "out",
     "mt_pvr_kicksync_create_in": "in", "mt_pvr_kicksync_create_out": "out",
     "mt_pvr_kicksync_destroy_in": "in", "mt_pvr_kicksync_destroy_out": "out",
     "mt_pvr_unmap_pmr_in": "in", "mt_pvr_unmap_out": "out",

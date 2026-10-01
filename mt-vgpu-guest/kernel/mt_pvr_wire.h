@@ -190,6 +190,56 @@ struct MT_PVR_PACKED mt_pvr_kicksync_destroy_out {
 	u32 error;
 };
 
+/* 0x88:0x2 RGXKickSync2 -- 56-byte IN, 8-byte OUT.
+ * 0x88:0x3 RGXSetKickSyncContextProperty -- 20-byte IN, 12-byte OUT.
+ * 0x88:0x4 RGXKickSync3 (the TA-submit entry point) -- 84-byte IN, 8-byte OUT.
+ *
+ * IN 0x88:0x2 = { hKickSyncContext, pUpdateDevVarOffset, pUpdateValue,
+ *                  pFenceName, phUFOBlock, hCheckFenceFD, hTimelineFenceFD,
+ *                  ui32ClientUpdateCount, ui32ExtJobRef }
+ * OUT 0x88:0x2 = { eError, hUpdateFenceFD }
+ * IN 0x88:0x3 = { ui64Input, hKickSyncContext, ui32Property }
+ * OUT 0x88:0x3 = { ui64Output, eError }
+ * OUT 0x88:0x4 = { eError, hUpdateFenceFD }
+ *
+ * The IN buffers carry UMD-side pointers the bridge must not dereference;
+ * only sizes and the context handle are read. Fences are eventfds the bridge
+ * signals immediately: this is bridge-stage completion, NOT GPU execution.
+ * There is no firmware channel yet, so nothing here touches hardware.
+ */
+struct MT_PVR_PACKED mt_pvr_kicksync2_in {
+	u64 kicksync_context;
+	u64 update_devvar_offset;
+	u64 update_value;
+	u64 fence_name;
+	u64 ufo_block;
+	u32 check_fence_fd;
+	u32 timeline_fence_fd;
+	u32 client_update_count;
+	u32 ext_job_ref;
+};
+
+struct MT_PVR_PACKED mt_pvr_kicksync2_out {
+	u32 error;
+	int update_fence_fd;
+};
+
+struct MT_PVR_PACKED mt_pvr_kicksync_prop_in {
+	u64 input;
+	u64 kicksync_context;
+	u32 property;
+};
+
+struct MT_PVR_PACKED mt_pvr_kicksync_prop_out {
+	u64 output;
+	u32 error;
+};
+
+struct MT_PVR_PACKED mt_pvr_kicksync3_out {
+	u32 error;
+	int update_fence_fd;
+};
+
 /* 0x6:0x4 MM:PmrUnmakeLocalImportHandle -- 8-byte IN, 4-byte OUT.
  *
  * The bridge does not mint a separate object for a local import: the exported
@@ -433,6 +483,11 @@ static_assert(sizeof(struct mt_pvr_compute_destroy_in) == 8, "0x81:0x1 in");
 static_assert(sizeof(struct mt_pvr_compute_destroy_out) == 4, "0x81:0x1 out");
 static_assert(sizeof(struct mt_pvr_kicksync_create_in) == 16, "0x88:0x0 in");
 static_assert(sizeof(struct mt_pvr_kicksync_create_out) == 12, "0x88:0x0 out");
+static_assert(sizeof(struct mt_pvr_kicksync2_in) == 56, "0x88:0x2 in");
+static_assert(sizeof(struct mt_pvr_kicksync2_out) == 8, "0x88:0x2 out");
+static_assert(sizeof(struct mt_pvr_kicksync_prop_in) == 20, "0x88:0x3 in");
+static_assert(sizeof(struct mt_pvr_kicksync_prop_out) == 12, "0x88:0x3 out");
+static_assert(sizeof(struct mt_pvr_kicksync3_out) == 8, "0x88:0x4 out");
 static_assert(sizeof(struct mt_pvr_kicksync_destroy_in) == 8, "0x88:0x1 in");
 static_assert(sizeof(struct mt_pvr_kicksync_destroy_out) == 4, "0x88:0x1 out");
 static_assert(sizeof(struct mt_pvr_unmake_import_in) == 8, "0x6:0x4 in");
