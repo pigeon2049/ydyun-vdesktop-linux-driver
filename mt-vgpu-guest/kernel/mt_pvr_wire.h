@@ -127,6 +127,35 @@ struct MT_PVR_PACKED mt_pvr_make_import_out {
 	u32 error;
 };
 
+/* 0x88:0x0 RGXCreateKickSyncContext -- 16-byte IN, 12-byte OUT.
+ * 0x88:0x1 RGXDestroyKickSyncContext -- 8-byte IN, 4-byte OUT.
+ *
+ *   IN  0x88:0x0 = { hPrivData, ui32ContextFlags, ui32PackedCCBSizeU88 }
+ *   OUT 0x88:0x0 = { hKickSyncContext, eError }
+ *
+ * Creating the context only mints a kernel object; no work is submitted.
+ * 0x88:0x2 RGXKICKSYNC2 is deliberately NOT implemented here: that is a real
+ * hardware submission (S4) and needs separate approval.
+ */
+struct MT_PVR_PACKED mt_pvr_kicksync_create_in {
+	u64 priv_data;
+	u32 context_flags;
+	u32 packed_ccb_size;
+};
+
+struct MT_PVR_PACKED mt_pvr_kicksync_create_out {
+	u64 kicksync_context;
+	u32 error;
+};
+
+struct MT_PVR_PACKED mt_pvr_kicksync_destroy_in {
+	u64 kicksync_context;
+};
+
+struct MT_PVR_PACKED mt_pvr_kicksync_destroy_out {
+	u32 error;
+};
+
 /* 0x6:0x4 MM:PmrUnmakeLocalImportHandle -- 8-byte IN, 4-byte OUT.
  *
  * The bridge does not mint a separate object for a local import: the exported
@@ -364,6 +393,10 @@ static_assert(sizeof(struct mt_pvr_connect_out) == 17, "0x1:0x0 out");
 static_assert(sizeof(struct mt_pvr_handle_out) == 12, "0x1:0x2/0x1:0xf out");
 static_assert(sizeof(struct mt_pvr_event_open_in) == 8, "0x1:0x4 in");
 static_assert(sizeof(struct mt_pvr_event_open_out) == 12, "0x1:0x4 out");
+static_assert(sizeof(struct mt_pvr_kicksync_create_in) == 16, "0x88:0x0 in");
+static_assert(sizeof(struct mt_pvr_kicksync_create_out) == 12, "0x88:0x0 out");
+static_assert(sizeof(struct mt_pvr_kicksync_destroy_in) == 8, "0x88:0x1 in");
+static_assert(sizeof(struct mt_pvr_kicksync_destroy_out) == 4, "0x88:0x1 out");
 static_assert(sizeof(struct mt_pvr_unmake_import_in) == 8, "0x6:0x4 in");
 static_assert(sizeof(struct mt_pvr_unmake_import_out) == 4, "0x6:0x4 out");
 static_assert(sizeof(struct mt_pvr_make_import_in) == 8, "0x6:0x3 in");

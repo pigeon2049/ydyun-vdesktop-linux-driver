@@ -89,6 +89,7 @@ static_assert(_IOC_SIZE(DRM_IOCTL_PVR_SYNC_RENAME) ==
 #define MT_PVR_BRIDGE_MM 0x6U
 #define MT_PVR_BRIDGE_RGXTA3D 0x82U
 #define MT_PVR_BRIDGE_RGXHWPERF 0x86U
+#define MT_PVR_BRIDGE_RGXKICKSYNC 0x88U
 
 /* The one device the main module drives. */
 #define MT_PVR_PCI_DEVFN PCI_DEVFN(14, 0)
@@ -99,6 +100,11 @@ enum mt_pvr_kind {
 	MT_PVR_KIND_SYNC,
 	MT_PVR_KIND_CONTEXT,
 	MT_PVR_KIND_RESERVATION,
+	/* A kick-sync context is a CONTEXT-shaped object but must never be
+	 * mistaken for a render context: ctx_create() reuses the first object
+	 * of its kind, so sharing the kind would alias the two.
+	 */
+	MT_PVR_KIND_KICKSYNC,
 };
 
 struct mt_pvr_pmr {
@@ -508,6 +514,51 @@ static int pvr_cmd_heap_destroy(struct mt_pvr_file *file,
 	/* Refuse a handle we never issued, or one already destroyed, rather than
 	 * silently succeeding.
 	 */
+	return -ENOENT;
+}
+
+/* 0x88:0x0 RGXCreateKickSyncContext and 0x88:0x1 RGXDestroyKickSyncContext.
+ *
+ * Object lifecycle only: create mints a per-file context handle, destroy
+ * retires it. No fence is waited on and no kick is submitted here.
+ */
+static int pvr_cmd_kicksync_create(struct mt_pvr_file *file,
+				   struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_kicksync_create_in in;
+	struct mt_pvr_kicksync_create_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	obj = pvr_object_new(file, MT_PVR_KIND_KICKSYNC);
+	if (!obj)
+		return -ENOMEM;
+	out.kicksync_context = obj->handle;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+static int pvr_cmd_kicksync_destroy(struct mt_pvr_file *file,
+				    struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_kicksync_destroy_in in;
+	struct mt_pvr_kicksync_destroy_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == in.kicksync_context &&
+		    obj->kind == MT_PVR_KIND_KICKSYNC) {
+			list_del(&obj->link);
+			kfree(obj);
+			return pvr_out(cmd, &out, sizeof(out));
+		}
+	}
 	return -ENOENT;
 }
 
@@ -1051,6 +1102,18 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_cmd_handle_release(file, cmd,
 						      MT_PVR_KIND_CONTEXT);
 		default:
+			return -ENOTTY;
+		}
+	case MT_PVR_BRIDGE_RGXKICKSYNC:
+		switch (function) {
+		case 0x0:			/* RGXCreateKickSyncContext */
+			return pvr_cmd_kicksync_create(file, cmd);
+		case 0x1:			/* RGXDestroyKickSyncContext */
+			return pvr_cmd_kicksync_destroy(file, cmd);
+		default:
+			/* 0x88:0x2 RGXKICKSYNC2 and friends submit real work;
+			 * refusing them is the S4 boundary, not a gap.
+			 */
 			return -ENOTTY;
 		}
 	case MT_PVR_BRIDGE_RGXHWPERF:
