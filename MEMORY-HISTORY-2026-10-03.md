@@ -489,3 +489,12 @@
   下步 validator 枚举映射（0x16010/0x15ce0 + 查表逻辑）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r102-layout-valuedriven.md`。
 - 遗留：枚举映射；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r103：格式表解出但全灭；离线自主）
+
+- 格式能力表（bit7/bit8 谓词，fmt0 非法）；13 值实测全返 3；
+  下步：扫宽/高 或 读 validator 后分支。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r103-format-table.md`。
+- 遗留：维度/分支；加载窗口；push 待批。
