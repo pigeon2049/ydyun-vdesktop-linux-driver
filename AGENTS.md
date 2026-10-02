@@ -30,7 +30,7 @@ NEVER 为“了解背景”打开以下文件（token 黑洞，内容已过期�
 
 | 内容 | 落点 | 格式 |
 |---|---|---|
-| 本轮做了什么、证据、教训 | `mt-vgpu-guest/reports/rNN-<topic>.md`，NN = 当前最大号 + 1（现为 r72 起） | 标题即结论；区分“实测”与“推断”；失败/证伪也如实记 |
+| 本轮做了什么、证据、教训 | `mt-vgpu-guest/reports/rNN-<topic>.md`，NN = 当前最大号 + 1（现为 r77 起） | 标题即结论；区分“实测”与“推断”；失败/证伪也如实记 |
 | 报告索引 | `mt-vgpu-guest/reports/README.md` 主线表加一行 | 一行，不展开 |
 | 最新过程记录 | `MEMORY.md` 顶部插入一节（最新在最上），并更新“最后更新”行 | 见 §4 清理规则 |
 | 活页运行态变化 | `PROGRESS-SNAPSHOT.md` §12 随手更新（模块/引用数/会话/节点） | 只改 §12，不碰其余章节 |
@@ -89,6 +89,26 @@ NEVER 回改归档文件（`*HISTORY*`、`*2026-09-22*` 只读）。
 - [ ] 已读 `STATUS.md` + 快照 §12，知道会话是不是 freeze 的？
 - [ ] 本轮目标是 STATUS 下一步之一或用户原话？（都不是 → 先问）
 - [ ] 需要动硬件吗？（需要 → 有明确批准吗？没有 → 只做只读部分）
+- [ ] 涉及驱动行为/结构映射吗？（先查 §9 语料 + Win 侧实现，对过 SHA 吗？）
 - [ ] 知道写完后 rNN 编号、MEMORY 节标题、门禁命令分别是什么？
 - [ ] 预计读的文件超过 300 行吗？（超过 → 改查索引/单节，不要通读）
 - [ ] 动的是 USB/画面线吗？（Step 追加后同步了 `docs/PROGRESS.md` 短页吗？仍 ≤60 行吗？）
+
+## 9. 参考实现优先序（RE/结构映射时；r76 教训沉淀）
+
+1. 凡涉及 UMD/驱动行为、结构体布局、调用链，先查现成实现与语料，
+   再动手反汇编/重放。顺序：
+   - 首选 `mt-vgpu-guest/decompiled/<二进制>/` 反编译语料
+     （`functions.jsonl` 按名取地址 + `decompiled.c` 按 `c_line_start`
+     读伪 C；`calls.jsonl` 查调用；只按名查询，NEVER 通读）。
+   - 次选 `/opt/MTT-driver-only/` 官方 Windows 驱动包
+     （`mtkm64.sys` 等 Win 侧实现对照；只读，不执行）。
+   - 可重开的 Ghidra 工程在 `mt-vgpu-guest/ghidra-projects/<原文件名>/`，
+     但 NEVER 重跑全量分析（复用 `scripts/corpus.py` /
+     `scripts/decompile-drivers.py` 的查询结果）。
+2. 应用语料地址前 MUST 核对二进制 SHA-256（`sha256sum` 实测）与
+   `DECOMPILATION.md` 或各脚本头部的期望值一致（在用 UMD：`b3058c02…`），
+   不一致时停下来问，NEVER 套用错版地址。
+3. 语料给出的是假设，不是证据：字段/调用结论仍按 §6.3 靠执行验证
+   （fabricated 重放、trace、gdb），伪 C 不得直接当事实写进报告；
+   伪 C 与实测冲突时以实测为准，并如实记录差异。

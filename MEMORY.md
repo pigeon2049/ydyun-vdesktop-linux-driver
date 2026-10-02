@@ -7,10 +7,18 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r76 ghidra 语料 + SubmissionBuf 定位；最旧节已归档）
+最后更新：2026-10-03（AGENTS 新增 §9 参考实现优先序；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（AGENTS §9：Win 侧 + 反编译语料优先；用户指令）
+
+- 用户要求：agent 提示优先参考 Windows 侧驱动实现与反编译工程。
+  落为 §9 三条（语料→Win 包→Ghidra 工程复用不重跑；SHA 先对后用；
+  语料是假设、执行是证据，与 §6.3 衔接）+ 检查单 +1 项；
+  顺手把落点表 rNN 起点 r72→r77 订正。
+- 纯文档改动，引用路径全存在。无 rNN 报告（非研究轮）。
 
 ## 本次会话进展（r76：ghidra 语料指路 DDK2；离线）
 
@@ -26,15 +34,3 @@
 - 证据：`mt-vgpu-guest/reports/r76-ghidra-ddk2-submissionbuf.md` +
   `r76-ccb-size-pack.jsonl`。
 - 遗留：live 非零 CCB create + DDK2（待批）；真实 CCB 内容仍需绘制路径。
-
-## 本次会话进展（r75：DDK2 结构体全映射 + rsi 需求定位；离线）
-
-- DDK2 第 3 参数全映射：update（`0x0` 条数 + `@0x8+i*16` u64/u64 条目）
-  + check（`0xd8` 条数 + `@0xe0+i*16`）+ 转运指针（`0xc8/0xd0`）+
-  server 统一数组（check slot0–11，分隔 12，update 13 起）。
-- `+1490` 崩溃精确归因：`rdx=[rsi+0x28]=NULL`（自我修正 r74 的误读）；
-  rsi 须是富对象，首位候选 render 客户端对象（`0x330`）。
-  `RGXCreateKickSyncContext` 已证伪（即 CCB 包装）。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r75-ddk2-struct-map.md`
-  （本轮崩溃 trace 无桥流量，未归档 jsonl）。
-- 遗留：render-obj 喂 DDK2 rsi 验证；真实 CCB 内容仍需绘制路径。

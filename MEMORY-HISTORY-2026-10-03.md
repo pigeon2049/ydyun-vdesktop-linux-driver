@@ -155,3 +155,17 @@
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r74-update-side-ddk2.md` +
   `r74-update-side-negative.jsonl`。
 - 遗留：DDK2 入参 shaping；真实 CCB 内容仍需绘制路径；快照刷新 pass 待攒。
+
+---
+
+## 本次会话进展（r75：DDK2 结构体全映射 + rsi 需求定位；离线）
+
+- DDK2 第 3 参数全映射：update（`0x0` 条数 + `@0x8+i*16` u64/u64 条目）
+  + check（`0xd8` 条数 + `@0xe0+i*16`）+ 转运指针（`0xc8/0xd0`）+
+  server 统一数组（check slot0–11，分隔 12，update 13 起）。
+- `+1490` 崩溃精确归因：`rdx=[rsi+0x28]=NULL`（自我修正 r74 的误读）；
+  rsi 须是富对象，首位候选 render 客户端对象（`0x330`）。
+  `RGXCreateKickSyncContext` 已证伪（即 CCB 包装）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r75-ddk2-struct-map.md`
+  （本轮崩溃 trace 无桥流量，未归档 jsonl）。
+- 遗留：render-obj 喂 DDK2 rsi 验证；真实 CCB 内容仍需绘制路径。
