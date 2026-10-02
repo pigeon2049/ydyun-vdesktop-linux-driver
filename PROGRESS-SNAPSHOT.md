@@ -347,7 +347,36 @@ S4-2 证明了固件通道执行（TQX/3D fills）。S4-3 = 让 MUSA UMD 的 kic
 - **不碰**：PCI 绑定（probe 已持有）、固件加载（已是 GE2/FW2 会话）、
   显示（QXL，与 S3000 无关）。
 
-## 10. 运行态
+## 10. S4-3 handoff 设计（bridge → probe 会话）
+
+目标：UMD 经桥分配的 PMR / 预留的 VA / 提交的 kick，
+最终变成 firmware 会话里的真实 DMA + 页表 + 执行。
+
+现状缺口（精确到函数）：
+
+1. **PMR 内容进 GPU 可见内存**：桥 PMR 是 `vzalloc`，
+   GPU 读不到。需经 pdev 做 DMA 映射（`dma_map_single`/`sg`），
+   pdev 只在 probe 会话里。handover 点：
+   `pvr_cmd_pmr_alloc` 后补一次“ upwards 注册”——
+   但桥和 probe 是两个模块，须先有跨模块符号契约
+   （`symbol_get` + 版本号 + 会话存活检查，任一失败即回退纯系统内存语义）。
+2. **VA→PA 页表构建**：`mt_gpu_vm_bind_many` 已是现成纯软件构建器，
+   reservation 的 VA（bA38 已记录）+ DMA 后的 PA 正好喂给它；
+   产物 image 经 probe 会话的 `upload` 上屏。
+   风险点：VA 分配权在 UMD（byte-tight，非页对齐），bind 侧 round down，
+   两侧必须对同一套取整规则，否则页表与 UMD 认知错位。
+3. **kick 翻译**：`0x88:0x4` 的 84 字节经 accept-and-inspect 后，
+   需按 firmware 环格式重编进 DM 队列（TQX 的 `submit_tqx_work`
+   是范例；RGX 环格式待从 `mtkm64.sys` 反推）。
+   在 handoff 就绪前，`-ENOTTY` 仍是 S4 边界。
+
+顺序：1→2→3，每步独立可验证（1 只需 DMA 回读比对，不执行；
+2 只需页表 image 逐字节核对，不上传；3 先审包不上交）。
+任何一步都需要 bridge reload——当前被楔住的 refcnt 挡着，
+须重启后做。重启会丢 retained 会话（重建约 30 分钟），
+与继续 S4-3 二选一，由用户定。
+
+## 11. 运行态
 
 - 本轮真机验证完成后，机器发生了一次外部重启。
   当前 `mt_pvr_bridge` **未加载**，`/dev/dri` 只有 `card0`，
