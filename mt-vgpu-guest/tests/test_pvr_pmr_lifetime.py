@@ -263,5 +263,58 @@ class ZsBufferRouting(unittest.TestCase):
             'the node probe does not exercise 0x82:0x3')
 
 
+class ReservationLifecycle(unittest.TestCase):
+    """Reservations carry VA ranges; mappings bind PMRs into them.
+
+    The UMD reserves a VA range and then maps a PMR into it. The bridge used
+    to accept both blindly, so a page-table bind built later would have no
+    range to program and no way to know which mappings are live. These pin the
+    validation without changing anything on the wire.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = strip_comments(SOURCE.read_text())
+        cls.reserve = function_body('pvr_cmd_pmr_reserve', cls.text)
+        cls.map = function_body('pvr_cmd_pmr_map', cls.text)
+        cls.unmap = function_body('pvr_cmd_unmap_pmr', cls.text)
+        cls.unreserve = function_body('pvr_cmd_unreserve_range', cls.text)
+
+    def test_reserve_validates_and_stores_the_range(self):
+        self.assertIn('pvr_reservation_find', self.text,
+                      'no reservation lookup helper exists')
+        self.assertRegex(self.reserve, r'obj->arg0\s*=\s*in\.address',
+                         'reserve does not store the VA')
+        self.assertRegex(self.reserve, r'obj->arg1\s*=\s*in\.length',
+                         'reserve does not store the length')
+        self.assertIn('-EEXIST', self.reserve,
+                      'overlapping reservations are not rejected')
+        self.assertIn('-EINVAL', self.reserve,
+                      'zero-length or overflowing ranges are not rejected')
+
+    def test_map_validates_reservation_and_fit(self):
+        self.assertIn('pvr_reservation_find(file, in.reservation)', self.map,
+                      'map does not resolve the reservation')
+        self.assertIn('-ENOSPC', self.map,
+                      'an oversized PMR is not rejected against its range')
+        self.assertIn('pmr->mapped++', self.map,
+                      'map does not count live mappings')
+        # The OUT value stays the PMR handle: the UMD passes it back to
+        # UnmapPMR, so changing it would break the contract.
+        self.assertIn('out.mapping = pmr->handle', self.map)
+
+    def test_unmap_requires_a_live_mapping(self):
+        self.assertIn('-ENOENT', self.unmap,
+                      'unmapping an unmapped PMR succeeds silently')
+        self.assertIn('pmr->mapped_reservation = 0', self.unmap,
+                      'unmap does not release the reservation link')
+
+    def test_unreserve_refuses_live_mappings(self):
+        self.assertIn('-EBUSY', self.unreserve,
+                      'unreserve drops a range the mappings still reference')
+        self.assertIn('list_del(&obj->link)', self.unreserve,
+                      'unreserve does not retire the reservation')
+
+
 if __name__ == '__main__':
     unittest.main()

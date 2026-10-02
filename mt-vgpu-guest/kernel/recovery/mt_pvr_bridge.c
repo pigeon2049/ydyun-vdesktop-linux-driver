@@ -39,6 +39,7 @@
 
 #include "../mt_pvr_device.h"
 #include "../mt_pvr_queue.h"
+#include "../mt_mmu.h"
 
 /* The driver hard-codes these two numbers, and the vendor declares them the
  * same way in inc/pvr/include/pvr_drm.h:
@@ -119,7 +120,14 @@ struct mt_pvr_pmr {
 	u64 bytes;
 	void *host;		/* system memory until page tables exist */
 	u32 log2_page_size;
+	/* Live DevmemIntMapPMR count, and the reservation the current mapping
+	 * was programmed into. The OUT mapping value stays the PMR handle (the
+	 * UMD passes it back to UnmapPMR), so this is bookkeeping only -- but
+	 * it is what lets unreserve refuse while mappings are live instead of
+	 * silently dropping a range the page tables still reference.
+	 */
 	u32 mapped;
+	u64 mapped_reservation;
 	/*
 	 * Live references. The PMR's own presence on file->pmrs counts as one,
 	 * so a freshly created PMR starts at 1 and only the list owner can free
@@ -133,6 +141,13 @@ struct mt_pvr_object {
 	struct list_head link;
 	u64 handle;
 	u32 kind;
+	/* Payload by kind. RESERVATION carries the VA range the UMD reserved;
+	 * everything else leaves these zero. The range is what a future GPU
+	 * page-table bind will program; recording it now (with overlap checks)
+	 * is what makes that bind possible later without changing the wire.
+	 */
+	u64 arg0;
+	u64 arg1;
 };
 
 struct mt_pvr_file {
@@ -158,6 +173,8 @@ static bool pvr_ready;
  */
 static void pvr_pmr_unref(struct mt_pvr_pmr *pmr);
 static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle);
+static struct mt_pvr_object *pvr_reservation_find(struct mt_pvr_file *file,
+						  u64 handle);
 
 static void pvr_file_release(struct kref *kref)
 {
@@ -761,11 +778,21 @@ static int pvr_cmd_unmap_pmr(struct mt_pvr_file *file,
 {
 	struct mt_pvr_unmap_pmr_in in;
 	struct mt_pvr_unmap_out out = { 0 };
+	struct mt_pvr_pmr *pmr;
 	int ret;
 
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
+	/* The mapping value the bridge hands out is the PMR handle, so this
+	 * resolves the same way. Unmapping a PMR that was never mapped (or
+	 * already fully unmapped) is a UMD bug, not a no-op.
+	 */
+	pmr = pvr_pmr_find(file, in.mapping);
+	if (!pmr || !pmr->mapped)
+		return -ENOENT;
+	if (!--pmr->mapped)
+		pmr->mapped_reservation = 0;
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -774,11 +801,26 @@ static int pvr_cmd_unreserve_range(struct mt_pvr_file *file,
 {
 	struct mt_pvr_unreserve_in in;
 	struct mt_pvr_unmap_out out = { 0 };
+	struct mt_pvr_object *obj;
+	struct mt_pvr_pmr *pmr;
 	int ret;
 
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
+	obj = pvr_reservation_find(file, in.reservation);
+	if (!obj)
+		return -ENOENT;
+	/* A range the page tables still reference must not disappear first.
+	 * The UMD's order is unmap-then-unreserve, so this only fires on a
+	 * real lifecycle violation.
+	 */
+	list_for_each_entry(pmr, &file->pmrs, link) {
+		if (pmr->mapped && pmr->mapped_reservation == obj->handle)
+			return -EBUSY;
+	}
+	list_del(&obj->link);
+	kfree(obj);
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -1008,24 +1050,73 @@ static int pvr_cmd_pmr_map(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	pmr = pvr_pmr_find(file, in.pmr);
 	if (!pmr)
 		return -ENOENT;
-	pmr->mapped = 1;
+	/* The range being programmed must exist and must fit the PMR. The OUT
+	 * mapping value stays the PMR handle -- the UMD passes it back to
+	 * UnmapPMR -- so this validation changes nothing on the wire.
+	 */
+	if (!pvr_reservation_find(file, in.reservation))
+		return -ENOENT;
+	if (pmr->bytes > pvr_reservation_find(file, in.reservation)->arg1)
+		return -ENOSPC;
+	pmr->mapped++;
+	pmr->mapped_reservation = in.reservation;
 	out.mapping = pmr->handle;
 	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* Find a reservation by handle. Returns NULL for unknown handles and for
+ * objects of any other kind: a mapping handle or a heap handle is not a
+ * reservation, even though all handles share one space.
+ */
+static struct mt_pvr_object *pvr_reservation_find(struct mt_pvr_file *file,
+						  u64 handle)
+{
+	struct mt_pvr_object *obj;
+
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == handle && obj->kind == MT_PVR_KIND_RESERVATION)
+			return obj;
+	}
+	return NULL;
 }
 
 static int pvr_cmd_pmr_reserve(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 {
 	struct mt_pvr_reserve_in in;
 	struct mt_pvr_reserve_out out = { 0 };
-	struct mt_pvr_object *obj;
+	struct mt_pvr_object *obj, *other;
+	u64 end;
 	int ret;
 
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
+	/* A reservation names the VA range a later MapPMR will program. Zero
+	 * length reserves nothing; overflow must not wrap past the VA space.
+	 * The address is deliberately NOT required to be page-aligned: the UMD
+	 * packs sub-ranges byte-tight (measured: 0x8000010000+0x253 followed
+	 * by 0x8000010253). Page alignment only matters when a future GPU
+	 * page-table bind programs the range, which will round down there.
+	 */
+	if (!in.length ||
+	    in.length > (1ULL << MT_GPU_VA_BITS) - in.address)
+		return -EINVAL;
+	end = in.address + in.length;
+	/* Ranges on one file must not overlap: two live reservations over the
+	 * same VA would program the same page-table entries twice.
+	 */
+	list_for_each_entry(other, &file->objects, link) {
+		if (other->kind != MT_PVR_KIND_RESERVATION)
+			continue;
+		if (in.address < other->arg0 + other->arg1 &&
+		    other->arg0 < end)
+			return -EEXIST;
+	}
 	obj = pvr_object_new(file, MT_PVR_KIND_RESERVATION);
 	if (!obj)
 		return -ENOMEM;
+	obj->arg0 = in.address;
+	obj->arg1 = in.length;
 	out.reservation = obj->handle;
 	return pvr_out(cmd, &out, sizeof(out));
 }
