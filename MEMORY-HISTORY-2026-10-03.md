@@ -507,3 +507,12 @@
   宽/高/format/采样三维排除，剩 validator 返回 + 对象字段。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r104-memsize-chain.md`。
 - 遗留：乘数溯源；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r105：+0x54 存储点定位；离线自主）
+
+- 唯一写入 bb13（bsr 对齐数学）；跳过 bb17（edx==0）是我方路径；
+  Layout 不支持裸调（负偏移读调用者栈），转 R2DCreateSurface 入口。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r105-plus54-store.md`。
+- 遗留：Surface 入口签名；加载窗口；push 待批。
