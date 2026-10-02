@@ -6,6 +6,7 @@
  */
 #include <linux/io.h>
 #include <linux/delay.h>
+#include <linux/dma-mapping.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
@@ -13,6 +14,7 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/vmalloc.h>
+#include "mt_pvr_session.h"
 #include "mt_guest_state.h"
 #include "mt_guest_announcements.h"
 #include "mt_rpc_publish.h"
@@ -1514,13 +1516,19 @@ free_state:
 	return ret;
 }
 
+/* Live bridge DMA mappings outstanding. Defined with the session service
+ * below; declared here so remove() can refuse to tear down under them.
+ */
+static atomic_t mt_pvr_live_maps;
+
 static void mt_remove(struct pci_dev *pdev)
 {
 	struct mt_guest *g = pci_get_drvdata(pdev);
 	/* Normal rmmod is prevented by the self-reference while pinned. An
 	 * unexpected PCI removal must not release Host-referenced CPU pages.
 	 */
-	if (WARN_ON(g->trial.pinned || mt_runtime_context_can_release(mt_runtime(g)) ||
+	if (WARN_ON(atomic_read(&mt_pvr_live_maps) ||
+		    g->trial.pinned || mt_runtime_context_can_release(mt_runtime(g)) ||
 		mt_boot_bo_can_release(&container_of(g, struct mt_guest_device, state)->shared_boot) ||
 		mt_buffers(g)->objects || mt_address_spaces(g)->objects || mt_gem(g)->objects ||
 		mt_markers(g)->total || mt_execution(g)->processes || mt_execution(g)->contexts))
@@ -1552,6 +1560,167 @@ static void mt_remove(struct pci_dev *pdev)
 	mutex_unlock(&g->trial_lock);
 	kfree(g);
 }
+
+/* S4-3 handoff, step 1 (session side): DMA service for the PVR bridge.
+ *
+ * The bridge holds system-memory PMRs; real execution needs them DMA-mapped
+ * through this session's device. These ops are exported for symbol_get()
+ * acquisition; the contract (versions, lifetime, degradation) lives in
+ * kernel/mt_pvr_session.h.
+ *
+ * Safety shape, mirroring the live_* helpers:
+ *  - every entry re-validates the device (bound to this driver, live trial)
+ *    under device_lock; nothing is cached across calls;
+ *  - DMA direction is always bidirectional here: the bridge cannot know yet
+ *    whether a given PMR will be read, written, or both by the GPU;
+ *  - live counter + WARN in remove: unbinding while bridge mappings are live
+ *    would free the device under mapped addresses. The PCI core gives remove
+ *    no veto, so this is loud rather than blocking. Operational rule, same
+ *    class as the live-module serialization rule: rmmod the bridge (which
+ *    unmaps everything at PMR free) BEFORE touching this module.
+ */
+static void *mt_pvr_session_get(void)
+{
+	struct pci_dev *pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	struct module *owner = NULL;
+	struct mt_guest *g = NULL;
+	void *session = NULL;
+
+	if (!pdev)
+		return NULL;
+	device_lock(&pdev->dev);
+	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe"))
+		goto out;
+	owner = pdev->driver->driver.owner;
+	if (!owner || !try_module_get(owner)) {
+		owner = NULL;
+		goto out;
+	}
+	g = pci_get_drvdata(pdev);
+	/* A live trial is the only state whose device mappings mean anything.
+	 * Anything else (probing, orphaned, torn down) degrades the caller.
+	 */
+	if (!g || !g->trial.pinned || !g->trial.connected) {
+		module_put(owner);
+		owner = NULL;
+		goto out;
+	}
+	session = g;
+out:
+	if (!session && owner)
+		module_put(owner);
+	device_unlock(&pdev->dev);
+	pci_dev_put(pdev);
+	/* Note: the module ref pins against unload, not unbind. Live mappings
+	 * are counted; remove() warns if any are outstanding (see below).
+	 */
+	return session;
+}
+
+static void mt_pvr_session_put(void *session)
+{
+	struct mt_guest *g = session;
+
+	if (WARN_ON_ONCE(!g))
+		return;
+	module_put(THIS_MODULE);
+}
+
+static int mt_pvr_session_dma_map(void *session, void **cpu_pages, u32 npages,
+				  enum mt_pvr_dma_dir dir,
+				  struct mt_pvr_dma_page *dma_addrs)
+{
+	struct mt_guest *g = session;
+	struct pci_dev *pdev;
+	u32 i;
+	int ret = -ENODEV;
+
+	(void)dir; /* bidirectional until the bridge learns per-PMR direction */
+	if (!g || !cpu_pages || !dma_addrs || !npages)
+		return -EINVAL;
+	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	if (!pdev)
+		return -ENODEV;
+	device_lock(&pdev->dev);
+	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe") ||
+	    pci_get_drvdata(pdev) != g) {
+		ret = -ENODEV;
+		goto unlock;
+	}
+	for (i = 0; i < npages; i++) {
+		struct page *page;
+		dma_addr_t addr;
+
+		if (!cpu_pages[i]) {
+			ret = -EINVAL;
+			break;
+		}
+		page = virt_to_page(cpu_pages[i]);
+		addr = dma_map_page(&pdev->dev, page, 0, PAGE_SIZE,
+				    DMA_BIDIRECTIONAL);
+		if (dma_mapping_error(&pdev->dev, addr)) {
+			ret = -EIO;
+			break;
+		}
+		dma_addrs[i].dma_addr = addr;
+		dma_addrs[i].cpu_addr = (u64)(uintptr_t)cpu_pages[i];
+	}
+	if (!ret)
+		atomic_inc(&mt_pvr_live_maps);
+	else {
+		while (i--) {
+			struct page *page = virt_to_page(
+				(void *)(uintptr_t)dma_addrs[i].cpu_addr);
+
+			dma_unmap_page(&pdev->dev, dma_addrs[i].dma_addr,
+				       PAGE_SIZE, DMA_BIDIRECTIONAL);
+			(void)page;
+		}
+	}
+unlock:
+	device_unlock(&pdev->dev);
+	pci_dev_put(pdev);
+	return ret;
+}
+
+static void mt_pvr_session_dma_unmap(void *session,
+				     struct mt_pvr_dma_page *dma_addrs,
+				     u32 npages, enum mt_pvr_dma_dir dir)
+{
+	struct mt_guest *g = session;
+	struct pci_dev *pdev;
+	u32 i;
+
+	(void)dir;
+	if (WARN_ON_ONCE(!g || !dma_addrs || !npages))
+		return;
+	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	if (!pdev)
+		return;
+	device_lock(&pdev->dev);
+	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe") ||
+	    pci_get_drvdata(pdev) != g)
+		goto unlock;
+	for (i = 0; i < npages; i++)
+		dma_unmap_page(&pdev->dev, dma_addrs[i].dma_addr, PAGE_SIZE,
+			       DMA_BIDIRECTIONAL);
+	atomic_dec(&mt_pvr_live_maps);
+unlock:
+	device_unlock(&pdev->dev);
+	pci_dev_put(pdev);
+}
+
+/* Exported under the table's own name so the bridge's symbol_get() finds it.
+ * Version is inside the struct; a drifted bridge degrades instead of adapting.
+ */
+const struct mt_pvr_session_ops mt_pvr_session_ops = {
+	.abi_version = MT_PVR_SESSION_ABI_VERSION,
+	.dma_map = mt_pvr_session_dma_map,
+	.dma_unmap = mt_pvr_session_dma_unmap,
+	.session_get = mt_pvr_session_get,
+	.session_put = mt_pvr_session_put,
+};
+EXPORT_SYMBOL(mt_pvr_session_ops);
 
 static const struct pci_device_id mt_ids[] = {
 	{ PCI_DEVICE_SUB(0x1ed5, 0x0222, 0x1ed5, 0x1101) },
