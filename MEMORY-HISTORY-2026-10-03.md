@@ -553,3 +553,14 @@
 - 打法转向：堆喷洒（廉价）替代精确整形；T1 钳制设计再确认。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r109-oob-read.md`。
 - 遗留：堆喷洒验证；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r110：喷洒 verdict；离线自主）
+
+- 大块喷洒无效（尺寸类隔离）；perturb 下 size-0 依然（新鲜零）；
+  意外：整流重试环（284=142×2，0x19 触发）。
+- 死锁完整：context 要 surface 填数，surface 要 context 给堆；
+  下步找第三调用（dev-select-ex？），停试参。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r110-spray-verdict.md`。
+- 遗留：第三调用；加载窗口；push 待批。
