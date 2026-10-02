@@ -7,10 +7,18 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r94 CCB 自检；最旧节已归档）
+最后更新：2026-10-03（r95 零尺寸分配；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r95：TransferContext 卡零尺寸分配；离线自主）
+
+- B 路一试：DebugPrintf 四连定位 `DevmemAllocateAndMap:1`
+  （size 0；General 堆已 resolved）；下步 gdb 读 SubAllocate 入参
+  定尺寸槽来源（疑 `0x1:0xc` fabricated 零回包）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r95-zero-size-alloc.md`。
+- 遗留：尺寸槽；加载窗口；push 待批。
 
 ## 本次会话进展（r94：0x89:0x0 线上成功但自检 unwind；离线自主）
 
@@ -19,11 +27,3 @@
 - 路径判断：B（sutu 正路）优先，A（自底整形）备用。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r94-tdm-create-selfcheck.md`。
 - 遗留：B 路一试；加载窗口；push 待批。
-
-## 本次会话进展（r93：Rogue2D 95→142；离线自主）
-
-- 两次零句柄修复（0x6:0x3 import，0x89:0x0 context）：95→141→142；
-  到达 TransferContext 创建；r92 空连接嫌疑同步证伪（rdi 有效）。
-  代码提交 `7ad8663`（27 行，-Werror 干净）。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r93-rogue2d-142calls.md` + jsonl。
-- 遗留：create 后 16 条窗口；加载窗口；push 待批。
