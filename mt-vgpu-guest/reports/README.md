@@ -56,6 +56,7 @@
 | r98 | P 是悬空指针（calloc 回收实锤）：单根因级联，只差 MapMem 一口气 |
 | r99 | +0x54 从未被写入：缺前置调用序列（下步延伸序列，非整形） |
 | r100 | sutu 设备选择可用；+0x54 指向 surface 创建链 |
+| r101 | Layout 可执行；harness 关键字陷阱 + TestSurfaceLayout 空指针门 |
 
 ## 关键单篇（本轮最常用）
 

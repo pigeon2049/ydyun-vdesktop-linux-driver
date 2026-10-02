@@ -450,3 +450,13 @@
 - 下步：修好 MapMem 后看 P 自然转正；不用追 P 本身。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r98-dangling-p.md`。
 - 遗留：MapMem 一口气；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r99：+0x54 从未被写入；离线自主）
+
+- 三种布局一致：该槽无人写（r98 calloc 复用是布局噪声）；
+  r98"悬空"修正为"未初始化"；缺的是前置调用序列。
+- 下步：延伸序列（DevInit→select→Create→Layout→Surface）逐加查槽。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r99-slot-never-written.md`。
+- 遗留：序列延伸；加载窗口；push 待批。
