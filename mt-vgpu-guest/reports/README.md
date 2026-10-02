@@ -48,6 +48,7 @@
 | r90 | shim 补 0x89:0x5 非零句柄，Rogue2D 再进两桥（新卡点 import 校验） |
 | r91 | import 拒绝点收敛：桥后 UMD 校验（eError 居尾排除，判别式备好） |
 | r92 | 判别式 verdict：OUT 一致，嫌疑是 AcquireCPUMapping 空连接（待证伪） |
+| r93 | Rogue2D 95→142：两次零句柄修复，打到 TransferContext 创建 |
 
 ## 关键单篇（本轮最常用）
 
