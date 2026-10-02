@@ -480,3 +480,12 @@
   下步 b31 内容/a6 字段整形。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r101-layout-gate.md`。
 - 遗留：b31 整形；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r102：Layout 门是值驱动；离线自主）
+
+- 栈位 a6–a15 全扫放 buffer，Layout 全返 3：门不在指针在值；
+  下步 validator 枚举映射（0x16010/0x15ce0 + 查表逻辑）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r102-layout-valuedriven.md`。
+- 遗留：枚举映射；加载窗口；push 待批。

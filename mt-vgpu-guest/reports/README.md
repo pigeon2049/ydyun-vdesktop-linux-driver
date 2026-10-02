@@ -59,6 +59,7 @@
 | r101 | Layout 可执行；harness 关键字陷阱 + TestSurfaceLayout 空指针门 |
 | r102 | Layout 门是值驱动（栈位全扫无效，下步枚举映射） |
 | r103 | 格式表解出但 13 值全灭；门在维度/validator（下步二选一） |
+| r104 | memsize 计算链定位（imul×2；sc=4 通行，三维已排除） |
 
 ## 关键单篇（本轮最常用）
 
