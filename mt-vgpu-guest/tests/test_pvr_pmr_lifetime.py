@@ -165,7 +165,12 @@ class PmrLifetime(unittest.TestCase):
             allowed.append((start, start + len(body)))
 
         stray = []
-        for m in re.finditer(r'\b(vfree|kfree)\s*\(\s*pmr\b', self.text):
+        # Only the PMR itself counts: kfree(pmr->dma_addrs) frees the DMA
+        # address array owned solely by the PMR (allocated in register,
+        # freed in release), which is safe and unrelated to the object
+        # lifetime. The lookahead rejects pmr->field and pmr->field[i].
+        for m in re.finditer(r'\b(vfree|kfree)\s*\(\s*pmr(?![\w>-])',
+                             self.text):
             if not any(lo <= m.start() <= hi for lo, hi in allowed):
                 stray.append(self.text[:m.start()].count('\n') + 1)
         self.assertEqual(
@@ -314,6 +319,74 @@ class ReservationLifecycle(unittest.TestCase):
                       'unreserve drops a range the mappings still reference')
         self.assertIn('list_del(&obj->link)', self.unreserve,
                       'unreserve does not retire the reservation')
+
+
+class SessionHandoff(unittest.TestCase):
+    """S4-3 bridge side of the DMA contract (kernel/mt_pvr_session.h).
+
+    The bridge must survive the session being absent, drifted or dying at any
+    moment. These pin the degradation shape; the session-side exports land
+    with the session rebuild.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = strip_comments(SOURCE.read_text())
+        cls.register = function_body('pvr_pmr_dma_register', cls.text)
+        cls.release = function_body('pvr_pmr_dma_release', cls.text)
+        cls.header = (SOURCE.parents[2] / 'kernel' /
+                      'mt_pvr_session.h').read_text()
+
+    def test_version_is_checked_on_acquire(self):
+        self.assertIn('MT_PVR_SESSION_ABI_VERSION', self.header)
+        self.assertIn('ops->abi_version != MT_PVR_SESSION_ABI_VERSION',
+                      self.register,
+                      'a drifted session table would be used silently')
+
+    def test_every_acquire_balances_a_put(self):
+        # register() has three exits after symbol_get: version drift, dead
+        # session, and success -- plus map/allocation failures. Each must
+        # put. release() puts exactly once.
+        self.assertEqual(self.register.count('symbol_put('), 1,
+                         'register must have a single shared put exit')
+        self.assertEqual(self.release.count('symbol_put('), 1,
+                         'release must put exactly once')
+        self.assertIn('put_ops', self.register,
+                      'register has no shared put exit label')
+
+    def test_ops_pointer_is_never_cached(self):
+        for body, name in ((self.register, 'register'),
+                           (self.release, 'release')):
+            self.assertNotRegex(
+                body, r'(file|pmr)->\w*ops\s*=',
+                f'{name} stores the ops pointer: it dies with the session')
+
+    def test_session_handle_is_stored_for_release(self):
+        # register() must keep the handle so release() can unmap + put;
+        # dropping it leaks the session reference on success.
+        self.assertIn('pmr->dma_session = session', self.register)
+        self.assertIn('pmr->dma_session', self.release)
+
+    def test_release_is_safe_unmapped_and_sessionless(self):
+        self.assertIn('if (!pmr->dma_addrs)', self.release,
+                      'release on a never-registered PMR must be a no-op')
+        # If the session is gone or drifted, the addresses are dropped, not
+        # dereferenced. Reading dma_addrs past this point would fault the GPU.
+        self.assertIn('kfree(pmr->dma_addrs)', self.release)
+
+    def test_map_path_ignores_registration_failure(self):
+        # (void) cast documents intent: ANY failure degrades to system memory
+        # with OUT value and return code unchanged.
+        map_body = function_body('pvr_cmd_pmr_map', self.text)
+        self.assertIn('(void)pvr_pmr_dma_register(file, pmr)', map_body,
+                      'map must attempt registration without using its result')
+
+    def test_unref_releases_dma_before_freeing(self):
+        unref = function_body('pvr_pmr_unref', self.text)
+        body = unref[unref.index('if (--pmr->refcount)'):]
+        self.assertLess(body.index('pvr_pmr_dma_release(pmr)'),
+                        body.index('vfree(pmr->host)'),
+                        'DMA must be released before the backing is freed')
 
 
 if __name__ == '__main__':

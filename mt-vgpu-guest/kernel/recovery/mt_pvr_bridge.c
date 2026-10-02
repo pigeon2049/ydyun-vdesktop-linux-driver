@@ -39,7 +39,16 @@
 
 #include "../mt_pvr_device.h"
 #include "../mt_pvr_queue.h"
+#include "../mt_pvr_session.h"
 #include "../mt_mmu.h"
+
+/* Session-side service table, owned by mt_guest_probe (not yet exported).
+ * Declared, never defined here: symbol_get() resolves it at runtime and
+ * yields NULL while nothing exports it, which is the designed -ENODEV
+ * degradation path. Do NOT reference it directly -- only through
+ * symbol_get()/symbol_put().
+ */
+extern const struct mt_pvr_session_ops mt_pvr_session_ops;
 
 /* The driver hard-codes these two numbers, and the vendor declares them the
  * same way in inc/pvr/include/pvr_drm.h:
@@ -119,6 +128,16 @@ struct mt_pvr_pmr {
 	u64 handle;
 	u64 bytes;
 	void *host;		/* system memory until page tables exist */
+	/* S4-3 DMA registration (handoff step 1). NULL until a live session
+	 * maps these pages; npages covers the whole PMR rounded up. The
+	 * addresses are valid only while mapped -- see mt_pvr_session.h rule 5.
+	 */
+	struct mt_pvr_dma_page *dma_addrs;
+	u32 dma_npages;
+	/* Session handle from ops->session_get(), balanced by session_put()
+	 * in pvr_pmr_dma_release(). Never dereferenced -- only passed back.
+	 */
+	void *dma_session;
 	u32 log2_page_size;
 	/* Live DevmemIntMapPMR count, and the reservation the current mapping
 	 * was programmed into. The OUT mapping value stays the PMR handle (the
@@ -172,9 +191,115 @@ static bool pvr_ready;
  * references, which are handed back through this.
  */
 static void pvr_pmr_unref(struct mt_pvr_pmr *pmr);
+static void pvr_pmr_dma_release(struct mt_pvr_pmr *pmr);
 static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle);
 static struct mt_pvr_object *pvr_reservation_find(struct mt_pvr_file *file,
 						  u64 handle);
+
+/* Attempt DMA registration of a PMR through the live GPU session.
+ *
+ * S4-3 handoff, step 1 (bridge side). Returns 0 with dma_addrs filled, or a
+ * negative errno with nothing changed. Callers treat ANY failure -- above
+ * all -ENODEV (no session, version drift, dead session) -- as "stay on
+ * system memory", never as a UMD-visible error. See mt_pvr_session.h rules.
+ *
+ * Locking: runs under file->lock like the rest of dispatch. The symbol_get
+ * pins the session module, so it cannot unload under us; symbol_put balances
+ * on every path, including the map-failure path after acquisition.
+ */
+static int pvr_pmr_dma_register(struct mt_pvr_file *file,
+				struct mt_pvr_pmr *pmr)
+{
+	const struct mt_pvr_session_ops *ops;
+	void *session;
+	void **pages;
+	u32 i, npages;
+	int ret;
+
+	(void)file;
+	if (pmr->dma_addrs)
+		return 0;
+	npages = mt_pvr_mmap_page_count(pmr->bytes, PAGE_SIZE);
+	if (!npages)
+		return -EINVAL;
+	ops = symbol_get(mt_pvr_session_ops);
+	if (!ops)
+		return -ENODEV;
+	if (ops->abi_version != MT_PVR_SESSION_ABI_VERSION) {
+		ret = -ENODEV;
+		goto put_ops;
+	}
+	session = ops->session_get ? ops->session_get() : NULL;
+	if (!session) {
+		ret = -ENODEV;
+		goto put_ops;
+	}
+	pages = kcalloc(npages, sizeof(*pages), GFP_KERNEL);
+	if (!pages) {
+		ret = -ENOMEM;
+		goto put_session;
+	}
+	for (i = 0; i < npages; i++) {
+		struct page *page = vmalloc_to_page(pmr->host + i * PAGE_SIZE);
+
+		if (!page) {
+			ret = -ENOMEM;
+			goto free_pages;
+		}
+		pages[i] = page_address(page);
+	}
+	pmr->dma_addrs = kcalloc(npages, sizeof(*pmr->dma_addrs), GFP_KERNEL);
+	if (!pmr->dma_addrs) {
+		ret = -ENOMEM;
+		goto free_pages;
+	}
+	ret = ops->dma_map(session, pages, npages, MT_PVR_DMA_BIDIRECTIONAL,
+			   pmr->dma_addrs);
+	if (ret) {
+		kfree(pmr->dma_addrs);
+		pmr->dma_addrs = NULL;
+		goto free_pages;
+	}
+	pmr->dma_npages = npages;
+	pmr->dma_session = session;
+	session = NULL;
+	ret = 0;
+free_pages:
+	kfree(pages);
+put_session:
+	if (session && ops->session_put)
+		ops->session_put(session);
+put_ops:
+	symbol_put(mt_pvr_session_ops);
+	return ret;
+}
+
+/* Release a DMA registration. Safe on a never-registered PMR. */
+static void pvr_pmr_dma_release(struct mt_pvr_pmr *pmr)
+{
+	const struct mt_pvr_session_ops *ops;
+
+	if (!pmr->dma_addrs)
+		return;
+	ops = symbol_get(mt_pvr_session_ops);
+	if (ops && ops->abi_version == MT_PVR_SESSION_ABI_VERSION) {
+		if (pmr->dma_session) {
+			ops->dma_unmap(pmr->dma_session, pmr->dma_addrs,
+				       pmr->dma_npages, MT_PVR_DMA_BIDIRECTIONAL);
+			if (ops->session_put)
+				ops->session_put(pmr->dma_session);
+		}
+		symbol_put(mt_pvr_session_ops);
+	}
+	/* If the session is gone (or drifted), the addresses are unusable
+	 * anyway; drop them. This is why dma_addrs must never be read except
+	 * between a successful register and this release.
+	 */
+	kfree(pmr->dma_addrs);
+	pmr->dma_addrs = NULL;
+	pmr->dma_npages = 0;
+	pmr->dma_session = NULL;
+}
 
 static void pvr_file_release(struct kref *kref)
 {
@@ -315,6 +440,7 @@ static void pvr_pmr_unref(struct mt_pvr_pmr *pmr)
 	WARN_ON_ONCE(pmr->refcount == 0);
 	if (--pmr->refcount)
 		return;
+	pvr_pmr_dma_release(pmr);
 	vfree(pmr->host);
 	kfree(pmr);
 }
@@ -1060,6 +1186,11 @@ static int pvr_cmd_pmr_map(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 		return -ENOSPC;
 	pmr->mapped++;
 	pmr->mapped_reservation = in.reservation;
+	/* Opportunistic DMA registration. Any failure (in particular -ENODEV
+	 * while no session exports the ops) keeps system-memory semantics;
+	 * the OUT value and return code are unchanged either way.
+	 */
+	(void)pvr_pmr_dma_register(file, pmr);
 	out.mapping = pmr->handle;
 	return pvr_out(cmd, &out, sizeof(out));
 }
