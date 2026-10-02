@@ -1,5 +1,11 @@
 # Top-level entry point for the mt-vgpu-guest Stage-B bridge work.
 #
+# Timeout policy (bA38 lesson): the harness timeout is 300s, never tight.
+# A SIGKILL landing inside a bridge ioctl leaks file->lock with the dying
+# task (kernel mutexes have no owner-death release), wedging that file, its
+# FDs and the module refcount until reboot. A slow run must time out on its
+# own terms, not by being killed mid-ioctl.
+#
 # Layered gates:
 #   L1  check-offline  pure userspace: python suite + bridge core RAM test.
 #                      Never touches hardware, modules, PCI or /dev/dri.
@@ -89,7 +95,7 @@ umd: kernel
 	SYNC="$$RENDER buf 14 8 u64 14 0 '*b7*+176' buf 10 64 buf 11 32 call CreateSyncPrim 'b14*' b10 b11"; \
 	run() { name="$$1"; shift; echo "=== $$name ==="; \
 		UMD_TRACE=/tmp/opencode/umda/l4-$$name.jsonl \
-		timeout 60 ./build/probe/umd_connect_harness "$(UMD_LIB)" $$@; \
+		timeout 300 ./build/probe/umd_connect_harness "$(UMD_LIB)" $$@; \
 		echo "-> exit=$$?"; }; \
 	go() { eval "run $$1 $$2"; }; \
 	go rung1-connect "connect 0"; \
