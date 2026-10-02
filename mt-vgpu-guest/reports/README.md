@@ -53,6 +53,7 @@
 | r95 | TransferContext 卡在 devmem 零尺寸分配（General 堆已定位） |
 | r96 | TDM 控制内存 size-0 根因：计数槽空（rogue2d 栈构造） |
 | r97 | P 槽位直接观测：有效但计数 0（下步硬件观察点找写入者） |
+| r98 | P 是悬空指针（calloc 回收实锤）：单根因级联，只差 MapMem 一口气 |
 
 ## 关键单篇（本轮最常用）
 

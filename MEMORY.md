@@ -7,10 +7,18 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r97 P 槽观测；最旧节已归档）
+最后更新：2026-10-03（r98 悬空 P；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r98：P 是悬空指针；离线自主）
+
+- 硬件观察点双命中（bt 全在 calloc←CCB）：P 块已被释放又被复用；
+  r96/r97"计数空"修正为"悬空读取"；很可能单根因（MapMem）级联。
+- 下步：修好 MapMem 后看 P 自然转正；不用追 P 本身。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r98-dangling-p.md`。
+- 遗留：MapMem 一口气；加载窗口；push 待批。
 
 ## 本次会话进展（r97：P 槽位直接观测；离线自主）
 
@@ -19,12 +27,3 @@
 - 下步：硬件观察点抓写入者。零硬件触碰。
   证据：`mt-vgpu-guest/reports/r97-p-slot-observed.md`。
 - 遗留：+0x54 写入者；加载窗口；push 待批。
-
-## 本次会话进展（r96：TDM size-0 根因；离线自主）
-
-- DebugPrintf 全参链：size = `[P+0x54]<<7`，P 有效计数 0；
-  General 堆无辜；harness 参数与此无关（头部只用 rdi）。
-- 下步：跟 R2DCreateContext 内 byte+8 装配源。
-  教训：无符号内部断点走 catch-load 换算或 DebugPrintf 模板。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r96-tdm-count-zero.md`。
-- 遗留：计数槽来源；加载窗口；push 待批。
