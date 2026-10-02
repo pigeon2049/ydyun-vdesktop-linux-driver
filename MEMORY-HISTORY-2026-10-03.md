@@ -592,3 +592,12 @@
   真 fence（deferred，非即时）；update≠0 诚实拒绝；执行待新会话。
 - 设计文档不写代码。证据：`mt-vgpu-guest/reports/r113-checkonly-first-frame.md`。
 - 遗留：首帧实现（待新会话）；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r114：fence 生成器语义；离线自主）
+
+- `SyncUtilGenerateFenceData`：同步表→{handle,offset,值}三元组 + 上限钳制；
+  update 侧同构；T1/T2 与厂商侧逐字节对应，r113 输入侧无盲区。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r114-fence-generator.md`。
+- 遗留：首帧实现/DM2 发射（待新会话）；加载窗口；push 待批。
