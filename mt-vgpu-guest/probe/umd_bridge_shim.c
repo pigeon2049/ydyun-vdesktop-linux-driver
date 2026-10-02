@@ -361,6 +361,25 @@ static void fabricate_sync_alloc(uint8_t *out, uint32_t out_size)
 		memcpy(out + 20, &blk, 4);
 }
 
+/* TDM shared memory (0x89:0x5) OUT is 20B: hMem u64@0, hMem u64@8,
+ * eError u32@16. Zero handles stall RGXTDMCreateStaticMem at its first
+ * TQPMR map (r87); hand out distinct nonzero fabrications the way the
+ * PMR path does. eError stays 0 from the pre-zeroing at the call site.
+ * 0x89:0x6 release takes one handle and needs no fabricated output. */
+static uint64_t next_tdm = 0xa000;
+
+static void fabricate_tdm_shmem(uint8_t *out, uint32_t out_size)
+{
+	uint64_t h;
+
+	if (out_size < 16)
+		return;
+	h = next_tdm++;
+	memcpy(out, &h, 8);
+	h = next_tdm++;
+	memcpy(out + 8, &h, 8);
+}
+
 /* Distinct heap handles keyed by base VA (OUT 12B: hHeap u64@0).
  * IN (28B): base u64@0, length u64@8, ctx u64@16, log2page u32@24. */
 static void fabricate_heap_create(const uint8_t *in, uint32_t in_size,
@@ -811,6 +830,9 @@ int ioctl(int fd, unsigned long req, ...)
 				fabricate_handle_out(&next_reservation,
 						     (uint8_t *)(uintptr_t)cmd.out_ptr,
 						     n, 12);
+			else if (cmd.bridge_id == 0x89 && cmd.bridge_func_id == 0x5)
+				fabricate_tdm_shmem(
+					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
 			else
 				apply_canned(cmd.bridge_id, cmd.bridge_func_id,
 					     (void *)(uintptr_t)cmd.out_ptr, n);
