@@ -88,6 +88,24 @@ class SessionOps(unittest.TestCase):
         self.assertIn('atomic_read(&mt_pvr_live_maps)', remove,
                       'unbinding under live bridge mappings must be loud')
 
+    def test_pages_cross_as_struct_page_not_addresses(self):
+        # virt_to_page() is invalid on vmalloc addresses and the bridge backs
+        # PMRs with vzalloc, so the page itself crosses the contract. A
+        # page_address()/virt_to_page() round trip computes garbage pages and
+        # would DMA-map arbitrary memory. This bug class was caught in review
+        # before first load, never on hardware.
+        bridge = (GUEST / 'kernel/recovery/mt_pvr_bridge.c').read_text()
+        bridge = strip_comments(bridge)
+        register = function_body('pvr_pmr_dma_register', bridge)
+        self.assertIn('pages[i] = page;', register,
+                      'bridge must pass struct page *, not an address')
+        self.assertNotIn('page_address(page)', register,
+                         'page_address round trip breaks on vmalloc pages')
+        self.assertIn('(struct page *)cpu_pages[i]', self.map,
+                      'session must take struct page * directly')
+        self.assertNotIn('virt_to_page', self.map,
+                         'virt_to_page on vmalloc addresses yields garbage')
+
     def test_direction_is_explicitly_deferred(self):
         # Bidirectional-until-learned is a deliberate choice, not an
         # oversight; the (void)dir marks say so.

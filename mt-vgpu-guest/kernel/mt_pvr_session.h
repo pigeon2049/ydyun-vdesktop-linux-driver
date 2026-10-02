@@ -54,9 +54,12 @@ struct mt_pvr_dma_page {
  */
 struct mt_pvr_session_ops {
 	u32 abi_version;
-	/* Map PMR pages for device access. Fills dma_addrs (caller array of
-	 * npages) and returns 0, or a negative errno. -ENODEV means "no live
-	 * session right now": degrade, do not propagate as a UMD error.
+	/* Map PMR pages for device access. cpu_pages entries are struct page *
+	 * (never virtual addresses: virt_to_page() is invalid on vmalloc
+	 * addresses, and the bridge backs PMRs with vzalloc). Fills dma_addrs
+	 * (caller array of npages) and returns 0, or a negative errno. -ENODEV
+	 * means "no live session right now": degrade, do not propagate as a
+	 * UMD error.
 	 */
 	int (*dma_map)(void *session, void **cpu_pages, u32 npages,
 		       enum mt_pvr_dma_dir dir, struct mt_pvr_dma_page *dma_addrs);

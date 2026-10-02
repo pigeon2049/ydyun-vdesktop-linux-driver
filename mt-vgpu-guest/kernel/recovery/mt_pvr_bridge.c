@@ -267,7 +267,11 @@ static int pvr_pmr_dma_register(struct mt_pvr_file *file,
 			ret = -ENOMEM;
 			goto free_pages;
 		}
-		pages[i] = page_address(page);
+		/* Pass the page itself, not its address: the contract takes
+		 * struct page *, because virt_to_page() must never see a
+		 * vmalloc address.
+		 */
+		pages[i] = page;
 	}
 	pmr->dma_addrs = kcalloc(npages, sizeof(*pmr->dma_addrs), GFP_KERNEL);
 	if (!pmr->dma_addrs) {

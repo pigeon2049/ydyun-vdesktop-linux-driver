@@ -1648,14 +1648,13 @@ static int mt_pvr_session_dma_map(void *session, void **cpu_pages, u32 npages,
 		goto unlock;
 	}
 	for (i = 0; i < npages; i++) {
-		struct page *page;
+		struct page *page = (struct page *)cpu_pages[i];
 		dma_addr_t addr;
 
-		if (!cpu_pages[i]) {
+		if (!page) {
 			ret = -EINVAL;
 			break;
 		}
-		page = virt_to_page(cpu_pages[i]);
 		addr = dma_map_page(&pdev->dev, page, 0, PAGE_SIZE,
 				    DMA_BIDIRECTIONAL);
 		if (dma_mapping_error(&pdev->dev, addr)) {
@@ -1663,19 +1662,14 @@ static int mt_pvr_session_dma_map(void *session, void **cpu_pages, u32 npages,
 			break;
 		}
 		dma_addrs[i].dma_addr = addr;
-		dma_addrs[i].cpu_addr = (u64)(uintptr_t)cpu_pages[i];
+		dma_addrs[i].cpu_addr = (u64)(uintptr_t)page;
 	}
 	if (!ret)
 		atomic_inc(&mt_pvr_live_maps);
 	else {
-		while (i--) {
-			struct page *page = virt_to_page(
-				(void *)(uintptr_t)dma_addrs[i].cpu_addr);
-
+		while (i--)
 			dma_unmap_page(&pdev->dev, dma_addrs[i].dma_addr,
 				       PAGE_SIZE, DMA_BIDIRECTIONAL);
-			(void)page;
-		}
 	}
 unlock:
 	device_unlock(&pdev->dev);
