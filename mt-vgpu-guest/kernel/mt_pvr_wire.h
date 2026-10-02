@@ -111,6 +111,35 @@ struct MT_PVR_PACKED mt_pvr_hwperf_release_out {
 	u32 error;
 };
 
+/* 0x89:0x5 RGXTDMGetSharedMemory -- no IN, 20-byte OUT.
+ * 0x89:0x6 RGXTDMReleaseSharedMemory -- 8-byte IN, 4-byte OUT.
+ *
+ * Transfer (2D/blit) shared memory: the UMD's RGXTDMCreateStaticMem calls
+ * the 0x89:0x5 wrapper with no input and expects two u64s back, which it
+ * stores at client+0x30/+0x38 and feeds to TQPMR_MapMem / TQPMR_MapUSCMem
+ * (r87). eError rides LAST here ({u64, u64, u32}), unlike the 0x88 family.
+ *
+ * Spike semantics (r87): both u64s alias ONE real 8 KiB arena PMR
+ * (handle minted twice, single lifetime). Release takes either alias and
+ * retires the PMR once; the second alias dies with it, matching
+ * ReleaseSharedMemory's single-handle contract. If live traffic shows the
+ * two slots must diverge (descriptors vs USC scratch), split into two
+ * PMRs with a per-file pairing record.
+ */
+struct MT_PVR_PACKED mt_pvr_tdm_shmem_out {
+	u64 ptr1;
+	u64 ptr2;
+	u32 error;
+};
+
+struct MT_PVR_PACKED mt_pvr_tdm_release_in {
+	u64 handle;
+};
+
+struct MT_PVR_PACKED mt_pvr_tdm_release_out {
+	u32 error;
+};
+
 /* 0x6:0x3 MM:PmrMakeLocalImportHandle -- 8-byte IN, 12-byte OUT.
  *
  * This was sharing the 0x6:0x6 handler, whose 28-byte OUT no longer fits the
@@ -561,6 +590,9 @@ static_assert(sizeof(struct mt_pvr_make_import_out) == 12, "0x6:0x3 out");
 static_assert(sizeof(struct mt_pvr_import_in) == 8, "0x6:0x6 in");
 static_assert(sizeof(struct mt_pvr_hwperf_release_in) == 8, "0x86:0x5 in");
 static_assert(sizeof(struct mt_pvr_hwperf_release_out) == 4, "0x86:0x5 out");
+static_assert(sizeof(struct mt_pvr_tdm_shmem_out) == 20, "0x89:0x5 out");
+static_assert(sizeof(struct mt_pvr_tdm_release_in) == 8, "0x89:0x6 in");
+static_assert(sizeof(struct mt_pvr_tdm_release_out) == 4, "0x89:0x6 out");
 /* 0x86:0x4 reuses mt_pvr_handle_out; its 12 bytes are the UMD's out_size, and
  * the 8-byte header form would truncate the handle away. */
 static_assert(sizeof(struct mt_pvr_import_out) == 28, "0x6:0x6 out");

@@ -101,6 +101,12 @@ MAPPING = {
     "mt_pvr_kicksync_destroy_out": (0x88, 0x1),
     "mt_pvr_unmap_pmr_in": (0x6, 0x14),
     "mt_pvr_unmap_out": (0x6, 0x14),
+    # 0x89 RGXTQ2 has no generated header in-tree, so there is no wire
+    # capture row to diff against; sizes stay gated by static_asserts plus
+    # tests/test_pvr_tdm_shmem.py (r88).
+    "mt_pvr_tdm_shmem_out": None,
+    "mt_pvr_tdm_release_in": None,
+    "mt_pvr_tdm_release_out": None,
     "mt_pvr_unreserve_in": (0x6, 0x16),
     "mt_pvr_heap_destroy_in": (0x6, 0x12),
     "mt_pvr_heap_destroy_out": (0x6, 0x12),
@@ -138,6 +144,9 @@ DIRECTION = {
     "mt_pvr_unreserve_in": "in",
     "mt_pvr_heap_destroy_in": "in", "mt_pvr_heap_destroy_out": "out",
     "mt_pvr_oom_stats_in": "in", "mt_pvr_oom_stats_out": "out",
+    "mt_pvr_tdm_shmem_out": "out",
+    "mt_pvr_tdm_release_in": "in",
+    "mt_pvr_tdm_release_out": "out",
 }
 
 # Table key holding the wire size for each direction.

@@ -97,6 +97,8 @@ static_assert(_IOC_SIZE(DRM_IOCTL_PVR_SYNC_RENAME) ==
 #define MT_PVR_BRIDGE_RGXCOMPUTE 0x81U
 #define MT_PVR_BRIDGE_RGXTA3D 0x82U
 #define MT_PVR_BRIDGE_RGXHWPERF 0x86U
+
+#define MT_PVR_BRIDGE_RGXTDM 0x89U
 #define MT_PVR_BRIDGE_RGXKICKSYNC 0x88U
 
 /* The one device the main module drives. */
@@ -2225,6 +2227,47 @@ static int pvr_cmd_hwperf_release(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* 0x89:0x5 RGXTDMGetSharedMemory and 0x89:0x6 RGXTDMReleaseSharedMemory.
+ *
+ * Transfer (2D/blit) shared memory for RGXTDMCreateStaticMem (r87): the UMD
+ * passes no input and stores the two returned u64s at client+0x30/+0x38 for
+ * TQPMR_MapMem / TQPMR_MapUSCMem. Both aliases point at ONE real 8 KiB
+ * arena PMR (see mt_pvr_wire.h spike note); release retires it once via the
+ * normal PMR path, so a second release honestly reports -ENOENT instead of
+ * double-freeing. eError rides last in this family ({u64, u64, u32}).
+ */
+static int pvr_cmd_tdm_shmem(struct mt_pvr_file *file,
+			     struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_tdm_shmem_out out = { 0 };
+	struct mt_pvr_pmr *pmr;
+
+	pmr = pvr_pmr_new(file, 0x2000, 12);
+	if (!pmr)
+		return -ENOMEM;
+	out.ptr1 = pmr->handle;
+	out.ptr2 = pmr->handle;
+	out.error = 0;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+static int pvr_cmd_tdm_release(struct mt_pvr_file *file,
+			       struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_tdm_release_in in;
+	struct mt_pvr_tdm_release_out out = { 0 };
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	ret = pvr_pmr_put(file, in.handle);
+	if (ret)
+		return ret;
+	out.error = 0;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
 /* Succeed at a command whose only observable output is eError (and, for some,
  * a little zeroed data), by actually zeroing the caller's OUT buffer.
  *
@@ -2380,6 +2423,15 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_cmd_hwperf(file, cmd);
 		case 0x5:		/* MUSA:MUSAReleaseHWPerfSettings */
 			return pvr_cmd_hwperf_release(file, cmd);
+		default:
+			return -ENOTTY;
+		}
+	case MT_PVR_BRIDGE_RGXTDM:
+		switch (function) {
+		case 0x5:		/* RGXTDMGetSharedMemory */
+			return pvr_cmd_tdm_shmem(file, cmd);
+		case 0x6:		/* RGXTDMReleaseSharedMemory */
+			return pvr_cmd_tdm_release(file, cmd);
 		default:
 			return -ENOTTY;
 		}
