@@ -583,3 +583,12 @@
 - 出路：加载窗口（含 features 开关评估）；离线只剩 T3 收尾 + 首帧设计。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r112-legacy-tdm-dead.md`。
 - 遗留：加载窗口（关键）；T3 收尾；push 待批。
+
+---
+
+## 本次会话进展（r113：check-only 首帧翻译设计；离线自主）
+
+- r79 承诺收敛：真 check-kick → T1/T2 → 自实现等待 → 空 DM2 marker →
+  真 fence（deferred，非即时）；update≠0 诚实拒绝；执行待新会话。
+- 设计文档不写代码。证据：`mt-vgpu-guest/reports/r113-checkonly-first-frame.md`。
+- 遗留：首帧实现（待新会话）；加载窗口；push 待批。

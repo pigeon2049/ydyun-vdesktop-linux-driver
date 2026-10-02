@@ -7,10 +7,17 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r114 输入侧闭环；最旧节已归档）
+最后更新：2026-10-03（r115 快照刷新；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r115：快照刷新 pass；离线自主）
+
+- §4 定期刷新：§§1/2/5/6/11/12 + STATUS 下一步合入 r72–r114；
+  §3/4/7/8/9/10 封存未动；在盘桥含 TDM（与在载不同）已记入 §12。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r115-snapshot-refresh.md`。
+- 遗留：加载窗口；T3 首帧执行；push 待批。
 
 ## 本次会话进展（r114：fence 生成器语义；离线自主）
 
@@ -18,10 +25,3 @@
   update 侧同构；T1/T2 与厂商侧逐字节对应，r113 输入侧无盲区。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r114-fence-generator.md`。
 - 遗留：首帧实现/DM2 发射（待新会话）；加载窗口；push 待批。
-
-## 本次会话进展（r113：check-only 首帧翻译设计；离线自主）
-
-- r79 承诺收敛：真 check-kick → T1/T2 → 自实现等待 → 空 DM2 marker →
-  真 fence（deferred，非即时）；update≠0 诚实拒绝；执行待新会话。
-- 设计文档不写代码。证据：`mt-vgpu-guest/reports/r113-checkonly-first-frame.md`。
-- 遗留：首帧实现（待新会话）；加载窗口；push 待批。

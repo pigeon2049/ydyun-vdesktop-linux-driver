@@ -62,10 +62,13 @@ DM2 + 64 KiB 像素读回 + 20 帧批量，21 次执行零 fault。
 
 ## 下一步（vGPU，按序）
 
-1. **真实绘制 kick 观察**（只读先行）：合成 kick 的 CCB size 为 0，
-   非零 CCB 内容只能来自走完整绘制路径的 kick（r56 定位的缺失输入）。
-   先用 `UMD_DUMP_BRIDGE` 抓包 + fabricated 重放确认能复现非零
-   counts，再谈是否上真机。
-2. **Translator T3**：DM 队列格式仍未知（RGX 环待从 `mtkm64.sys` 反推）；
-   在拿到真实 CCB 内容之前不写翻译器骨架——输入规约先行，代码随后。
+1. **真实绘制 kick 观察**：合成零 count 与非零 check 均已复现
+   （fabricated r72 + 活体 r73，T2 `ufo_known=1/1`）；update 侧需
+   DDK2，而 DDK2 需桥特性开关（改代码 + 重编 + 重载，单独立项，r78）；
+   非零 CCB 内容仍只能来自完整绘制路径（Rogue2D 推进到
+   TransferContext 创建，legacy-TDM 疑死代码，r86–r112）。
+2. **Translator T3**：DM 队列格式改从 UMD 侧反推（r82–r84、r114；
+   `mtkm64.sys` 已排除）；check-only 首帧翻译设计已完成，待新会话
+   执行（r113）；在拿到真实 CCB 内容之前不写翻译器骨架——输入规约
+   先行，代码随后。
 3. 长期：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。

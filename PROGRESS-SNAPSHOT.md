@@ -27,6 +27,12 @@ S4-3 交接第一步已落桥并在载：DMA 注册（PCI 直连）、VM plan
 （arena + cover-page）、kick T1+T2 只读观察。
 经 `live_3d`/`live_3d_drm` 路径的 RGX 真实执行已完成：
 单帧 DM2（r66）→ 64 KiB 像素读回（r70）→ 20 帧批量零 fault（r71）。
+r72–r114 进展：合成 kick 之外，非零 check 包已 fabricated 复现
+并活体验证（`ufo_known=1/1`，r72/r73）；CCB 打包公式已得
+（r76）；update 侧定位到 DDK2（需桥特性开关，r74–r78）；
+TA 提交链打通到 `0x82:0x14c` 桥（r82–r84）；
+Rogue2D/0x89 TDM 组已映射并实现共享内存桥（r86–r89，未加载）；
+check-only 首帧翻译设计完成（r113）；T1/T2 输入侧链条闭环（r114）。
 
 ---
 
@@ -60,6 +66,12 @@ S4-3 交接第一步已落桥并在载：DMA 注册（PCI 直连）、VM plan
 那是 S4-3 translator 边界（DM 队列格式未知 + 非零 CCB 待观察），
 不是本桥的拒绝 bug。GPU 真实执行经 `live_3d` 路径已验证（r66/r70/r71），
 与本阶梯相互独立。
+补充（r72–r78）：`RGXKickSync` 手工结构体可发出非零 check 包
+（`0x88:0x4 check=1`，fabricated 6/6 + 活体 `ufo_known=1/1`）；
+`0x88:0x0` 的 CCB pack 公式为 `(arg5&0xff)<<8|(arg4&0xff)`；
+update 侧不在 `RGXKickSync` 路径（证伪），候选 `RGXKickSyncDDK2`
+需桥广播新 DDK 特性（`features+0x54>=2`，桥故意钉死 legacy，r78），
+改桥 + 重载单独立项。
 
 第 4 步的完整失败链（全部由 gdb 实测，不是推测）：
 
@@ -160,15 +172,26 @@ RGXCreateRenderContext
 
 ---
 
-## 5. 下一步（按序）
+## 5. 下一步（按序；r79–r114 后更新）
 
-1. **真实绘制 kick 观察**（只读先行）：合成 kick 的 CCB size 为 0，
-   非零 CCB 内容只能来自走完整绘制路径的 kick
-   （r56 定位的 translator 缺失输入）。先用 `UMD_DUMP_BRIDGE` 抓包 +
-   fabricated 重放确认能复现非零 counts，再谈是否上真机。
+1. **真实绘制 kick 观察**：合成零 count 与非零 check 均已复现
+   （fabricated + 活体，r72/r73）；update 侧需 DDK2（r74–r77），
+   而 DDK2 需桥特性开关（r78，改代码 + 重编 + 重载，单独立项）；
+   非零 CCB 内容仍只能来自完整绘制路径（r56 原判不变；
+   Rogue2D 系已推进到 TransferContext 创建，r86–r112，
+   legacy-TDM 疑 vendor 死代码）。
    在拿到真实 CCB 内容之前不写翻译器骨架——输入规约先行，代码随后。
-2. **Translator T3**：DM 队列格式仍未知（RGX 环待从 `mtkm64.sys` 反推）；
-   T1（数组拷贝）+ T2（UFO→GPU PA）算法已就绪（r62），只读观察已落桥（r63）。
+2. **Translator T3**：DM 队列格式改从 UMD 侧反推（r82：
+   `mtkm64.sys` 系 host KMD，无 guest kick 语义，已排除）；
+   TA 提交链已静态打通（KickTA→PrepareTA→SubmitTA→`0x82:0x14c`，
+   r83/r84）+ fence 生成器语义（r114）；check-only 首帧翻译设计
+   已完成待新会话执行（r113）。
+3. `RGXCreateZSBuffer` 的 13 参数形状已摸清，但它要 UMD 内部的
+   heap/context 对象，小 buffer 冒充会直接段错误。gdb 证明崩溃点在
+   `MTSRVAllocExportableDevMem ← MIW` 经 libc 字符串函数：
+   MIW 把 `*param_1` 当 `MemHeap_*` 名字表下标。
+   要驱动它，需要先拿到真正的 psDevMemCtx/MemHeap 描述符指针，
+   这是 ZSBuffer/freelist/HWRT 这一串的共同前提。
 3. `RGXCreateZSBuffer` 的 13 参数形状已摸清，但它要 UMD 内部的
    heap/context 对象，小 buffer 冒充会直接段错误。gdb 证明崩溃点在
    `MTSRVAllocExportableDevMem ← MIW` 经 libc 字符串函数：
@@ -184,7 +207,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **221 项通过**（r45–r71 新增 arena/kick-inspect 等门禁；10-03 L1 复核全绿） |
+| Python 测试 | **226 项通过**（r45–r71 新增 arena/kick-inspect 等门禁；r88 新增 TDM 5 项；10-03 L1 复核全绿，本轮重跑仍全绿） |
 | C RAM 模型测试 | **268 checks**（10-03 L1 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -405,18 +428,22 @@ as-built 机制（`da3df8b`，r45–r63）：
 当前清单：
 
 1. **真实绘制 kick 的非零 CCB 观察**（r56 点名的缺失输入）：
-   先离线（`UMD_DUMP_BRIDGE` + fabricated 重放）确认能复现非零 counts，
-   再上真机；只要只读观察，不提交 GPU 工作。
-2. **Translator T3 的 DM 队列格式**：RGX 环从 `mtkm64.sys` 反推；
-   在拿到非零 CCB 之前不写骨架。
+   非零 counts 已复现（fabricated r72 + 活体 r73）；
+   update 侧与非零 CCB 内容仍待完整绘制路径——Rogue2D 系推进到
+   TransferContext 创建即止步（legacy-TDM 疑 vendor 死代码，r112），
+   真绘制大概率需新 DDK 路径；只要只读观察，不提交 GPU 工作。
+2. **Translator T3 的 DM 队列格式**：改从 UMD 侧反推（r82–r84、
+   r114；`mtkm64.sys` 已排除）；check-only 首帧翻译设计已完成
+   （r113），待新会话执行；在拿到非零 CCB 之前不写骨架。
 3. 对象存储已满：需空存储的实验（含再次的 `live_3d`）会被 `-EBUSY` 拒绝；
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
-## 12. 运行态（2026-10-03 复核刷新；本节是活页，其余章节为历史）
+## 12. 运行态（2026-10-03 快照刷新；本节是活页，其余章节为历史）
 
 - 新 retained 会话运行中：`mt_guest_probe` 已绑定 `00:0e.0`（Guest/FW
   `2/2` pinned，`pending=0/completed=23`，引用数 38），`mt_pvr_bridge` 已加载
-  （build-id `894faf50…`，arena+cover+kick-inspect，引用数 0；见 r60/r61/r63），
+  （build-id `894faf50…`，arena+cover+kick-inspect，引用数 1——
+  Chrome 被动持有 renderD128，不影响 ioctl 实验；见 r85），
   `mt_live_3d_drm` 留存（sealed 3D VM 不可卸载），`/dev/dri` 有
   `card1`/`renderD128`（桥）与 `card2`/`renderD129`（3D）。
   UMD 在 `/tmp/mtt-linux-umd-5.2.0/…`，L3/L4 八级阶梯在本 bridge
@@ -424,6 +451,8 @@ as-built 机制（`da3df8b`，r45–r63）：
   （单帧 DM2，`completed=1 result=0`，sealed 3D VM 留存；见 r66），
   像素级验证随后通过（render-target 64 KiB 读回；见 r70），
   20 帧批量零 fault（见 r71；对象存储已满，需空存储的实验会被拒绝）。
+  **在盘桥已不是在载桥**：`kernel/recovery/mt_pvr_bridge.ko`
+  含 r88 的 `0x89` TDM 实现（只待加载窗口，不会自动生效）。
   不要卸载任何已加载模块、解绑设备或提交额外工作。**
 - 以下为上一轮记录（已过期，仅保留原文）：本轮真机验证完成后，机器发生
   了一次外部重启。当前 `mt_pvr_bridge` **未加载**，`/dev/dri` 只有 `card0`，
