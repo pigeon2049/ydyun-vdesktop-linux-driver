@@ -248,3 +248,18 @@
   特性开关、ZSBuffer、check-only 首帧假设、会话窗口。
 - 证据：`mt-vgpu-guest/reports/r80-panorama.md`。
 - 遗留：T3 recon 优先；旧警告清理小轮；特性开关 + push 待批。
+
+---
+
+## 本次会话进展（r81：mock 路径排查 + DMA 活体验收；批准的真机测试）
+
+- 用户要"真机测试 + 还有哪些走 mock"：dispatch 全分支定级——
+  真干活（PMR/arena/DMA/台账/inspect）、成功空桩（stub×10 + OOM/ZS/compute，
+  其中 EventObjectWait 最危险）、句柄作坊（ZS 13 参数全丢）、
+  静态真形（connect/堆表/info，故意）、明确拒绝（S4 边界）。
+- 活体 `pvr_dma_smoke` PASS（refs 38→39→38，plan + arena 行 + DMA IOVA/GPU PA 行）；
+  会后零残留。无 rmmod/timeout/GPU 工作。
+- 给翻译器的红线：wait 语义自己实现；ZS/compute/render 句柄无含义；
+  mock 清单冻结为基线。证据：`mt-vgpu-guest/reports/r81-mock-audit.md` +
+  `r81-live-dma-proof.txt`。
+- 遗留：T3 recon；特性开关 + push 待批。
