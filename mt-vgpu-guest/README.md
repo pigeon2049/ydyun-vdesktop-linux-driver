@@ -1,8 +1,10 @@
 # MT vGPU Guest：本机适配与实验
 
 > **当前状态（2026-10-03）：本文件是 `mt-vgpu-guest/` 的入口。**
-> 当前权威快照是仓库根目录 `PROGRESS-SNAPSHOT.md`（逐轮过程记录在 `MEMORY.md`），
-> 两者冲突时以快照为准。
+> 总入口见仓库根 [`STATUS.md`](../STATUS.md)，
+> 权威快照见 [`PROGRESS-SNAPSHOT.md`](../PROGRESS-SNAPSHOT.md)
+> （逐轮过程记录在 [`MEMORY.md`](../MEMORY.md)，只留最新两节）。
+> 状态冲突时裁决顺序：`STATUS.md` → 快照 → `MEMORY.md`。
 >
 > 一句话现状：厂商 MUSA UMD 在自研内核桥上走完 8 个符号（connect → device →
 > devmemctx → render → syncprim → kicksync → compute → kicksubmit

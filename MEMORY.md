@@ -1,10 +1,10 @@
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
 > **本文件只保留最新过程记录。**
-> **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
+> **总入口见 [`STATUS.md`](STATUS.md)，权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 2026-10-03 之前的全部逐轮记录原样归档于
 > [`MEMORY-HISTORY-2026-10-01.md`](MEMORY-HISTORY-2026-10-01.md)（只读）。
-> 两者冲突时以快照为准。
+> 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 最后更新：2026-10-03（r45–r71 落地 + 文档清理：symbol_get 路线已弃用，PCI 直连；arena/cover/kick-inspect 在载；首次 RGX 执行 + 像素验证完成）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）

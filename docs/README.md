@@ -7,9 +7,8 @@
 | 云电脑 USB / 画面 / Wayland | `linux/`、`wayland/`、`docs/` | `docs/PROGRESS.md`（现状短页） |
 | 摩尔线程 S3000 vGPU Guest 适配 | `mt-vgpu-guest/` | 仓库根 `STATUS.md` → `PROGRESS-SNAPSHOT.md` |
 
-**唯一权威的当前状态**在仓库根：`STATUS.md`（总入口）与
-`PROGRESS-SNAPSHOT.md`（快照）；`MEMORY.md` 只留最新两节过程记录。
-三者冲突时以 `STATUS.md` 为准。本目录任何“当前/最新/下一步”
+**状态冲突时裁决顺序**：仓库根 `STATUS.md` → `PROGRESS-SNAPSHOT.md`（细节）
+→ `MEMORY.md`（过程）。本目录任何“当前/最新/下一步”
 的表述只代表其所属线的历史阶段。
 
 ## 云电脑线（USB / 画面 / Wayland）
