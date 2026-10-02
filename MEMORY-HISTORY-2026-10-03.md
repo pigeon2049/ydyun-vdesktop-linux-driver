@@ -460,3 +460,13 @@
 - 下步：延伸序列（DevInit→select→Create→Layout→Surface）逐加查槽。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r99-slot-never-written.md`。
 - 遗留：序列延伸；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r100：sutu 设备选择可用；离线自主）
+
+- `sutu_dev_select(128)` 返回 0（真枚举选中我方桥）；DevInit 不需要；
+  +0x54 指向 surface 创建链（Layout 头部已开头）。
+- 方法论：先读 NULL 门再调；fabricated 枚举走真实文件系统。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r100-sutu-select.md`。
+- 遗留：Layout/Surface 整形；加载窗口；push 待批。
