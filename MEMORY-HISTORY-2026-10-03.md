@@ -297,3 +297,15 @@
 - 下步是执行验证二选一：A fabricated 同步整形 / B 活体 KickTA（待批）。
   零硬件触碰。证据：`mt-vgpu-guest/reports/r84-submitta-backfill.md`。
 - 遗留：T3 执行验证；特性开关 + push 待批。
+
+---
+
+## 本次会话进展（r85：活体 KickTA，手工整形到墙；用户选 B）
+
+- 批准的单次活体：passthrough KickTA 6/6 入 PrepareTA 深部；
+  新崩溃 = p5 透传残留（真绘制状态指针，手工编不出）。
+  桥引用 1 是 Chrome passive open（不杀，隔离无影响）。
+- 结论：手工整形终结；提案真 GLES 绘制新项目（musa mesa 栈树内齐备，
+  EGL 接线未知，需立项另批）。会后零残留。
+- 证据：`mt-vgpu-guest/reports/r85-live-ta-shaping-wall.md` + jsonl。
+- 遗留：真绘制改走 Rogue2D spike（r86 已 redirect）；特性开关 + push 待批。

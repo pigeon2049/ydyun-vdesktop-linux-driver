@@ -42,6 +42,7 @@
 | r84 | SubmitTA 回填映射：fence/update 双生成器 + 同步组装（执行验证二选一） |
 | r85 | 活体 KickTA：入 PrepareTA 深部，手工整形到墙（转真 GLES 绘制提案） |
 | r86 | 真绘制栈 recon：GLES 无 EGL，Rogue2D 是首选 spike（同桥，96 导出） |
+| r87 | Rogue2D spike：95 路调用止于 TDM 共享内存（0x89 组全表，最小实现评估） |
 
 ## 关键单篇（本轮最常用）
 
