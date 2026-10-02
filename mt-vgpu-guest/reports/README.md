@@ -27,6 +27,7 @@
 | r64–r66 | 通道健康重验、单帧实验设计、**首次 RGX 真实执行** |
 | r67–r69 | device-mutex 泄漏事件（只能重启恢复）+ 两次重启恢复 |
 | r70–r71 | RGX 像素验证（64 KiB 读回）、20 帧批量像素闭环 |
+| r72 | fabricated RGXKickSync 复现非零 check count（kick 结构体映射 ≥436B） |
 
 ## 关键单篇（本轮最常用）
 
