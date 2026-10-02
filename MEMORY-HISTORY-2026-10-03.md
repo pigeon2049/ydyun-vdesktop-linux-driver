@@ -430,3 +430,13 @@
   教训：无符号内部断点走 catch-load 换算或 DebugPrintf 模板。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r96-tdm-count-zero.md`。
 - 遗留：计数槽来源；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r97：P 槽位直接观测；离线自主）
+
+- 断 CCB 出口：P 有效（堆），`+0x50=0x3000/+0x54=0/+0x58=0xf`；
+  问题收敛为"+0x54 写入者是谁"（缺省零 vs 未调用的前置步骤）。
+- 下步：硬件观察点抓写入者。零硬件触碰。
+  证据：`mt-vgpu-guest/reports/r97-p-slot-observed.md`。
+- 遗留：+0x54 写入者；加载窗口；push 待批。
