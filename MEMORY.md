@@ -7,10 +7,21 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r77 DDK2 rsi 身份落定；最旧节已归档）
+最后更新：2026-10-03（r78 活体 legacy 定案；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r78：活体非零 CCB create 仍走 legacy；批准的单次实验）
+
+- 用户批准真机：passthrough 非零 CCB create（pack `0x0733` 活体生效），
+  其后 0 SyncPrim 调用 → legacy 分支；DDK2 同址崩（dmesg `at 48` 写 fault 吻合）。
+  根因：桥 `mt_pvr_device.h:143-145` 故意钉 `features+0x54<2`（bring-up 刻意选择）。
+- 决策：update/DDK2 从"缺输入"转为"需桥特性开关"（改代码+重编+重载，
+  单独立项单独批准）；check 侧即翻译器当前完整输入；T3 仍被 CCB 卡住。
+- 会后零残留（23/34/38/0 全对，D 态 0，无新增 WARN）。
+  证据：`mt-vgpu-guest/reports/r78-live-ccb-legacy-path.md` + jsonl。
+- 遗留：特性开关立项（待批）；真实 CCB 内容仍需绘制路径。
 
 ## 本次会话进展（r77：DDK2 rsi 身份落定；离线语料）
 
@@ -22,11 +33,3 @@
   （待批实验已精确到"对象已知、只差一次活体 create"）。
 - 零硬件触碰，无新 trace。证据：`mt-vgpu-guest/reports/r77-ddk2-rsi-identity.md`。
 - 遗留：live 非零 CCB create + DDK2（待批）；真实 CCB 内容仍需绘制路径。
-
-## 本次会话进展（AGENTS §9：Win 侧 + 反编译语料优先；用户指令）
-
-- 用户要求：agent 提示优先参考 Windows 侧驱动实现与反编译工程。
-  落为 §9 三条（语料→Win 包→Ghidra 工程复用不重跑；SHA 先对后用；
-  语料是假设、执行是证据，与 §6.3 衔接）+ 检查单 +1 项；
-  顺手把落点表 rNN 起点 r72→r77 订正。
-- 纯文档改动，引用路径全存在。无 rNN 报告（非研究轮）。

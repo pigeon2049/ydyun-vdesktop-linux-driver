@@ -186,3 +186,13 @@
 - 证据：`mt-vgpu-guest/reports/r76-ghidra-ddk2-submissionbuf.md` +
   `r76-ccb-size-pack.jsonl`。
 - 遗留：live 非零 CCB create + DDK2（待批）；真实 CCB 内容仍需绘制路径。
+
+---
+
+## 本次会话进展（AGENTS §9：Win 侧 + 反编译语料优先；用户指令）
+
+- 用户要求：agent 提示优先参考 Windows 侧驱动实现与反编译工程。
+  落为 §9 三条（语料→Win 包→Ghidra 工程复用不重跑；SHA 先对后用；
+  语料是假设、执行是证据，与 §6.3 衔接）+ 检查单 +1 项；
+  顺手把落点表 rNN 起点 r72→r77 订正。
+- 纯文档改动，引用路径全存在。无 rNN 报告（非研究轮）。
