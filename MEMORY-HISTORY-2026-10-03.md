@@ -564,3 +564,12 @@
   下步找第三调用（dev-select-ex？），停试参。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r110-spray-verdict.md`。
 - 遗留：第三调用；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r111：chunk 解剖；离线自主）
+
+- P 块 0x40（usable 56），读 next-chunk 数据 `{0x3000,0,0xf}`；
+  spray 失败因代际差 130KB；备选捷径：可控内容分配。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r111-chunk-anatomy.md`。
+- 遗留：邻居类型/可控分配；加载窗口；push 待批。

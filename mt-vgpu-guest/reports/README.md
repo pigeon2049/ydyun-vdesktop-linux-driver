@@ -68,6 +68,7 @@
 | r110 | 喷洒 verdict：size-0 免疫 perturb；死锁形态完整（缺第三调用） |
 | r111 | chunk 解剖：读 next-chunk 数据区（内容签名；备选捷径可控分配） |
 | r112 | +0x54 结构性为零：legacy-TDM 疑 vendor 死代码（收官判断，转加载窗口） |
+| r113 | check-only 首帧翻译设计（空 marker + 真 fence，设计文档不写代码） |
 
 ## 关键单篇（本轮最常用）
 
