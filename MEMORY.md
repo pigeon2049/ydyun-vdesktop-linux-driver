@@ -4,8 +4,21 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA40：**会话侧 DMA 服务**——handoff 第一步闭环在代码层完成）
+最后更新：2026-10-01（bA41：**页表输入台账**——handoff 第二步的软件侧完成）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（bA41：map/unmap 维护绑定台账）
+
+每个 live MapPMR 追加一条 `{va, bytes, pmr, reservation}`；
+unmap 摘除；release 排空；上限 512；同一 PMR 第二次 live map
+判 `-EBUSY`（未来页表会 double-program 其 VA）。
+reservation 重叠检查已保证台账 VA 永不碰撞。
+线格式零变化——8 级阶梯全绿证明 UMD 无 double-map、无重叠。
+
+门禁：186 Python（+4 BindingLedger）、268 C RAM、`W=1`、ABI 门全绿；
+retained 会话、显示零触碰。
 
 ---
 
