@@ -325,7 +325,28 @@ objdump -dr ... | awk '/^[0-9a-f]+ <.*>:/ {fn=$2}
 
 ---
 
-## 9. 运行态
+## 9. S4-3 范围（RGX 真实执行经我方桥）
+
+S4-2 证明了固件通道执行（TQX/3D fills）。S4-3 = 让 MUSA UMD 的 kick
+经我方桥真实执行。已探明：
+
+- **不需要找 RGX 固件 blob**：厂商 `mtgpu.ko` 的 firmware 请求表只有
+  VPU（`mtvpu-*.bin`）+ META（`musa.fw.1.0.0.0[.vz.linux|.vz.win]`），
+  无 RGX 图形固件。vGPU 下 host 拥有物理 GPU 与固件，
+  guest 只经 BAR/共享内存环提交——正是 `mt_guest_probe` 已打通的通道。
+- **缺的三块**（都在我方桥一侧）：
+  1. 桥 PMR 目前是 `vzalloc` 系统内存（`mt_pvr_bridge.c:271` 注释写明
+     “until page tables exist”），无 GPU VA 映射；
+     需接到 `mt_gpu_vm` 真实页表（`live_3d` 已证明该页表可用）。
+  2. `0x88:0x2/0x88:0x4` 目前 accept-and-inspect + 即时 fence，
+     需把 kick 包翻译进 firmware 会话的提交环（TQX 路径的
+     `submit_tqx_work` 是现成范例，RGX 环是下一步）。
+  3. UMD 侧 `mmap` 拿到的必须是 GPU 可见内存的 CPU 映射，
+     不是系统内存的 `remap_pfn_range`。
+- **不碰**：PCI 绑定（probe 已持有）、固件加载（已是 GE2/FW2 会话）、
+  显示（QXL，与 S3000 无关）。
+
+## 10. 运行态
 
 - 本轮真机验证完成后，机器发生了一次外部重启。
   当前 `mt_pvr_bridge` **未加载**，`/dev/dri` 只有 `card0`，
