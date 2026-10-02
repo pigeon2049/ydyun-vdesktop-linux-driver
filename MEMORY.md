@@ -7,10 +7,21 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r79 全路径评估；最旧节已归档）
+最后更新：2026-10-03（r80 全景测试评估；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r80：全景测试评估；用户指令）
+
+- 用户要"分配→复制→渲染→执行"逐段测评：L1 本轮实跑全绿（221+268）；
+  `make kernel` exit 0；dmesg 0 WARN；活体 sysfs 与 §12 一致；零硬件触碰。
+- 新发现：干净重编有 4 处 r38 期旧警告（快照"零警告"须加"增量"限定，
+  或另起小轮清掉）。
+- 结论：分配/复制/合成渲染/手工执行全绿；缺口 = T3（主）、CCB 内容、
+  特性开关、ZSBuffer、check-only 首帧假设、会话窗口。
+- 证据：`mt-vgpu-guest/reports/r80-panorama.md`。
+- 遗留：T3 recon 优先；旧警告清理小轮；特性开关 + push 待批。
 
 ## 本次会话进展（r79：vGPU 全路径梳理与方向评估；用户指令）
 
@@ -22,14 +33,3 @@
   → 特性开关单独立项 → 会话更新窗口规划。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r79-path-review.md`。
 - 遗留：按建议顺序推进（T3 recon 优先）；特性开关 + push 待批。
-
-## 本次会话进展（r78：活体非零 CCB create 仍走 legacy；批准的单次实验）
-
-- 用户批准真机：passthrough 非零 CCB create（pack `0x0733` 活体生效），
-  其后 0 SyncPrim 调用 → legacy 分支；DDK2 同址崩（dmesg `at 48` 写 fault 吻合）。
-  根因：桥 `mt_pvr_device.h:143-145` 故意钉 `features+0x54<2`（bring-up 刻意选择）。
-- 决策：update/DDK2 从"缺输入"转为"需桥特性开关"（改代码+重编+重载，
-  单独立项单独批准）；check 侧即翻译器当前完整输入；T3 仍被 CCB 卡住。
-- 会后零残留（23/34/38/0 全对，D 态 0，无新增 WARN）。
-  证据：`mt-vgpu-guest/reports/r78-live-ccb-legacy-path.md` + jsonl。
-- 遗留：特性开关立项（待批）；真实 CCB 内容仍需绘制路径。

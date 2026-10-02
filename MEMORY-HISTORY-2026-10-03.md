@@ -209,3 +209,16 @@
   （待批实验已精确到"对象已知、只差一次活体 create"）。
 - 零硬件触碰，无新 trace。证据：`mt-vgpu-guest/reports/r77-ddk2-rsi-identity.md`。
 - 遗留：live 非零 CCB create + DDK2（待批）；真实 CCB 内容仍需绘制路径。
+
+---
+
+## 本次会话进展（r78：活体非零 CCB create 仍走 legacy；批准的单次实验）
+
+- 用户批准真机：passthrough 非零 CCB create（pack `0x0733` 活体生效），
+  其后 0 SyncPrim 调用 → legacy 分支；DDK2 同址崩（dmesg `at 48` 写 fault 吻合）。
+  根因：桥 `mt_pvr_device.h:143-145` 故意钉 `features+0x54<2`（bring-up 刻意选择）。
+- 决策：update/DDK2 从"缺输入"转为"需桥特性开关"（改代码+重编+重载，
+  单独立项单独批准）；check 侧即翻译器当前完整输入；T3 仍被 CCB 卡住。
+- 会后零残留（23/34/38/0 全对，D 态 0，无新增 WARN）。
+  证据：`mt-vgpu-guest/reports/r78-live-ccb-legacy-path.md` + jsonl。
+- 遗留：特性开关立项（待批）；真实 CCB 内容仍需绘制路径。
