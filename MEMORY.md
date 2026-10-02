@@ -7,10 +7,21 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r78 活体 legacy 定案；最旧节已归档）
+最后更新：2026-10-03（r79 全路径评估；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r79：vGPU 全路径梳理与方向评估；用户指令）
+
+- 用户要完整梳理 + 方向 verdict：三线并行勘察 + 快照 §§3/8/9/10 对照。
+- 结论：方向正确（翻译器是最小完备路径，accept-and-inspect 解耦关键），
+  但结构性偏科——15 轮全在输入侧，T3（DM 格式）零进展，是最大风险；
+  活体跑道基本见底（对象满/sealed/freeze），硬仗需新会话窗口。
+- 建议顺序：T3 recon（离线语料）→ check-only 首帧设计（绕开 DDK2 的首胜路径）
+  → 特性开关单独立项 → 会话更新窗口规划。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r79-path-review.md`。
+- 遗留：按建议顺序推进（T3 recon 优先）；特性开关 + push 待批。
 
 ## 本次会话进展（r78：活体非零 CCB create 仍走 legacy；批准的单次实验）
 
@@ -22,14 +33,3 @@
 - 会后零残留（23/34/38/0 全对，D 态 0，无新增 WARN）。
   证据：`mt-vgpu-guest/reports/r78-live-ccb-legacy-path.md` + jsonl。
 - 遗留：特性开关立项（待批）；真实 CCB 内容仍需绘制路径。
-
-## 本次会话进展（r77：DDK2 rsi 身份落定；离线语料）
-
-- §9 流程首验：DDK2 rsi = 走完完整创建的 kicksync 对象；
-  `+0x8/+0x18/+0x28` = 注册 server ctx / `_SyncPrimAlloc` /
-  `SubmissionBufAlloctorCreate`（语料行号 L28320/28321/28331）；
-  render-obj 候选彻底排除；`param_4` 是可选 OUT，传 0 正确。
-- 推论：DDK2 唯一可达路径 = 活体非零 CCB create 走完三步门控
-  （待批实验已精确到"对象已知、只差一次活体 create"）。
-- 零硬件触碰，无新 trace。证据：`mt-vgpu-guest/reports/r77-ddk2-rsi-identity.md`。
-- 遗留：live 非零 CCB create + DDK2（待批）；真实 CCB 内容仍需绘制路径。
