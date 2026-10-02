@@ -28,6 +28,7 @@
 | r67–r69 | device-mutex 泄漏事件（只能重启恢复）+ 两次重启恢复 |
 | r70–r71 | RGX 像素验证（64 KiB 读回）、20 帧批量像素闭环 |
 | r72 | fabricated RGXKickSync 复现非零 check count（kick 结构体映射 ≥436B） |
+| r73 | 非零 check kick 上真机（passthrough，T2 活体 `ufo_known=1/1`） |
 
 ## 关键单篇（本轮最常用）
 

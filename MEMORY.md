@@ -7,10 +7,22 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r72 fabricated 非零 kick 复现；按规则归档最旧节）
+最后更新：2026-10-03（r73 非零 kick 上真机；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r73：非零 check kick 上真机；单次 live 实验）
+
+- 用户本轮明确批准真机测试：passthrough rung8 + 512B 手工结构体，
+  一次即成，活桥 `0x88:0x4 ioctl_real ret=0 check=1 update=0`；
+  dmesg `ufo_known=1/1`（真实 bridge sync PMR 句柄命中）——T2 活体验证。
+  证据：`mt-vgpu-guest/reports/r73-live-nonzero-kick.md` + `r73-live-nonzero-kick.jsonl`。
+- 无 GPU 执行，会后状态一字不差（pending=0/completed=23，引用 38/0，
+  objects=34，D 态 0，无新增 WARN/BUG/Oops）；`make umd/probe` 仍禁用
+  （首步 rmmod），只手跑 harness、无 timeout 包裹。
+- 遗留：update 侧数组偏移定位；真实 CCB 内容仍需绘制路径；
+  快照刷新 pass 待攒。
 
 ## 本次会话进展（r72：fabricated 非零 kick count 复现；零硬件触碰）
 
@@ -28,15 +40,3 @@
   快照 §12 无需改）；真机抓包仍冻结（对象存储满 + 需单独批准）。
 - 遗留：update 侧数组偏移定位；门禁加"结构体下限 436B"断言（等 update 侧一起落）；
   快照 §§1–11 仍停 bA43、刷新 pass 待攒（见归档尾）。
-
-## 本次会话进展（2026-10-03 文档复核与收敛）
-
-- 复核：12 个引用路径全存在；在载 bridge build-id `894faf50`… 与快照一致；
-  L1 重跑 221 Python + 268 C 全绿；活会话零变化
-  （Guest/FW 2/2，pending=0/completed=23，引用 38/0）。
-- 收敛两处：① 五份入口的裁决口径互相矛盾 → 统一为 STATUS → 快照 → MEMORY；
-  ② 快照哈希的 amend 死循环 → 内容基线口径（只在改动快照内容时推进）。
-- §7 容量表 10-03 重测（build 5.9G、reports 442 文件、tests 52C+31py、
-  recovery 171 文件/54 源码）；ANALYSIS 陈年相对路径订正；
-  PROTOCOL/FIRMWARE 抽 stub 入日期归档；AGENTS 检查单 +USB 短页同步项。
-- “8 个符号”计数与快照 12 行阶梯表口径不一致 → STATUS 与目录入口改称“全链路”，不再计数。
