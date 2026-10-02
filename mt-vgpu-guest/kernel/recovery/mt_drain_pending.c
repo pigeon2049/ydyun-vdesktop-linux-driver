@@ -43,9 +43,6 @@ static int __init mt_drain_pending_init(void)
 	s = &d->markers;
 
 	void __iomem *bar0 = pci_iomap(pdev, 0, 4096);
-	void __iomem *bar1 = pci_iomap(pdev, 1, 4096);
-	u64 fw_pa = bar1 ? readq(bar1 + 0x30) : 0;
-	u64 fw_bytes = bar1 ? readq(bar1 + 0x38) : 0;
 	void __iomem *fw = ioremap(pci_resource_start(pdev, 2) + 0x3f000000ULL, 4096);
 	u32 fw0 = fw ? readl(fw) : 999;
 	u32 fw4 = fw ? readl(fw + 4) : 999;
@@ -62,8 +59,6 @@ static int __init mt_drain_pending_init(void)
 		iounmap(fw);
 	if (bar0)
 		pci_iounmap(pdev, bar0);
-	if (bar1)
-		pci_iounmap(pdev, bar1);
 
 	for (dm = 0; dm < MT_FW_DM_COUNT; dm++) {
 		struct mt_marker_fence *m, *tmp;

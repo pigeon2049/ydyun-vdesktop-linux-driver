@@ -34,3 +34,4 @@ static void __exit mt_fix_poll_exit(void)
 module_init(mt_fix_poll_init);
 module_exit(mt_fix_poll_exit);
 MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Reset d->service.poll_session back to NULL safely.");

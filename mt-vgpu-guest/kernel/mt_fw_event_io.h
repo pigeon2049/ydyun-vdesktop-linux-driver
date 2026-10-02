@@ -8,7 +8,7 @@ static inline void mt_fw_event_copy_from(void *opaque, void *dst, u32 offset, u3
 	struct mt_fw_queue_io *q = opaque;
 	memcpy_fromio(dst, q->queue + offset, bytes);
 }
-static const struct mt_fw_event_ops mt_fw_event_io_ops = {
+static const struct mt_fw_event_ops mt_fw_event_io_ops __maybe_unused = {
 	.read32 = mt_fw_io_read32, .write32 = mt_fw_io_write32,
 	.copy_from = mt_fw_event_copy_from,
 	.order_reads = mt_fw_io_barrier, .order_writes = mt_fw_io_barrier,
