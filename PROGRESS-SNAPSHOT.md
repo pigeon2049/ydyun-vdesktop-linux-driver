@@ -379,7 +379,20 @@ S4-2 证明了固件通道执行（TQX/3D fills）。S4-3 = 让 MUSA UMD 的 kic
 做一次 DMA 回读比对——那需要走完整 S4-2 ladder（约 30 分钟），
 留待下一次需要动硬件的窗口。
 
-## 11. 运行态
+## 11. 下个硬件窗口的验证清单（按序）
+
+1. **DMA mask 显式化**：当前 `dma_mask_bits=40` 是 mtgpu 遗留，
+   probe 从未调 `dma_set_mask`。若我方先绑定，mask 回落到默认值，
+   `dma_map_page` 首跑即败。会话侧加
+   `dma_set_mask_and_coherent(..., DMA_BIT_MASK(40))`（bind 路径，
+   需 reload 才能验证）。
+2. **DMA 回读比对**：map 成功只证明 API 接受，不证明 GPU 可读。
+   真验证 = TQX 从映射地址做一次复制（需定制 live 实验，
+   现有 `live_tqx` 用自己的 BO）。
+3. **新 probe 构建上机**：bA40 会话侧代码（含本轮 struct-page 修正）
+   至今只过编译 + `nm` 确认导出，从未加载执行。
+
+## 12. 运行态
 
 - 本轮真机验证完成后，机器发生了一次外部重启。
   当前 `mt_pvr_bridge` **未加载**，`/dev/dri` 只有 `card0`，
