@@ -4,8 +4,21 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA41：**页表输入台账**——handoff 第二步的软件侧完成）
+最后更新：2026-10-01（bA43：**DMA mask 显式化**——bind 路径补 40 位设置，未加载）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（bA42/bA43：handoff 代码复审 + mask 补丁）
+
+- **bA42**：复审发现 `virt_to_page()` 对 vzalloc 无效，
+  契约改传 `struct page *`，两边同步 + 门禁（反向验证过）。
+- **bA43**：`dma_mask_bits=40` 是 mtgpu 遗留，probe 从未设置；
+  bind 路径加 `dma_set_mask_and_coherent(40)`，门禁钉住。
+  两个构建都只过编译 + `nm` 确认，**都没加载**（会话零触碰）。
+- 有序拆除实测：marker ✓、service ✓ 可卸；
+  tqx 自 pin、probe 18 refs 卸不掉——**新构建上机必须重启**。
+- 门禁：188 Python、268 C RAM、`W=1`、ABI 全绿。
 
 ---
 
