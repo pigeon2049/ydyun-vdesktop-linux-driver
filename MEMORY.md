@@ -7,10 +7,22 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r74 update 侧证伪 + DDK2 定位；最旧节已归档）
+最后更新：2026-10-03（r75 DDK2 全映射 + 崩溃归因；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r75：DDK2 结构体全映射 + rsi 需求定位；离线）
+
+- DDK2 第 3 参数全映射：update（`0x0` 条数 + `@0x8+i*16` u64/u64 条目）
+  + check（`0xd8` 条数 + `@0xe0+i*16`）+ 转运指针（`0xc8/0xd0`）+
+  server 统一数组（check slot0–11，分隔 12，update 13 起）。
+- `+1490` 崩溃精确归因：`rdx=[rsi+0x28]=NULL`（自我修正 r74 的误读）；
+  rsi 须是富对象，首位候选 render 客户端对象（`0x330`）。
+  `RGXCreateKickSyncContext` 已证伪（即 CCB 包装）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r75-ddk2-struct-map.md`
+  （本轮崩溃 trace 无桥流量，未归档 jsonl）。
+- 遗留：render-obj 喂 DDK2 rsi 验证；真实 CCB 内容仍需绘制路径。
 
 ## 本次会话进展（r74：update 侧不在 RGXKickSync 路径上；离线证伪）
 
@@ -22,15 +34,3 @@
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r74-update-side-ddk2.md` +
   `r74-update-side-negative.jsonl`。
 - 遗留：DDK2 入参 shaping；真实 CCB 内容仍需绘制路径；快照刷新 pass 待攒。
-
-## 本次会话进展（r73：非零 check kick 上真机；单次 live 实验）
-
-- 用户本轮明确批准真机测试：passthrough rung8 + 512B 手工结构体，
-  一次即成，活桥 `0x88:0x4 ioctl_real ret=0 check=1 update=0`；
-  dmesg `ufo_known=1/1`（真实 bridge sync PMR 句柄命中）——T2 活体验证。
-  证据：`mt-vgpu-guest/reports/r73-live-nonzero-kick.md` + `r73-live-nonzero-kick.jsonl`。
-- 无 GPU 执行，会后状态一字不差（pending=0/completed=23，引用 38/0，
-  objects=34，D 态 0，无新增 WARN/BUG/Oops）；`make umd/probe` 仍禁用
-  （首步 rmmod），只手跑 harness、无 timeout 包裹。
-- 遗留：update 侧数组偏移定位；真实 CCB 内容仍需绘制路径；
-  快照刷新 pass 待攒。

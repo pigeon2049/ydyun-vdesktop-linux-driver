@@ -128,3 +128,17 @@
   快照 §12 无需改）；真机抓包仍冻结（对象存储满 + 需单独批准）。
 - 遗留：update 侧数组偏移定位；门禁加"结构体下限 436B"断言（等 update 侧一起落）；
   快照 §§1–11 仍停 bA43、刷新 pass 待攒（见归档尾）。
+
+---
+
+## 本次会话进展（r73：非零 check kick 上真机；单次 live 实验）
+
+- 用户本轮明确批准真机测试：passthrough rung8 + 512B 手工结构体，
+  一次即成，活桥 `0x88:0x4 ioctl_real ret=0 check=1 update=0`；
+  dmesg `ufo_known=1/1`（真实 bridge sync PMR 句柄命中）——T2 活体验证。
+  证据：`mt-vgpu-guest/reports/r73-live-nonzero-kick.md` + `r73-live-nonzero-kick.jsonl`。
+- 无 GPU 执行，会后状态一字不差（pending=0/completed=23，引用 38/0，
+  objects=34，D 态 0，无新增 WARN/BUG/Oops）；`make umd/probe` 仍禁用
+  （首步 rmmod），只手跑 harness、无 timeout 包裹。
+- 遗留：update 侧数组偏移定位；真实 CCB 内容仍需绘制路径；
+  快照刷新 pass 待攒。
