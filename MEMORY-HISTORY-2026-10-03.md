@@ -525,3 +525,12 @@
   停调 surface，转回跟 create-struct byte+8 装配源。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r106-dependency-order.md`。
 - 遗留：byte+8 源；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r107：CCB 直调链钉死；离线自主）
+
+- bt 证明 R2DCreateContext 直调 CCB；P=[OUT+0x10] 由 init 子调用填；
+  堆跨 run 非确定（方法论三定律）；出路：加载窗口或 surface 先行。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r107-direct-chain.md`。
+- 遗留：出路二选一；加载窗口；push 待批。
