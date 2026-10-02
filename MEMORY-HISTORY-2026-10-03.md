@@ -309,3 +309,13 @@
   EGL 接线未知，需立项另批）。会后零残留。
 - 证据：`mt-vgpu-guest/reports/r85-live-ta-shaping-wall.md` + jsonl。
 - 遗留：真绘制改走 Rogue2D spike（r86 已 redirect）；特性开关 + push 待批。
+
+---
+
+## 本次会话进展（r86：真绘制栈 recon；离线）
+
+- 用户令快速推进：GLES 无 EGL（0 导出），排除；Rogue2D 入选——
+  96 导出、仅依赖 libsrv_um（同桥）、建 ctx→建面→填充→等 fence 四步、
+  自带测试脚手架 + sutu 初始化。spike 序列已给（fabricated 先行）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r86-rogue2d-first-draw.md`。
+- 遗留：Rogue2D spike 已执行（见上节）；特性开关 + push 待批。
