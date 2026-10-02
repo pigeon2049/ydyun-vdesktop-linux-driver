@@ -354,6 +354,10 @@ apt install -y devscripts libasound2-dev libdbus-1-dev libdrm-dev libgtk-3-dev \
 - `linux/`：USB/IP、VHCI、标准 SPICE viewer、协议探针和测试。
 - `wayland/`：KDE Plasma Wayland 的 `spice-vdagent` KScreen 补丁和构建脚本。
 - `docs/`：客户端行为、画面转发、USB 协议、分辨率和每一步进度记录。
+- `mt-vgpu-guest/`：摩尔线程 S3000 vGPU Guest 适配（自研内核桥 + 固件会话 +
+  3D 执行）。当前状态唯一权威快照见仓库根 `PROGRESS-SNAPSHOT.md`
+  （逐轮记录在 `MEMORY.md`）；`docs/MTT-VGPU.md` 是 09-22 的安装前调查，
+  结论已被后续实测取代，阅读时以快照为准。
 
 详细资料：
 

@@ -1,6 +1,6 @@
 # YDYUN Linux 适配进度
 
-更新时间：2026-09-22（Asia/Shanghai）
+更新时间：2026-10-03（Asia/Shanghai；新增 Step 140，S3000 r43–r71 + bA38–bA43）
 
 ## 目标
 
@@ -1470,3 +1470,38 @@ Linux 首选路径：
   `reports/packet-field-map.json`。这是后续定位顶点/图元寄存器字段的工具基础，
   但它给出数据依赖，不解释寄存器语义。
 - 完整技术报告见 `mt-vgpu-guest/reports/r42-vm-mapping-scale.md`。
+
+## Step 140：S4-3 交接落地——DMA、VM plan、kick 观察、首次 RGX 真实执行 (r43–r71 + bA38–bA43)
+
+- **r43/r44**：`bind_many`/planner 的 errno 优先级在 overlap-hoist 之后钉住；
+  GPU VA 映射上限改从页表几何推导（32 页配置实测 15872），并在真机上复核堆 VM 布局。
+- **S4-3 交接第一步（DMA）**：桥侧 PMR DMA 注册 + 优雅降级（bA39），会话侧 DMA
+  服务（bA40）；复审把契约从虚地址改成传 `struct page *`（`virt_to_page()` 对
+  vzalloc 无效，bA42）；bind 路径显式设置 40 位 DMA mask（此前是 mtgpu 遗留，
+  probe 从未设置，bA43）。关键修正：`__symbol_get()` 在本内核上不解析
+  （连 printk 都返回 NULL，实测），桥侧改用 PCI 查找 + 驱动名校验 + drvdata +
+  `try_module_get()` + 核心 `dma_map_page()` 直连；GPU PTE 输入从 Guest
+  system-memory 窗口翻译，绝不取 `dma_addr` 假设。
+- **页表输入台账**：reservation 存 VA+length，重叠 `-EEXIST`（bA38）；
+  每个 live MapPMR 记 `{va, bytes, pmr, reservation}`，同 PMR 二次 live map
+  判 `-EBUSY`（bA41）。线格式零变化。
+- **VM plan**：纯软件 plan（r50）→ 真机 live plan（r51）→ 新桥上 UMD 八级阶梯
+  全绿（r52）。file-arena backing 落桥（每文件 2 MiB lazy arena，
+  `fallbacks=0`，r60）；cover-page 绑定 + 先占独占策略实测（r61）。
+- **Kick 观察（只读，不执行）**：`0x88:0x4` 包解剖确认包内只有同步记账、无 GPU
+  命令字节（r53）；一次真实 kick 的 12 PMR/VA 全清单（r54，大量 byte-tight
+  未对齐正是 cover 策略要解决的）；kicksync context 与 CCB 归属定位——CCB
+  由 server 侧持有，桥侧空对象是已知缺口，非零 CCB 内容需走绘制路径的 kick
+  观察（r56）；签发包装解码 + 翻译器 T1/T2 算法就绪，T3 的 DM 队列格式仍未知
+  （r62）；T1+T2 只读观察落桥（r63，`894faf50` 在载构建）。
+- **首次 RGX 真实执行**：新会话上 `mt_live_3d` 单帧 DM2（`completed=1`，
+  无 fault，sealed 3D VM 留存，r66）；render-target 64 KiB 读回核验通过
+  （r70）；20 帧批量 + render-target 像素闭环，21 次真实执行零 fault
+  （r71）。此前 TQX/DMA 回读与通道健康见 r64；实验设计见 r65。
+- **运维教训**：r67 记录一次 device-mutex owner-death 泄漏（所有 MapPMR 永久
+  挂起，只能重启；`timeout` + bridge ioctl 组合必须论证无持锁可能），r68/r69
+  为重启后恢复流程复走。当前会话对象存储已满，需空存储的实验会被拒绝。
+- **当前桥状态**：厂商 MASA UMD 八个符号全部返回 0（connect → device →
+  devmemctx → render → syncprim → kicksync → compute → kicksubmit
+  accept-and-inspect 即时 fence），真 kick 提交入口仍拒绝——那是 S4 边界。
+  权威快照见根目录 `PROGRESS-SNAPSHOT.md`，逐轮记录见 `MEMORY.md`。

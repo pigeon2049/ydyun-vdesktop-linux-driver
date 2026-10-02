@@ -1,5 +1,19 @@
 # MT vGPU Guest：本机适配与实验
 
+> **当前状态（2026-10-03）：以下横幅是按时间堆叠的历史记录，最新条在最上，
+> 但顶部也已滞后。当前权威快照是仓库根目录 `PROGRESS-SNAPSHOT.md`
+> （逐轮过程记录在 `MEMORY.md`）。两者冲突时以快照为准。**
+>
+> 一句话现状：厂商 MASA UMD 在自研内核桥上走完 8 个符号（connect → device →
+> devmemctx → render → syncprim → kicksync → compute → kicksubmit
+> accept-and-inspect），全部返回 0；S4-3 交接第一步（DMA + VM plan +
+> kick T1+T2 只读观察）已落桥；首次 RGX 真实执行 + 像素读回 + 20 帧批量
+> 已完成（r66/r70/r71）。真 kick 提交入口仍拒绝，那是 S4 边界。
+> 运行中会话（`mt_guest_probe` 绑定 `00:0e.0`，Guest/FW 2/2 pinned；
+> `mt_pvr_bridge` 在载；`/dev/dri` 有 `card1`/`renderD128`）**不要卸载模块、
+> 解绑设备或提交额外工作**。下文“本机状态”表格与各“最新”横幅只代表各自
+> 历史阶段。
+
 **最新冷重启段结构自适应突破与 3D 渲染执行硬件机理深度查明（2026-09-30，r41b）**：查明宿主机冷重启后前 80 MiB 显存碎片化为 16 MiB + 64 MiB（OSID 7）引发 `-95` 拒绝的根本原因。依据 Windows 原厂驱动（ReferenceOracle `140026390`）放宽首段阈值至 `size < 0x1000000`（16 MiB），99 项单元测试与真实硬件 probe 100% 通过，硬件会话完整建立（`guest=2, fw=2`）。统一全功能 DRM 驱动 `mtvgpu 0.3.0` 成功上线，向用户态提供 `/dev/dri/card1` 和 `/dev/dri/renderD128`。深入查明 3D Universal 任务在物理 GPU 上的执行机理与 MMU 边界（Render Target Extent 与显存尺寸必须严格对齐、模板远端地址必须安全清理），为用户态无缝图形渲染铺平了道路！
 
 **最新 3D Render Target 显存帧缓冲动态绑定与绘制读回验证（2026-09-30，r41）**：成功实现硬件 3D Universal 命令流中 Render Target 0 目标显存表面的动态编解码与绑定。通过独立 `slot_lock` 彻底剥离 GEM 槽位分配与全局 `submit_lock`，杜绝进程异常退出死锁。在 `space_3d` 空间中将渲染目标显存切片（Slot 0 & Slot 1）分别映射至 GPU VA `0x60000000ULL` 与 `0x61000000ULL`，总 mapping range 严格控制在 23 ranges（物理上限 24）。扩展 `struct drm_mt_submit_3d` 引入 `target_handle` 并保持 32 字节 ABI 兼容；升级 [userspace/mt-3d-check.c](userspace/mt-3d-check.c) 完成 GEM 创建、0x5a 特征填充、3D 渲染执行、Fence 等待与 64 KiB VRAM 完整读回核验全闭环！详见 [r41 渲染目标报告](reports/r41-3d-render-target.md)。
