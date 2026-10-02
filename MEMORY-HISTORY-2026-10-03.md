@@ -273,3 +273,15 @@
   `features+0x54` 门控第三次出现（legacy 基址 `+0x38`，范围减半利好）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r82-t3-recon-redirect.md`。
 - 遗留：T3 第二锹（KickTA 上下 + DM2 信封对照）；特性开关 + push 待批。
+
+---
+
+## 本次会话进展（r83：TA 提交链到桥 0x82:0xc；离线）
+
+- 用户令快速推进：T3 第二锹。链 RGXKickTA→PrepareTA→SubmitTA→
+  BridgeRGXKickTA3D2（0x82:0xc，268/12B，48 参数全字段已列）；
+  fabricated 整形 6 迭代：门卫→+0x30 指针→+0x120 空写→
+  uint 换算陷阱（byte 728 非 182）→越过（新 RIP）。
+- `0x82:0xc` 尚未 fabricated 发出；下步 SubmitTA 回填映射 + 同步槽。
+  零硬件触碰。证据：`mt-vgpu-guest/reports/r83-ta-submit-chain.md`。
+- 遗留：T3 继续；特性开关 + push 待批。
