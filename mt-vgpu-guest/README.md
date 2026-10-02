@@ -6,7 +6,7 @@
 > （逐轮过程记录在 [`MEMORY.md`](../MEMORY.md)，只留最新两节）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → `MEMORY.md`。
 >
-> 一句话现状：厂商 MUSA UMD 在自研内核桥上走完 8 个符号（connect → device →
+> 一句话现状：厂商 MUSA UMD 在自研内核桥上走完全链路（connect → device →
 > devmemctx → render → syncprim → kicksync → compute → kicksubmit
 > accept-and-inspect），全部返回 0；S4-3 交接第一步（DMA + VM plan +
 > kick T1+T2 只读观察）已落桥；首次 RGX 真实执行 + 像素读回 + 20 帧批量

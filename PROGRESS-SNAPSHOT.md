@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-03
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
-**对应提交**：`ed52ee2`（内容基线：最后一次改动本文件快照内容的提交；
+**对应提交**：`39b150b`（内容基线：最后一次改动本文件快照内容的提交；
 纯文档整理提交若未动本文件，不推进该指针，避免 amend 死循环）
 **新 agent 入口**：先读仓库根 [`STATUS.md`](STATUS.md)，再读本文件对应章节。
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
@@ -184,8 +184,8 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **221 项通过**（r45–r71 新增 arena/kick-inspect 等门禁；今晨复核仍全绿） |
-| C RAM 模型测试 | **268 checks**（今晨复核全绿） |
+| Python 测试 | **221 项通过**（r45–r71 新增 arena/kick-inspect 等门禁；10-03 L1 复核全绿） |
+| C RAM 模型测试 | **268 checks**（10-03 L1 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
 | 节点探针 `pvr_node_probe` | 0 failing step、0 value mismatch |

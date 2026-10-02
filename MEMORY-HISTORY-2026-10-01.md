@@ -1943,3 +1943,25 @@ sudo rmmod mt_live_3d_drm
   见 `reports/r44-r42-live-verification.md`）。
 - 已 seal 的恢复模块（`mt_live_3d_drm` 等）不要热卸载：
   `destroy` 必报 `-EBUSY` WARN 并泄漏（r44 第 3–4 节）。
+
+---
+
+## 归档自 MEMORY.md（10-03 清理，保留最新两节）
+
+## 本次会话进展（2026-10-03 文档清理：现状归一处，历史归档）
+
+- `6f9b701`：`docs/PROGRESS-HISTORY.md` 加 Step 140（r43–r71 + bA38–bA43 摘要）；
+  `mt-vgpu-guest/README.md` 顶加状态块；根 `README.md` 目录说明补
+  `mt-vgpu-guest/` 并标注 `MTT-VGPU.md` 已被取代；`MTT-VGPU.md` 加状态注记。
+- `fb38072`：`mt-vgpu-guest/README.md` 瘦身成入口（现状 + 运行态红线 +
+  目录地图 + 门禁分层），r23–r41b 横幅堆栈与旧状态表原样移入
+  `mt-vgpu-guest/HISTORY-2026-09.md`（434 行，只读）；
+  新建 `docs/README.md` 文档地图（云电脑线 vs vGPU 双线 + 逐文件时效列）；
+  归档头补到 `MTT-VGPU.md`、`PROTOCOL-NOTES.md`、`FIRMWARE-NOTES.md`、
+  `HOST-REQUEST.md`（请求外部 Guest 包已不再执行）。
+  11 个被引用路径逐个验存在；离线门禁 268 checks 绿；零硬件触碰。
+- 遗留：`PROGRESS-SNAPSHOT.md` 头仍写 10-01/`41c4bd5`（bA43），§§1–11
+  停在 bA43，只有 §12 有 10-03 活页刷新——需要一次快照刷新 pass，
+  本轮只动 MEMORY，未动快照。
+
+---

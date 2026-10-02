@@ -16,7 +16,7 @@
 
 `mt_guest_probe` 绑定 `00:0e.0` 并连通固件；`mt_pvr_bridge`（`894faf50`，
 arena backing + cover-page plan + kick T1/T2 只读观察）在载；
-厂商 MASA UMD 走完 8 个符号全部返回 0（kick 提交是 accept-and-inspect
+厂商 MASA UMD 走完全链路符号全部返回 0（kick 提交是 accept-and-inspect
 即时 fence，真提交入口仍拒绝，那是 S4 边界）；`live_3d_drm` 已做单帧
 DM2 + 64 KiB 像素读回 + 20 帧批量，21 次执行零 fault。
 细节见 `PROGRESS-SNAPSHOT.md`，逐轮记录见 `MEMORY.md`（只留最新两节），

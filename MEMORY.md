@@ -6,28 +6,22 @@
 > [`MEMORY-HISTORY-2026-10-01.md`](MEMORY-HISTORY-2026-10-01.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r45–r71 落地 + 文档清理：symbol_get 路线已弃用，PCI 直连；arena/cover/kick-inspect 在载；首次 RGX 执行 + 像素验证完成）
+最后更新：2026-10-03（文档复核与收敛：裁决口径统一为 STATUS→快照→MEMORY，快照哈希改内容基线，§7 重测；按规则归档最旧节）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（2026-10-03 文档清理：现状归一处，历史归档）
+## 本次会话进展（2026-10-03 文档复核与收敛）
 
-- `6f9b701`：`docs/PROGRESS-HISTORY.md` 加 Step 140（r43–r71 + bA38–bA43 摘要）；
-  `mt-vgpu-guest/README.md` 顶加状态块；根 `README.md` 目录说明补
-  `mt-vgpu-guest/` 并标注 `MTT-VGPU.md` 已被取代；`MTT-VGPU.md` 加状态注记。
-- `fb38072`：`mt-vgpu-guest/README.md` 瘦身成入口（现状 + 运行态红线 +
-  目录地图 + 门禁分层），r23–r41b 横幅堆栈与旧状态表原样移入
-  `mt-vgpu-guest/HISTORY-2026-09.md`（434 行，只读）；
-  新建 `docs/README.md` 文档地图（云电脑线 vs vGPU 双线 + 逐文件时效列）；
-  归档头补到 `MTT-VGPU.md`、`PROTOCOL-NOTES.md`、`FIRMWARE-NOTES.md`、
-  `HOST-REQUEST.md`（请求外部 Guest 包已不再执行）。
-  11 个被引用路径逐个验存在；离线门禁 268 checks 绿；零硬件触碰。
-- 遗留：`PROGRESS-SNAPSHOT.md` 头仍写 10-01/`41c4bd5`（bA43），§§1–11
-  停在 bA43，只有 §12 有 10-03 活页刷新——需要一次快照刷新 pass，
-  本轮只动 MEMORY，未动快照。
-
----
+- 复核：12 个引用路径全存在；在载 bridge build-id `894faf50`… 与快照一致；
+  L1 重跑 221 Python + 268 C 全绿；活会话零变化
+  （Guest/FW 2/2，pending=0/completed=23，引用 38/0）。
+- 收敛两处：① 五份入口的裁决口径互相矛盾 → 统一为 STATUS → 快照 → MEMORY；
+  ② 快照哈希的 amend 死循环 → 内容基线口径（只在改动快照内容时推进）。
+- §7 容量表 10-03 重测（build 5.9G、reports 442 文件、tests 52C+31py、
+  recovery 171 文件/54 源码）；ANALYSIS 陈年相对路径订正；
+  PROTOCOL/FIRMWARE 抽 stub 入日期归档；AGENTS 检查单 +USB 短页同步项。
+- “8 个符号”计数与快照 12 行阶梯表口径不一致 → STATUS 与目录入口改称“全链路”，不再计数。
 
 ## 本次会话进展（r45–r71：S4-3 交接真机落地 + 首次 RGX 执行；设计路线修正）
 
