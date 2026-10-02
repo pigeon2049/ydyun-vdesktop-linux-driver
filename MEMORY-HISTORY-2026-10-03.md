@@ -263,3 +263,13 @@
   mock 清单冻结为基线。证据：`mt-vgpu-guest/reports/r81-mock-audit.md` +
   `r81-live-dma-proof.txt`。
 - 遗留：T3 recon；特性开关 + push 待批。
+
+---
+
+## 本次会话进展（r82：T3 recon 第一锹；离线）
+
+- 用户令快速推进：T3 开工。mtkm64 语料无 kick 语义（host KMD），排除并记因；
+  转向 UMD `PrepareTA@0x178800`（L52052）：TA 提交记录布局 + 控制字落点 +
+  `features+0x54` 门控第三次出现（legacy 基址 `+0x38`，范围减半利好）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r82-t3-recon-redirect.md`。
+- 遗留：T3 第二锹（KickTA 上下 + DM2 信封对照）；特性开关 + push 待批。
