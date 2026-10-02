@@ -109,3 +109,22 @@
   recovery 171 文件/54 源码）；ANALYSIS 陈年相对路径订正；
   PROTOCOL/FIRMWARE 抽 stub 入日期归档；AGENTS 检查单 +USB 短页同步项。
 - “8 个符号”计数与快照 12 行阶梯表口径不一致 → STATUS 与目录入口改称“全链路”，不再计数。
+
+---
+
+## 本次会话进展（r72：fabricated 非零 kick count 复现；零硬件触碰）
+
+- STATUS 下一步 1 前半闭环：512B 手工结构体驱动 `RGXKickSync`，
+  fabricated 重放 6/6 发出 `0x88:0x4 check=1 update=0`；
+  gdb（`UMD_TRAP="136:4"`）验证数组内容即注入值（sync 句柄 `0x600c` + fence 值 1）。
+  证据：`mt-vgpu-guest/reports/r72-kick-nonzero-fabricated.md` + `r72-kick-nonzero-check1.jsonl`。
+- 结构体映射（反汇编实测）：u32 count @`0xd8`（上限 12 条展开）；
+  条目 `{u64 @0xe0+i*0x10, u32 @0xe8+i*0x10}`；第二个条数 u32 @`0x1b0`
+  （update 侧数组偏移未定位，下一步）；结构体下限 **436 字节**，
+  rung8 的 224B 只是零值下恰好不炸（`0x1b0` 越界读落新鲜零页）。
+- 附带：fabricated 重放约 1/4 概率在 `RGXCreateRenderContext` 段错误，
+  重试即过（纯用户态堆垃圾敏感，无硬件影响；coredumpctl 有记录）。
+- 活会话零变化（Guest 引用 38，bridge 0，`card1/renderD128` + `card2/renderD129`；
+  快照 §12 无需改）；真机抓包仍冻结（对象存储满 + 需单独批准）。
+- 遗留：update 侧数组偏移定位；门禁加"结构体下限 436B"断言（等 update 侧一起落）；
+  快照 §§1–11 仍停 bA43、刷新 pass 待攒（见归档尾）。

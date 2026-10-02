@@ -29,6 +29,7 @@
 | r70–r71 | RGX 像素验证（64 KiB 读回）、20 帧批量像素闭环 |
 | r72 | fabricated RGXKickSync 复现非零 check count（kick 结构体映射 ≥436B） |
 | r73 | 非零 check kick 上真机（passthrough，T2 活体 `ufo_known=1/1`） |
+| r74 | update 侧不在 RGXKickSync 路径上（证伪；DDK2 候选，`+1490` 空写） |
 
 ## 关键单篇（本轮最常用）
 

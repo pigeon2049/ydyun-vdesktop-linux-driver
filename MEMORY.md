@@ -7,10 +7,21 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r73 非零 kick 上真机；最旧节已归档）
+最后更新：2026-10-03（r74 update 侧证伪 + DDK2 定位；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r74：update 侧不在 RGXKickSync 路径上；离线证伪）
+
+- `0x1b0=1`、`a3` 结构体各 4/4 fabricated 验证：`update` 恒为 0；
+  静态穷举确认 b26 只有一个条数（`0xd8`）——update 数组输入在本路径无来源。
+- 新候选 `RGXKickSyncDDK2`：同构循环但 `{u64,u64}` 条目 + `0x20` 步长；
+  rung8 形状参数在其 `+1490`（`mov %rax,0x48(%rdx)`，rdx=NULL）6/6 定崩，
+  需解完整入参（下一轮），勿在 b26/a3 上继续穷举。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r74-update-side-ddk2.md` +
+  `r74-update-side-negative.jsonl`。
+- 遗留：DDK2 入参 shaping；真实 CCB 内容仍需绘制路径；快照刷新 pass 待攒。
 
 ## 本次会话进展（r73：非零 check kick 上真机；单次 live 实验）
 
@@ -23,20 +34,3 @@
   （首步 rmmod），只手跑 harness、无 timeout 包裹。
 - 遗留：update 侧数组偏移定位；真实 CCB 内容仍需绘制路径；
   快照刷新 pass 待攒。
-
-## 本次会话进展（r72：fabricated 非零 kick count 复现；零硬件触碰）
-
-- STATUS 下一步 1 前半闭环：512B 手工结构体驱动 `RGXKickSync`，
-  fabricated 重放 6/6 发出 `0x88:0x4 check=1 update=0`；
-  gdb（`UMD_TRAP="136:4"`）验证数组内容即注入值（sync 句柄 `0x600c` + fence 值 1）。
-  证据：`mt-vgpu-guest/reports/r72-kick-nonzero-fabricated.md` + `r72-kick-nonzero-check1.jsonl`。
-- 结构体映射（反汇编实测）：u32 count @`0xd8`（上限 12 条展开）；
-  条目 `{u64 @0xe0+i*0x10, u32 @0xe8+i*0x10}`；第二个条数 u32 @`0x1b0`
-  （update 侧数组偏移未定位，下一步）；结构体下限 **436 字节**，
-  rung8 的 224B 只是零值下恰好不炸（`0x1b0` 越界读落新鲜零页）。
-- 附带：fabricated 重放约 1/4 概率在 `RGXCreateRenderContext` 段错误，
-  重试即过（纯用户态堆垃圾敏感，无硬件影响；coredumpctl 有记录）。
-- 活会话零变化（Guest 引用 38，bridge 0，`card1/renderD128` + `card2/renderD129`；
-  快照 §12 无需改）；真机抓包仍冻结（对象存储满 + 需单独批准）。
-- 遗留：update 侧数组偏移定位；门禁加"结构体下限 436B"断言（等 update 侧一起落）；
-  快照 §§1–11 仍停 bA43、刷新 pass 待攒（见归档尾）。
