@@ -44,6 +44,7 @@
 | r86 | 真绘制栈 recon：GLES 无 EGL，Rogue2D 是首选 spike（同桥，96 导出） |
 | r87 | Rogue2D spike：95 路调用止于 TDM 共享内存（0x89 组全表，最小实现评估） |
 | r88 | 0x89 TDM 共享内存桥已实现（离线全绿，未加载，待加载窗口） |
+| r89 | TDM 下游验证：Map 链全用已实现桥 + SubmitTransfer2 骨架（验收判据） |
 
 ## 关键单篇（本轮最常用）
 

@@ -319,3 +319,15 @@
   自带测试脚手架 + sutu 初始化。spike 序列已给（fabricated 先行）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r86-rogue2d-first-draw.md`。
 - 遗留：Rogue2D spike 已执行（见上节）；特性开关 + push 待批。
+
+---
+
+## 本次会话进展（r87：Rogue2D fabricated spike；离线自主）
+
+- 单个 `R2DCreateContext` 走 95 条桥调用后干净 unwind（返 3）；
+  卡点 `0x89:0x5 GetSharedMemory`（OUT 20：eError + 2 指针，fabricated 零填充）；
+  我方桥 0x89 组全空（`-ENOTTY`）。0x89 TDM 全表 11 项已列；
+  最小实现评估：复用 pmr_new + mmap，比 DDK2 门小。
+- 零硬件触碰（fabricated 结论自足，未跑活体）。
+  证据：`mt-vgpu-guest/reports/r87-rogue2d-spike.md` + jsonl。
+- 遗留：0x89:0x5/0x6 已实现待加载（见上节）；T3 继续；push 待批。
