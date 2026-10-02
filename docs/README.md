@@ -38,7 +38,8 @@
 | `../mt-vgpu-guest/reports/README.md` | r 系列证据索引（先查索引再开报告） | 活跃 |
 | `MTT-VGPU.md` | stub；全文在 `MTT-VGPU-2026-09-22.md`（只读） | **归档** |
 | `../mt-vgpu-guest/HISTORY-2026-09.md` | 09-22–09-30 横幅堆栈、旧状态表、社区构建实验 | **归档** |
-| `../mt-vgpu-guest/PROTOCOL-NOTES.md`、`FIRMWARE-NOTES.md`、`HOST-REQUEST.md` | 协议/固件/对外请求记录，顶部已加归档注记 | **归档** |
+| `../mt-vgpu-guest/PROTOCOL-NOTES.md`、`FIRMWARE-NOTES.md` | stub；全文在同目录 `*-2026-09.md`（只读） | **归档** |
+| `../mt-vgpu-guest/HOST-REQUEST.md` | 对外请求记录（已不再执行），顶部有归档注记 | **归档** |
 | `../mt-vgpu-guest/DECOMPILATION.md` | 反编译库使用说明（工具与索引） | 工具说明 |
 | `../mt-vgpu-guest/reports/r*.md` | 逐轮实测证据链（r66 首次 RGX 执行、r70 像素读回、r71 批量压测） | 证据链，勿改名 |
 

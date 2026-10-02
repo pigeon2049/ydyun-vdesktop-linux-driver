@@ -211,7 +211,7 @@ vmusbtrace_x64.dll      dcb9e5323c68a35d336f93dc816dae18274c98f7a26d1211d0bff16b
 
 最终 `build/ydyun-usbctl_0.1.0-1_amd64.deb` 的依赖只有 `python3` 和 Debian `usbip`，包内没有 `.sys`、安全代理、进程监控、QoE/trace 或 WinDivert 文件；配置、systemd 单元、控制器和分析文档均已打包。当前本机安装状态为 `usbip 2.0+6.12.107-1`、`ydyun-usbctl 0.1.0-1`，`usbip_core` 与 `vhci_hcd` 已加载，VHCI 端口为空。
 
-最终包 SHA-256 在每次构建后写入 `doc/PROGRESS.md`。这里不重复嵌入包自身的
+最终包 SHA-256 在每次构建后写入 `docs/PROGRESS-HISTORY.md`（原 `doc/PROGRESS.md` 路径已失效，10-03 订正）。这里不重复嵌入包自身的
 哈希，因为 `ANALYSIS.md` 同时作为包内文档；否则会形成自引用哈希。
 
 ## Step 13：3246 反向链路与标准 USB/IP 的关系

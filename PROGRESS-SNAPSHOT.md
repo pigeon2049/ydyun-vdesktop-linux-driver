@@ -215,16 +215,16 @@ RGXCreateRenderContext
 
 ### 目录结构：**建议局部调整，不建议大重构**
 
-实测数据：
+实测数据（2026-10-03 重测；bA32 原值已过期）：
 
 | 目录 | 规模 | 问题 |
 |---|---|---|
-| `build/` | **5.7 G** | 全 gitignore，但**主门禁依赖它** |
+| `build/` | **5.9 G** | 全 gitignore，但**主门禁依赖它** |
 | `decompiled/` | 2.5 G | gitignore，合理 |
 | `tools/` `downloads/` | 882 M / 659 M | gitignore，合理 |
-| `reports/` | 60 M / 421 文件 | 证据链，不宜改名 |
-| `tests/` | 656 K | 50 `.c` + 23 `.py` 混放 |
-| `kernel/recovery/` | 36 M | **196 个构建产物 + 52 个源码**（in-tree 构建） |
+| `reports/` | 442 文件 | 证据链，不宜改名（索引见 `reports/README.md`） |
+| `tests/` | 52 `.c` + 31 `.py` | C 与 Python 混放 |
+| `kernel/recovery/` | 171 文件，其中 54 个 C/H 源码 | **构建产物落源码目录**（in-tree 构建） |
 
 三个**真实**问题（2026-10-03 复核状态）：
 
