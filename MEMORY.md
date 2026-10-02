@@ -4,8 +4,26 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（bA38：**reservation VA 生命周期**——页表 bind 的前置 bookkeeping）
+最后更新：2026-10-01（bA40：**会话侧 DMA 服务**——handoff 第一步闭环在代码层完成）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（bA39/bA40：DMA handoff 两侧代码落地，均未惊动硬件）
+
+- **bA39 桥侧**（`7776afd`）：`kernel/mt_pvr_session.h` 版本化契约（v1）+
+  `pvr_pmr_dma_register/release`。`symbol_get` 需配套 `extern` 声明
+  （教训：`symbol_get` 只负责解析，不负责声明）；`s32` 在内核头里不存在，
+  改回 `int` 才过门禁。MapPMR 顺路尝试注册，任何失败都降级，
+  实测 render 链路行为零变化（118 条零失败）。
+- **bA40 会话侧**（`f3bcf91`）：`mt_guest_probe.c` 实现
+  `session_get/put + dma_map/unmap` 并 `EXPORT_SYMBOL`。
+  每次调用重验绑定 + trial 存活；部分失败回滚已映射页；
+  `remove()` 对活映射 WARN（PCI core 不给 veto，只能 loud）。
+  **新编的 `.ko` 故意没加载**——live retained 会话继续跑旧构建；
+  导出已用 `nm` 在新 `.ko` 里确认。
+- 门禁：182 Python（+6 SessionOps，反向验证过）、268 C RAM、
+  `W=1`、ABI 门全绿；会话、显示、全部模块零触碰。
 
 ---
 
