@@ -345,3 +345,14 @@
   打包为"加载窗口"，需明确批准。零硬件触碰。
 - 证据：`mt-vgpu-guest/reports/r88-tdm-bridges-ready.md`。
 - 遗留：加载窗口；T3 继续；push 待批。
+
+---
+
+## 本次会话进展（r89：TDM 下游验证；离线自主）
+
+- H1 走强：MapMem/MapUSCMem 只用已实现桥（0x6 三件套 + mmap/MapToDevice）；
+  SubmitTransfer2（0x89:0x4）骨架已列（IN 0x6c/OUT 4，20 参数逐槽）。
+- 加载窗口验收判据已写（fabricated OUT 非零 → passthrough Map 真走 →
+  SubmitTransfer 包）；H1 证伪预案（拆双 PMR）就位。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r89-tdm-downstream.md`。
+- 遗留：加载窗口；T3 继续；push 待批。
