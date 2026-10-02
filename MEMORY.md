@@ -7,10 +7,17 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r102 值驱动；最旧节已归档）
+最后更新：2026-10-03（r103 格式全灭；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r103：格式表解出但全灭；离线自主）
+
+- 格式能力表（bit7/bit8 谓词，fmt0 非法）；13 值实测全返 3；
+  下步：扫宽/高 或 读 validator 后分支。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r103-format-table.md`。
+- 遗留：维度/分支；加载窗口；push 待批。
 
 ## 本次会话进展（r102：Layout 门是值驱动；离线自主）
 
@@ -18,11 +25,3 @@
   下步 validator 枚举映射（0x16010/0x15ce0 + 查表逻辑）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r102-layout-valuedriven.md`。
 - 遗留：枚举映射；加载窗口；push 待批。
-
-## 本次会话进展（r101：Layout 可执行 + harness 陷阱；离线自主）
-
-- 真 bug 级教训：裸 `u64` 作 call 参数截断参数表致段错误，须 `u0x..` 形式。
-- Layout 三调用全 clean（返 3）；新门 `CreateTestSurfaceLayout` 空指针；
-  下步 b31 内容/a6 字段整形。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r101-layout-gate.md`。
-- 遗留：b31 整形；加载窗口；push 待批。

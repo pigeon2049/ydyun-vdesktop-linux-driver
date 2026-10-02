@@ -470,3 +470,13 @@
 - 方法论：先读 NULL 门再调；fabricated 枚举走真实文件系统。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r100-sutu-select.md`。
 - 遗留：Layout/Surface 整形；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r101：Layout 可执行 + harness 陷阱；离线自主）
+
+- 真 bug 级教训：裸 `u64` 作 call 参数截断参数表致段错误，须 `u0x..` 形式。
+- Layout 三调用全 clean（返 3）；新门 `CreateTestSurfaceLayout` 空指针；
+  下步 b31 内容/a6 字段整形。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r101-layout-gate.md`。
+- 遗留：b31 整形；加载窗口；push 待批。

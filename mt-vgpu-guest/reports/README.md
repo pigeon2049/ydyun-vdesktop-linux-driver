@@ -58,6 +58,7 @@
 | r100 | sutu 设备选择可用；+0x54 指向 surface 创建链 |
 | r101 | Layout 可执行；harness 关键字陷阱 + TestSurfaceLayout 空指针门 |
 | r102 | Layout 门是值驱动（栈位全扫无效，下步枚举映射） |
+| r103 | 格式表解出但 13 值全灭；门在维度/validator（下步二选一） |
 
 ## 关键单篇（本轮最常用）
 
