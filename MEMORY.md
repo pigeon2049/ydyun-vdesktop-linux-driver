@@ -7,10 +7,18 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r93 到 142 条；最旧节已归档）
+最后更新：2026-10-03（r94 CCB 自检；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r94：0x89:0x0 线上成功但自检 unwind；离线自主）
+
+- 0x89:0x0 IN 解码正常、桥成功，UMD 紧接拆除：CCB 约 10 道门查
+  rogue2d 内建状态（`*(+8)` 等），与桥 OUT 无关。
+- 路径判断：B（sutu 正路）优先，A（自底整形）备用。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r94-tdm-create-selfcheck.md`。
+- 遗留：B 路一试；加载窗口；push 待批。
 
 ## 本次会话进展（r93：Rogue2D 95→142；离线自主）
 
@@ -19,10 +27,3 @@
   代码提交 `7ad8663`（27 行，-Werror 干净）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r93-rogue2d-142calls.md` + jsonl。
 - 遗留：create 后 16 条窗口；加载窗口；push 待批。
-
-## 本次会话进展（r92：判别式 verdict；离线自主）
-
-- OUT 逐字节一致 → 输入侧问题；嫌疑 `AcquireCPUMapping` 空连接
- （`lVar2+0x10` 无人写）；证伪命令已备好（gdb 读槽 / 读完 8aaa0）。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r92-discriminant-verdict.md`。
-- 遗留：+0x10 证伪；加载窗口；push 待批。

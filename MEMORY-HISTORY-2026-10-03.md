@@ -380,3 +380,12 @@
   MapUSCMem 多 MapToDevice（已实现）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r91-import-rejection.md`。
 - 遗留：OUT 判别式执行；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r92：判别式 verdict；离线自主）
+
+- OUT 逐字节一致 → 输入侧问题；嫌疑 `AcquireCPUMapping` 空连接
+ （`lVar2+0x10` 无人写）；证伪命令已备好（gdb 读槽 / 读完 8aaa0）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r92-discriminant-verdict.md`。
+- 遗留：+0x10 证伪；加载窗口；push 待批。

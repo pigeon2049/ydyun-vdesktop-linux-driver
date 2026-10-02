@@ -49,6 +49,7 @@
 | r91 | import 拒绝点收敛：桥后 UMD 校验（eError 居尾排除，判别式备好） |
 | r92 | 判别式 verdict：OUT 一致，嫌疑是 AcquireCPUMapping 空连接（待证伪） |
 | r93 | Rogue2D 95→142：两次零句柄修复，打到 TransferContext 创建 |
+| r94 | 0x89:0x0 线上成功但 CCB 自检 unwind（rogue2d 内建状态，B 路优先） |
 
 ## 关键单篇（本轮最常用）
 
