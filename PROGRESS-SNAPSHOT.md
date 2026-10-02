@@ -147,10 +147,13 @@ RGXCreateRenderContext
 
 ## 5. 下一步
 
-1. **S4-2 已完成**：固件真实执行了命令——空命令 fence 完成
+1. **S4-2 已完成并加码**：固件真实执行了命令——空命令 fence 完成
    （`sequence=1 result=0`）+ 256 字节 TQX 复制读回校验通过
-   （`verified=1`）。链路：解绑 mtgpu → cold-disconnect 置 Guest OFF →
-   probe ladder → live_service → marker/tqx。显示全程存活（QXL）。
+   （`verified=1`）+ **3D 帧 DM2 执行**（`completed=1/1`，130µs）+
+   **1080p 像素落盘**（23 fills + 2 copies，submitted=28 completed=28，
+   6.2MB PPM，像素非均匀）。
+   链路：解绑 mtgpu → cold-disconnect 置 Guest OFF →
+   probe ladder → live_service → marker/tqx/3d/surface。显示全程存活（QXL）。
    回滚：rmmod 自研模块 → bind 回 mtgpu 即可。
 2. **S4-1 已完成**：提交路径已真实执行——`RGXKickSync` 返回 0，
    `0x88:0x4`（in=84/out=8）被驱动接受并返回即时完成的 fence。

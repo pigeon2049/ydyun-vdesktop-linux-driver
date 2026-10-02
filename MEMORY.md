@@ -53,6 +53,33 @@ mtgpu 引用数为 0——解绑不影响桌面，实测全程 kwin 存活。
   前者靠 cold-disconnect 消状态，后者靠 setpci 置位——搞反任何一个都走不通。
 - sysfs `resource0` 直接读 MMIO 会失败（权限/语义），不要用它猜寄存器；
   用驱动自己的 dmesg + sysfs 状态节点才是正路。
+- **live 模块在 trial_lock 上串行，一次只跑一个，做完即卸。**
+  `mt_live_3d` 跑完 batch 不卸，一直占着锁，
+  `mt_live_surface` 的 insmod 在 `start+0x91` 卡了 8 分钟（D 态，
+  hung-task 告警 3 次）。卸掉 3d 后 surface 初始化立即通过。
+  排查时走了弯路：先怀疑 fence worker、扫全进程栈找持有者，
+  最后靠逐个 rmmod 定位。以后 live 实验守一条规矩：
+  **上一个 live 模块不卸，下一个不装**。
+
+---
+
+## 后续进展（同会话：3D 真实执行 + 1080p 像素落盘）
+
+- `mt_live_3d.ko enable=1 count=1` →
+  `completed=1/1 result=0`，DM2 通用队列 130µs（3D 引擎真实执行）。
+- `mt_live_surface.ko enable=1`（卸掉 3d 后才装上，见上条教训）→
+  注册 `mtvgpu card1/renderD128`；
+  `mt-surface-check card1 smoke` 全过（fills + 4MiB copy，
+  verified 8MB，submitted=3 completed=3）；
+  `exercise` 全过（23 fills + 2 copies，
+  submitted=28 completed=28 sequence=30），
+  6.2MB 1080p PPM 落盘（`reports/s1/gpu-1080p-fill-proof.ppm`），
+  头合法、像素非均匀——显存读回的真实渲染像素。
+- 注意：surface-check 必须 sudo 跑（card1 open 报 EPERM）；
+  第一次失败只是因为 sudo 换了 cwd 找不到二进制，不是驱动问题。
+- 当前保持：probe + service + marker + tqx + surface 全在载，
+  retained 会话不断；mtgpu 仍解绑（模块在，可随时 bind 回滚），
+  显示（QXL）全程存活。
 
 ---
 
