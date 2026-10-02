@@ -399,3 +399,13 @@
   代码提交 `7ad8663`（27 行，-Werror 干净）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r93-rogue2d-142calls.md` + jsonl。
 - 遗留：create 后 16 条窗口；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r94：0x89:0x0 线上成功但自检 unwind；离线自主）
+
+- 0x89:0x0 IN 解码正常、桥成功，UMD 紧接拆除：CCB 约 10 道门查
+  rogue2d 内建状态（`*(+8)` 等），与桥 OUT 无关。
+- 路径判断：B（sutu 正路）优先，A（自底整形）备用。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r94-tdm-create-selfcheck.md`。
+- 遗留：B 路一试；加载窗口；push 待批。
