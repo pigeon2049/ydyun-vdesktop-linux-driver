@@ -285,3 +285,15 @@
 - `0x82:0xc` 尚未 fabricated 发出；下步 SubmitTA 回填映射 + 同步槽。
   零硬件触碰。证据：`mt-vgpu-guest/reports/r83-ta-submit-chain.md`。
 - 遗留：T3 继续；特性开关 + push 待批。
+
+---
+
+## 本次会话进展（r84：SubmitTA 回填映射；离线）
+
+- T3 第三锹：两处桥调用 48 参数逐项回填；同步组装心脏
+  （Query + tag 2/3 + builder + fence/update 双生成器）点名；
+  重试语义（0x19→wait，我方 -ENOTTY 直接 break）澄清。
+- fence/update 对偶与 check-only 首帧假设一致，无矛盾。
+- 下步是执行验证二选一：A fabricated 同步整形 / B 活体 KickTA（待批）。
+  零硬件触碰。证据：`mt-vgpu-guest/reports/r84-submitta-backfill.md`。
+- 遗留：T3 执行验证；特性开关 + push 待批。

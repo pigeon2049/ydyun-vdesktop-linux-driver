@@ -41,6 +41,7 @@
 | r83 | TA 提交链到桥：0x82:0xc 全字段 + fabricated 整形（uint 换算教训） |
 | r84 | SubmitTA 回填映射：fence/update 双生成器 + 同步组装（执行验证二选一） |
 | r85 | 活体 KickTA：入 PrepareTA 深部，手工整形到墙（转真 GLES 绘制提案） |
+| r86 | 真绘制栈 recon：GLES 无 EGL，Rogue2D 是首选 spike（同桥，96 导出） |
 
 ## 关键单篇（本轮最常用）
 
