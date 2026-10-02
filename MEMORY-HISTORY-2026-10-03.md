@@ -543,3 +543,13 @@
   只剩 +0x54 写入者一个问题（域：Context 内 CCB 调用点之前）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r108-surface-first-dead.md`。
 - 遗留：+0x54 写入者；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r109：P+0x54 是堆越界读；离线自主）
+
+- `malloc_usable_size(P)=56 < 0x58`：厂商代码堆越界读邻居；
+  我方流程邻居为 0，真应用大概率蒙混过关。
+- 打法转向：堆喷洒（廉价）替代精确整形；T1 钳制设计再确认。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r109-oob-read.md`。
+- 遗留：堆喷洒验证；加载窗口；push 待批。
