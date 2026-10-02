@@ -380,6 +380,26 @@ static void fabricate_tdm_shmem(uint8_t *out, uint32_t out_size)
 	memcpy(out + 8, &h, 8);
 }
 
+/* Local import handle (0x6:0x3) OUT is 12B: hImport u64@0, eError u32@8.
+ * A zero import handle fails the UMD-side Unmake table lookup
+ * (FUN_00148330), aborting TQPMR maps (r92); fabricate nonzero. */
+static uint64_t next_import = 0xb000;
+
+static void fabricate_import_handle(uint8_t *out, uint32_t out_size)
+{
+	uint64_t h;
+
+	if (out_size < 8)
+		return;
+	h = next_import++;
+	memcpy(out, &h, 8);
+}
+
+/* Transfer context (0x89:0x0) OUT is 12B: hContext u64@0, eError u32@8.
+ * A zero context handle aborts R2DCreateContext after a successful
+ * bridge call (r93); fabricate nonzero like the other handle outs. */
+static uint64_t next_tdmctx = 0xc000;
+
 /* Distinct heap handles keyed by base VA (OUT 12B: hHeap u64@0).
  * IN (28B): base u64@0, length u64@8, ctx u64@16, log2page u32@24. */
 static void fabricate_heap_create(const uint8_t *in, uint32_t in_size,
@@ -819,6 +839,13 @@ int ioctl(int fd, unsigned long req, ...)
 					(const uint8_t *)(uintptr_t)cmd.in_ptr,
 					cmd.in_size,
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x3)
+				fabricate_import_handle(
+					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else if (cmd.bridge_id == 0x89 && cmd.bridge_func_id == 0x0)
+				fabricate_handle_out(&next_tdmctx,
+						     (uint8_t *)(uintptr_t)cmd.out_ptr,
+						     n, 12);
 			else if (cmd.bridge_id == 0x2 && cmd.bridge_func_id == 0x0)
 				fabricate_sync_alloc(
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
