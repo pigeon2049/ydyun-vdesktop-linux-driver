@@ -28,6 +28,23 @@ unmap 要求映射活着；unreserve 有活映射时 `-EBUSY`，否则退役。
 169 Python（+4 ReservationLifecycle）、268 C RAM、`W=1`、ABI 门、
 探针全绿；retained 会话无恙；dmesg 干净。
 
+### 事故：timeout SIGKILL 疑似楔住一个 file->lock（bA38 验证后）
+
+完整配方（9 符号）跑完、`exit=124`（90 秒 timeout 杀掉进程），
+161 条记录零失败，但任务变 X 态僵死、4 个 FD 常开、
+`mt_pvr_bridge` refcnt=4 永久置位、RCU stall 每分钟告警。
+新 open 新 file 完全正常——只有死任务那个 file 的锁疑似被 SIGKILL
+打断在 ioctl 临界区内、随任务退出永久泄漏。
+
+教训：**harness 的 timeout 宁可放宽到 300 秒，也别让 SIGKILL 落在
+ioctl 里面**。内核 mutex 没有 owner-death 释放，
+杀掉持锁任务 = 永久楔住那把锁 + 卡住 exit 流程 + 污染 RCU。
+之前所有 `exit=0` 的轮次都没事，问题只出在这次超时强杀。
+
+影响：bridge 在重启前**不能再 reload**（refcnt 降不下来），
+但已加载的正是 bA38（验证过一致），模块其余功能正常，
+retained 会话、显示、离线门禁都不受影响。
+
 ---
 
 ## 本次会话进展（S4-2：固件真实执行了命令）
