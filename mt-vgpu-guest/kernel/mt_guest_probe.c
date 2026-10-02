@@ -1303,6 +1303,14 @@ static int mt_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	ret = pci_enable_device_mem(pdev);
 	if (ret)
 		goto free_state;
+	/* Explicit DMA mask: the device previously inherited 40 bits from the
+	 * vendor driver, but a first-bind by this driver would fall back to
+	 * the default and fail every dma_map_page in the session DMA service.
+	 * 40 bits matches the BAR2 aperture (0x800000000, 1 TB) and system RAM.
+	 */
+	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(40));
+	if (ret)
+		goto disable;
 	ret = pci_request_selected_regions(pdev, BIT(0) | BIT(1), "mt_guest_probe");
 	if (ret)
 		goto disable;

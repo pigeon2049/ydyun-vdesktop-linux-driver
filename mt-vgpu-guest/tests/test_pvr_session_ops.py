@@ -88,6 +88,17 @@ class SessionOps(unittest.TestCase):
         self.assertIn('atomic_read(&mt_pvr_live_maps)', remove,
                       'unbinding under live bridge mappings must be loud')
 
+    def test_bind_sets_explicit_dma_mask(self):
+        # The running device inherited 40 bits from the vendor driver, but a
+        # first-bind by this driver would fall back to the default and fail
+        # every dma_map_page in the session DMA service. Caught by reading
+        # live dma_mask_bits, not by any test failure.
+        probe = function_body('mt_probe', self.text)
+        self.assertIn('dma_set_mask_and_coherent', probe,
+                      'bind path never sets the DMA mask the session '
+                      'service depends on')
+        self.assertIn('DMA_BIT_MASK(40)', probe)
+
     def test_pages_cross_as_struct_page_not_addresses(self):
         # virt_to_page() is invalid on vmalloc addresses and the bridge backs
         # PMRs with vzalloc, so the page itself crosses the contract. A
