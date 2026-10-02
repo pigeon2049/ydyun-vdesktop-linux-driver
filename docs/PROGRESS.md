@@ -2,6 +2,11 @@
 
 更新时间：2026-10-03（Asia/Shanghai；新增 Step 140，S3000 r43–r71 + bA38–bA43）
 
+> **阅读须知**：本文件是 USB/画面线的追加式进度日志。Step 139 及以前为历史
+> 记录，其中“当前/最新/下一步”只代表各自阶段。摩尔线程 vGPU 线的**权威当前
+> 状态**在仓库根 `PROGRESS-SNAPSHOT.md`（逐轮记录 `MEMORY.md`），本文件
+> Step 133–140 只做摘要。文档地图见 `docs/README.md`。
+
 ## 目标
 
 将 `/opt/code/ydyun/driver/` 中的 Windows 云桌面 USB/输入转发能力，适配到 Debian trixie x86_64；第一阶段优先保证 USB 存储、鼠标和键盘转发，暂不移植安全、监控、遥测、打印机、扫描仪、摄像头、媒体和虚拟串口等非核心功能。

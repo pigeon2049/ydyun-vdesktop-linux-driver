@@ -1,5 +1,9 @@
 # 请求云平台提供 Linux vGPU Guest 适配材料
 
+> **归档（2026-10-03）：本请求已不再执行。** 自研栈（`mt_guest_probe` 会话 +
+> `mt_pvr_bridge` + live 3D 执行）已在真机上走通，不再等待外部 Guest 包。
+> 全文保留为历史记录；当前状态见仓库根 `PROGRESS-SNAPSHOT.md`。
+
 本云电脑已安装 Debian 13.7 amd64，Linux 6.12.107+deb13-amd64，使用 KDE Plasma Wayland。
 Guest PCI 设备为 Moore Threads S3000，PCI ID `1ed5:0222`，subsystem `1ed5:1101`。
 
