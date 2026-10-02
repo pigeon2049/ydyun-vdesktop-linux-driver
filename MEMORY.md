@@ -7,10 +7,18 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r116 警告清零；最旧节已归档）
+最后更新：2026-10-03（r117 日终盘点；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r117：日终活体盘点；离线自主）
+
+- 全量只读复核零漂移（23/34/38/1/0，dmesg 0 WARN，D 态 0）；
+  D 态误报教训（comm 首字母 D，须精确匹配 STAT 列）。
+- 待办：50 提交待 push；加载窗口/特性开关/新会话执行待批。
+- 证据：`mt-vgpu-guest/reports/r117-dayend-attestation.md`。
+- 遗留：push；加载窗口；T3 首帧执行。
 
 ## 本次会话进展（r116：4 旧警告清零；离线自主）
 
@@ -18,11 +26,4 @@
   fix_poll 补 DESCRIPTION；kernel exit 0 零警告；
   L1 226+268 全绿；反向验证通过。代码提交 `d3b7453`。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r116-warnings-clean.md`。
-- 遗留：加载窗口；T3 首帧执行；push 待批。
-
-## 本次会话进展（r115：快照刷新 pass；离线自主）
-
-- §4 定期刷新：§§1/2/5/6/11/12 + STATUS 下一步合入 r72–r114；
-  §3/4/7/8/9/10 封存未动；在盘桥含 TDM（与在载不同）已记入 §12。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r115-snapshot-refresh.md`。
 - 遗留：加载窗口；T3 首帧执行；push 待批。
