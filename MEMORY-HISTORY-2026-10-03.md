@@ -516,3 +516,12 @@
   Layout 不支持裸调（负偏移读调用者栈），转 R2DCreateSurface 入口。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r105-plus54-store.md`。
 - 遗留：Surface 入口签名；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r106：依赖倒挂澄清；离线自主）
+
+- Surface 系门全过但死于 Context 欠堆：唯一真卡点仍是 +0x54；
+  停调 surface，转回跟 create-struct byte+8 装配源。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r106-dependency-order.md`。
+- 遗留：byte+8 源；加载窗口；push 待批。

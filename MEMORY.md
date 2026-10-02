@@ -7,10 +7,17 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r107 直调链；最旧节已归档）
+最后更新：2026-10-03（r108 surface 证伪；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r108：surface 先行证伪；离线自主）
+
+- 跳过 Context 直接调 Surface：返 3 且零桥调用——无条件依赖；
+  只剩 +0x54 写入者一个问题（域：Context 内 CCB 调用点之前）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r108-surface-first-dead.md`。
+- 遗留：+0x54 写入者；加载窗口；push 待批。
 
 ## 本次会话进展（r107：CCB 直调链钉死；离线自主）
 
@@ -18,10 +25,3 @@
   堆跨 run 非确定（方法论三定律）；出路：加载窗口或 surface 先行。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r107-direct-chain.md`。
 - 遗留：出路二选一；加载窗口；push 待批。
-
-## 本次会话进展（r106：依赖倒挂澄清；离线自主）
-
-- Surface 系门全过但死于 Context 欠堆：唯一真卡点仍是 +0x54；
-  停调 surface，转回跟 create-struct byte+8 装配源。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r106-dependency-order.md`。
-- 遗留：byte+8 源；加载窗口；push 待批。
