@@ -4,8 +4,29 @@
 > **当前状态的唯一权威快照见 [`PROGRESS-SNAPSHOT.md`](PROGRESS-SNAPSHOT.md)。**
 > 两者冲突时以快照为准。
 
-最后更新：2026-10-01（S4-2：**真实硬件执行**——fence 完成 + TQX 复制校验通过）
+最后更新：2026-10-01（bA38：**reservation VA 生命周期**——页表 bind 的前置 bookkeeping）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（bA38：为未来页表 bind 记录 range）
+
+reservation 存 VA+length，重叠返回 `-EEXIST`，零长/溢出 `-EINVAL`；
+map 校验 reservation 存在 + PMR 放得下，计数 live 映射；
+unmap 要求映射活着；unreserve 有活映射时 `-EBUSY`，否则退役。
+线格式零变化，UMD 链路 125 条零失败。
+
+### 插曲（新校验第一版就拦了合法调用）
+
+我加了页对齐要求，`RGXCreateRenderContext → 1`（`0x6:0x15 -EINVAL`）。
+`pr_info` 打印实参发现 UMD 按字节紧凑预留
+（`0x8000010000+0x253` 后跟 `0x8000010253`）——对齐要求是错的，
+放宽为零长/溢出/重叠三项。页对齐是未来 bind 的事，到那时再 round down。
+
+### 门禁
+
+169 Python（+4 ReservationLifecycle）、268 C RAM、`W=1`、ABI 门、
+探针全绿；retained 会话无恙；dmesg 干净。
 
 ---
 

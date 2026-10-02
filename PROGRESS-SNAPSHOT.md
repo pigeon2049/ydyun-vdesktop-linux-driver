@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-01
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：S4-2（真实硬件执行；见 MEMORY.md 本轮记录）
+**对应提交**：`1ddf5c1`（bA38；reservation VA 生命周期 + S4-2 硬件执行保持）
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -92,6 +92,7 @@ RGXCreateRenderContext
 | 19 | `0x88:0x0/0x1` kick-sync context 创建/销毁**未实现** | CCB 返回 37 | bA34 |
 | 20 | `0x81:0x0/0x1` compute context 创建/销毁**未实现** | CCB 返回 37 | bA35 |
 | 21 | `0x82:0x2/0x3` ZSBuffer 建销 handler **未实现**；配方中 heap/连接参数顺序勘误 | 两次用户态段错误（传反了） | bA37 |
+| 22 | reservation/map/unmap/unreserve 全是空桩成功 | 未来页表无 range 可编程、无从知道映射死活 | bA38 |
 | 21 | `0x88:0x2/0x3/0x4` 提交入口**未实现** | kick 返回 37 | bA36 |
 
 第 8 项值得单独强调：**`double free` 只是三层之外的表象**。
