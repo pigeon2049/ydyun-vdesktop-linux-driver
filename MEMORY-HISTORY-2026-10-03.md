@@ -222,3 +222,16 @@
 - 会后零残留（23/34/38/0 全对，D 态 0，无新增 WARN）。
   证据：`mt-vgpu-guest/reports/r78-live-ccb-legacy-path.md` + jsonl。
 - 遗留：特性开关立项（待批）；真实 CCB 内容仍需绘制路径。
+
+---
+
+## 本次会话进展（r79：vGPU 全路径梳理与方向评估；用户指令）
+
+- 用户要完整梳理 + 方向 verdict：三线并行勘察 + 快照 §§3/8/9/10 对照。
+- 结论：方向正确（翻译器是最小完备路径，accept-and-inspect 解耦关键），
+  但结构性偏科——15 轮全在输入侧，T3（DM 格式）零进展，是最大风险；
+  活体跑道基本见底（对象满/sealed/freeze），硬仗需新会话窗口。
+- 建议顺序：T3 recon（离线语料）→ check-only 首帧设计（绕开 DDK2 的首胜路径）
+  → 特性开关单独立项 → 会话更新窗口规划。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r79-path-review.md`。
+- 遗留：按建议顺序推进（T3 recon 优先）；特性开关 + push 待批。
