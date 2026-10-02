@@ -447,6 +447,65 @@ static int is_dri(const char *path)
 	return path && strncmp(path, "/dev/dri/", 9) == 0;
 }
 
+/* Env-gated bridge traffic dump for the passthrough (real-driver) path,
+ * e.g. UMD_DUMP_BRIDGE="0x88:0x4" or "0x6:0x9,0x6:0x13,0x6:0x15". Runs
+ * in-process, so reading cmd.in_ptr/out_ptr is as safe as the existing
+ * fabricated-path log_hex on the same pointers.
+ */
+static int dump_bridge_match(unsigned tb, unsigned tf)
+{
+	const char *spec = getenv("UMD_DUMP_BRIDGE");
+	char entry[32];
+	size_t len, off = 0;
+	if (!spec || !*spec)
+		return 0;
+	while (spec[off]) {
+		unsigned b = 0, f = 0;
+		int used = 0;
+		while (spec[off] == ' ' || spec[off] == ',')
+			off++;
+		len = 0;
+		while (spec[off + len] && spec[off + len] != ',')
+			len++;
+		if (!len || len >= sizeof(entry))
+			return 0;
+		memcpy(entry, spec + off, len);
+		entry[len] = 0;
+		off += len;
+		if (sscanf(entry, "%i:%i%n", &b, &f, &used) != 2 ||
+		    !used || entry[used])
+			return 0;
+		if (b == tb && f == tf)
+			return 1;
+	}
+	return 0;
+}
+
+/* UMD-side annotation string carried by 0x6:0x9 (pointer + length inside
+ * the IN buffer). Same shape as the fabricated path's annotation reader.
+ */
+static void log_pmr_annotation(const uint8_t *inb, uint32_t in_size)
+{
+	uint64_t ap = 0;
+	uint32_t alen = 0, k;
+	if (in_size < 36)
+		return;
+	memcpy(&ap, inb + 24, 8);
+	memcpy(&alen, inb + 32, 4);
+	fprintf(logf, "\"annotation\":\"");
+	if (alen > 128)
+		alen = 128;
+	for (k = 0; k < alen; k++) {
+		char ch = ((const char *)(uintptr_t)ap)[k];
+		if (!ch)
+			break;
+		if (ch == '"' || ch == '\\')
+			fputc('\\', logf);
+		fputc(ch < 32 || ch > 126 ? '.' : ch, logf);
+	}
+	fprintf(logf, "\"");
+}
+
 static int devnull(void)
 {
 	if (nullfd < 0)
@@ -595,10 +654,33 @@ int ioctl(int fd, unsigned long req, ...)
 				fprintf(logf,
 					"{\"seq\":%lu,\"op\":\"ioctl_real\","
 					"\"fd\":%d,\"bridge\":\"0x%x:0x%x\","
-					"\"in_size\":%u,\"out_size\":%u,\"ret\":%ld}\n",
+					"\"in_size\":%u,\"out_size\":%u,",
 					++seq, fd, cmd.bridge_id,
 					cmd.bridge_func_id, cmd.in_size,
-					cmd.out_size, ret);
+					cmd.out_size);
+				if (dump_bridge_match(cmd.bridge_id,
+						      cmd.bridge_func_id)) {
+					if (cmd.in_ptr && cmd.in_size) {
+						log_hex("in_hex",
+							(const void *)(uintptr_t)cmd.in_ptr,
+							cmd.in_size);
+						if (cmd.bridge_id == 0x6 &&
+						    cmd.bridge_func_id == 0x9) {
+							fprintf(logf, ",");
+							log_pmr_annotation(
+								(const uint8_t *)(uintptr_t)cmd.in_ptr,
+								cmd.in_size);
+						}
+						fprintf(logf, ",");
+					}
+					if (cmd.out_ptr && cmd.out_size) {
+						log_hex("out_hex",
+							(const void *)(uintptr_t)cmd.out_ptr,
+							cmd.out_size);
+						fprintf(logf, ",");
+					}
+				}
+				fprintf(logf, "\"ret\":%ld}\n", ret);
 			} else {
 				fprintf(logf,
 					"{\"seq\":%lu,\"op\":\"ioctl_real\","

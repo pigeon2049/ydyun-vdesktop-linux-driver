@@ -41,14 +41,8 @@
 #include "../mt_pvr_queue.h"
 #include "../mt_pvr_session.h"
 #include "../mt_mmu.h"
-
-/* Session-side service table, owned by mt_guest_probe (not yet exported).
- * Declared, never defined here: symbol_get() resolves it at runtime and
- * yields NULL while nothing exports it, which is the designed -ENODEV
- * degradation path. Do NOT reference it directly -- only through
- * symbol_get()/symbol_put().
- */
-extern const struct mt_pvr_session_ops mt_pvr_session_ops;
+#include "../mt_guest_device.h"
+#include <linux/dma-mapping.h>
 
 /* The driver hard-codes these two numbers, and the vendor declares them the
  * same way in inc/pvr/include/pvr_drm.h:
@@ -128,17 +122,32 @@ struct mt_pvr_pmr {
 	u64 handle;
 	u64 bytes;
 	void *host;		/* system memory until page tables exist */
-	/* S4-3 DMA registration (handoff step 1). NULL until a live session
-	 * maps these pages; npages covers the whole PMR rounded up. The
-	 * addresses are valid only while mapped -- see mt_pvr_session.h rule 5.
+	/* S4-3 system-page handoff. dma_addrs owns DMA API mappings; gpu_pages
+	 * contains addresses translated for GPU PTEs. The optional gpu_bo is a
+	 * CPU-only page-table planner object until an execution path is wired.
 	 */
 	struct mt_pvr_dma_page *dma_addrs;
+	u64 *gpu_pages;
 	u32 dma_npages;
-	/* Session handle from ops->session_get(), balanced by session_put()
-	 * in pvr_pmr_dma_release(). Never dereferenced -- only passed back.
+	/* CPU-only BO facade consumed by mt_gpu_vm_bind_many. */
+	struct mt_bo gpu_bo;
+	bool gpu_bo_ready;
+	/* Keep the exact DMA device used for map until the matching unmap. The
+	 * PCI reference keeps the struct device alive if the driver is detached.
 	 */
-	void *dma_session;
+	struct pci_dev *dma_pdev;
+	/* Owner ref from try_module_get() at register time, balanced by
+	 * exactly one module_put() in pvr_pmr_dma_release(). Releasing
+	 * against the CURRENT owner instead would imbalance a changed
+	 * module; this pointer cannot dangle because the ref itself pins
+	 * the module against unload.
+	 */
+	struct module *dma_owner;
 	u32 log2_page_size;
+	/* Allocation flags from 0x6:0x9 (PVRSRV_MEMALLOCFLAG bits). Recorded
+	 * for the future translator's PTE policy; Stage 1 ignores them.
+	 */
+	u32 alloc_flags;
 	/* Live DevmemIntMapPMR count, and the reservation the current mapping
 	 * was programmed into. The OUT mapping value stays the PMR handle (the
 	 * UMD passes it back to UnmapPMR), so this is bookkeeping only -- but
@@ -154,7 +163,33 @@ struct mt_pvr_pmr {
 	 * reference first -- see pvr_mmap(), which is the only such path today.
 	 */
 	u32 refcount;
+	/* Arena slot when backing comes from the file arena (0 = private
+	 * vzalloc fallback). host always points at the first byte either way,
+	 * so mmap/DMA/plan paths are unchanged.
+	 */
+	u32 arena_offset;
+	u32 arena_pages;
+	/* Owning file for arena segment reclaim. Set once at creation under
+	 * file->lock; the arena outlives every PMR slot carved from it.
+	 */
+	struct mt_pvr_file *file;
 };
+
+/* One free run inside the file arena, in pages. Sorted by offset so
+ * neighbors merge on free.
+ */
+struct mt_pvr_arena_seg {
+	struct list_head link;
+	u32 offset;
+	u32 pages;
+};
+
+/* Single arena per file: the largest live ladder needs ~370 KiB (12 PMRs
+ * plus info/sync blocks); 2 MiB leaves headroom for further contexts while
+ * staying a cheap vzalloc. Larger requests bypass the arena entirely.
+ */
+#define MT_PVR_ARENA_BYTES (2U << 20)
+#define MT_PVR_ARENA_PAGES (MT_PVR_ARENA_BYTES >> PAGE_SHIFT)
 
 struct mt_pvr_object {
 	struct list_head link;
@@ -169,11 +204,9 @@ struct mt_pvr_object {
 	u64 arg1;
 };
 
-/* One programmed VA range: the page-table input model (S4-3 handoff step 2,
- * software side). Each live MapPMR appends exactly one entry; unmap removes
- * it. When DMA addresses and the session upload land, this ledger feeds
- * mt_gpu_vm_bind_many directly: va/bytes are already validated, overlap-free
- * (reservations cannot overlap) and page-granular at bind time.
+/* One PVR MapPMR range. The wire ledger remains byte-exact; aligned entries
+ * additionally feed the per-file CPU-only mt_gpu_vm plan. Unaligned entries
+ * degrade from the plan without changing the Stage-1 UMD result.
  */
 struct mt_pvr_binding {
 	struct list_head link;
@@ -181,6 +214,24 @@ struct mt_pvr_binding {
 	u64 bytes;
 	u64 pmr;
 	u64 reservation;
+	u32 gpu_bytes;
+	int gpu_result;
+	bool gpu_bound;
+	/* Cover set for the plan binding: first VA page + page count. The
+	 * aligned single-range path covers exactly bytes>>12 pages; the
+	 * unaligned path covers [va&~4095, va+bytes) rounded up. Unbind walks
+	 * exactly this set.
+	 */
+	u64 gpu_first;
+	u32 gpu_npages;
+	/* Map flags from 0x6:0x13 (same MEMALLOCFLAG domain). Live rung8
+	 * values echo the PMR alloc flags: 0x333 (GPU+CPU R/W, GPU
+	 * incoherent), 0x1233 (plus CPU coherent, the two big heap PMRs),
+	 * 0x303 (GPU-only R/W). All observed are GPU readable AND writable,
+	 * so the CPU-only plan's DEFAULT mapping stays consistent; a future
+	 * translator must derive PTE read-only/coherent bits from these.
+	 */
+	u32 map_flags;
 };
 
 /* Ledger cap: thousands of mappings would already have exhausted the UMD's
@@ -201,6 +252,29 @@ struct mt_pvr_file {
 	struct list_head pmrs;
 	struct list_head objects;
 	struct list_head bindings;
+	/* Unpublished, CPU-only page-table plan; never uploaded or executed here. */
+	struct mt_gpu_vm gpu_vm;
+	struct mt_bo gpu_tables;
+	void *gpu_vm_storage;
+	bool gpu_vm_ready;
+	/* Per-file PMR backing arena (r55 answer to byte-tight PMRs). PMR
+	 * bytes live at arena_base + arena_offset so VA-neighbor ranges can
+	 * share physical pages once the plan binds per-page cover sets.
+	 * Lazy: files that never allocate PMRs pay nothing. Fallback to a
+	 * private vzalloc preserves exact old behavior when the arena cannot
+	 * fit a request; the close summary reports whether it ever fired.
+	 */
+	void *arena_base;
+	struct list_head arena_free;
+	u32 arena_high_water;
+	u32 arena_fallbacks;
+	/* File-level arena facade for cover-page plan bindings. page_pa holds
+	 * the translated GPU PA of every arena page (filled at DMA-register
+	 * time, idempotent); the BO itself carries no allocation.
+	 */
+	struct mt_bo arena_bo;
+	bool arena_bo_ready;
+	u64 *arena_gpu_pages;
 	char sync_timeline[32];
 	u32 init_module;
 };
@@ -217,113 +291,503 @@ static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle);
 static struct mt_pvr_object *pvr_reservation_find(struct mt_pvr_file *file,
 						  u64 handle);
 
+#define MT_PVR_VM_TABLE_PAGES 32U
+#define MT_PVR_VM_TABLE_BYTES (MT_PVR_VM_TABLE_PAGES * PAGE_SIZE)
+#define MT_PVR_VM_ROOT_PA ((1ULL << MT_GPU_VA_BITS) - MT_PVR_VM_TABLE_BYTES)
+
+/* This store is a CPU-side planning domain only. No allocator or MMIO
+ * callback can be reached through these BOs; free is intentionally a no-op.
+ */
+static void pvr_gpu_plan_bo_free(void *store,
+				 const struct mt_bo_backing *backing)
+{
+	(void)store;
+	(void)backing;
+}
+
+static const struct mt_bo_ops pvr_gpu_plan_bo_ops = {
+	.free = pvr_gpu_plan_bo_free,
+};
+
+/* Translated GPU PA per arena page, backing the file-level arena facade
+ * BO. Filled at DMA-register time (translation is idempotent); read by
+ * cover-page plan bindings. Allocated on demand like the VM itself.
+ */
+static int pvr_arena_pages_ensure(struct mt_pvr_file *file)
+{
+	if (file->arena_gpu_pages)
+		return 0;
+	file->arena_gpu_pages = kcalloc(MT_PVR_ARENA_PAGES,
+					sizeof(*file->arena_gpu_pages),
+					GFP_KERNEL);
+	return file->arena_gpu_pages ? 0 : -ENOMEM;
+}
+
+static int pvr_gpu_vm_ensure(struct mt_pvr_file *file)
+{
+	void *storage;
+	int ret;
+
+	if (file->gpu_vm_ready)
+		return 0;
+	storage = kvzalloc(2 * (size_t)MT_PVR_VM_TABLE_BYTES, GFP_KERNEL);
+	if (!storage)
+		return -ENOMEM;
+	file->gpu_vm_storage = storage;
+	file->arena_gpu_pages = kcalloc(MT_PVR_ARENA_PAGES,
+					sizeof(*file->arena_gpu_pages),
+					GFP_KERNEL);
+	if (!file->arena_gpu_pages) {
+		kvfree(file->gpu_vm_storage);
+		file->gpu_vm_storage = NULL;
+		return -ENOMEM;
+	}
+	file->gpu_tables = (struct mt_bo){
+		.backing = {.gpu_pa = MT_PVR_VM_ROOT_PA,
+			.bytes = MT_PVR_VM_TABLE_BYTES},
+		.ops = &pvr_gpu_plan_bo_ops,
+		.store = file,
+		.requested_bytes = MT_PVR_VM_TABLE_BYTES,
+		.refs = 1,
+	};
+	ret = mt_gpu_vm_init(&file->gpu_vm, &file->gpu_tables, storage,
+		(u8 *)storage + MT_PVR_VM_TABLE_BYTES, MT_PVR_VM_TABLE_BYTES);
+	if (ret) {
+		if (file->gpu_vm.tables)
+			mt_bo_put(file->gpu_vm.tables);
+		if (file->gpu_tables.refs)
+			mt_bo_put(&file->gpu_tables);
+		kfree(file->arena_gpu_pages);
+		file->arena_gpu_pages = NULL;
+		kvfree(file->gpu_vm_storage);
+		file->gpu_vm_storage = NULL;
+		memset(&file->gpu_vm, 0, sizeof(file->gpu_vm));
+		return ret;
+	}
+	ret = mt_bo_put(&file->gpu_tables); /* leave only the VM's table reference */
+	if (ret) {
+		WARN_ON(mt_gpu_vm_fini(&file->gpu_vm));
+		kfree(file->arena_gpu_pages);
+		file->arena_gpu_pages = NULL;
+		kvfree(file->gpu_vm_storage);
+		file->gpu_vm_storage = NULL;
+		return ret;
+	}
+	file->arena_bo = (struct mt_bo){
+		.backing = {.gpu_pa = 0, .bytes = MT_PVR_ARENA_BYTES},
+		.ops = &pvr_gpu_plan_bo_ops,
+		.store = file,
+		.requested_bytes = MT_PVR_ARENA_BYTES,
+		.refs = 1,
+		.page_pa = NULL,
+	};
+	ret = pvr_arena_pages_ensure(file);
+	if (ret) {
+		WARN_ON(mt_bo_put(&file->arena_bo));
+		WARN_ON(mt_gpu_vm_fini(&file->gpu_vm));
+		kvfree(file->gpu_vm_storage);
+		file->gpu_vm_storage = NULL;
+		return ret;
+	}
+	file->arena_bo.page_pa = file->arena_gpu_pages;
+	file->arena_bo_ready = true;
+	file->gpu_vm_ready = true;
+	return 0;
+}
+
+static int pvr_gpu_bo_init(struct mt_pvr_file *file, struct mt_pvr_pmr *pmr)
+{
+	u64 bytes = (u64)pmr->dma_npages * PAGE_SIZE;
+
+	if (pmr->gpu_bo_ready)
+		return 0;
+	if (!pmr->gpu_pages || !pmr->dma_npages || bytes > U32_MAX ||
+	    bytes < pmr->bytes)
+		return -ERANGE;
+	pmr->gpu_bo = (struct mt_bo){
+		.backing = {.handle = pmr, .gpu_pa = pmr->gpu_pages[0],
+			.bytes = bytes},
+		.ops = &pvr_gpu_plan_bo_ops,
+		.store = file,
+		.requested_bytes = pmr->bytes,
+		.refs = 1,
+		.page_pa = pmr->gpu_pages,
+	};
+	pmr->gpu_bo_ready = true;
+	return 0;
+}
+
+/* Build an unpublished VM image for a PVR mapping.
+ *
+ * Arena-backed PMRs bind their per-page cover set against the file-level
+ * arena facade: each cover page maps the arena page holding that page's
+ * first PMR-valid byte (exact 1:1 for aligned ranges; the documented
+ * first-byte approximation for unaligned prefixes/tails). A cover page
+ * already live under another range refuses the whole bind (-EEXIST) rather
+ * than aliasing two owners onto one PTE. Fallback (private vzalloc) PMRs
+ * keep the aligned-only single-shape bind, expressed the same per-page way
+ * against their own facade; unaligned fallbacks degrade with -EOPNOTSUPP.
+ * The UMD wire result never changes either way.
+ */
+static int pvr_gpu_vm_bind(struct mt_pvr_file *file, struct mt_pvr_pmr *pmr,
+			   struct mt_pvr_binding *binding)
+{
+	struct mt_pvr_object *reservation;
+	struct mt_vm_binding *cover = NULL;
+	struct mt_bo *bo;
+	u64 first, last, pg;
+	u32 npages, j;
+	int ret;
+
+	if (!pmr->dma_addrs || !pmr->gpu_pages || !pmr->bytes ||
+	    pmr->bytes > U32_MAX)
+		return -EOPNOTSUPP;
+	reservation = pvr_reservation_find(file, binding->reservation);
+	if (!reservation)
+		return -ENOENT;
+	if (pmr->bytes > reservation->arg1)
+		return -ENOSPC;
+	ret = pvr_gpu_vm_ensure(file);
+	if (ret)
+		return ret;
+	if (!pmr->arena_pages) {
+		if (!IS_ALIGNED(binding->va, PAGE_SIZE) ||
+		    !IS_ALIGNED(pmr->bytes, PAGE_SIZE))
+			return -EOPNOTSUPP;
+		ret = pvr_gpu_bo_init(file, pmr);
+		if (ret)
+			return ret;
+		bo = &pmr->gpu_bo;
+	} else {
+		bo = &file->arena_bo;
+	}
+	first = binding->va & ~4095ULL;
+	/* bytes >= 1 and va+bytes <= 2^40 (reservation guarantee), so the
+	 * subtraction cannot underflow and the span fits u32 pages.
+	 */
+	last = (binding->va + pmr->bytes - 1) & ~4095ULL;
+	npages = (u32)((last - first) >> PAGE_SHIFT) + 1;
+	if (npages > file->gpu_vm.max_ranges)
+		return -ENOSPC;
+	cover = kcalloc(npages, sizeof(*cover), GFP_KERNEL);
+	if (!cover)
+		return -ENOMEM;
+	for (j = 0, pg = first; pg <= last; j++, pg += PAGE_SIZE) {
+		u32 off;
+
+		if (pmr->arena_pages) {
+			u64 valid = pg > binding->va ? pg : binding->va;
+			off = (pmr->arena_offset +
+			       (u32)((valid - binding->va) >> PAGE_SHIFT)) << PAGE_SHIFT;
+		} else {
+			off = j << PAGE_SHIFT;
+		}
+		cover[j] = (struct mt_vm_binding){
+			.bo = bo, .va = pg,
+			.offset = off,
+			.bytes = PAGE_SIZE, .flags = MT_GPU_MAP_DEFAULT,
+		};
+	}
+	ret = mt_gpu_vm_bind_many(&file->gpu_vm, cover, npages);
+	kfree(cover);
+	binding->gpu_result = ret;
+	if (ret)
+		return ret;
+	binding->gpu_first = first;
+	binding->gpu_npages = npages;
+	binding->gpu_bytes = pmr->bytes;
+	binding->gpu_bound = true;
+	pr_info("mt_pvr_bridge: CPU-only PVR VM plan root=%#llx va=%#llx bytes=%llu pages=%u pa=%#llx\n",
+		(unsigned long long)file->gpu_tables.backing.gpu_pa,
+		(unsigned long long)binding->va,
+		(unsigned long long)pmr->bytes, npages,
+		(unsigned long long)pmr->gpu_pages[0]);
+	return 0;
+}
+
+static int pvr_gpu_vm_unbind(struct mt_pvr_file *file,
+			     struct mt_pvr_binding *binding)
+{
+	u32 j;
+	int ret;
+
+	if (!binding->gpu_bound)
+		return 0;
+	if (!file->gpu_vm_ready)
+		return -EUCLEAN;
+	for (j = 0; j < binding->gpu_npages; j++) {
+		ret = mt_gpu_vm_unbind(&file->gpu_vm,
+				       binding->gpu_first + ((u64)j << PAGE_SHIFT),
+				       PAGE_SIZE);
+		if (ret)
+			return ret;
+	}
+	binding->gpu_bound = false;
+	return 0;
+}
+
+static int pvr_gpu_vm_destroy(struct mt_pvr_file *file)
+{
+	int ret;
+
+	if (!file->gpu_vm_ready)
+		return 0;
+	ret = mt_gpu_vm_fini(&file->gpu_vm);
+	if (ret)
+		return ret;
+	if (file->arena_bo_ready) {
+		WARN_ON(mt_bo_put(&file->arena_bo));
+		file->arena_bo_ready = false;
+	}
+	kfree(file->arena_gpu_pages);
+	file->arena_gpu_pages = NULL;
+	kvfree(file->gpu_vm_storage);
+	file->gpu_vm_storage = NULL;
+	file->gpu_vm_ready = false;
+	return 0;
+}
+
+/* Session acquisition for DMA (S4-3 handoff, step 1).
+ *
+ * Returns the pinned mt_guest on a live trial, or NULL (degrade, never
+ * error). Uses only primitives proven on this kernel: PCI lookup,
+ * driver-name check, drvdata, try_module_get. Deliberately no symbol_get:
+ * cross-module symbol resolution does not work here (empirically verified,
+ * even for printk), so the design must not depend on it.
+ *
+ * Each successful acquire stores its owner ref in pmr->dma_owner, balanced
+ * by exactly one module_put() in pvr_pmr_dma_release(). The module ref pins
+ * against unload, NOT unbind -- see mt_pvr_session.h rule 2 for the
+ * operational constraint this implies.
+ */
+static struct mt_guest *pvr_session_acquire(struct module **owner_out)
+{
+	struct pci_dev *pdev =
+		pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	struct module *owner = NULL;
+	struct mt_guest *g = NULL;
+
+	if (!pdev)
+		return NULL;
+	device_lock(&pdev->dev);
+	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe"))
+		goto out;
+	owner = pdev->driver->driver.owner;
+	if (!owner || !try_module_get(owner)) {
+		owner = NULL;
+		goto out;
+	}
+	g = pci_get_drvdata(pdev);
+	if (!g)
+		goto out;
+	mutex_lock(&g->trial_lock);
+	if (!g->trial.pinned || !g->trial.connected) {
+		mutex_unlock(&g->trial_lock);
+		module_put(owner);
+		owner = NULL;
+		g = NULL;
+		goto out;
+	}
+	mutex_unlock(&g->trial_lock);
+out:
+	if (!g && owner) {
+		module_put(owner);
+		owner = NULL;
+	}
+	if (owner_out)
+		*owner_out = owner;
+	device_unlock(&pdev->dev);
+	pci_dev_put(pdev);
+	return g;
+}
+
 /* Attempt DMA registration of a PMR through the live GPU session.
  *
  * S4-3 handoff, step 1 (bridge side). Returns 0 with dma_addrs filled, or a
  * negative errno with nothing changed. Callers treat ANY failure -- above
- * all -ENODEV (no session, version drift, dead session) -- as "stay on
- * system memory", never as a UMD-visible error. See mt_pvr_session.h rules.
+ * all -ENODEV (no session, dead session) -- as "stay on system memory",
+ * never as a UMD-visible error. See mt_pvr_session.h rules.
  *
- * Locking: runs under file->lock like the rest of dispatch. The symbol_get
- * pins the session module, so it cannot unload under us; symbol_put balances
- * on every path, including the map-failure path after acquisition.
+ * Locking: runs under file->lock like the rest of dispatch. The try_module
+ * ref pins the session module against unload; unbind races stay governed by
+ * the operational rule (bridge rmmod first), since the PCI core gives
+ * remove() no veto.
  */
 static int pvr_pmr_dma_register(struct mt_pvr_file *file,
 				struct mt_pvr_pmr *pmr)
 {
-	const struct mt_pvr_session_ops *ops;
-	void *session;
-	void **pages;
+	struct mt_guest *g;
+	struct mt_guest_device *d;
+	struct pci_dev *pdev;
+	struct page **pages;
+	struct mt_system_address address;
 	u32 i, npages;
 	int ret;
 
 	(void)file;
+	(void)mt_fw_event_io_ops;
 	if (pmr->dma_addrs)
 		return 0;
 	npages = mt_pvr_mmap_page_count(pmr->bytes, PAGE_SIZE);
 	if (!npages)
 		return -EINVAL;
-	ops = symbol_get(mt_pvr_session_ops);
-	if (!ops)
+	g = pvr_session_acquire(&pmr->dma_owner);
+	if (!g)
 		return -ENODEV;
-	if (ops->abi_version != MT_PVR_SESSION_ABI_VERSION) {
+	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	if (!pdev) {
 		ret = -ENODEV;
-		goto put_ops;
+		goto put_session;
 	}
-	session = ops->session_get ? ops->session_get() : NULL;
-	if (!session) {
+	device_lock(&pdev->dev);
+	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe") ||
+	    pci_get_drvdata(pdev) != g) {
 		ret = -ENODEV;
-		goto put_ops;
+		goto unlock;
 	}
+	/* Serialize against trial_control while checking liveness and creating
+	 * mappings. device_lock is always taken outermost (no path in this
+	 * tree takes device_lock while holding trial_lock), so nesting
+	 * trial_lock inside device_lock cannot deadlock against teardown.
+	 */
+	mutex_lock(&g->trial_lock);
+	if (!g->trial.pinned || !g->trial.connected) {
+		ret = -ENODEV;
+		goto unlock_trial;
+	}
+	d = container_of(g, struct mt_guest_device, state);
+	ret = mt_system_address_init(&address, (void *)g->info, PAGE_SIZE,
+		d->runtime.windows, MT_GUEST_WINDOWS_BYTES,
+		pci_resource_start(pdev, 4), pci_resource_len(pdev, 4));
+	if (ret)
+		goto unlock_trial;
 	pages = kcalloc(npages, sizeof(*pages), GFP_KERNEL);
 	if (!pages) {
 		ret = -ENOMEM;
-		goto put_session;
+		goto unlock_trial;
 	}
 	for (i = 0; i < npages; i++) {
-		struct page *page = vmalloc_to_page(pmr->host + i * PAGE_SIZE);
-
-		if (!page) {
+		pages[i] = vmalloc_to_page(pmr->host + i * PAGE_SIZE);
+		if (!pages[i]) {
 			ret = -ENOMEM;
 			goto free_pages;
 		}
-		/* Pass the page itself, not its address: the contract takes
-		 * struct page *, because virt_to_page() must never see a
-		 * vmalloc address.
-		 */
-		pages[i] = page;
 	}
 	pmr->dma_addrs = kcalloc(npages, sizeof(*pmr->dma_addrs), GFP_KERNEL);
-	if (!pmr->dma_addrs) {
+	pmr->gpu_pages = kcalloc(npages, sizeof(*pmr->gpu_pages), GFP_KERNEL);
+	if (!pmr->dma_addrs || !pmr->gpu_pages) {
+		kfree(pmr->dma_addrs);
+		kfree(pmr->gpu_pages);
+		pmr->dma_addrs = NULL;
+		pmr->gpu_pages = NULL;
 		ret = -ENOMEM;
 		goto free_pages;
 	}
-	ret = ops->dma_map(session, pages, npages, MT_PVR_DMA_BIDIRECTIONAL,
-			   pmr->dma_addrs);
+	ret = 0;
+	ret = pvr_arena_pages_ensure(file);
 	if (ret) {
 		kfree(pmr->dma_addrs);
+		kfree(pmr->gpu_pages);
 		pmr->dma_addrs = NULL;
+		pmr->gpu_pages = NULL;
+		goto free_pages;
+	}
+	for (i = 0; i < npages; i++) {
+		u64 gpu_pa;
+		dma_addr_t addr;
+
+		ret = mt_system_page_address(&address, page_to_phys(pages[i]),
+					     &gpu_pa);
+		if (ret)
+			break;
+		addr = dma_map_page(&pdev->dev, pages[i], 0, PAGE_SIZE,
+				    DMA_BIDIRECTIONAL);
+
+		if (dma_mapping_error(&pdev->dev, addr)) {
+			ret = -EIO;
+			break;
+		}
+		pmr->dma_addrs[i].dma_addr = addr;
+		pmr->dma_addrs[i].gpu_pa = gpu_pa;
+		pmr->gpu_pages[i] = gpu_pa;
+		/* Feed the file-level arena facade. Translation is a pure
+		 * function of the physical page, so rewriting an entry that
+		 * a previous PMR already filled stores the same value.
+		 * Guarded: fallback (private vzalloc) PMRs own no arena slot.
+		 */
+		if (pmr->arena_pages)
+			file->arena_gpu_pages[pmr->arena_offset + i] = gpu_pa;
+	}
+	if (ret) {
+		while (i--)
+			dma_unmap_page(&pdev->dev, pmr->dma_addrs[i].dma_addr,
+				       PAGE_SIZE, DMA_BIDIRECTIONAL);
+		kfree(pmr->dma_addrs);
+		kfree(pmr->gpu_pages);
+		pmr->dma_addrs = NULL;
+		pmr->gpu_pages = NULL;
 		goto free_pages;
 	}
 	pmr->dma_npages = npages;
-	pmr->dma_session = session;
-	session = NULL;
+	pmr->dma_pdev = pdev;
+	pr_info_once("mt_pvr_bridge: DMA domains: dma_iova=%#llx gpu_pa=%#llx pages=%u\n",
+		(unsigned long long)pmr->dma_addrs[0].dma_addr,
+		(unsigned long long)pmr->dma_addrs[0].gpu_pa, npages);
 	ret = 0;
 free_pages:
 	kfree(pages);
+unlock_trial:
+	mutex_unlock(&g->trial_lock);
+unlock:
+	device_unlock(&pdev->dev);
+	if (!ret)
+		pdev = NULL; /* PMR owns the pci_dev reference until DMA release. */
 put_session:
-	if (session && ops->session_put)
-		ops->session_put(session);
-put_ops:
-	symbol_put(mt_pvr_session_ops);
+	if (pdev)
+		pci_dev_put(pdev);
+	if (ret && pmr->dma_owner) {
+		module_put(pmr->dma_owner);
+		pmr->dma_owner = NULL;
+	}
 	return ret;
 }
 
-/* Release a DMA registration. Safe on a never-registered PMR. */
+/* Release a DMA registration. Safe on a never-registered PMR. Unmap against
+ * the exact pci_dev reference retained at registration, not a new lookup
+ * whose binding may have changed. This pins the device object, not its active
+ * driver; the operational teardown order in mt_pvr_session.h still applies.
+ */
 static void pvr_pmr_dma_release(struct mt_pvr_pmr *pmr)
 {
-	const struct mt_pvr_session_ops *ops;
+	struct pci_dev *pdev = pmr->dma_pdev;
+	u32 i;
 
-	if (!pmr->dma_addrs)
-		return;
-	ops = symbol_get(mt_pvr_session_ops);
-	if (ops && ops->abi_version == MT_PVR_SESSION_ABI_VERSION) {
-		if (pmr->dma_session) {
-			ops->dma_unmap(pmr->dma_session, pmr->dma_addrs,
-				       pmr->dma_npages, MT_PVR_DMA_BIDIRECTIONAL);
-			if (ops->session_put)
-				ops->session_put(pmr->dma_session);
-		}
-		symbol_put(mt_pvr_session_ops);
-	}
-	/* If the session is gone (or drifted), the addresses are unusable
-	 * anyway; drop them. This is why dma_addrs must never be read except
-	 * between a successful register and this release.
+	/* Use the exact device object used for mapping, not a fresh lookup whose
+	 * driver may have changed since registration. The PMR owns this reference.
 	 */
+	if (pmr->dma_addrs && pdev) {
+		device_lock(&pdev->dev);
+		for (i = 0; i < pmr->dma_npages; i++)
+			dma_unmap_page(&pdev->dev, pmr->dma_addrs[i].dma_addr,
+				       PAGE_SIZE, DMA_BIDIRECTIONAL);
+		device_unlock(&pdev->dev);
+		pci_dev_put(pdev);
+	}
+	pmr->dma_pdev = NULL;
+	if (pmr->dma_owner) {
+		module_put(pmr->dma_owner);
+		pmr->dma_owner = NULL;
+	}
 	kfree(pmr->dma_addrs);
 	pmr->dma_addrs = NULL;
+	if (pmr->gpu_bo_ready) {
+		WARN_ON(pmr->gpu_bo.refs != 1);
+		WARN_ON(mt_bo_put(&pmr->gpu_bo));
+		pmr->gpu_bo_ready = false;
+	}
+	kfree(pmr->gpu_pages);
+	pmr->gpu_pages = NULL;
 	pmr->dma_npages = 0;
-	pmr->dma_session = NULL;
 }
 
 static void pvr_file_release(struct kref *kref)
@@ -331,16 +795,43 @@ static void pvr_file_release(struct kref *kref)
 	struct mt_pvr_file *file = container_of(kref, struct mt_pvr_file, ref);
 	struct mt_pvr_pmr *pmr, *tmp;
 	struct mt_pvr_object *obj, *otmp;
+	struct mt_pvr_binding *binding, *btmp;
+	int ret;
 
 	/* Drop the list's reference rather than freeing outright, so the
 	 * refcount path stays uniform. Nothing can be holding another reference
 	 * here: an in-flight mmap pins the file through filp, so this callback
 	 * cannot run while one exists.
 	 */
+	list_for_each_entry_safe(binding, btmp, &file->bindings, link) {
+		ret = pvr_gpu_vm_unbind(file, binding);
+		if (WARN_ON(ret))
+			return;
+	}
+	ret = pvr_gpu_vm_destroy(file);
+	if (WARN_ON(ret))
+		return;
 	list_for_each_entry_safe(pmr, tmp, &file->pmrs, link) {
 		list_del(&pmr->link);
 		pvr_pmr_unref(pmr);
 	}
+	/* Every PMR slot is back by now. Drain the free list, then report
+	 * whether any PMR ever bypassed the arena before freeing it.
+	 */
+	{
+		struct mt_pvr_arena_seg *seg, *stmp;
+
+		list_for_each_entry_safe(seg, stmp, &file->arena_free, link) {
+			list_del(&seg->link);
+			kfree(seg);
+		}
+	}
+	if (file->arena_base)
+		pr_info("mt_pvr_bridge: arena close: high_water=%u/%u pages fallbacks=%u\n",
+			file->arena_high_water, MT_PVR_ARENA_PAGES,
+			file->arena_fallbacks);
+	vfree(file->arena_base);
+	file->arena_base = NULL;
 	list_for_each_entry_safe(obj, otmp, &file->objects, link) {
 		list_del(&obj->link);
 		kfree(obj);
@@ -391,6 +882,7 @@ static int pvr_open(struct drm_device *drm, struct drm_file *drm_file)
 	INIT_LIST_HEAD(&file->pmrs);
 	INIT_LIST_HEAD(&file->objects);
 	INIT_LIST_HEAD(&file->bindings);
+	INIT_LIST_HEAD(&file->arena_free);
 	mt_pvr_handles_init(&file->handles);
 	mt_pvr_queue_init(&file->queue, MT_PVR_RING_ENTRIES);
 	mt_pvr_rgx_app_heaps_init(&file->heaps);
@@ -436,25 +928,164 @@ static struct mt_pvr_pmr *pvr_pmr_find(struct mt_pvr_file *file, u64 handle)
 	return NULL;
 }
 
+/* File-arena allocator: first fit with neighbor coalescing, in pages.
+ * Every mutation happens under file->lock (all dispatch paths) except
+ * pvr_file_release, which runs single-threaded on the last kref after every
+ * PMR is already freed -- so the free list needs no lock of its own.
+ */
+static int pvr_arena_ensure(struct mt_pvr_file *file)
+{
+	struct mt_pvr_arena_seg *seg;
+
+	if (file->arena_base)
+		return 0;
+	file->arena_base = vzalloc(MT_PVR_ARENA_BYTES);
+	if (!file->arena_base)
+		return -ENOMEM;
+	seg = kzalloc(sizeof(*seg), GFP_KERNEL);
+	if (!seg) {
+		vfree(file->arena_base);
+		file->arena_base = NULL;
+		return -ENOMEM;
+	}
+	seg->offset = 0;
+	seg->pages = MT_PVR_ARENA_PAGES;
+	list_add(&seg->link, &file->arena_free);
+	return 0;
+}
+
+/* First fit, splitting the chosen run. The segment kzalloc happens before
+ * the list is touched, so -ENOMEM leaves the free list unchanged.
+ */
+static int pvr_arena_alloc(struct mt_pvr_file *file, u32 npages,
+			   u32 *offset_out)
+{
+	struct mt_pvr_arena_seg *seg, *rest;
+	u32 end;
+
+	if (!npages || npages > MT_PVR_ARENA_PAGES)
+		return -ENOSPC;
+	list_for_each_entry(seg, &file->arena_free, link) {
+		if (seg->pages < npages)
+			continue;
+		if (seg->pages == npages) {
+			list_del(&seg->link);
+			*offset_out = seg->offset;
+			kfree(seg);
+		} else {
+			rest = kzalloc(sizeof(*rest), GFP_KERNEL);
+			if (!rest)
+				return -ENOMEM;
+			*offset_out = seg->offset;
+			rest->offset = seg->offset + npages;
+			rest->pages = seg->pages - npages;
+			list_replace(&seg->link, &rest->link);
+			kfree(seg);
+		}
+		end = *offset_out + npages;
+		if (end > file->arena_high_water)
+			file->arena_high_water = end;
+		return 0;
+	}
+	return -ENOSPC;
+}
+
+/* Return a run, merging with neighbors. Overlapping or out-of-range returns
+ * can only come from a caller bug; leak the run rather than corrupt the
+ * list -- the arena dies with the file anyway.
+ */
+static void pvr_arena_free(struct mt_pvr_file *file, u32 offset, u32 pages)
+{
+	struct mt_pvr_arena_seg *seg, *prev = NULL, *next = NULL;
+	struct mt_pvr_arena_seg *new;
+
+	if (!pages || pages > MT_PVR_ARENA_PAGES ||
+	    offset > MT_PVR_ARENA_PAGES - pages)
+		return;
+	list_for_each_entry(seg, &file->arena_free, link) {
+		if (seg->offset < offset + pages &&
+		    offset < seg->offset + seg->pages)
+			return;
+		if (seg->offset + seg->pages == offset)
+			prev = seg;
+		else if (seg->offset == offset + pages)
+			next = seg;
+	}
+	if (prev && next) {
+		prev->pages += pages + next->pages;
+		list_del(&next->link);
+		kfree(next);
+		return;
+	}
+	if (prev) {
+		prev->pages += pages;
+		return;
+	}
+	if (next) {
+		next->offset = offset;
+		next->pages += pages;
+		return;
+	}
+	new = kzalloc(sizeof(*new), GFP_KERNEL);
+	if (!new)
+		return;
+	new->offset = offset;
+	new->pages = pages;
+	list_for_each_entry(seg, &file->arena_free, link) {
+		if (seg->offset > offset) {
+			list_add_tail(&new->link, &seg->link);
+			return;
+		}
+	}
+	list_add_tail(&new->link, &file->arena_free);
+}
+
 static struct mt_pvr_pmr *pvr_pmr_new(struct mt_pvr_file *file, u64 bytes,
 				     u32 log2_page_size)
 {
 	struct mt_pvr_pmr *pmr;
+	u64 need = bytes ? bytes : 1;
+	unsigned long want = mt_pvr_mmap_page_count((unsigned long)need,
+						    PAGE_SIZE);
+	u32 offset = 0;
 
 	pmr = kzalloc(sizeof(*pmr), GFP_KERNEL);
 	if (!pmr)
 		return NULL;
-	pmr->host = vzalloc(bytes ? bytes : 1);
-	if (!pmr->host) {
-		kfree(pmr);
-		return NULL;
+	/* Prefer the file arena so VA-neighbor PMRs can share physical pages
+	 * once the plan binds per-page cover sets. Zero the slot: reused runs
+	 * still hold the previous owner's bytes, unlike fresh vzalloc.
+	 * Fall back to a private vzalloc with identical semantics when the
+	 * request cannot fit the arena or it is missing/full; the close
+	 * summary reports whether that ever fired. The want check runs on the
+	 * full-precision count so a giant request can never truncate into a
+	 * small arena slot.
+	 */
+	if (want && want <= MT_PVR_ARENA_PAGES &&
+	    !pvr_arena_ensure(file) &&
+	    !pvr_arena_alloc(file, (u32)want, &offset)) {
+		pmr->host = (u8 *)file->arena_base + ((u64)offset << PAGE_SHIFT);
+		pmr->arena_offset = offset;
+		pmr->arena_pages = (u32)want;
+		memset(pmr->host, 0, want << PAGE_SHIFT);
+	} else {
+		file->arena_fallbacks++;
+		pmr->host = vzalloc(bytes ? bytes : 1);
+		if (!pmr->host) {
+			kfree(pmr);
+			return NULL;
+		}
 	}
 	if (mt_pvr_handles_alloc(&file->handles, &pmr->handle)) {
-		vfree(pmr->host);
+		if (pmr->arena_pages)
+			pvr_arena_free(file, pmr->arena_offset, pmr->arena_pages);
+		else
+			vfree(pmr->host);
 		kfree(pmr);
 		return NULL;
 	}
 	pmr->bytes = bytes;
+	pmr->file = file;
 	pmr->log2_page_size = log2_page_size;
 	pmr->refcount = 1;	/* held by the list itself */
 	list_add_tail(&pmr->link, &file->pmrs);
@@ -463,9 +1094,11 @@ static struct mt_pvr_pmr *pvr_pmr_new(struct mt_pvr_file *file, u64 bytes,
 
 /* Drop one reference and free when the last one goes.
  *
- * Must be called without file->lock held for the free path, and the caller
- * must own a reference. pvr_pmr_put() below is the list-owner side and must be
- * called *with* file->lock held.
+ * Every caller holds file->lock (all dispatch paths) except pvr_file_release,
+ * which runs single-threaded on the last kref after every PMR is already
+ * freed -- so arena segment reclaim inside the free path is always safe.
+ * The caller must own a reference. pvr_pmr_put() below is the list-owner side
+ * and must be called *with* file->lock held.
  */
 static void pvr_pmr_unref(struct mt_pvr_pmr *pmr)
 {
@@ -475,7 +1108,10 @@ static void pvr_pmr_unref(struct mt_pvr_pmr *pmr)
 	if (--pmr->refcount)
 		return;
 	pvr_pmr_dma_release(pmr);
-	vfree(pmr->host);
+	if (pmr->arena_pages)
+		pvr_arena_free(pmr->file, pmr->arena_offset, pmr->arena_pages);
+	else
+		vfree(pmr->host);
 	kfree(pmr);
 }
 
@@ -700,7 +1336,13 @@ static int pvr_cmd_heap_destroy(struct mt_pvr_file *file,
 	return -ENOENT;
 }
 
-/* Completion fence: always ready. See pvr_cmd_kicksync_submit(). */
+/* Completion fence: always ready. See pvr_cmd_kicksync_submit().
+ * An always-ready pollfd is a userspace busy-loop hazard if anyone polls it
+ * with timeout zero (a desktop GPU thread spun ~1300s and died during this
+ * bridge's residency; unattributed, no kernel-side fault found). Returning
+ * ready is still required: the S4-1 UMD waits on this fence and blocking it
+ * would hang the ladder. Revisit only with a real completion source.
+ */
 static __poll_t pvr_fence_poll(struct file *file, struct poll_table_struct *pt)
 {
 	return EPOLLIN | EPOLLOUT;
@@ -721,16 +1363,115 @@ static const struct file_operations pvr_fence_fops = {
  * nothing here can or does touch hardware.
  *
  * No locking: pvr_bridge_dispatch() already holds file->lock, and taking it
- * again self-deadlocks (bA26). The 0x88:0x4 IN layout is the 2.7.1 header's;
- * the 5.2 UMD sends the same 84 bytes with the context handle first, which is
- * the only field read here.
+ * again self-deadlocks (bA26). The 0x88:0x4 IN layout is mt_pvr_kicksync3_in
+ * (5.2 map, r53); only the handle was read until the kick inventory below.
  */
+/* Inspect-only kick inventory (translator steps T1+T2, r62/r63).
+ *
+ * Copies the UMD-side check/update offset/value/UFO arrays and resolves
+ * each UFO handle against this file's PMRs and objects, then logs one
+ * inventory line. PURELY observational: dispatch runs in the calling
+ * process's context so copy_from_user can reach these pointers (as a real
+ * server does), but every failure -- absurd counts, unreadable memory,
+ * unknown handles -- degrades to plain accept. The fence + OUT path below
+ * is untouched, so the wire result is identical on all paths.
+ */
+#define MT_PVR_KICK_SYNC_MAX 64U
+
+static int pvr_kick_ufo_known(struct mt_pvr_file *file, u64 handle)
+{
+	struct mt_pvr_pmr *pmr;
+	struct mt_pvr_object *obj;
+
+	list_for_each_entry(pmr, &file->pmrs, link)
+		if (pmr->handle == handle)
+			return 1;
+	list_for_each_entry(obj, &file->objects, link)
+		if (obj->handle == handle)
+			return 1;
+	return 0;
+}
+
+static void pvr_kick_inspect(struct mt_pvr_file *file,
+			     const struct mt_pvr_kicksync3_in *in)
+{
+	u32 ncheck = in->client_check_count, nupdate = in->client_update_count;
+	u32 *check_off = NULL, *check_val = NULL;
+	u32 *update_off = NULL, *update_val = NULL;
+	u64 *check_ufo = NULL, *update_ufo = NULL;
+	u32 i, known = 0, total = 0;
+
+	if (!ncheck && !nupdate)
+		return;
+	if (ncheck > MT_PVR_KICK_SYNC_MAX ||
+	    nupdate > MT_PVR_KICK_SYNC_MAX) {
+		pr_info("mt_pvr_bridge: kick sync counts outside inspect cap: check=%u update=%u\n",
+			ncheck, nupdate);
+		return;
+	}
+	check_off = kcalloc(ncheck ? ncheck : 1, sizeof(*check_off),
+			    GFP_KERNEL);
+	check_val = kcalloc(ncheck ? ncheck : 1, sizeof(*check_val),
+			    GFP_KERNEL);
+	check_ufo = kcalloc(ncheck ? ncheck : 1, sizeof(*check_ufo),
+			    GFP_KERNEL);
+	update_off = kcalloc(nupdate ? nupdate : 1, sizeof(*update_off),
+			     GFP_KERNEL);
+	update_val = kcalloc(nupdate ? nupdate : 1, sizeof(*update_val),
+			     GFP_KERNEL);
+	update_ufo = kcalloc(nupdate ? nupdate : 1, sizeof(*update_ufo),
+			     GFP_KERNEL);
+	if ((ncheck && (!check_off || !check_val || !check_ufo)) ||
+	    (nupdate && (!update_off || !update_val || !update_ufo)))
+		goto out;
+	if ((ncheck &&
+	     copy_from_user(check_off, u64_to_user_ptr(in->check_devvar_offset),
+			    (size_t)ncheck * sizeof(*check_off))) ||
+	    (ncheck &&
+	     copy_from_user(check_val, u64_to_user_ptr(in->check_value),
+			    (size_t)ncheck * sizeof(*check_val))) ||
+	    (ncheck &&
+	     copy_from_user(check_ufo, u64_to_user_ptr(in->check_ufo_block),
+			    (size_t)ncheck * sizeof(*check_ufo))) ||
+	    (nupdate &&
+	     copy_from_user(update_off, u64_to_user_ptr(in->update_devvar_offset),
+			    (size_t)nupdate * sizeof(*update_off))) ||
+	    (nupdate &&
+	     copy_from_user(update_val, u64_to_user_ptr(in->update_value),
+			    (size_t)nupdate * sizeof(*update_val))) ||
+	    (nupdate &&
+	     copy_from_user(update_ufo, u64_to_user_ptr(in->update_ufo_block),
+			    (size_t)nupdate * sizeof(*update_ufo)))) {
+		pr_info("mt_pvr_bridge: kick sync arrays unreadable: check=%u update=%u\n",
+			ncheck, nupdate);
+		goto out;
+	}
+	for (i = 0; i < ncheck; i++) {
+		total++;
+		known += pvr_kick_ufo_known(file, check_ufo[i]);
+	}
+	for (i = 0; i < nupdate; i++) {
+		total++;
+		known += pvr_kick_ufo_known(file, update_ufo[i]);
+	}
+	pr_info("mt_pvr_bridge: kick sync inventory: check=%u update=%u ufo_known=%u/%u check_fd=%d timeline_fd=%d extref=%u\n",
+		ncheck, nupdate, known, total, (int)in->check_fence_fd,
+		(int)in->timeline_fence_fd, in->ext_job_ref);
+out:
+	kfree(check_off);
+	kfree(check_val);
+	kfree(check_ufo);
+	kfree(update_off);
+	kfree(update_val);
+	kfree(update_ufo);
+}
+
 static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 				   struct mt_pvr_cmd *cmd, u32 function)
 {
 	struct mt_pvr_kicksync2_in in2;
 	struct mt_pvr_kicksync_prop_in in_prop;
-	u8 in84[84];
+	struct mt_pvr_kicksync3_in in3;
 	struct mt_pvr_kicksync2_out out2 = { 0 };
 	struct mt_pvr_kicksync_prop_out out_prop = { 0 };
 	struct mt_pvr_kicksync3_out out3 = { 0 };
@@ -750,10 +1491,10 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 			return ret;
 		handle = in_prop.kicksync_context;
 	} else {
-		ret = pvr_in(cmd, in84, sizeof(in84));
+		ret = pvr_in(cmd, &in3, sizeof(in3));
 		if (ret)
 			return ret;
-		handle = *(u64 *)in84;
+		handle = in3.kicksync_context;
 	}
 	list_for_each_entry(obj, &file->objects, link) {
 		if (obj->handle == handle && obj->kind == MT_PVR_KIND_KICKSYNC)
@@ -764,6 +1505,8 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 	/* A property query has no fence to complete. */
 	if (function == 0x3)
 		return pvr_out(cmd, &out_prop, sizeof(out_prop));
+	if (function == 0x4)
+		pvr_kick_inspect(file, &in3);
 	/* A fence that is already complete: poll/select on it returns at once.
 	 * Bridge-stage completion only -- the GPU did nothing, because there is
 	 * no channel by which this bridge could ask it to.
@@ -939,6 +1682,7 @@ static int pvr_cmd_unmap_pmr(struct mt_pvr_file *file,
 	struct mt_pvr_unmap_pmr_in in;
 	struct mt_pvr_unmap_out out = { 0 };
 	struct mt_pvr_pmr *pmr;
+	struct mt_pvr_binding *b, *btmp, *binding = NULL;
 	int ret;
 
 	ret = pvr_in(cmd, &in, sizeof(in));
@@ -951,9 +1695,17 @@ static int pvr_cmd_unmap_pmr(struct mt_pvr_file *file,
 	pmr = pvr_pmr_find(file, in.mapping);
 	if (!pmr || !pmr->mapped)
 		return -ENOENT;
+	list_for_each_entry(b, &file->bindings, link)
+		if (b->pmr == pmr->handle) {
+			binding = b;
+			break;
+		}
+	if (!binding)
+		return -EUCLEAN;
+	ret = pvr_gpu_vm_unbind(file, binding);
+	if (ret)
+		return ret;
 	if (!--pmr->mapped) {
-		struct mt_pvr_binding *b, *btmp;
-
 		pmr->mapped_reservation = 0;
 		list_for_each_entry_safe(b, btmp, &file->bindings, link) {
 			if (b->pmr == pmr->handle) {
@@ -1139,6 +1891,7 @@ static int pvr_cmd_pmr_alloc(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 			  in.log2_page_size ? in.log2_page_size : 12);
 	if (!pmr)
 		return -ENOMEM;
+	pmr->alloc_flags = in.flags;
 	out.pmr = pmr->handle;
 	out.out_flags = in.flags;
 	out.is_system_mem = 1;
@@ -1211,6 +1964,8 @@ static int pvr_cmd_pmr_map(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	struct mt_pvr_map_in in;
 	struct mt_pvr_map_out out = { 0 };
 	struct mt_pvr_pmr *pmr;
+	struct mt_pvr_object *res;
+	struct mt_pvr_binding *binding;
 	int ret;
 
 	ret = pvr_in(cmd, &in, sizeof(in));
@@ -1224,10 +1979,10 @@ static int pvr_cmd_pmr_map(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	 * UnmapPMR -- so this validation changes nothing on the wire.
 	 */
 	{
-		struct mt_pvr_object *res =
-			pvr_reservation_find(file, in.reservation);
 		struct mt_pvr_binding *b;
 		u32 count = 0;
+
+		res = pvr_reservation_find(file, in.reservation);
 
 		if (!res)
 			return -ENOENT;
@@ -1246,27 +2001,27 @@ static int pvr_cmd_pmr_map(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	}
 	pmr->mapped++;
 	pmr->mapped_reservation = in.reservation;
-	{
-		struct mt_pvr_object *res =
-			pvr_reservation_find(file, in.reservation);
-		struct mt_pvr_binding *b = kzalloc(sizeof(*b), GFP_KERNEL);
-
-		if (!b) {
-			pmr->mapped--;
-			pmr->mapped_reservation = 0;
-			return -ENOMEM;
-		}
-		b->va = res->arg0;
-		b->bytes = pmr->bytes;
-		b->pmr = pmr->handle;
-		b->reservation = in.reservation;
-		list_add_tail(&b->link, &file->bindings);
+	res = pvr_reservation_find(file, in.reservation);
+	binding = kzalloc(sizeof(*binding), GFP_KERNEL);
+	if (!binding) {
+		pmr->mapped--;
+		pmr->mapped_reservation = 0;
+		return -ENOMEM;
 	}
+	binding->va = res->arg0;
+	binding->bytes = pmr->bytes;
+	binding->pmr = pmr->handle;
+	binding->reservation = in.reservation;
+	binding->map_flags = in.map_flags;
+	list_add_tail(&binding->link, &file->bindings);
 	/* Opportunistic DMA registration. Any failure (in particular -ENODEV
-	 * while no session exports the ops) keeps system-memory semantics;
-	 * the OUT value and return code are unchanged either way.
+	 * while no live session is bound) keeps system-memory semantics;
+	 * the OUT value and return code are unchanged either way. If registration
+	 * succeeds, build an unpublished CPU-only GPU page-table plan; unsupported
+	 * alignment also degrades without changing the UMD wire result.
 	 */
-	(void)pvr_pmr_dma_register(file, pmr);
+	ret = pvr_pmr_dma_register(file, pmr);
+	binding->gpu_result = ret ? ret : pvr_gpu_vm_bind(file, pmr, binding);
 	out.mapping = pmr->handle;
 	return pvr_out(cmd, &out, sizeof(out));
 }
@@ -1422,6 +2177,9 @@ static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle)
 	pmr = pvr_pmr_find(file, handle);
 	if (!pmr)
 		return -ENOENT;
+	/* PVR VM bindings hold a reference to this PMR's GPU-PA page list. */
+	if (pmr->mapped)
+		return -EBUSY;
 	list_del(&pmr->link);
 	pvr_pmr_unref(pmr);
 	return 0;
@@ -1848,10 +2606,13 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 out:
 	/* The mapping is built page by page out of pmr->host, so the PMR has to
 	 * outlive this call even though nothing references it afterwards. Give
-	 * the reference back; the memory is released here unless an mmap of this
-	 * handle is still in flight on another thread.
+	 * the reference back under the file lock: the free path can return an
+	 * arena segment, and the arena free list lives under this mutex. The
+	 * entry path already dropped it, so taking it here never recurses.
 	 */
+	mutex_lock(&file->lock);
 	pvr_pmr_unref(pmr);
+	mutex_unlock(&file->lock);
 	return ret;
 }
 

@@ -105,7 +105,7 @@ static void shared_resources(void)
 		}
 	}
 	pte=0xdeadbeef;
-	assert(mt_ce_copy_resolve(&vm,bo[5],0x81ff800000ULL,4096,&pte)==-EOPNOTSUPP && pte==0xdeadbeef);
+	assert(!mt_ce_copy_resolve(&vm,bo[5],0x81ff800000ULL,4096,&pte) && pte==scatter[0]);
 	assert(mt_process_resources_bind(&vm,&profile,bo)==-EEXIST);
 	vm.uploaded=true;
 	assert(!mt_work_job_prepare(&job,&vm,&command,&request));

@@ -2,75 +2,50 @@
 #ifndef MT_PVR_SESSION_H
 #define MT_PVR_SESSION_H
 
-/* Cross-module contract: PVR bridge (mt_pvr_bridge) to GPU session
- * (mt_guest_probe). S4-3 handoff, step 1.
+/* DMA address shape shared by the bridge's PMR bookkeeping (S4-3 handoff).
  *
  * The bridge serves the MUSA UMD with system-memory PMRs. Real execution
- * needs those pages DMA-mapped through the live session's device, plus page
- * tables built over the resulting addresses. This header is the single place
- * both sides agree on shapes and versions.
+ * needs a DMA lifetime mapping and a GPU PA translated through the live
+ * session's negotiated Guest system-memory windows.
+ *
+ * Deliberately NO cross-module function table: __symbol_get() does not
+ * resolve on this kernel (verified empirically -- even printk resolves to
+ * NULL from a test module), so the bridge uses PCI lookup, driver-name
+ * validation, drvdata, try_module_get(), and core DMA mapping calls. If
+ * symbol resolution ever starts working here, that would be a separate,
+ * better mechanism -- not this one.
  *
  * Lifetime rules, non-negotiable:
- *  1. The bridge NEVER hard-depends on the session. Acquisition is
- *     symbol_get() at use time; absence (module not loaded, session torn
- *     down) degrades to system-memory semantics, never an error to the UMD.
- *  2. The version is checked on every acquisition. A mismatch degrades,
- *     never adapts: silent struct drift across modules corrupts memory.
- *  3. symbol_put() balances every successful symbol_get(), on every path
- *     including failures after acquisition.
- *  4. The ops pointer is valid only between get and put. No caching it in
- *     file or PMR structures: the session module can unload at any time.
- *  5. DMA addresses are valid only while the mapping is held. Unmap before
- *     put; use-after-unmap reads garbage or faults the GPU.
+ *  1. Acquisition re-validates everything, every time: device bound to
+ *     mt_guest_probe, drvdata present, trial pinned AND connected, all
+ *     under device_lock + trial_lock. Registration holds both locks while
+ *     creating mappings, so trial teardown cannot race the check. Anything
+ *     else degrades the caller to system memory, never an error to the UMD.
+ *  2. try_module_get() pins against UNLOAD, not unbind. A later unbind
+ *     while mappings live can tear down the bound session and its DMA
+ *     environment while mappings remain.
+ *     Operational rule, same class as the live-module serialization rule:
+ *     rmmod the bridge (which unmaps everything at PMR free) BEFORE
+ *     touching the session module. No code can enforce this: the PCI core
+ *     gives remove() no veto.
+ *  3. DMA API addresses and GPU page-table addresses are distinct domains.
+ *     Keep dma_addr only for the matching DMA unmap; derive gpu_pa from the
+ *     Guest physical page and negotiated runtime system windows. Never
+ *     populate a GPU PTE from dma_addr by assumption.
+ *  4. Direction is bidirectional until the bridge learns per-PMR direction.
  */
 
 #ifdef __KERNEL__
 #include <linux/types.h>
 #else
 #include <stdint.h>
-typedef uint32_t u32;
 typedef uint64_t u64;
 #endif
 
-/* Bump on ANY layout or semantic change. Both sides static_assert it. */
-#define MT_PVR_SESSION_ABI_VERSION 1U
-
-/* DMA direction, from the PMR's point of view. */
-enum mt_pvr_dma_dir {
-	MT_PVR_DMA_NONE = 0,
-	MT_PVR_DMA_TO_DEVICE = 1,	/* UMD writes, GPU reads */
-	MT_PVR_DMA_FROM_DEVICE = 2,	/* GPU writes, UMD reads */
-	MT_PVR_DMA_BIDIRECTIONAL = 3,
-};
-
-/* One page of a mapped PMR. */
+/* One PMR page: DMA lifetime handle plus GPU-PA page-table input. */
 struct mt_pvr_dma_page {
-	u64 dma_addr;	/* device-visible address, valid while mapped */
-	u64 cpu_addr;	/* contributing CPU page, for unmap lookup */
-};
-
-/* Session-side service table. Implemented by mt_guest_probe in a later step;
- * consumed by mt_pvr_bridge through symbol_get().
- */
-struct mt_pvr_session_ops {
-	u32 abi_version;
-	/* Map PMR pages for device access. cpu_pages entries are struct page *
-	 * (never virtual addresses: virt_to_page() is invalid on vmalloc
-	 * addresses, and the bridge backs PMRs with vzalloc). Fills dma_addrs
-	 * (caller array of npages) and returns 0, or a negative errno. -ENODEV
-	 * means "no live session right now": degrade, do not propagate as a
-	 * UMD error.
-	 */
-	int (*dma_map)(void *session, void **cpu_pages, u32 npages,
-		       enum mt_pvr_dma_dir dir, struct mt_pvr_dma_page *dma_addrs);
-	/* Release a previous mapping. Addresses must not be used after. */
-	void (*dma_unmap)(void *session, struct mt_pvr_dma_page *dma_addrs,
-			  u32 npages, enum mt_pvr_dma_dir dir);
-	/* Opaque session handle for the two calls above. Acquired and released
-	 * together with the ops pointer; never stored.
-	 */
-	void *(*session_get)(void);
-	void (*session_put)(void *session);
+	u64 dma_addr;	/* dma_map_page result; use only for sync/unmap */
+	u64 gpu_pa;	/* Guest GPA translated through runtime system windows */
 };
 
 #endif /* MT_PVR_SESSION_H */

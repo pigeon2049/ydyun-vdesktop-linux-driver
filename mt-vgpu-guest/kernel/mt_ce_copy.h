@@ -51,9 +51,6 @@ static inline int mt_ce_copy_resolve_access(const struct mt_gpu_vm *vm,
 	u32 i;
 	if (!vm || !vm->tables || !bo || !bo->refs || !bytes)
 		return -EINVAL;
-	/* Linear physical-range/alias users do not yet accept scatter backing. */
-	if (bo->page_pa)
-		return -EOPNOTSUPP;
 	if (va >= (1ULL << MT_GPU_VA_BITS) || bytes > (1ULL << MT_GPU_VA_BITS) - va)
 		return -ERANGE;
 	if (bo->store != vm->tables->store || bo->ops != vm->tables->ops)
@@ -70,7 +67,34 @@ static inline int mt_ce_copy_resolve_access(const struct mt_gpu_vm *vm,
 			return -ERANGE;
 		if (write && (b->flags & MT_GPU_MAP_READ_ONLY))
 			return -EACCES;
-		*physical = bo->backing.gpu_pa + b->offset + offset;
+		if (!bo->page_pa) {
+			*physical = bo->backing.gpu_pa + b->offset + offset;
+		} else {
+			u64 bo_offset = (u64)b->offset + offset;
+			u64 page_index = bo_offset >> 12;
+			u64 page_offset = bo_offset & 4095;
+			u64 span = page_offset + bytes;
+			u64 pages = (span + 4095) >> 12;
+			u64 first_pa = bo->page_pa[page_index];
+			u64 limit = 1ULL << MT_GPU_VA_BITS;
+			u64 j;
+
+			/* The current CE copy resolver returns one linear physical span.
+			 * Accept one page or a physically contiguous page-list run, and
+			 * reject scatter spans rather than inventing an alias range.
+			 */
+			if ((first_pa & 4095) || first_pa >= limit ||
+			    pages > (bo->backing.bytes + 4095ULL) / 4096)
+				return -ERANGE;
+			for (j = 1; j < pages; j++) {
+				if (j > (limit - first_pa) / 4096 ||
+				    bo->page_pa[page_index + j] != first_pa + j * 4096)
+					return -EOPNOTSUPP;
+			}
+			if (span > limit - first_pa)
+				return -ERANGE;
+			*physical = first_pa + page_offset;
+		}
 		return 0;
 	}
 	return -ENOENT;

@@ -392,10 +392,19 @@ S4-2 证明了固件通道执行（TQX/3D fills）。S4-3 = 让 MUSA UMD 的 kic
 3. **新 probe 构建上机**：bA40 会话侧代码（含本轮 struct-page 修正）
    至今只过编译 + `nm` 确认导出，从未加载执行。
 
-## 12. 运行态
+## 12. 运行态（2026-10-03 复核刷新；本节是活页，其余章节为历史）
 
-- 本轮真机验证完成后，机器发生了一次外部重启。
-  当前 `mt_pvr_bridge` **未加载**，`/dev/dri` 只有 `card0`，
+- 新 retained 会话运行中：`mt_guest_probe` 已绑定 `00:0e.0`（Guest/FW
+  `2/2` pinned，`pending=0`，引用数 1），`mt_pvr_bridge` 已加载
+  （build-id `894faf50…`，arena+cover+kick-inspect，引用数 0；见 r60/r61/r63），`/dev/dri` 有 `card1`/`renderD128`。
+  UMD 已恢复到 `/tmp/mtt-linux-umd-5.2.0/…`，L3/L4 八级阶梯在本 bridge
+  上全绿（见 `mt-vgpu-guest/reports/r52`）。**首次 RGX 真实执行已完成
+  （单帧 DM2，`completed=1 result=0`，sealed 3D VM 留存；见 r66），
+  像素级验证随后通过（render-target 64 KiB 读回；见 r70，本会话另有
+  `live_3d_drm` 留存，对象存储已满）。
+  不要卸载任何已加载模块、解绑设备或提交额外工作。**
+- 以下为上一轮记录（已过期，仅保留原文）：本轮真机验证完成后，机器发生
+  了一次外部重启。当前 `mt_pvr_bridge` **未加载**，`/dev/dri` 只有 `card0`，
   `/tmp` 中的 UMD 与 trace 已清空；树内留档 UMD 仍在，
   sha256 `b3058c02…` 可恢复。已验证的结果见 §1–§6，
   重新跑 L3/L4 需要先显式批准加载新模块。

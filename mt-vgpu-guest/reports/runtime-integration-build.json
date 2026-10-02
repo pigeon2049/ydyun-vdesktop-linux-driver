@@ -1,5 +1,5 @@
 {
-  "utc": "2026-10-02T10:00:13.767936+00:00",
+  "utc": "2026-10-02T18:47:34.436880+00:00",
   "passed": true,
   "checks": {
     "runtime_context_test": "PASS: atomic preparation, 31 blocked publication states, ordered publication, repeat rejection and retained lifetime\n",
@@ -15,13 +15,15 @@
     "tqx_upload_test": "PASS: TQX nine-page upload/readback, nonzero BO offsets, padding/guards, 45 I/O/map faults, 14 busy resource gates, retry and balanced references; RAM only\n",
     "tqx_dma_test": "PASS: TQX DMA profile/record gates, output guards, separate engine-state pointer and full-allocation heap boundary; CPU only\n",
     "tqx_submission_test": "PASS: TQX eleven-page upload, preserved engine state, 55 I/O/map faults, 18 busy gates, 15 new alias pairs, missing/short mappings and retry; RAM only\nPASS: TQX atomic upload/table-readback/pinning, 60 I/O faults, ten retained BOs, CPU exclusion, context ownership and cancellation; RAM only\n",
+    "system_dma_pages_test": "PASS: DMA page-list resolution, linear-span guard, permissions and contiguous BO compatibility\n",
+    "pvr_arena_plan_test": "cover pages: 76 for 12 ranges, 302227 bytes verified\nPASS: naive round-down overlaps (-EEXIST), unaligned refused (-EINVAL); arena plus per-page bindings covers all 12 kick ranges byte-exact\n",
     "boot_bo_lifetime_test": "PASS: actual BO/VM boot borrowing, eighteen view failures, three pool allocation rollbacks, foreign/detached blocks, shared cache reuse, GPU retention, no borrowed clear/free, balanced module and backing lifetimes; RAM models only\n",
     "system_memory_test": "PASS: system-RAM preparation, kmalloc/vmalloc page paths, both allocation failures, final-page lookup/translation failures, zero policy and balanced ownership; OS primitives modeled\n",
     "boot_resource_stage_test": "PASS: actual boot preparation stages separate static PDS/USC images, ten allocation failures, profile rollback, unchanged backing bytes and balanced ownership; RAM models only\n",
     "pvr_bridge_core_test": "pvr_bridge_core_test OK (268 checks)\n",
-    "kernel_build": "make: \u8fdb\u5165\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\nmake -C /lib/modules/6.12.107+deb13-amd64/build M=/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel modules\nmake[1]: \u8fdb\u5165\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.107+deb13-amd64\u201d\n  CC [M]  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/mt_guest_probe.o\n  MODPOST /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/Module.symvers\n  LD [M]  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/mt_guest_probe.ko\n  BTF [M] /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel/mt_guest_probe.ko\nmake[1]: \u79bb\u5f00\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.107+deb13-amd64\u201d\nmake: \u79bb\u5f00\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\n"
+    "kernel_build": "make: \u8fdb\u5165\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\nmake -C /lib/modules/6.12.107+deb13-amd64/build M=/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel modules\nmake[1]: \u8fdb\u5165\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.107+deb13-amd64\u201d\nmake[1]: \u79bb\u5f00\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.107+deb13-amd64\u201d\nmake: \u79bb\u5f00\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\n"
   },
-  "module_sha256": "7437453799a25d73699fa777241d0daf08e7577ee5dcfcd8c24cdb3bc80851c1",
+  "module_sha256": "52c89e90785495569d4b4b116a5f60e728a4ca89f1941ab0ff45469fd6991049",
   "shared_mt_guest_abi_matches_backup": true,
   "shared_abi_structures": {
     "mt_guest": "206912aa9b52a0014a91e2c672b306680f1cbab22594c2b4d824c6b8e2ece30f",

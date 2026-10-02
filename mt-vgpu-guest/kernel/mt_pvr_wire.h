@@ -227,12 +227,23 @@ struct MT_PVR_PACKED mt_pvr_kicksync_destroy_out {
  * IN 0x88:0x2 = { hKickSyncContext, pUpdateDevVarOffset, pUpdateValue,
  *                  pFenceName, phUFOBlock, hCheckFenceFD, hTimelineFenceFD,
  *                  ui32ClientUpdateCount, ui32ExtJobRef }
+ * IN 0x88:0x4 = { hKickSyncContext, pCheckDevVarOffset, pCheckValue,
+ *                  phCheckUFOBlock, ui32ClientCheckCount,
+ *                  pUpdateDevVarOffset, pUpdateValue, phUpdateUFOBlock,
+ *                  ui32ClientUpdateCount, pUpdateFenceName,
+ *                  hCheckFenceFD, hTimelineFenceFD, ui32ExtJobRef }
  * OUT 0x88:0x2 = { eError, hUpdateFenceFD }
  * IN 0x88:0x3 = { ui64Input, hKickSyncContext, ui32Property }
  * OUT 0x88:0x3 = { ui64Output, eError }
  * OUT 0x88:0x4 = { eError, hUpdateFenceFD }
  *
- * The IN buffers carry UMD-side pointers the bridge must not dereference;
+ * Field map matches MTGPU_BRIDGE_IN_MUSAKICKSYNC3 in the 5.2.0 generated
+ * headers (reference/kmd-5.2.0-server-generated/common_musakicksync_bridge.h).
+ * Verified against two live 5.2 UMD captures (reports/r53): handle first,
+ * all check/update pointers NULL with zero counts on the synthetic kick,
+ * fence-name pointer canonical-userspace, timeline FD -1, extJobRef 0.
+ * The packet carries sync bookkeeping only -- no GPU command bytes. The
+ * IN buffers carry UMD-side pointers the bridge must not dereference;
  * only sizes and the context handle are read. Fences are eventfds the bridge
  * signals immediately: this is bridge-stage completion, NOT GPU execution.
  * There is no firmware channel yet, so nothing here touches hardware.
@@ -258,6 +269,24 @@ struct MT_PVR_PACKED mt_pvr_kicksync_prop_in {
 	u64 input;
 	u64 kicksync_context;
 	u32 property;
+};
+
+/* 0x88:0x4 IN, documented above. The bridge still reads only the handle:
+ * every other field is a UMD-side pointer, count or fd. */
+struct MT_PVR_PACKED mt_pvr_kicksync3_in {
+	u64 kicksync_context;
+	u64 check_devvar_offset;
+	u64 check_value;
+	u64 check_ufo_block;
+	u32 client_check_count;
+	u64 update_devvar_offset;
+	u64 update_value;
+	u64 update_ufo_block;
+	u32 client_update_count;
+	u64 update_fence_name;
+	u32 check_fence_fd;
+	u32 timeline_fence_fd;
+	u32 ext_job_ref;
 };
 
 struct MT_PVR_PACKED mt_pvr_kicksync_prop_out {
@@ -520,6 +549,7 @@ static_assert(sizeof(struct mt_pvr_kicksync_create_out) == 12, "0x88:0x0 out");
 static_assert(sizeof(struct mt_pvr_kicksync2_in) == 56, "0x88:0x2 in");
 static_assert(sizeof(struct mt_pvr_kicksync2_out) == 8, "0x88:0x2 out");
 static_assert(sizeof(struct mt_pvr_kicksync_prop_in) == 20, "0x88:0x3 in");
+static_assert(sizeof(struct mt_pvr_kicksync3_in) == 84, "0x88:0x4 in");
 static_assert(sizeof(struct mt_pvr_kicksync_prop_out) == 12, "0x88:0x3 out");
 static_assert(sizeof(struct mt_pvr_kicksync3_out) == 8, "0x88:0x4 out");
 static_assert(sizeof(struct mt_pvr_kicksync_destroy_in) == 8, "0x88:0x1 in");
