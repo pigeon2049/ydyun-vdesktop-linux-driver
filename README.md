@@ -356,8 +356,9 @@ apt install -y devscripts libasound2-dev libdbus-1-dev libdrm-dev libgtk-3-dev \
 - `docs/`：客户端行为、画面转发、USB 协议、分辨率和每一步进度记录。
   入口见 [docs/README.md](docs/README.md)（文档地图，含时效标注）。
 - `mt-vgpu-guest/`：摩尔线程 S3000 vGPU Guest 适配（自研内核桥 + 固件会话 +
-  3D 执行）。当前状态唯一权威快照见仓库根 `PROGRESS-SNAPSHOT.md`
-  （逐轮记录在 `MEMORY.md`）；`docs/MTT-VGPU.md` 与
+  3D 执行）。新 agent 从仓库根 [`STATUS.md`](STATUS.md) 入手；
+  权威快照见 `PROGRESS-SNAPSHOT.md`（逐轮记录在 `MEMORY.md`，
+  只留最新两节）。`docs/MTT-VGPU.md` 与
   `mt-vgpu-guest/HISTORY-2026-09.md` 是历史归档，不代表现状。
 
 详细资料：

@@ -13,7 +13,7 @@
 
 ## 本次会话进展（2026-10-03 文档清理：现状归一处，历史归档）
 
-- `6f9b701`：`docs/PROGRESS.md` 加 Step 140（r43–r71 + bA38–bA43 摘要）；
+- `6f9b701`：`docs/PROGRESS-HISTORY.md` 加 Step 140（r43–r71 + bA38–bA43 摘要）；
   `mt-vgpu-guest/README.md` 顶加状态块；根 `README.md` 目录说明补
   `mt-vgpu-guest/` 并标注 `MTT-VGPU.md` 已被取代；`MTT-VGPU.md` 加状态注记。
 - `fb38072`：`mt-vgpu-guest/README.md` 瘦身成入口（现状 + 运行态红线 +

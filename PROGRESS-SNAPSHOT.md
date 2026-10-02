@@ -1,8 +1,9 @@
 # S3000 vGPU 驱动适配 —— 阶段进度快照
 
-**快照时间**：2026-10-01
-**仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main，工作区干净）
-**对应提交**：`41c4bd5`（bA43；DMA mask 补丁 + 拆除链实测，未加载）
+**快照时间**：2026-10-03
+**仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+**对应提交**：`6b03cc0`（文档重整；L1 门禁 221 Python + 268 C 全绿）
+**新 agent 入口**：先读仓库根 [`STATUS.md`](STATUS.md)，再读本文件对应章节。
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
 
 本文件是**当前状态的唯一权威快照**。逐轮过程记录在根目录 `MEMORY.md`（追加式，不回改）。
@@ -16,17 +17,26 @@
 `PVRSRVConnectionCreateDevice` → `RGXCreateDeviceMemContext` →
 `RGXCreateRenderContext` → `CreateSyncPrim` →
 `RGXCreateKickSyncContextCCB` → `RGXDestroyKickSyncContext` →
-`RGXCreateComputeContext` → `RGXDestroyComputeContext`，
-**八个符号全部返回 0，进程正常退出**。123 条 trace 记录零失败。
+`RGXCreateComputeContext` → `RGXDestroyComputeContext` →
+`RGXCreateZSBuffer` → `RGXKickSync`（经 `0x88:0x4` accept-and-inspect，
+即时 fence），**全部返回 0，进程正常退出**。
 compute/kick-sync context 只是对象生命周期管理，不涉及硬件提交；
-真正的 kick 提交（`0x88:0x2`、`0x81:0x5` 等）仍被拒绝，那是 S4 边界。
+真正的 kick 翻译（firmware 环重编）仍未开始，那是 S4 边界。
+S4-3 交接第一步已落桥并在载：DMA 注册（PCI 直连）、VM plan
+（arena + cover-page）、kick T1+T2 只读观察。
+经 `live_3d`/`live_3d_drm` 路径的 RGX 真实执行已完成：
+单帧 DM2（r66）→ 64 KiB 像素读回（r70）→ 20 帧批量零 fault（r71）。
 
 ---
 
 ## 2. 真机阶梯（当前真实结果，非目标）
 
-驱动：`kernel/recovery/mt_pvr_bridge.ko`（Stage B S1，**不绑定 PCI、不碰 MMIO**）
-节点：`/dev/dri/renderD128`（`mtgpu` 仍独占 `00:0e.0`，`card0` 归它，我们用独立 `pvr` 节点）
+驱动：`kernel/recovery/mt_pvr_bridge.ko`（Stage B S1；
+在载构建 build-id `894faf50…`，arena + cover-page plan + kick-inspect）
+节点：`/dev/dri/renderD128`（桥，`pvr`）；
+`mt_guest_probe` 已绑定 `00:0e.0`（Guest/FW `2/2` pinned）。
+`live_3d_drm` 另注册 `card2`/`renderD129`（`mtvgpu`，与桥节点无关）；
+显示走 QXL `card0`，与 S3000 无关。
 
 | 步骤 | 符号 | 返回 |
 |---|---|---|
@@ -41,13 +51,14 @@ compute/kick-sync context 只是对象生命周期管理，不涉及硬件提交
 | 9 | `RGXDestroyComputeContext` | **0** |
 | 10 | `RGXCreateZSBuffer` | **0** |
 | 11 | `RGXDestroyZSBuffer` | void（early path，无 bridge 调用） |
-| 10 | `RGXKickSync`（经 `0x88:0x4` 提交） | **0** |
+| 12 | `RGXKickSync`（经 `0x88:0x4` 提交） | **0**（accept-and-inspect，即时 fence） |
 
 约 128 条记录中无失败的桥命令和同步 ioctl，
 进程 `exit=0`，dmesg 无 WARN/BUG/Oops。
-`0x81:0x5` 及真正的 TA3D kick 入口仍保持拒绝——
-S4-2（让 GPU 真正执行）需要 PCI 绑定 + firmware 通道，
-那是另一个独立步骤。
+`0x81:0x5` 及真正的 TA3D kick 翻译仍未开始——
+那是 S4-3 translator 边界（DM 队列格式未知 + 非零 CCB 待观察），
+不是本桥的拒绝 bug。GPU 真实执行经 `live_3d` 路径已验证（r66/r70/r71），
+与本阶梯相互独立。
 
 第 4 步的完整失败链（全部由 gdb 实测，不是推测）：
 
@@ -93,7 +104,9 @@ RGXCreateRenderContext
 | 20 | `0x81:0x0/0x1` compute context 创建/销毁**未实现** | CCB 返回 37 | bA35 |
 | 21 | `0x82:0x2/0x3` ZSBuffer 建销 handler **未实现**；配方中 heap/连接参数顺序勘误 | 两次用户态段错误（传反了） | bA37 |
 | 22 | reservation/map/unmap/unreserve 全是空桩成功 | 未来页表无 range 可编程、无从知道映射死活 | bA38 |
-| 21 | `0x88:0x2/0x3/0x4` 提交入口**未实现** | kick 返回 37 | bA36 |
+| 23 | `0x88:0x2/0x3/0x4` 提交入口**未实现** | kick 返回 37（后改为 accept-and-inspect + 只读观察，r63） | bA36 |
+| 24 | `dma_source_release()` 用 `page_pa` 做 `dma_unmap_page` | 把从未 map 过的 GPU PA 交给 DMA API 并泄漏映射（仅 init-失败路径，只在 r58 复核中开火前被抓到） | r58，已修 |
+| 25 | 跨模块 `symbol_get` + `EXPORT_SYMBOL` 契约设计 | `__symbol_get` 在本内核不解析（连 printk 都 NULL），整条路线作废；桥改 PCI 查找 + drvdata + `try_module_get` + 核心 DMA 直连，header 只剩地址形状 | bA39/bA40 设计已取代 |
 
 第 8 项值得单独强调：**`double free` 只是三层之外的表象**。
 整条链路上一个错误码都没有暴露（50 条桥命令全部 ret=0），
@@ -146,37 +159,23 @@ RGXCreateRenderContext
 
 ---
 
-## 5. 下一步
+## 5. 下一步（按序）
 
-1. **S4-2 已完成并加码**：固件真实执行了命令——空命令 fence 完成
-   （`sequence=1 result=0`）+ 256 字节 TQX 复制读回校验通过
-   （`verified=1`）+ **3D 帧 DM2 执行**（`completed=1/1`，130µs）+
-   **1080p 像素落盘**（23 fills + 2 copies，submitted=28 completed=28，
-   6.2MB PPM，像素非均匀）。
-   链路：解绑 mtgpu → cold-disconnect 置 Guest OFF →
-   probe ladder → live_service → marker/tqx/3d/surface。显示全程存活（QXL）。
-   回滚：rmmod 自研模块 → bind 回 mtgpu 即可。
-2. **S4-1 已完成**：提交路径已真实执行——`RGXKickSync` 返回 0，
-   `0x88:0x4`（in=84/out=8）被驱动接受并返回即时完成的 fence。
-   纠正一条此前的测绘结论：真正的 TA 提交点是 `0x88:0x4`
-  （`BridgeRGXKickTA3D3Submit` → `RGXKICKSYNC3`），不是 `0x82:0x14`
-  （那是需求表里的占位项，此 UMD 根本不调它）。
-   本轮没有触碰任何硬件：桥后面没有 firmware 通道，
-   fence 是“永远就绪”的 anon_inode，不是 GPU 完成信号。
-2. **S4-2（让 GPU 真正执行）仍未开始**，需要 PCI 绑定 + firmware 通道，
-   会动 `mtgpu` 独占的 `00:0e.0`，需单独拍板。
+1. **真实绘制 kick 观察**（只读先行）：合成 kick 的 CCB size 为 0，
+   非零 CCB 内容只能来自走完整绘制路径的 kick
+   （r56 定位的 translator 缺失输入）。先用 `UMD_DUMP_BRIDGE` 抓包 +
+   fabricated 重放确认能复现非零 counts，再谈是否上真机。
+   在拿到真实 CCB 内容之前不写翻译器骨架——输入规约先行，代码随后。
+2. **Translator T3**：DM 队列格式仍未知（RGX 环待从 `mtkm64.sys` 反推）；
+   T1（数组拷贝）+ T2（UFO→GPU PA）算法已就绪（r62），只读观察已落桥（r63）。
 3. `RGXCreateZSBuffer` 的 13 参数形状已摸清，但它要 UMD 内部的
-   heap/context 对象，小 buffer 冒充会直接段错误（70+ 条 bridge 之前崩，
-   驱动侧无事）。gdb 证明崩溃点在
+   heap/context 对象，小 buffer 冒充会直接段错误。gdb 证明崩溃点在
    `MTSRVAllocExportableDevMem ← MIW` 经 libc 字符串函数：
-   MIW 把 `*param_1` 当 `MemHeap_*` 名字表下标，
-   传进去的不是合法 MemHeap 描述符。要驱动它，需要先拿到真正的
-   psDevMemCtx/MemHeap 描述符指针，这是 ZSBuffer/freelist/HWRT
-   这一串的共同前提。
+   MIW 把 `*param_1` 当 `MemHeap_*` 名字表下标。
+   要驱动它，需要先拿到真正的 psDevMemCtx/MemHeap 描述符指针，
+   这是 ZSBuffer/freelist/HWRT 这一串的共同前提。
 
-2. 长期项（不影响当前推进）：
-   - 目录结构与 Make 流程规范化（见 §7）
-   - 门禁不可复现问题（依赖 gitignore 的 `build/` 产物）
+长期项（不影响当前推进）：快照 §7 的门禁可复现与 in-tree 构建外移。
 
 ---
 
@@ -184,15 +183,15 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **163 项通过，1 项跳过**（本轮 123 → 163） |
-| C RAM 模型测试 | **268 checks**（170 → 268） |
+| Python 测试 | **221 项通过**（r45–r71 新增 arena/kick-inspect 等门禁；今晨复核仍全绿） |
+| C RAM 模型测试 | **268 checks**（今晨复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
-| ABI 门（`mt_guest` 共享结构） | PASS |
+| ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
 | 节点探针 `pvr_node_probe` | 0 failing step、0 value mismatch |
 | 内核 dmesg | 零 WARN / BUG / Oops |
 | 伪造模式回归 | 仍复现历史 4 步全 0 |
 
-**新增的 4 个门禁文件**，每一个都做了**反向验证**（注入 bug 确认能被抓到，再还原）：
+**门禁文件**（每一个都做了**反向验证**，注入 bug 确认能被抓到，再还原）：
 
 | 文件 | 项数 | 守住什么 |
 |---|---|---|
@@ -201,6 +200,10 @@ RGXCreateRenderContext
 | `test_pvr_heap_table_geometry.py` | 7 | 压掉空槽；count 由实际存入数派生；厂商蓝图逐项核对 |
 | `test_windows_heap_table_decoded.py` | 10 | 从驱动二进制解表并逐字比对；MMU mode 差异；物理表与 PVR 蓝图不再混用 |
 | `test_pvr_heap_name_evidence.py` | 5 | 厂商蓝图上的 PDS/USC 槽位与桥接初始化一致 |
+| `test_pvr_kick_packet.py` | kick 包 + inspect | `0x88:0x4` 84 字节字段偏移（编译期 offsetof）与两次真实捕获；inspect 路径只用结构体、无裸偏移读、失败只降级 |
+| `test_pvr_session_ops.py` | bind-path prereqs | 40 位 mask 显式设置；无符号表机制（`__symbol_get` 不可用，不断言 export） |
+| `test_live_tqx_dma_source.py` | DMA 源 | TQX DMA-source 路径的 IOVA/GPU-PA 分离 |
+| C: `pvr_arena_plan_test` / `system_dma_pages_test` | plan/DMA 页 | arena + per-page 绑定覆盖 12 kick ranges；DMA 页解析与线性连续守卫 |
 
 设计要点：`test_pvr_heap_name_evidence.py` 已从“已知缺陷记录”
 改为“正确映射断言”。厂商蓝图一旦漂移，它会直接失败。
@@ -222,16 +225,16 @@ RGXCreateRenderContext
 | `tests/` | 656 K | 50 `.c` + 23 `.py` 混放 |
 | `kernel/recovery/` | 36 M | **196 个构建产物 + 52 个源码**（in-tree 构建） |
 
-三个**真实**问题：
+三个**真实**问题（2026-10-03 复核状态）：
 
-1. **门禁不可复现（最严重）**。`scripts/verify-runtime-integration.py` 要求
+1. **门禁不可复现（仍未决，最严重）**。`scripts/verify-runtime-integration.py` 仍要求
    `build/recovery-channel/loaded-6f259*.ko` 恰好存在一个，而 `build/` 是
    gitignore、git 跟踪数为 0。**在新机器 clone 上这个主门禁直接 `raise` 失败。**
    替代方案：把该 `.ko` 或其 pahole 结构摘要（几 KB，可 diff）纳入 git。
 
-2. **内核构建 in-tree**。`M=$(CURDIR)` 让产物落进源码目录。改 `M=$(BUILD)` 即可外移。
+2. **内核构建 in-tree（仍未决）**。`M=$(CURDIR)` 让产物落进源码目录。改 `M=$(BUILD)` 即可外移。
 
-3. **无顶层 Makefile**，5 个分散 Makefile，各自 `mkdir -p ../build/...`。
+3. ~~无顶层 Makefile~~ —— **已解决**（bA36 落地为 `mt-vgpu-guest/Makefile`，见下）。
 
 **不建议**做的：拆 `tests/` 子目录（交叉引用全改，收益低风险高）、
 动 `reports/`（毁证据链）、重排 `kernel/recovery`（24 个模块有加载顺序依赖）。
@@ -240,15 +243,15 @@ RGXCreateRenderContext
 
 | 层 | 内容 | 需 root/硬件 | 时长 |
 |---|---|---|---|
-| **L1 纯离线** | 163 py + 268 C checks | 否 | ~3 s |
+| **L1 纯离线** | 221 py + 268 C checks | 否 | ~3 s |
 | **L2 构建+ABI** | `W=1`、ABI 漂移、线尺寸门 | 否 | ~90 s |
 | **L3 节点探针** | 加载模块、`pvr_node_probe` | 是（不碰硬件） | ~2 s |
-| **L4 UMD 端到端** | 真实 UMD 阶梯 | 是 | 每级几秒 |
+| **L4 UMD 端到端** | 真实 UMD 阶梯（8 级已落地，见下） | 是 | 每级几秒 |
 
-L4 最该做成**阶梯式**：每级一个可独立跑的用例，失败就停在那级并打印该级桥命令序列。
-现在这个信息每次都要手工解析 trace 才能拿到。
+L4 阶梯式已落地（`make umd` 8 rung，逐级打印、每级独立 trace）。
+**活会话上禁用 L3/L4**：它们会 rmmod/insmod（见 `STATUS.md` 红线）。
 
-### Make 流程规范化：目标接口（bA36 已落地为 `mt-vgpu-guest/Makefile`）
+### Make 流程规范化：目标接口（bA36 已落地）
 
 ```
 make check          # L1+L2，默认门禁，不碰硬件
@@ -262,7 +265,8 @@ make help
 
 关键约束：**`make check` 绝不能加载模块或碰 PCI**；
 L3/L4 必须用 `trap` 保证 `rmmod`——这正是 bA26 那个 `D` 态自死锁的教训。
-已验证：`make probe` / `make umd` 全绿，结束后模块已卸载。
+**但活会话上 L3/L4 一律禁用**（它们先 rmmod，见 `STATUS.md` 红线）；
+此前的“结束后模块已卸载”验证是在可重建会话上做的。
 
 教训：make 变量展开发生在 shell 引号移除之后，
 配方里的 `'b5*+0'` 会带着引号原文到达 harness（必须不带引号）。
@@ -324,6 +328,17 @@ objdump -dr ... | awk '/^[0-9a-f]+ <.*>:/ {fn=$2}
 `pkill -f` 的模式串若出现在我自己 shell 的命令行里，会**把 shell 一起杀掉**（本轮踩两次）。
 清理残留请用 `pkill -9 -x <name>`（`-x` 精确匹配进程名，不匹配命令行）。
 
+### 8.5 device-mutex 没有外部解锁（r67；与 bA38 同类，不同 mutex）
+
+UMD 内部 MapPMR 卡死在 `device_lock`，持锁者已死（owner 与任何活 task 无关），
+`dev->mutex` 全局泄漏：所有 MapPMR 永久挂起（不是降级，是挂起），bridge rmmod
+解不掉（锁属 PCI core），**唯一干净恢复是重启**。
+触发者无法指认（03:12 前最后一次成功加锁是 02:38 的 cover-probe，其间无 bridge
+ioctl 在飞）——结论：**`timeout` + bridge ioctl 的组合必须先论证超时后无持锁
+可能**。执行版纪律：DMA 路径命令一律 `timeout 120` 包装只做挂起探测，
+超时即停手、不堆任务（D 态任务杀不掉，堆一个多一份永久泄漏风险）。
+`timeout` 本身不背锅（TERM 只杀跑得动的），背锅的是临界区内被杀。
+
 ---
 
 ## 9. S4-3 范围（RGX 真实执行经我方桥）
@@ -335,73 +350,79 @@ S4-2 证明了固件通道执行（TQX/3D fills）。S4-3 = 让 MUSA UMD 的 kic
   VPU（`mtvpu-*.bin`）+ META（`musa.fw.1.0.0.0[.vz.linux|.vz.win]`），
   无 RGX 图形固件。vGPU 下 host 拥有物理 GPU 与固件，
   guest 只经 BAR/共享内存环提交——正是 `mt_guest_probe` 已打通的通道。
-- **缺的三块**（都在我方桥一侧）：
-  1. 桥 PMR 目前是 `vzalloc` 系统内存（`mt_pvr_bridge.c:271` 注释写明
-     “until page tables exist”），无 GPU VA 映射；
-     需接到 `mt_gpu_vm` 真实页表（`live_3d` 已证明该页表可用）。
-  2. `0x88:0x2/0x88:0x4` 目前 accept-and-inspect + 即时 fence，
-     需把 kick 包翻译进 firmware 会话的提交环（TQX 路径的
-     `submit_tqx_work` 是现成范例，RGX 环是下一步）。
-  3. UMD 侧 `mmap` 拿到的必须是 GPU 可见内存的 CPU 映射，
-     不是系统内存的 `remap_pfn_range`。
+- **三块的落地状态**（都在我方桥一侧）：
+  1. ✅ PMR 进 GPU 可见内存：桥 PMR 改 file-arena backing（r60），
+     DMA 经 PCI 直连注册（r45–r49，`dma_addr` 只供 unmap，
+     `gpu_pa` 由 Guest 窗口翻译）；`live_tqx`/`live_tqx_readback`、
+     `pvr_dma_smoke` 覆盖回读验证。
+  2. ✅ VA→PA 页表输入：reservation 台账（bA38/bA41）+ CPU-only plan
+     （r50/r51）+ cover-page 绑定与独占策略（r61，`fallbacks=0`）。
+     plan 仍不上载不执行；translator 用到 cover 近似时需重审（r61 边界）。
+  3. ⏳ kick 翻译：`0x88:0x4` 仍 accept-and-inspect + 即时 fence；
+     T1/T2 只读观察已落桥（r63），T3 缺 DM 队列格式 + 非零 CCB 内容。
+     在 handoff 就绪前，`-ENOTTY`（`0x81:0x5` 等真提交入口）仍是 S4 边界。
 - **不碰**：PCI 绑定（probe 已持有）、固件加载（已是 GE2/FW2 会话）、
   显示（QXL，与 S3000 无关）。
 
-## 10. S4-3 handoff 设计（bridge → probe 会话）
+## 10. S4-3 handoff 设计（bridge → probe 会话；as-built，bA39/bA40 方案已作废）
 
 目标：UMD 经桥分配的 PMR / 预留的 VA / 提交的 kick，
 最终变成 firmware 会话里的真实 DMA + 页表 + 执行。
 
-现状缺口（精确到函数）：
+bA39/bA40 的跨模块符号表契约（`symbol_get` + 版本号）已被实测推翻：
+`__symbol_get()` 在本内核上不解析（连 printk 都返回 NULL）。
+as-built 机制（`da3df8b`，r45–r63）：
 
-1. **PMR 内容进 GPU 可见内存**：桥 PMR 是 `vzalloc`，
-   GPU 读不到。需经 pdev 做 DMA 映射（`dma_map_single`/`sg`），
-   pdev 只在 probe 会话里。handover 点：
-   `pvr_cmd_pmr_alloc` 后补一次“ upwards 注册”——
-   但桥和 probe 是两个模块，须先有跨模块符号契约
-   （`symbol_get` + 版本号 + 会话存活检查，任一失败即回退纯系统内存语义）。
-2. **VA→PA 页表构建**：`mt_gpu_vm_bind_many` 已是现成纯软件构建器，
-   reservation 的 VA（bA38 已记录）+ DMA 后的 PA 正好喂给它；
-   产物 image 经 probe 会话的 `upload` 上屏。
-   风险点：VA 分配权在 UMD（byte-tight，非页对齐），bind 侧 round down，
-   两侧必须对同一套取整规则，否则页表与 UMD 认知错位。
-3. **kick 翻译**：`0x88:0x4` 的 84 字节经 accept-and-inspect 后，
-   需按 firmware 环格式重编进 DM 队列（TQX 的 `submit_tqx_work`
-   是范例；RGX 环格式待从 `mtkm64.sys` 反推）。
-   在 handoff 就绪前，`-ENOTTY` 仍是 S4 边界。
+1. **PMR 内容进 GPU 可见内存**：桥在 MapPMR 时经 PCI 查找到 live 会话设备
+   （驱动名校验 + drvdata + `try_module_get`，每次调用全量重验），
+   用核心 `dma_map_page()` 建 DMA 映射；`gpu_pa` 由 Guest system-memory
+   窗口翻译，**绝不从 `dma_addr` 假设**。任一步失败即回退纯系统内存语义，
+   永不对 UMD 报错。`mt_pvr_session.h` 只剩地址形状，无函数表、无版本号、
+   无 export。`try_module_get` 只防卸载不防 unbind——操作纪律：
+   先 rmmod 桥（PMR 释放时 unmap 全清），再碰会话模块（见 §8.5 同类教训）。
+2. **VA→PA 页表输入**：reservation 台账（bA38/bA41）+ `mt_gpu_vm` plan
+   （r50/r51）+ cover-page 绑定与先占独占（r61）。
+   风险点（仍成立）：VA 分配权在 UMD（byte-tight，非页对齐），
+   未对齐 prefix/tail 是整页近似（邻居字节同页可见，正是独占策略要拦的）；
+   translator 用到时重审该近似。
+3. **kick 翻译**：`0x88:0x4` 经 accept-and-inspect 后，T1（UMD 内存拷贝数组，
+   bridge dispatch 在调用进程上下文，`copy_from_user` 可达）+ T2
+   （UFO 句柄 → bridge PMR/对象 → GPU PA + offset，验值）已落成只读观察；
+   T3（按 firmware 环格式重编进 DM 队列）待 RGX 环格式反推。
+   在 handoff 就绪前，真提交入口的 `-ENOTTY` 仍是 S4 边界。
 
 顺序：1→2→3，每步独立可验证（1 只需 DMA 回读比对，不执行；
 2 只需页表 image 逐字节核对，不上传；3 先审包不上交）。
+1、2 已真机验证（r49/r51/r60/r61）；3 的 T1+T2 已落桥实测（r63）。
 
-**步骤 1 的两侧代码均已落地**（bA39 桥侧 + bA40 会话侧），
-全部离线门禁通过，会话侧新 `.ko` 已验证含导出但**未加载**
-（live 会话不受惊）。下一步是重建会话时换上新构建、
-做一次 DMA 回读比对——那需要走完整 S4-2 ladder（约 30 分钟），
-留待下一次需要动硬件的窗口。
+## 11. 下个硬件窗口的验证清单（按序；上一版三项已全绿）
 
-## 11. 下个硬件窗口的验证清单（按序）
+上一版清单已完成：① DMA mask 显式化（bA43 代码 + r46 重启首绑核验 40）；
+② DMA 回读比对（r49 GPU-PA 窗口转换 + TQX 回读成功）；
+③ 新 probe 构建上机（r47/r51 新构建已加载建会话，非“未加载”）。
 
-1. **DMA mask 显式化**：当前 `dma_mask_bits=40` 是 mtgpu 遗留，
-   probe 从未调 `dma_set_mask`。若我方先绑定，mask 回落到默认值，
-   `dma_map_page` 首跑即败。会话侧加
-   `dma_set_mask_and_coherent(..., DMA_BIT_MASK(40))`（bind 路径，
-   需 reload 才能验证）。
-2. **DMA 回读比对**：map 成功只证明 API 接受，不证明 GPU 可读。
-   真验证 = TQX 从映射地址做一次复制（需定制 live 实验，
-   现有 `live_tqx` 用自己的 BO）。
-3. **新 probe 构建上机**：bA40 会话侧代码（含本轮 struct-page 修正）
-   至今只过编译 + `nm` 确认导出，从未加载执行。
+当前清单：
+
+1. **真实绘制 kick 的非零 CCB 观察**（r56 点名的缺失输入）：
+   先离线（`UMD_DUMP_BRIDGE` + fabricated 重放）确认能复现非零 counts，
+   再上真机；只要只读观察，不提交 GPU 工作。
+2. **Translator T3 的 DM 队列格式**：RGX 环从 `mtkm64.sys` 反推；
+   在拿到非零 CCB 之前不写骨架。
+3. 对象存储已满：需空存储的实验（含再次的 `live_3d`）会被 `-EBUSY` 拒绝；
+   下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
 ## 12. 运行态（2026-10-03 复核刷新；本节是活页，其余章节为历史）
 
 - 新 retained 会话运行中：`mt_guest_probe` 已绑定 `00:0e.0`（Guest/FW
-  `2/2` pinned，`pending=0`，引用数 1），`mt_pvr_bridge` 已加载
-  （build-id `894faf50…`，arena+cover+kick-inspect，引用数 0；见 r60/r61/r63），`/dev/dri` 有 `card1`/`renderD128`。
-  UMD 已恢复到 `/tmp/mtt-linux-umd-5.2.0/…`，L3/L4 八级阶梯在本 bridge
+  `2/2` pinned，`pending=0/completed=23`，引用数 38），`mt_pvr_bridge` 已加载
+  （build-id `894faf50…`，arena+cover+kick-inspect，引用数 0；见 r60/r61/r63），
+  `mt_live_3d_drm` 留存（sealed 3D VM 不可卸载），`/dev/dri` 有
+  `card1`/`renderD128`（桥）与 `card2`/`renderD129`（3D）。
+  UMD 在 `/tmp/mtt-linux-umd-5.2.0/…`，L3/L4 八级阶梯在本 bridge
   上全绿（见 `mt-vgpu-guest/reports/r52`）。**首次 RGX 真实执行已完成
   （单帧 DM2，`completed=1 result=0`，sealed 3D VM 留存；见 r66），
-  像素级验证随后通过（render-target 64 KiB 读回；见 r70，本会话另有
-  `live_3d_drm` 留存，对象存储已满）。
+  像素级验证随后通过（render-target 64 KiB 读回；见 r70），
+  20 帧批量零 fault（见 r71；对象存储已满，需空存储的实验会被拒绝）。
   不要卸载任何已加载模块、解绑设备或提交额外工作。**
 - 以下为上一轮记录（已过期，仅保留原文）：本轮真机验证完成后，机器发生
   了一次外部重启。当前 `mt_pvr_bridge` **未加载**，`/dev/dri` 只有 `card0`，
