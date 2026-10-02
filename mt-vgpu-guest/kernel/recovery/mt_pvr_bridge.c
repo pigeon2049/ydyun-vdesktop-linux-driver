@@ -169,6 +169,26 @@ struct mt_pvr_object {
 	u64 arg1;
 };
 
+/* One programmed VA range: the page-table input model (S4-3 handoff step 2,
+ * software side). Each live MapPMR appends exactly one entry; unmap removes
+ * it. When DMA addresses and the session upload land, this ledger feeds
+ * mt_gpu_vm_bind_many directly: va/bytes are already validated, overlap-free
+ * (reservations cannot overlap) and page-granular at bind time.
+ */
+struct mt_pvr_binding {
+	struct list_head link;
+	u64 va;
+	u64 bytes;
+	u64 pmr;
+	u64 reservation;
+};
+
+/* Ledger cap: thousands of mappings would already have exhausted the UMD's
+ * own arenas long before this. Unbounded growth on a confused caller is a
+ * leak, not a feature.
+ */
+#define MT_PVR_MAX_BINDINGS 512U
+
 struct mt_pvr_file {
 	struct kref ref;
 	struct mutex lock;
@@ -180,6 +200,7 @@ struct mt_pvr_file {
 	void *info_page;
 	struct list_head pmrs;
 	struct list_head objects;
+	struct list_head bindings;
 	char sync_timeline[32];
 	u32 init_module;
 };
@@ -320,6 +341,14 @@ static void pvr_file_release(struct kref *kref)
 		list_del(&obj->link);
 		kfree(obj);
 	}
+	{
+		struct mt_pvr_binding *b, *btmp;
+
+		list_for_each_entry_safe(b, btmp, &file->bindings, link) {
+			list_del(&b->link);
+			kfree(b);
+		}
+	}
 	vfree(file->info_page);
 	kfree(file->features);
 	kfree(file->conn);
@@ -357,6 +386,7 @@ static int pvr_open(struct drm_device *drm, struct drm_file *drm_file)
 	mutex_init(&file->lock);
 	INIT_LIST_HEAD(&file->pmrs);
 	INIT_LIST_HEAD(&file->objects);
+	INIT_LIST_HEAD(&file->bindings);
 	mt_pvr_handles_init(&file->handles);
 	mt_pvr_queue_init(&file->queue, MT_PVR_RING_ENTRIES);
 	mt_pvr_rgx_app_heaps_init(&file->heaps);
@@ -917,8 +947,17 @@ static int pvr_cmd_unmap_pmr(struct mt_pvr_file *file,
 	pmr = pvr_pmr_find(file, in.mapping);
 	if (!pmr || !pmr->mapped)
 		return -ENOENT;
-	if (!--pmr->mapped)
+	if (!--pmr->mapped) {
+		struct mt_pvr_binding *b, *btmp;
+
 		pmr->mapped_reservation = 0;
+		list_for_each_entry_safe(b, btmp, &file->bindings, link) {
+			if (b->pmr == pmr->handle) {
+				list_del(&b->link);
+				kfree(b);
+			}
+		}
+	}
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -1180,12 +1219,45 @@ static int pvr_cmd_pmr_map(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	 * mapping value stays the PMR handle -- the UMD passes it back to
 	 * UnmapPMR -- so this validation changes nothing on the wire.
 	 */
-	if (!pvr_reservation_find(file, in.reservation))
-		return -ENOENT;
-	if (pmr->bytes > pvr_reservation_find(file, in.reservation)->arg1)
-		return -ENOSPC;
+	{
+		struct mt_pvr_object *res =
+			pvr_reservation_find(file, in.reservation);
+		struct mt_pvr_binding *b;
+		u32 count = 0;
+
+		if (!res)
+			return -ENOENT;
+		if (pmr->bytes > res->arg1)
+			return -ENOSPC;
+		/* One PMR programs one range at a time. A second live map of
+		 * the same PMR would double-program its VA in a future page
+		 * table; the measured ladder never does this.
+		 */
+		if (pmr->mapped)
+			return -EBUSY;
+		list_for_each_entry(b, &file->bindings, link) {
+			if (++count >= MT_PVR_MAX_BINDINGS)
+				return -ENOSPC;
+		}
+	}
 	pmr->mapped++;
 	pmr->mapped_reservation = in.reservation;
+	{
+		struct mt_pvr_object *res =
+			pvr_reservation_find(file, in.reservation);
+		struct mt_pvr_binding *b = kzalloc(sizeof(*b), GFP_KERNEL);
+
+		if (!b) {
+			pmr->mapped--;
+			pmr->mapped_reservation = 0;
+			return -ENOMEM;
+		}
+		b->va = res->arg0;
+		b->bytes = pmr->bytes;
+		b->pmr = pmr->handle;
+		b->reservation = in.reservation;
+		list_add_tail(&b->link, &file->bindings);
+	}
 	/* Opportunistic DMA registration. Any failure (in particular -ENODEV
 	 * while no session exports the ops) keeps system-memory semantics;
 	 * the OUT value and return code are unchanged either way.

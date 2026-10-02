@@ -321,6 +321,47 @@ class ReservationLifecycle(unittest.TestCase):
                       'unreserve does not retire the reservation')
 
 
+class BindingLedger(unittest.TestCase):
+    """Map/unmap maintains the page-table input ledger (S4-3 step 2, SW).
+
+    Each live MapPMR appends exactly one {va, bytes, pmr, reservation};
+    unmap removes it; release drains it. A future mt_gpu_vm bind consumes
+    this ledger, so it must be overlap-free (guaranteed by reservation
+    checks), bounded, and empty at file teardown.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = strip_comments(SOURCE.read_text())
+        cls.map = function_body('pvr_cmd_pmr_map', cls.text)
+        cls.unmap = function_body('pvr_cmd_unmap_pmr', cls.text)
+
+    def test_map_appends_exactly_one_entry(self):
+        self.assertIn('list_add_tail(&b->link, &file->bindings)', self.map,
+                      'map does not ledger the programmed range')
+        self.assertIn('b->va = res->arg0', self.map)
+        self.assertIn('b->bytes = pmr->bytes', self.map)
+        self.assertIn('MT_PVR_MAX_BINDINGS', self.map,
+                      'the ledger grows without bound')
+
+    def test_double_map_is_refused(self):
+        # A second live map of one PMR would double-program its VA later.
+        self.assertIn('if (pmr->mapped)', self.map)
+        self.assertIn('-EBUSY', self.map)
+
+    def test_unmap_removes_the_entry(self):
+        self.assertIn('list_for_each_entry_safe(b, btmp', self.unmap,
+                      'unmap does not drain the ledger')
+        self.assertIn("if (b->pmr == pmr->handle)", self.unmap)
+
+    def test_release_drains_the_ledger(self):
+        release = function_body('pvr_file_release', self.text)
+        self.assertIn('&file->bindings', release,
+                      'file teardown leaks ledger entries')
+        self.assertIn('INIT_LIST_HEAD(&file->bindings)', self.text,
+                      'the ledger list is never initialized')
+
+
 class SessionHandoff(unittest.TestCase):
     """S4-3 bridge side of the DMA contract (kernel/mt_pvr_session.h).
 
