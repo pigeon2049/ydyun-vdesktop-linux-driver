@@ -409,3 +409,13 @@
 - 路径判断：B（sutu 正路）优先，A（自底整形）备用。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r94-tdm-create-selfcheck.md`。
 - 遗留：B 路一试；加载窗口；push 待批。
+
+---
+
+## 本次会话进展（r95：TransferContext 卡零尺寸分配；离线自主）
+
+- B 路一试：DebugPrintf 四连定位 `DevmemAllocateAndMap:1`
+  （size 0；General 堆已 resolved）；下步 gdb 读 SubAllocate 入参
+  定尺寸槽来源（疑 `0x1:0xc` fabricated 零回包）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r95-zero-size-alloc.md`。
+- 遗留：尺寸槽；加载窗口；push 待批。
