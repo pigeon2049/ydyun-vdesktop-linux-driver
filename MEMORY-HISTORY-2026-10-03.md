@@ -639,3 +639,13 @@
   push 本体未执行，等批准。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r118-push-audit.md`。
 - 遗留：push；加载窗口；T3 首帧执行。
+
+---
+
+## 本次会话进展（r119：三线并行收敛；自主）
+
+- 三 subagent：SubmitTransfer 语义齐（仅 2 项推断级）；
+  FromDmaBuf 绕不开（维持序）；EGL 不通实锤
+  （musa_dri 单 T 导出桩子 + 缺 libglapi）。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r119-triple-close.md`。
+- 遗留：加载窗口；push；T3 首帧执行。
