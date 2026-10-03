@@ -8,18 +8,19 @@
 > [`MEMORY-HISTORY-2026-10-04.md`](MEMORY-HISTORY-2026-10-04.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-04（r127 活体首帧成功；最旧节已归档）
+最后更新：2026-10-04（r128 RT 绑定帧成功；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
 
-## 本次会话进展（r127：活体首帧执行成功；批准执行）
+## 本次会话进展（r128：RT 绑定帧成功；批准执行）
 
-- 单帧 DM2 空包（frame_tag=1，无 RT）：seq=1，completed 0→1，
-  faulted=0；`0x4668` 直通值被接受；模块已卸（留 2 条 r44 同类 WARN）。
-- probe 引用 stays 35（已知泄漏类）；桥探针复核全绿，会话健康，继续 freeze。
-- 证据：`mt-vgpu-guest/reports/r127-first-frame-live.md`。
-- 遗留：T3 下一步（非零 CCB 仍缺，STATUS 第 1 项）；63 提交未 push。
+- 单帧 RT 绑定 DM2（frame_tag=2）：seq=2，completed+1，faulted=0；
+  64KiB 读回全 0x5a（空 marker 无绘制，符合设计）；模块已卸。
+- probe 引用 35→61（+26，同 r44；r127 的 +34 差异未解释）；
+  桥探针全绿，会话健康，继续 freeze。
+- 证据：`mt-vgpu-guest/reports/r128-rt-bound-frame.md`。
+- 遗留：真绘制内容仍无；65 提交未 push。
 
 ---
 
