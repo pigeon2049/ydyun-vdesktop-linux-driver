@@ -445,6 +445,11 @@ as-built 机制（`da3df8b`，r45–r63）：
   `/dev/dri` 仅 `card0`，`/tmp` 内 UMD 与 trace 已清空。
   仓库完好（`HEAD b4e0b5a`，57 提交未 push），L1 全绿，
   树内 UMD 留档可用。重建（r68/r69 流程）待明确批准。
+- **内核漂移（r124，只读+离线实测）**：运行内核已是
+  `6.12.111+deb13-amd64`（107 headers 并存）；在盘
+  `kernel/recovery/mt_pvr_bridge.ko` 的 `.modinfo` 实测
+  `vermagic=6.12.111`，与运行内核一致，重建不需重编，只等加载批准。
+  L1 本轮重跑仍全绿（226+1 skip，268 C）。
 - 以下为重启前记录（已过期，仅保留原文）：新 retained 会话运行中：`mt_guest_probe` 已绑定 `00:0e.0`（Guest/FW
   `2/2` pinned，`pending=0/completed=23`，引用数 38），`mt_pvr_bridge` 已加载
   （build-id `894faf50…`，arena+cover+kick-inspect，引用数 1——

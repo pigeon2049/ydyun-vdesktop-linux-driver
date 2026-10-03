@@ -667,3 +667,11 @@
   首帧零新增代码假设成立；唯一活体问题是固件接受性。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r121-envelope-fixed.md`。
 - 遗留：加载窗口；push；首帧执行（单点：无 RT 接受性）。
+
+---
+
+## 本次会话进展（r122：过期表述清扫；离线自主）
+
+- 全入口 grep 唯一命中 STATUS L1 计数，已改 226；其余无过期。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r122-stale-sweep.md`。
+- 遗留：加载窗口；push；首帧执行。
