@@ -7,10 +7,17 @@
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-03（r119 三线收敛；最旧节已归档）
+最后更新：2026-10-03（r120 runbook；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 ---
+
+## 本次会话进展（r120：加载窗口 runbook；离线自主）
+
+- worktree 重建 da3df8b 编出第三 build-id → bit 回滚已证伪；
+  runbook 按功能级回滚编写（7 步 + 中止条件）；未执行加载。
+- 零硬件触碰（worktree 已删）。证据：`mt-vgpu-guest/reports/r120-load-window-runbook.md`。
+- 遗留：加载窗口执行；push；T3 首帧执行。
 
 ## 本次会话进展（r119：三线并行收敛；自主）
 
@@ -19,10 +26,3 @@
   （musa_dri 单 T 导出桩子 + 缺 libglapi）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r119-triple-close.md`。
 - 遗留：加载窗口；push；T3 首帧执行。
-
-## 本次会话进展（r118：push 队列审计；离线自主）
-
-- 52 提交审计干净可推（代码/文档分离、无产物、r72–r117 不断号）；
-  push 本体未执行，等批准。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r118-push-audit.md`。
-- 遗留：push；加载窗口；T3 首帧执行。

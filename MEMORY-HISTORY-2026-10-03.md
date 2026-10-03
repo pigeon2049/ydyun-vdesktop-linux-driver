@@ -630,3 +630,12 @@
 - 待办：50 提交待 push；加载窗口/特性开关/新会话执行待批。
 - 证据：`mt-vgpu-guest/reports/r117-dayend-attestation.md`。
 - 遗留：push；加载窗口；T3 首帧执行。
+
+---
+
+## 本次会话进展（r118：push 队列审计；离线自主）
+
+- 52 提交审计干净可推（代码/文档分离、无产物、r72–r117 不断号）；
+  push 本体未执行，等批准。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r118-push-audit.md`。
+- 遗留：push；加载窗口；T3 首帧执行。
