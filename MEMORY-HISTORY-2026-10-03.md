@@ -620,3 +620,13 @@
   L1 226+268 全绿；反向验证通过。代码提交 `d3b7453`。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r116-warnings-clean.md`。
 - 遗留：加载窗口；T3 首帧执行；push 待批。
+
+---
+
+## 本次会话进展（r117：日终活体盘点；离线自主）
+
+- 全量只读复核零漂移（23/34/38/1/0，dmesg 0 WARN，D 态 0）；
+  D 态误报教训（comm 首字母 D，须精确匹配 STAT 列）。
+- 待办：50 提交待 push；加载窗口/特性开关/新会话执行待批。
+- 证据：`mt-vgpu-guest/reports/r117-dayend-attestation.md`。
+- 遗留：push；加载窗口；T3 首帧执行。
