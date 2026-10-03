@@ -19,7 +19,7 @@ arena backing + cover-page plan + kick T1/T2 只读观察）在载；
 厂商 MASA UMD 走完全链路符号全部返回 0（kick 提交是 accept-and-inspect
 即时 fence，真提交入口仍拒绝，那是 S4 边界）；`live_3d_drm` 已做单帧
 DM2 + 64 KiB 像素读回 + 20 帧批量，21 次执行零 fault。
-（2026-10-03 机器重启，以上会话已失，现状见 r123 与快照 §12。）
+（2026-10-04 新会话已重建并 freeze，现状见 r125 与快照 §12。）
 细节见 `PROGRESS-SNAPSHOT.md`，逐轮记录见 `MEMORY.md`（只留最新两节），
 证据在 `mt-vgpu-guest/reports/r*.md`（索引见该目录 `reports/README.md`）。
 
