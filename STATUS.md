@@ -37,7 +37,7 @@ DM2 + 64 KiB 像素读回 + 20 帧批量，21 次执行零 fault。
 
 | 命令 | 含义 | 动硬件 |
 |---|---|---|
-| `make check-offline` | L1：221 Python + 268 C RAM checks | 否 |
+| `make check-offline` | L1：226 Python + 268 C RAM checks | 否 |
 | `make check` | L1+L2：+ 内核 `W=1` 构建 + ABI 门禁 | 否（但依赖 gitignore 的 `build/` 产物，新 clone 会失败，见快照 §7） |
 | `make kernel` | 全模块 `W=1` 构建 | 否 |
 | `make probe` / `make umd` | L3/L4：加载模块跑探针 / 真实 UMD 八级阶梯 | **是**，且会重载模块——活会话上禁用 |

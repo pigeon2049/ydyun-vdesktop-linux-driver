@@ -649,3 +649,12 @@
   （musa_dri 单 T 导出桩子 + 缺 libglapi）。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r119-triple-close.md`。
 - 遗留：加载窗口；push；T3 首帧执行。
+
+---
+
+## 本次会话进展（r120：加载窗口 runbook；离线自主）
+
+- worktree 重建 da3df8b 编出第三 build-id → bit 回滚已证伪；
+  runbook 按功能级回滚编写（7 步 + 中止条件）；未执行加载。
+- 零硬件触碰（worktree 已删）。证据：`mt-vgpu-guest/reports/r120-load-window-runbook.md`。
+- 遗留：加载窗口执行；push；T3 首帧执行。
