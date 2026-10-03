@@ -658,3 +658,12 @@
   runbook 按功能级回滚编写（7 步 + 中止条件）；未执行加载。
 - 零硬件触碰（worktree 已删）。证据：`mt-vgpu-guest/reports/r120-load-window-runbook.md`。
 - 遗留：加载窗口执行；push；T3 首帧执行。
+
+---
+
+## 本次会话进展（r121：r113 修正案；离线自主）
+
+- DM2 固定 0x46f0 信封，模板即最小合法形状；空=模板+tag、无 RT；
+  首帧零新增代码假设成立；唯一活体问题是固件接受性。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r121-envelope-fixed.md`。
+- 遗留：加载窗口；push；首帧执行（单点：无 RT 接受性）。
