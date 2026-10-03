@@ -610,3 +610,13 @@
   §3/4/7/8/9/10 封存未动；在盘桥含 TDM（与在载不同）已记入 §12。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r115-snapshot-refresh.md`。
 - 遗留：加载窗口；T3 首帧执行；push 待批。
+
+---
+
+## 本次会话进展（r116：4 旧警告清零；离线自主）
+
+- drain_pending 删无用 bar1 块、ops 加 __maybe_unused、
+  fix_poll 补 DESCRIPTION；kernel exit 0 零警告；
+  L1 226+268 全绿；反向验证通过。代码提交 `d3b7453`。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r116-warnings-clean.md`。
+- 遗留：加载窗口；T3 首帧执行；push 待批。
