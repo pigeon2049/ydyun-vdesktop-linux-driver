@@ -8,8 +8,18 @@
 > [`MEMORY-HISTORY-2026-10-04.md`](MEMORY-HISTORY-2026-10-04.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-04（r126 首帧 fabricated 门禁；最旧节已归档）
+最后更新：2026-10-04（r127 活体首帧成功；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（r127：活体首帧执行成功；批准执行）
+
+- 单帧 DM2 空包（frame_tag=1，无 RT）：seq=1，completed 0→1，
+  faulted=0；`0x4668` 直通值被接受；模块已卸（留 2 条 r44 同类 WARN）。
+- probe 引用 stays 35（已知泄漏类）；桥探针复核全绿，会话健康，继续 freeze。
+- 证据：`mt-vgpu-guest/reports/r127-first-frame-live.md`。
+- 遗留：T3 下一步（非零 CCB 仍缺，STATUS 第 1 项）；63 提交未 push。
 
 ---
 
@@ -21,13 +31,3 @@
   STATUS 桥 build-id 旧值攒入刷新 pass。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r126-first-frame-gate.md`。
 - 遗留：活体首帧执行待明确批准；62 提交未 push；STATUS 桥 id 刷新。
-
----
-
-## 本次会话进展（r125：新会话重建完成；批准执行）
-
-- cold-disconnect（finish=0/1）→ fresh-trial（2/2 retained）
-  → 桥加载（build-id `2c6bede3…`）→ L3 全绿 → L4 八级全 0。
-- 终态：probe 引用 1 / bridge 引用 0，dmesg 干净，无 D 任务；
-  会话即刻起 freeze。证据：`mt-vgpu-guest/reports/r125-session-rebuild.md`。
-- 遗留：r113 首帧执行下一轮单独确认；61 提交未 push（用户明确暂不 push）。

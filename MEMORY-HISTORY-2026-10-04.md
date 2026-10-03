@@ -22,3 +22,13 @@
 - 会话仍失（无模块、设备解绑、仅 card0）；canvas 脏文件随 test 提交刷新。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r124-kernel-drift.md`。
 - 遗留：重建批准（含 r113 首帧执行）；59 提交 push 待明确指令。
+
+---
+
+## 本次会话进展（r125：新会话重建完成；批准执行）
+
+- cold-disconnect（finish=0/1）→ fresh-trial（2/2 retained）
+  → 桥加载（build-id `2c6bede3…`）→ L3 全绿 → L4 八级全 0。
+- 终态：probe 引用 1 / bridge 引用 0，dmesg 干净，无 D 任务；
+  会话即刻起 freeze。证据：`mt-vgpu-guest/reports/r125-session-rebuild.md`。
+- 遗留：r113 首帧执行下一轮单独确认；61 提交未 push（用户明确暂不 push）。

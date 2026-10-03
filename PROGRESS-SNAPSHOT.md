@@ -440,6 +440,13 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-04 新会话已重建并 freeze；本节是活页）
 
+- **r127 活体首帧成功**：`mt_live_3d_drm` 已加载执行并卸载
+  （做完即卸；留 2 条 r44 同类 sealed-VM WARN，taint 现 `12800`=OE+W）。
+  DM2 空包（frame_tag=1，无 RT）`seq=1`，`completed 0→1`，零 fault；
+  `0x4668` 直通值被固件接受。probe 引用 stays **35**
+  （已知泄漏类，后续需精确计数的实验先读记账）；桥探针复核全绿，
+  `mt_guest_probe` + `mt_pvr_bridge` 保持加载，继续 freeze。
+
 - **新 retained 会话运行中（r125，用户已批准重建）**：`mt_guest_probe`
   已绑定 `00:0e.0`（Guest/FW `2/2` retained pinned，trial
   `20261003T162138Z-604b34a6`，引用数 1），`mt_pvr_bridge`
