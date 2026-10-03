@@ -8,8 +8,19 @@
 > [`MEMORY-HISTORY-2026-10-04.md`](MEMORY-HISTORY-2026-10-04.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-04（r125 新会话重建完成；最旧节已归档）
+最后更新：2026-10-04（r126 首帧 fabricated 门禁；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（r126：r113 首帧 fabricated 门禁；离线）
+
+- 新增 `tests/test_r113_first_frame_envelope.py` 8 项全绿并反向验证；
+  L1 226→234，STATUS/快照 §6 计数已同步；会话仍 freeze。
+- 新发现：模板 `0x4668=0xed00000000` 直通（活体风险，已标注）；
+  STATUS 桥 build-id 旧值攒入刷新 pass。
+- 零硬件触碰。证据：`mt-vgpu-guest/reports/r126-first-frame-gate.md`。
+- 遗留：活体首帧执行待明确批准；62 提交未 push；STATUS 桥 id 刷新。
 
 ---
 
@@ -20,13 +31,3 @@
 - 终态：probe 引用 1 / bridge 引用 0，dmesg 干净，无 D 任务；
   会话即刻起 freeze。证据：`mt-vgpu-guest/reports/r125-session-rebuild.md`。
 - 遗留：r113 首帧执行下一轮单独确认；61 提交未 push（用户明确暂不 push）。
-
----
-
-## 本次会话进展（r124：内核 107→111 漂移评估；只读+离线）
-
-- 运行内核已是 6.12.111（107 headers 并存）；在盘桥 vermagic 实测即
-  111，可直接加载，重建不需重编；L1 全绿（226+1 skip，268 C）。
-- 会话仍失（无模块、设备解绑、仅 card0）；canvas 脏文件随 test 提交刷新。
-- 零硬件触碰。证据：`mt-vgpu-guest/reports/r124-kernel-drift.md`。
-- 遗留：重建批准（含 r113 首帧执行）；59 提交 push 待明确指令。

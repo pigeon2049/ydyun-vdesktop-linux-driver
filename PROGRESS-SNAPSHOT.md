@@ -207,7 +207,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **226 项通过**（r45–r71 新增 arena/kick-inspect 等门禁；r88 新增 TDM 5 项；10-03 L1 复核全绿，本轮重跑仍全绿） |
+| Python 测试 | **234 项通过**（r45–r71 新增 arena/kick-inspect 等门禁；r88 新增 TDM 5 项；r126 新增首帧 envelope 8 项；本轮重跑全绿） |
 | C RAM 模型测试 | **268 checks**（10-03 L1 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
