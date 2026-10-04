@@ -357,6 +357,14 @@ static int test_device_layout(void)
 	 * driver down an unvalidated allocation path.
 	 */
 	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_SET) < 2);
+	/* The opt-in switch: 0 is a no-op, non-zero lands at +0x54 only. */
+	mt_pvr_features_set_ddk(&features, 0);
+	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_SET) == 0);
+	mt_pvr_features_set_ddk(&features, 2);
+	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_SET) == 2);
+	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_CORE_COUNT) == 1);
+	mt_pvr_features_init(&features, 1);
+	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_SET) < 2);
 	/* Reads past the end return zero instead of walking off the blob. */
 	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_BYTES) == 0);
 	CHECK(mt_pvr_feature_u32(&features, MT_PVR_FEATURE_BYTES - 2) == 0);

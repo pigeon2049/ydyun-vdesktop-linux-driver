@@ -64,6 +64,14 @@ struct mt_pvr_sync_rename_data {
 	char name[32];
 };
 
+/* features+0x54 advertisement. 0 (default) keeps the validated legacy sync
+ * allocation path; >= 2 lets the UMD reach DDK2 (r78). Experiment only; read
+ * once per open.
+ */
+static unsigned int ddk_feature_set;
+module_param(ddk_feature_set, uint, 0400);
+MODULE_PARM_DESC(ddk_feature_set, "features+0x54 DDK feature set (0=legacy path)");
+
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
 #define DRM_IOCTL_PVR_SYNC_RENAME _IOW('d', 0x41, struct mt_pvr_sync_rename_data)
@@ -903,6 +911,9 @@ static int pvr_open(struct drm_device *drm, struct drm_file *drm_file)
 	mt_pvr_info_page_init(file->info_page, MT_PVR_INFO_BYTES);
 	mt_pvr_features_init((struct mt_pvr_features *)
 			     ((char *)file->features + MT_PVR_FEATURE_SKEW), 1);
+	mt_pvr_features_set_ddk((struct mt_pvr_features *)
+				((char *)file->features + MT_PVR_FEATURE_SKEW),
+				ddk_feature_set);
 	drm_file->driver_priv = file;
 	return 0;
 }

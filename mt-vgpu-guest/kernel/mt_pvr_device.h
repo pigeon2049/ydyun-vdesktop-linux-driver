@@ -145,6 +145,19 @@ static inline void mt_pvr_features_init(struct mt_pvr_features *features,
 	 */
 }
 
+/* Opt-in DDK feature-set advertisement (r78: >= 2 makes the UMD take the
+ * gated sync allocation path, the only way DDK2 becomes reachable). Default
+ * callers pass 0 and keep the validated legacy path; any non-zero value is an
+ * explicit, separately approved experiment.
+ */
+static inline void mt_pvr_features_set_ddk(struct mt_pvr_features *features,
+					   u32 ddk_feature_set)
+{
+	if (ddk_feature_set)
+		mt_pvr_feature_set_u32(features, MT_PVR_FEATURE_SET,
+				       ddk_feature_set);
+}
+
 /* Connect result the driver requires. Anything else sends it down the failure
  * branch at 0x3b8c5 with error 78.
  */

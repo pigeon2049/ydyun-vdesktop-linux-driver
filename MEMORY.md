@@ -8,8 +8,18 @@
 > [`MEMORY-HISTORY-2026-10-04.md`](MEMORY-HISTORY-2026-10-04.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-04（r130 契约裁决+首个绘制像素；最旧节已归档）
+最后更新：2026-10-04（r131 ddk_feature_set 开关离线实现；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（r131：DDK2 特性开关，离线实现，零硬件触碰）
+
+- 桥加 `ddk_feature_set` 模块参数（默认 0=legacy），helper + 4 条断言；
+  check-offline 全绿（C 272），`make kernel` W=1 无警告，反向验证已做。
+- 未加载新 `.ko`；活会话 freeze 不变。启用需卸桥重载，待用户批准。
+- 证据：`mt-vgpu-guest/reports/r131-ddk-feature-switch.md`。
+- 遗留：68 提交未 push；STATUS 门禁行写 234+268，实为 234+272（刷新 pass 时改）。
 
 ---
 
@@ -24,12 +34,3 @@
 - 遗留：67 提交未 push。
 
 ---
-
-## 本次会话进展（r129：fill smoke 红，契约分歧；批准执行）
-
-- smoke 倒在 bad[3]（0-syncobj 期望 EINVAL，驱动接受执行）；
-  旧测试 vs 现驱动分歧，非回归；绘制像素待契约裁决后重跑。
-- 旁证 +1 fill 已执行（1/1/0）；模块已卸（同签名 WARN 累计 6）；
-  probe 引用 61→87（+26）；桥探针全绿，继续 freeze。
-- 证据：`mt-vgpu-guest/reports/r129-fill-contract-dispute.md`。
-- 遗留：契约离线裁决；绘制像素；66 提交未 push。

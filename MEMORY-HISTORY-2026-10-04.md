@@ -64,3 +64,14 @@
   桥探针全绿，会话健康，继续 freeze。
 - 证据：`mt-vgpu-guest/reports/r128-rt-bound-frame.md`。
 - 遗留：真绘制内容仍无；65 提交未 push。
+
+---
+
+## 本次会话进展（r129：fill smoke 红，契约分歧；批准执行）
+
+- smoke 倒在 bad[3]（0-syncobj 期望 EINVAL，驱动接受执行）；
+  旧测试 vs 现驱动分歧，非回归；绘制像素待契约裁决后重跑。
+- 旁证 +1 fill 已执行（1/1/0）；模块已卸（同签名 WARN 累计 6）；
+  probe 引用 61→87（+26）；桥探针全绿，继续 freeze。
+- 证据：`mt-vgpu-guest/reports/r129-fill-contract-dispute.md`。
+- 遗留：契约离线裁决；绘制像素；66 提交未 push。
