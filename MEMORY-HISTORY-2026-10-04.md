@@ -101,3 +101,15 @@
 - 遗留：68 提交未 push；STATUS 门禁行写 234+268，实为 234+272（刷新 pass 时改）。
 
 ---
+
+---
+
+## 本次会话进展（r132：ddk_feature_set=2 活体，rung5 与默认一致；批准执行）
+
+- 用户释放 Chrome 占用后，桥重载为 `ddk_feature_set=2`，rung5 全 0；
+  再换默认重载同链：89=89 桥调用逐项一致。DDK2 可达性未确认（未跑 r78 的非零 CCB create）。
+- 模块现为**默认参数的新桥**（已重载，build 与旧 freeze 不同）；引用 0/113；无新 WARN。
+- 证据：`mt-vgpu-guest/reports/r132-ddk-switch-live-rung5.md`。
+- 遗留：r78 非零 CCB create 命令需重建；69 提交未 push。
+
+---

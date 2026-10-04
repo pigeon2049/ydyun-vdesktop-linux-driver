@@ -8,8 +8,18 @@
 > [`MEMORY-HISTORY-2026-10-04.md`](MEMORY-HISTORY-2026-10-04.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-04（r133 非零 CCB create 开关无差异；最旧节已归档）
+最后更新：2026-10-04（r134 门控=DRM major，订正 r131；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（r134：DDK2 门控=DRM version_major==2，离线；零硬件触碰）
+
+- 语料（SHA 已对）：UMD 自 calloc 特性块，`+0x54=(drm major==2)+1`；桥 `.major=0`→1→legacy。
+  r131 开关写的是 UMD 不读的内核块，故 r132/r133 无差异（事实仍成立，作用点错）。
+- 下一步：桥加 `drm_major` 参数（默认 0），重载 `=2` 跑 r133 同链（需批准）。
+- 无需重启：模块干净卸载重载，引用 0/113，无 D 态。证据：`reports/r134-ddk-gate-is-drm-major.md`。
+- 遗留：71 提交未 push；`ddk_feature_set` 去留待定。
 
 ---
 
@@ -20,15 +30,5 @@
 - 模块停在默认参数新桥，引用 0/113，无新 WARN。
 - 下一步（离线）：语料核 `RGXCreateKickSyncContextCCB@0x52180` 门控读取点，别再盲重载。
 - 证据：`mt-vgpu-guest/reports/r133-ddk2-ccb-create-live.md`。遗留：70 提交未 push。
-
----
-
-## 本次会话进展（r132：ddk_feature_set=2 活体，rung5 与默认一致；批准执行）
-
-- 用户释放 Chrome 占用后，桥重载为 `ddk_feature_set=2`，rung5 全 0；
-  再换默认重载同链：89=89 桥调用逐项一致。DDK2 可达性未确认（未跑 r78 的非零 CCB create）。
-- 模块现为**默认参数的新桥**（已重载，build 与旧 freeze 不同）；引用 0/113；无新 WARN。
-- 证据：`mt-vgpu-guest/reports/r132-ddk-switch-live-rung5.md`。
-- 遗留：r78 非零 CCB create 命令需重建；69 提交未 push。
 
 ---

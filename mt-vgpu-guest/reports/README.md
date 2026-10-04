@@ -89,6 +89,7 @@
 | r131 | 桥增加 `ddk_feature_set` 开关（默认 0，离线实现，零硬件触碰） |
 | r132 | `ddk_feature_set=2` 活体 rung5 与默认逐调用一致（DDK2 未确认可达） |
 | r133 | 非零 CCB create 在 `ddk_feature_set=2` 下仍与默认一致（门控读取位置待语料核） |
+| r134 | DDK2 门控 = DRM version_major==2（语料）；r131 的 features 块开关作用点错 |
 
 ## 关键单篇（本轮最常用）
 
