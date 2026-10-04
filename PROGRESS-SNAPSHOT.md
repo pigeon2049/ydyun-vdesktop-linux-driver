@@ -440,6 +440,12 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-04 新会话已重建并 freeze；本节是活页）
 
+- **r129 fill smoke 红（契约分歧，非回归）**：`mt-fill-check smoke`
+  倒在 bad[3]（0-syncobj：测试要 EINVAL，驱动接受执行，与 uapi
+  Optional 注释一致）；旁证 +1 fill（1/1/0，零 fault）。模块已卸
+  （同签名 WARN 累计 6 条）。probe 引用 61 → **87**（又是 +26；
+  r127 的 +34 仍是孤例）。桥探针复核全绿，继续 freeze。
+
 - **r128 RT 绑定帧成功**：同一模板带 RT 绑定（`0x45a0` 非零路径）
   `frame_tag=2` → `seq=2`，`completed` 再 +1，零 fault；
   64KiB 读回全 `0x5a`（空 marker 无绘制，符合设计）；
