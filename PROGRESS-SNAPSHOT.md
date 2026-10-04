@@ -440,6 +440,9 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-04 新会话已重建并 freeze；本节是活页）
 
+- **r133**：非零 CCB create 在 `ddk_feature_set=2` 与默认下桥调用 91=91 一致；
+  模块停在默认参数新桥，引用 0/113，无新 WARN，继续 freeze。
+
 - **r132 桥已重载（默认参数）**：`mt_pvr_bridge` 先以 `ddk_feature_set=2`
   跑 rung5，再换回默认重载；两次桥调用逐项一致（89=89），DDK2 未确认可达。
   当前加载的是含 `ddk_feature_set` 参数的新桥（默认 0），引用 0/113，

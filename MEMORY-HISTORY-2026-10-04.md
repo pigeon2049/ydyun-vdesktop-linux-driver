@@ -89,3 +89,15 @@
 - 遗留：67 提交未 push。
 
 ---
+
+---
+
+## 本次会话进展（r131：DDK2 特性开关，离线实现，零硬件触碰）
+
+- 桥加 `ddk_feature_set` 模块参数（默认 0=legacy），helper + 4 条断言；
+  check-offline 全绿（C 272），`make kernel` W=1 无警告，反向验证已做。
+- 未加载新 `.ko`；活会话 freeze 不变。启用需卸桥重载，待用户批准。
+- 证据：`mt-vgpu-guest/reports/r131-ddk-feature-switch.md`。
+- 遗留：68 提交未 push；STATUS 门禁行写 234+268，实为 234+272（刷新 pass 时改）。
+
+---

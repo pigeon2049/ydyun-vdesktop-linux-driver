@@ -8,8 +8,18 @@
 > [`MEMORY-HISTORY-2026-10-04.md`](MEMORY-HISTORY-2026-10-04.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-04（r132 开关活体 rung5 无差异；最旧节已归档）
+最后更新：2026-10-04（r133 非零 CCB create 开关无差异；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（r133：非零 CCB create + ddk_feature_set=2，仍无差异；批准执行）
+
+- 按 r76/r77 还原 r78 命令（pack 0x0733），仅 create+destroy 不 kick；
+  `=2` 与默认各重载各跑，桥调用 91=91 逐项一致，无 SyncPrim/SubmissionBuf。
+- 模块停在默认参数新桥，引用 0/113，无新 WARN。
+- 下一步（离线）：语料核 `RGXCreateKickSyncContextCCB@0x52180` 门控读取点，别再盲重载。
+- 证据：`mt-vgpu-guest/reports/r133-ddk2-ccb-create-live.md`。遗留：70 提交未 push。
 
 ---
 
@@ -20,15 +30,5 @@
 - 模块现为**默认参数的新桥**（已重载，build 与旧 freeze 不同）；引用 0/113；无新 WARN。
 - 证据：`mt-vgpu-guest/reports/r132-ddk-switch-live-rung5.md`。
 - 遗留：r78 非零 CCB create 命令需重建；69 提交未 push。
-
----
-
-## 本次会话进展（r131：DDK2 特性开关，离线实现，零硬件触碰）
-
-- 桥加 `ddk_feature_set` 模块参数（默认 0=legacy），helper + 4 条断言；
-  check-offline 全绿（C 272），`make kernel` W=1 无警告，反向验证已做。
-- 未加载新 `.ko`；活会话 freeze 不变。启用需卸桥重载，待用户批准。
-- 证据：`mt-vgpu-guest/reports/r131-ddk-feature-switch.md`。
-- 遗留：68 提交未 push；STATUS 门禁行写 234+268，实为 234+272（刷新 pass 时改）。
 
 ---
