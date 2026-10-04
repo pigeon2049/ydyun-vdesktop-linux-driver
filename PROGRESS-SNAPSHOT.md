@@ -440,6 +440,11 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-04 新会话已重建并 freeze；本节是活页）
 
+- **r132 桥已重载（默认参数）**：`mt_pvr_bridge` 先以 `ddk_feature_set=2`
+  跑 rung5，再换回默认重载；两次桥调用逐项一致（89=89），DDK2 未确认可达。
+  当前加载的是含 `ddk_feature_set` 参数的新桥（默认 0），引用 0/113，
+  无新 WARN。`mt_guest_probe` 继续 freeze。
+
 - **r130 契约裁决 + 首个绘制像素**：out_syncobj=0 分歧裁决为测试过期
   （`if (r->out_syncobj)` 自 r40，强制要求从未存在；兄弟工具无此期望）。
   修正后 smoke 全绿：13 非法拒 + 0-syncobj fill（seq=2）+
