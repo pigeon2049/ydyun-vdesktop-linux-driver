@@ -8,8 +8,20 @@
 > [`MEMORY-HISTORY-2026-10-04.md`](MEMORY-HISTORY-2026-10-04.md)（只读）。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-04（r129 fill 契约分歧；最旧节已归档）
+最后更新：2026-10-04（r130 契约裁决+首个绘制像素；最旧节已归档）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+---
+
+## 本次会话进展（r130：契约裁决，测试过期；批准执行）
+
+- 离线裁决：驱动 `if (r->out_syncobj)` 自 r40，强制要求从未存在；
+  测试期望是 day-one 误期。改测试（bad[3]→正向断言）+ uapi 注释。
+- 活体 smoke 全绿：13 非法拒、0-syncobj fill、16×16 像素三重验证、
+  copy 闭环；3/3/0，模块已卸（WARN 累计 8，同签名）。
+- probe 引用 87→113（+26）；桥探针全绿，继续 freeze。
+- 证据：`mt-vgpu-guest/reports/r130-fill-contract-verdict.md`。
+- 遗留：67 提交未 push。
 
 ---
 
@@ -21,14 +33,3 @@
   probe 引用 61→87（+26）；桥探针全绿，继续 freeze。
 - 证据：`mt-vgpu-guest/reports/r129-fill-contract-dispute.md`。
 - 遗留：契约离线裁决；绘制像素；66 提交未 push。
-
----
-
-## 本次会话进展（r128：RT 绑定帧成功；批准执行）
-
-- 单帧 RT 绑定 DM2（frame_tag=2）：seq=2，completed+1，faulted=0；
-  64KiB 读回全 0x5a（空 marker 无绘制，符合设计）；模块已卸。
-- probe 引用 35→61（+26，同 r44；r127 的 +34 差异未解释）；
-  桥探针全绿，会话健康，继续 freeze。
-- 证据：`mt-vgpu-guest/reports/r128-rt-bound-frame.md`。
-- 遗留：真绘制内容仍无；65 提交未 push。

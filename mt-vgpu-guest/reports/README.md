@@ -85,6 +85,7 @@
 | r127 | 活体首帧执行成功：DM2 空包 seq=1，completed 0→1，零 fault（已卸模块） |
 | r128 | RT 绑定帧成功：非零 0x45a0 被接受，completed 再 +1，零 fault（已卸模块） |
 | r129 | fill smoke 红：out_syncobj=0 契约分歧（旧测试 vs 现驱动），绘制像素待定 |
+| r130 | 契约裁决测试过期：修正后 smoke 全绿，新会话首个绘制像素 |
 
 ## 关键单篇（本轮最常用）
 

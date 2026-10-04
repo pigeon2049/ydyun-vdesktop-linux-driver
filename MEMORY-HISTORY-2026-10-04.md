@@ -53,3 +53,14 @@
   STATUS 桥 build-id 旧值攒入刷新 pass。
 - 零硬件触碰。证据：`mt-vgpu-guest/reports/r126-first-frame-gate.md`。
 - 遗留：活体首帧执行待明确批准；62 提交未 push；STATUS 桥 id 刷新。
+
+---
+
+## 本次会话进展（r128：RT 绑定帧成功；批准执行）
+
+- 单帧 RT 绑定 DM2（frame_tag=2）：seq=2，completed+1，faulted=0；
+  64KiB 读回全 0x5a（空 marker 无绘制，符合设计）；模块已卸。
+- probe 引用 35→61（+26，同 r44；r127 的 +34 差异未解释）；
+  桥探针全绿，会话健康，继续 freeze。
+- 证据：`mt-vgpu-guest/reports/r128-rt-bound-frame.md`。
+- 遗留：真绘制内容仍无；65 提交未 push。

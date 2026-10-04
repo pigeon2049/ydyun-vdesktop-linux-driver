@@ -440,6 +440,13 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-04 新会话已重建并 freeze；本节是活页）
 
+- **r130 契约裁决 + 首个绘制像素**：out_syncobj=0 分歧裁决为测试过期
+  （`if (r->out_syncobj)` 自 r40，强制要求从未存在；兄弟工具无此期望）。
+  修正后 smoke 全绿：13 非法拒 + 0-syncobj fill（seq=2）+
+  16×16 `0xff123456` 三重像素验证 + copy 闭环（3/3/0）。
+  模块已卸（WARN 累计 8 条，全同签名）。probe 引用 87 → **113**
+  （又是 +26）。桥探针复核全绿，继续 freeze。
+
 - **r129 fill smoke 红（契约分歧，非回归）**：`mt-fill-check smoke`
   倒在 bad[3]（0-syncobj：测试要 EINVAL，驱动接受执行，与 uapi
   Optional 注释一致）；旁证 +1 fill（1/1/0，零 fault）。模块已卸
