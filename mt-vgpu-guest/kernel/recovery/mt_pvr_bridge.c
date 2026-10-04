@@ -64,10 +64,16 @@ struct mt_pvr_sync_rename_data {
 	char name[32];
 };
 
-/* features+0x54 advertisement. 0 (default) keeps the validated legacy sync
+/* NOTE (r134): this writes a kernel-side block the vendor UMD never reads;
+ * the real gate is drm_major below. Kept for the offline model.
+ * features+0x54 advertisement. 0 (default) keeps the validated legacy sync
  * allocation path; >= 2 lets the UMD reach DDK2 (r78). Experiment only; read
  * once per open.
  */
+static unsigned int drm_major;
+module_param(drm_major, uint, 0400);
+MODULE_PARM_DESC(drm_major, "DRM version_major reported to the UMD (0 default; 2 selects DDK2 path, r134)");
+
 static unsigned int ddk_feature_set;
 module_param(ddk_feature_set, uint, 0400);
 MODULE_PARM_DESC(ddk_feature_set, "features+0x54 DDK feature set (0=legacy path)");
@@ -2694,7 +2700,7 @@ static const struct file_operations pvr_fops = {
 	.mmap = pvr_mmap,
 };
 
-static const struct drm_driver pvr_driver = {
+static struct drm_driver pvr_driver = {
 	.driver_features = DRIVER_RENDER | DRIVER_SYNCOBJ,
 	.open = pvr_open, .postclose = pvr_postclose,
 	.ioctls = pvr_ioctls, .num_ioctls = ARRAY_SIZE(pvr_ioctls),
@@ -2720,6 +2726,8 @@ static int __init pvr_start(void)
 		pci_dev_put(pdev);
 		return -ENODEV;
 	}
+	/* r134: the vendor UMD derives features+0x54 as (major == 2) + 1. */
+	pvr_driver.major = drm_major;
 	drm = drm_dev_alloc(&pvr_driver, &pdev->dev);
 	if (IS_ERR(drm)) {
 		ret = PTR_ERR(drm);
