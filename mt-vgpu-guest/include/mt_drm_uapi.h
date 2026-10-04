@@ -46,7 +46,11 @@ struct drm_mt_copy {
 };
 /* Tightly packed little-endian 32-bit pixels, clipped rectangle fully inside
  * width x height. offset is 4-byte aligned; the whole surface fits the GEM.
- * color is the raw pixel value, sequence input is zero. Native GPU clear. */
+ * color is the raw pixel value, sequence input is zero. Native GPU clear.
+ * out_syncobj is optional (0 = unused, same convention as SUBMIT_3D):
+ * the fence sequence is still returned in-struct. r130 adjudication:
+ * the driver never required nonzero syncobj (`if (r->out_syncobj)` since
+ * r40); the old EINVAL expectation was a day-one test aspiration. */
 struct drm_mt_fill {
 	__u32 destination, out_syncobj;
 	__u64 offset;

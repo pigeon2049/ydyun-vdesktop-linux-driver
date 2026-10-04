@@ -25,6 +25,29 @@ static void fill(int fd,unsigned int handle,unsigned int sync,const struct recta
 		c->width,c->height,c->x,c->y,c->w,c->h,c->offset,c->color,(uint64_t)r.sequence);
 	fflush(stdout);
 }
+static void optional_syncobj_fill(int fd,unsigned int handle)
+{
+	/* Positive counterpart of the removed bad[3]: 0-syncobj must execute,
+	 * return a nonzero fence sequence, advance completed by exactly 1,
+	 * and leave byte-exact pixels. Keeps expected[]/count bookkeeping
+	 * so the later full-surface and fill-to-copy assertions still hold. */
+	struct drm_mt_query before,after;
+	query(fd,&before);
+	const struct rectangle c={128,128,64,64,16,16,0,0xff0a0b0c};
+	struct drm_mt_fill r={.destination=handle,.out_syncobj=0,.offset=c.offset,
+		.width=c.width,.height=c.height,.x=c.x,.y=c.y,.rect_width=c.w,.rect_height=c.h,.color=c.color};
+	REQUIRE(ioctl(fd,DRM_IOCTL_MT_FILL,&r)==0 && r.sequence);
+	query(fd,&after);
+	REQUIRE(after.completed==before.completed+1 && after.submitted==before.submitted+1 && !after.faulted);
+	for(unsigned int y=c.y;y<c.y+c.h;y++)
+		for(unsigned int x=c.x;x<c.x+c.w;x++)
+			memcpy(expected+c.offset+(y*c.width+x)*4,&c.color,4);
+	buffer_io(fd,handle,observed,0);
+	REQUIRE(!memcmp(expected,observed,65536));
+	count++;
+	printf("{\"optional_syncobj_fill\":true,\"sequence\":%"PRIu64"}\n",(uint64_t)r.sequence);
+	fflush(stdout);
+}
 static unsigned int invalid_cases(int fd,unsigned int handle,unsigned int sync)
 {
 	struct drm_mt_fill base={.destination=handle,.out_syncobj=sync,.width=16,.height=16,.rect_width=16,.rect_height=16};
@@ -32,7 +55,10 @@ static unsigned int invalid_cases(int fd,unsigned int handle,unsigned int sync)
 		{offsetof(struct drm_mt_fill,flags),1,EINVAL},
 		{offsetof(struct drm_mt_fill,destination),0xffffffffU,ENOENT},
 		{offsetof(struct drm_mt_fill,out_syncobj),0xffffffffU,ENOENT},
-		{offsetof(struct drm_mt_fill,out_syncobj),0,EINVAL},
+		/* NOTE: out_syncobj=0 is VALID (optional, executes without syncobj;
+		 * r129/r130: driver `if (r->out_syncobj)` since r40, uapi documents
+		 * Optional. Covered positively by optional_syncobj_fill() below,
+		 * not by this reject-table. */
 		{offsetof(struct drm_mt_fill,width),0,EINVAL},
 		{offsetof(struct drm_mt_fill,height),32769,EINVAL},
 		{offsetof(struct drm_mt_fill,x),16,EINVAL},
@@ -60,6 +86,7 @@ int main(int argc,char **argv)
 	struct drm_syncobj_create sync={0}; REQUIRE(ioctl(fd,DRM_IOCTL_SYNCOBJ_CREATE,&sync)==0);
 	unsigned int invalid=invalid_cases(fd,handle,sync.handle);
 	query(fd,&after); REQUIRE(after.submitted==before.submitted && after.completed==before.completed);
+	optional_syncobj_fill(fd,handle);
 	if(strcmp(argv[2],"demo")) {
 		const struct rectangle cases[]={
 			{16,16,0,0,16,16,0,0xff123456},
