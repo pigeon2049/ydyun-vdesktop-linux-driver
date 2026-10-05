@@ -436,6 +436,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-06 更新；本节是活页）
 
+- **r170 L4 全绿（GDB 监督；批准执行；freeze 继续）**：rung5 syncprim、rung6 kicksync 建销、rung7 compute 建销、rung8 `RGXKickSync→0`（inspect，无 GPU 工作）逐级全绿，四轮 trace 全 ret=0，probe ref 稳 1，dmesg 干净。rung5 standalone 崩溃仍在；监督非常规但调用/桥一致。见 `reports/r170-supervised-ladder.md` + rung8 trace。
 - **r169 字节级无罪（批准执行；freeze 继续）**：10 组桥 OUT 全量对比，18 处差异全为调用方指针回显；另否 argv[0]/重试（rung5 standalone 0/20，GDB 5/5）；遮罩机制未解释。会话健康（probe 1/bridge 0）。见 `reports/r169-byte-exoneration.md` + 失败 trace。
 - **r168 tid 猎杀（批准执行；freeze 继续）**：shim 25 处加 `tid`（门禁断言+反向验证）；失败/通过轮均为单 tid，交错假设证伪，桥前缀 65/65 一致；ASLR/SMP/perturb 全排除，GDB 4/4 过，发布者未命名。会话健康（probe 1/bridge 0）。见 `reports/r168-tid-hunt.md`。
 - **r167 L4 部分通过（批准执行；freeze 继续）**：手跑阶梯（桥零重载）rung1–3 全绿；rung4 先 2 崩后 4 过；rung5 standalone 11/11 SIGSEGV、GDB 2/2 过——core 验尸为 `RGXCreateRenderContextCCB+1525` 取 `r12+8==NULL`，trace 全 ret=0、内核零错误、probe ref 稳 1，桥无罪。rung6–8 被阻。见 `reports/r167-l4-partial-segv.md` + trace + 验尸笔录。
