@@ -1,0 +1,115 @@
+Function "map_shared_pmr" not defined.
+Breakpoint 1 (map_shared_pmr) pending.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+0x00007ffff7fb3ce2 in syscall (n=9) at mt-vgpu-guest/probe/umd_bridge_shim.c:1740
+1740					p = map_shared_pmr(len, off);
+Value returned is $1 = (void *) 0x7ffff5703000
+WATCHING 0x7ffff5703f42 (+0xf42)
+Hardware watchpoint 2: *(short*)($ccb + 0xf42)
+
+Hardware watchpoint 2: *(short*)($ccb + 0xf42)
+
+Old value = 0
+New value = 10382
+0x00007ffff737e876 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+=== WATCH HIT ===
+#0  0x00007ffff737e876 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff748e239 in PVRSRVMemCopy () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#2  0x00007ffff745f2b4 in SubmissionCmdGenerate () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#3  0x00007ffff746043a in TQJobSubmit () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#4  0x0000555555557de4 in ?? ()
+#5  0x00007ffff7235ca8 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#6  0x00007ffff7235d65 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#7  0x00005555555589ba in ?? ()
+--- pc ---
+=> 0x7ffff737e876:	vmovdqu64 %ymm19,-0x40(%rdi,%rdx,1)
+--- written value + neighbours ---
+0x7ffff5703f3a:	0x00	0x00	0x00	0x00	0x00	0x00	0x00	0x00
+--- mappings ---
+process 10382
+Mapped address spaces:
+
+Start Addr         End Addr           Size               Offset             Perms File 
+0x0000555555554000 0x0000555555557000 0x3000             0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x0000555555557000 0x000055555555a000 0x3000             0x3000             r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x000055555555a000 0x0000555555561000 0x7000             0x6000             r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x0000555555561000 0x0000555555562000 0x1000             0xc000             r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x0000555555562000 0x0000555555563000 0x1000             0xd000             rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x0000555555563000 0x00005555555c4000 0x61000            0x0                rw-p  [heap] 
+0x00007ffff5703000 0x00007ffff6104000 0xa01000           0x0                rw-s  /memfd:umd-pmr-500e (deleted) 
+0x00007ffff6104000 0x00007ffff6605000 0x501000           0x0                rw-s  /memfd:umd-pmr-500d (deleted) 
+0x00007ffff6605000 0x00007ffff6630000 0x2b000            0x0                rw-s  /memfd:umd-pmr-500b (deleted) 
+0x00007ffff6630000 0x00007ffff6641000 0x11000            0x0                rw-s  /memfd:umd-pmr-500a (deleted) 
+0x00007ffff6641000 0x00007ffff6651000 0x10000            0x0                rw-s  /memfd:umd-pmr-1006 (deleted) 
+0x00007ffff6651000 0x00007ffff6671000 0x20000            0x0                rw-s  /memfd:umd-pmr-5008 (deleted) 
+0x00007ffff6671000 0x00007ffff6691000 0x20000            0x0                rw-s  /memfd:umd-pmr-5007 (deleted) 
+0x00007ffff6691000 0x00007ffff66b1000 0x20000            0x0                rw-s  /memfd:umd-pmr-5006 (deleted) 
+0x00007ffff66b1000 0x00007ffff66c1000 0x10000            0x0                rw-s  /memfd:umd-pmr-1004 (deleted) 
+0x00007ffff66c1000 0x00007ffff66d1000 0x10000            0x0                rw-s  /memfd:umd-pmr-1003 (deleted) 
+0x00007ffff66d1000 0x00007ffff6bd2000 0x501000           0x0                rw-s  /memfd:umd-pmr-5004 (deleted) 
+0x00007ffff6bd2000 0x00007ffff70d3000 0x501000           0x0                rw-s  /memfd:umd-pmr-5003 (deleted) 
+0x00007ffff70d3000 0x00007ffff70e3000 0x10000            0x0                rw-s  /memfd:umd-pmr-1002 (deleted) 
+0x00007ffff70e3000 0x00007ffff70e6000 0x3000             0x0                rw-p   
+0x00007ffff70e6000 0x00007ffff70eb000 0x5000             0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff70eb000 0x00007ffff70fe000 0x13000            0x5000             r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff70fe000 0x00007ffff710b000 0xd000             0x18000            r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff710b000 0x00007ffff710c000 0x1000             0x25000            r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff710c000 0x00007ffff710d000 0x1000             0x26000            rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff710d000 0x00007ffff710e000 0x1000             0x0                r--p  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff710e000 0x00007ffff710f000 0x1000             0x1000             r-xp  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff710f000 0x00007ffff7110000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff7110000 0x00007ffff7111000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff7111000 0x00007ffff7112000 0x1000             0x3000             rw-p  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff7112000 0x00007ffff7113000 0x1000             0x0                r--p  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7113000 0x00007ffff7114000 0x1000             0x1000             r-xp  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7114000 0x00007ffff7115000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7115000 0x00007ffff7116000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7116000 0x00007ffff7117000 0x1000             0x3000             rw-p  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7117000 0x00007ffff7118000 0x1000             0x0                r--p  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff7118000 0x00007ffff7119000 0x1000             0x1000             r-xp  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff7119000 0x00007ffff711a000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff711a000 0x00007ffff711b000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff711b000 0x00007ffff711c000 0x1000             0x3000             rw-p  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff711c000 0x00007ffff712d000 0x11000            0x0                r--p  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff712d000 0x00007ffff71aa000 0x7d000            0x11000            r-xp  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff71aa000 0x00007ffff720a000 0x60000            0x8e000            r--p  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff720a000 0x00007ffff720b000 0x1000             0xed000            r--p  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff720b000 0x00007ffff720c000 0x1000             0xee000            rw-p  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff720c000 0x00007ffff7234000 0x28000            0x0                r--p  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff7234000 0x00007ffff7397000 0x163000           0x28000            r-xp  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff7397000 0x00007ffff73ed000 0x56000            0x18b000           r--p  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff73ed000 0x00007ffff73f1000 0x4000             0x1e0000           r--p  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff73f1000 0x00007ffff73f3000 0x2000             0x1e4000           rw-p  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff73f3000 0x00007ffff7400000 0xd000             0x0                rw-p   
+0x00007ffff7400000 0x00007ffff742c000 0x2c000            0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff742c000 0x00007ffff780a000 0x3de000           0x2c000            r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff780a000 0x00007ffff7f3d000 0x733000           0x40a000           r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff7f3d000 0x00007ffff7f57000 0x1a000            0xb3d000           r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff7f57000 0x00007ffff7f64000 0xd000             0xb57000           rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff7f64000 0x00007ffff7f65000 0x1000             0x0                rw-p   
+0x00007ffff7f66000 0x00007ffff7f6a000 0x4000             0x0                rw-p   
+0x00007ffff7f6a000 0x00007ffff7f74000 0xa000             0x0                rw-s  /memfd:umd-pmr-500c (deleted) 
+0x00007ffff7f74000 0x00007ffff7f84000 0x10000            0x0                rw-s  /memfd:umd-pmr-1001 (deleted) 
+0x00007ffff7f84000 0x00007ffff7f88000 0x4000             0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7f88000 0x00007ffff7f9e000 0x16000            0x4000             r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7f9e000 0x00007ffff7fac000 0xe000             0x1a000            r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7fac000 0x00007ffff7fad000 0x1000             0x27000            r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7fad000 0x00007ffff7fae000 0x1000             0x28000            rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7fae000 0x00007ffff7faf000 0x1000             0x0                r--p  /tmp/opencode/shim-gdb.so 
+0x00007ffff7faf000 0x00007ffff7fb5000 0x6000             0x1000             r-xp  /tmp/opencode/shim-gdb.so 
+0x00007ffff7fb5000 0x00007ffff7fb7000 0x2000             0x7000             r--p  /tmp/opencode/shim-gdb.so 
+0x00007ffff7fb7000 0x00007ffff7fb8000 0x1000             0x8000             r--p  /tmp/opencode/shim-gdb.so 
+0x00007ffff7fb8000 0x00007ffff7fb9000 0x1000             0x9000             rw-p  /tmp/opencode/shim-gdb.so 
+0x00007ffff7fb9000 0x00007ffff7fc1000 0x8000             0x0                rw-p   
+0x00007ffff7fc1000 0x00007ffff7fc5000 0x4000             0x0                r--p  [vvar] 
+0x00007ffff7fc5000 0x00007ffff7fc7000 0x2000             0x0                r-xp  [vdso] 
+0x00007ffff7fc7000 0x00007ffff7fc8000 0x1000             0x0                r--p  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7fc8000 0x00007ffff7ff0000 0x28000            0x1000             r-xp  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7ff0000 0x00007ffff7ffb000 0xb000             0x29000            r--p  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7ffb000 0x00007ffff7ffd000 0x2000             0x34000            r--p  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7ffd000 0x00007ffff7ffe000 0x1000             0x36000            rw-p  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7ffe000 0x00007ffff7fff000 0x1000             0x0                rw-p   
+0x00007ffffffde000 0x00007ffffffff000 0x21000            0x0                rw-p  [stack] 
+Kill the program being debugged? (y or n) [answered Y; input not from terminal]
+[Inferior 1 (process 10382) killed]

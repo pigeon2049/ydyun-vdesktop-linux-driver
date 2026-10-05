@@ -57,7 +57,7 @@
 
 ## 下一步（vGPU，按序）
 
-1. **真实绘制 CCB**：check-only kick 已在 legacy 与 `drm_major=2` 路径经真实 DM2 空 marker 完成（r148–r149）。r157 已在 fabricated major 2 blit 中到达 `0x89:0xa`，得到 CCB GPU VA `0x8000f44000` / 长 `0x1200`；r158 已用 VA 台账将其关联到 PMR `0x500e` backing `0x500e000`+`0xf02` 并转储窗口字节（39 非零/FNV 已定，归属成立）；r160 已定位全部 39B 并对照 `SubmissionCmdGenerate` 语料（`+0x10`/`+0x28` 吻合，`+0x40` 的 2B 轮间变化待查）。下一步离线 GDB 对 `+0x40` 下写观察点，或换 producer 闭合扩展区条目算术。shim 回包仍是假的，不能外推为真实提交。
+1. **真实绘制 CCB**：check-only kick 已在 legacy 与 `drm_major=2` 路径经真实 DM2 空 marker 完成（r148–r149）。r157 已在 fabricated major 2 blit 中到达 `0x89:0xa`，得到 CCB GPU VA `0x8000f44000` / 长 `0x1200`；r158 已用 VA 台账将其关联到 PMR `0x500e` backing `0x500e000`+`0xf02` 并转储窗口字节（39 非零/FNV 已定，归属成立）；r160 已定位全部 39B 并对照 `SubmissionCmdGenerate` 语料（`+0x10`/`+0x28` 吻合）；r161 以离线 GDB 落定 `+0x40` 写入者为生成器头拷贝搬运的 job 计数器（活体栈兼证 TQJobSubmit 路径）。下一步换 producer 闭合扩展区条目算术。shim 回包仍是假的，不能外推为真实提交。
 2. **同步 update 语义**：源码已有 update 数组解析与完成后写回，但尚无活体验证；先从已核对 UMD 侧确定布局、可见性和完成条件。
 3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` / `0x81:0x5` 仍属 S4 真提交边界，空 marker 结果不能外推；待取得真实工作包与输入规约后再推进。
 4. 长期：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。
