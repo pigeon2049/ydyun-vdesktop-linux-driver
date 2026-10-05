@@ -10,6 +10,7 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -53,6 +54,129 @@ static FILE *logf;
 static unsigned long seq;
 static int nullfd = -1;
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
+
+/* The offline replay can opt into the DDK2 UMD gate without changing any
+ * real DRM device or kernel state. The default remains the legacy major. */
+static int umd_drm_major(void)
+{
+	const char *value = getenv("UMD_DRM_MAJOR");
+	char *end;
+	long major;
+
+	if (!value || !*value)
+		return 1;
+	major = strtol(value, &end, 10);
+	if (*end || major < 1 || major > 2)
+		return 1;
+	return (int)major;
+}
+
+/* Test-only kick update injection (r148): UMD_INJECT_UPDATE="off:val[:ufo]".
+ * The vendor UMD builds update arrays only from its internal sync table,
+ * which fabricated ladders cannot populate, so update_count always arrives
+ * 0. When set and a 0x88:0x4 kick arrives with update_count==0, the shim
+ * rewrites a COPY of the 84-byte IN to carry one update entry
+ * (offset/value/ufo in shim-static arrays) and forwards the copy.
+ * ufo defaults to the last 0x2:0x0 sync handle seen on that fd.
+ * Strictly env-gated: unset means byte-identical passthrough.
+ */
+#define UMD_INJECT_FDS 16
+static uint64_t inject_sync_handle[UMD_INJECT_FDS];
+static int inject_sync_fd[UMD_INJECT_FDS];
+static uint32_t inject_upd_off, inject_upd_val;
+static uint64_t inject_upd_ufo;
+static int inject_parsed, inject_have;
+
+static void umd_inject_parse(void)
+{
+	const char *spec = getenv("UMD_INJECT_UPDATE");
+	char *end;
+	unsigned long off, val, ufo = 0;
+
+	if (inject_parsed != 0)
+		return;
+	inject_parsed = 1;
+	for (int i = 0; i < UMD_INJECT_FDS; i++)
+		inject_sync_fd[i] = -1;
+	if (!spec || !*spec)
+		return;
+	off = strtoul(spec, &end, 0);
+	if (*end != ':')
+		return;
+	val = strtoul(end + 1, &end, 0);
+	if (*end == ':')
+		ufo = strtoul(end + 1, NULL, 0);
+	inject_upd_off = (uint32_t)off;
+	inject_upd_val = (uint32_t)val;
+	inject_upd_ufo = (uint64_t)ufo;
+	inject_have = 1;
+}
+
+static void umd_inject_note_sync(int fd, uint64_t handle)
+{
+	int slot = -1;
+
+	for (int i = 0; i < UMD_INJECT_FDS; i++) {
+		if (inject_sync_fd[i] == fd)
+			slot = i;
+		if (inject_sync_fd[i] == -1 && slot == -1)
+			slot = i;
+	}
+	if (slot == -1)
+		slot = 0;
+	inject_sync_fd[slot] = fd;
+	inject_sync_handle[slot] = handle;
+}
+
+static uint64_t umd_inject_sync_for(int fd)
+{
+	for (int i = 0; i < UMD_INJECT_FDS; i++)
+		if (inject_sync_fd[i] == fd)
+			return inject_sync_handle[i];
+	return 0;
+}
+
+/* Rewrite a copy of a 0x88:0x4 IN to carry the injected update. Returns the
+ * replacement IN pointer, or 0 to forward untouched. */
+static uint64_t umd_inject_update(int fd, const struct srvkm_cmd *cmd)
+{
+	static uint8_t in_copy[84];
+	static uint32_t arr_off[1], arr_val[1];
+	static uint64_t arr_ufo[1];
+	uint64_t ufo;
+
+	if (!inject_have || cmd->bridge_id != 0x88 || cmd->bridge_func_id != 0x4 ||
+	    cmd->in_size < 84 || !cmd->in_ptr)
+		return 0;
+	memcpy(in_copy, (const void *)(uintptr_t)cmd->in_ptr, 84);
+	/* update_devvar_offset@36, update_value@44, update_ufo_block@52,
+	 * client_update_count@60 (u32). Only fill an empty update side. */
+	if (*(uint32_t *)(in_copy + 60) != 0)
+		return 0;
+	ufo = inject_upd_ufo ? inject_upd_ufo : umd_inject_sync_for(fd);
+	if (!ufo)
+		return 0;
+	arr_off[0] = inject_upd_off;
+	arr_val[0] = inject_upd_val;
+	arr_ufo[0] = ufo;
+	{
+		uint64_t p;
+		p = (uint64_t)(uintptr_t)arr_off;
+		memcpy(in_copy + 36, &p, 8);
+		p = (uint64_t)(uintptr_t)arr_val;
+		memcpy(in_copy + 44, &p, 8);
+		p = (uint64_t)(uintptr_t)arr_ufo;
+		memcpy(in_copy + 52, &p, 8);
+	}
+	{
+		uint32_t one = 1;
+		memcpy(in_copy + 60, &one, 4);
+	}
+	fprintf(stderr,
+		"[umd-shim] injected update {off=%u val=%u ufo=%llu} into 0x88:0x4 on fd %d\n",
+		inject_upd_off, inject_upd_val, (unsigned long long)ufo, fd);
+	return (uint64_t)(uintptr_t)in_copy;
+}
 
 /* Two modes, both useful.
  *
@@ -178,6 +302,229 @@ static int is_umd_fd(int fd)
 		if (umd_fds[i] == fd)
 			return 1;
 	return 0;
+}
+
+/* Optional PMR backing for fabricated replays. Repeated mappings of the same
+ * Services mmap offset must alias the same bytes, as they do when the kernel
+ * maps a PMR. The default shim mode intentionally keeps its historical
+ * independent-anonymous-map behavior; opt in with UMD_SHARED_BACKING=1. */
+static pthread_mutex_t shared_pmr_lock = PTHREAD_MUTEX_INITIALIZER;
+#define SHARED_PMR_BACKING_MAX 64
+struct shared_pmr_backing {
+	uint64_t handle;
+	uint64_t size;
+	int fd;
+};
+static struct shared_pmr_backing shared_pmr_backings[SHARED_PMR_BACKING_MAX];
+static unsigned shared_pmr_backing_count;
+#define SHARED_PMR_MAP_MAX 64
+struct shared_pmr_map {
+	void *addr;
+	size_t len;
+	uint64_t off;
+};
+static struct shared_pmr_map shared_pmr_maps[SHARED_PMR_MAP_MAX];
+static unsigned shared_pmr_map_count;
+
+/* Device-VA ledger for fabricated replays (r158). The shim fabricates
+ * reservation/mapping handles but the UMD picks real VA ranges; recording
+ * the 0x6:0x15 range and the 0x6:0x13 pmr<->reservation link lets a later
+ * 0x89:0xa SubmitTransfer3 resolve its ccb_data VA to a PMR backing.
+ * Bounded tables; guarded by shared_pmr_lock like the maps above. */
+#define VA_TRACK_MAX 128
+struct va_reservation {
+	uint64_t handle;
+	uint64_t addr;
+	uint64_t len;
+	uint64_t heap;
+};
+static struct va_reservation va_reservations[VA_TRACK_MAX];
+static unsigned va_reservation_count;
+struct va_mapping {
+	uint64_t reservation;
+	uint64_t pmr;
+	uint64_t mapping;
+};
+static struct va_mapping va_mappings[VA_TRACK_MAX];
+static unsigned va_mapping_count;
+
+static void va_note_reservation(uint64_t handle, uint64_t addr, uint64_t len,
+				uint64_t heap)
+{
+	unsigned i;
+
+	if (!handle || !len)
+		return;
+	pthread_mutex_lock(&shared_pmr_lock);
+	for (i = 0; i < va_reservation_count; i++) {
+		if (va_reservations[i].handle == handle) {
+			va_reservations[i].addr = addr;
+			va_reservations[i].len = len;
+			va_reservations[i].heap = heap;
+			pthread_mutex_unlock(&shared_pmr_lock);
+			return;
+		}
+	}
+	if (va_reservation_count < VA_TRACK_MAX) {
+		va_reservations[va_reservation_count].handle = handle;
+		va_reservations[va_reservation_count].addr = addr;
+		va_reservations[va_reservation_count].len = len;
+		va_reservations[va_reservation_count].heap = heap;
+		va_reservation_count++;
+	}
+	pthread_mutex_unlock(&shared_pmr_lock);
+}
+
+static void va_note_mapping(uint64_t reservation, uint64_t pmr,
+			    uint64_t mapping)
+{
+	unsigned i;
+
+	if (!reservation)
+		return;
+	pthread_mutex_lock(&shared_pmr_lock);
+	for (i = 0; i < va_mapping_count; i++) {
+		if (va_mappings[i].reservation == reservation) {
+			va_mappings[i].pmr = pmr;
+			va_mappings[i].mapping = mapping;
+			pthread_mutex_unlock(&shared_pmr_lock);
+			return;
+		}
+	}
+	if (va_mapping_count < VA_TRACK_MAX) {
+		va_mappings[va_mapping_count].reservation = reservation;
+		va_mappings[va_mapping_count].pmr = pmr;
+		va_mappings[va_mapping_count].mapping = mapping;
+		va_mapping_count++;
+	}
+	pthread_mutex_unlock(&shared_pmr_lock);
+}
+
+static int umd_shared_backing_enabled(void)
+{
+	const char *mode = getenv("UMD_SHARED_BACKING");
+	return mode && *mode && strcmp(mode, "0");
+}
+
+static int shared_pmr_fd_for(uint64_t handle, size_t len)
+{
+	char name[64];
+	unsigned i;
+	int fd = -1;
+	if (len > (size_t)LLONG_MAX)
+		return -1;
+	pthread_mutex_lock(&shared_pmr_lock);
+	for (i = 0; i < shared_pmr_backing_count; i++)
+		if (shared_pmr_backings[i].handle == handle) {
+			fd = shared_pmr_backings[i].fd;
+			break;
+		}
+	if (fd < 0 && shared_pmr_backing_count < SHARED_PMR_BACKING_MAX) {
+#ifdef SYS_memfd_create
+		snprintf(name, sizeof(name), "umd-pmr-%llx",
+			 (unsigned long long)handle);
+		fd = (int)S_(SYS_memfd_create, (long)name, 1 /* MFD_CLOEXEC */,
+			     0, 0, 0, 0);
+		if (fd >= 0) {
+			struct shared_pmr_backing *backing =
+				&shared_pmr_backings[shared_pmr_backing_count++];
+			backing->handle = handle;
+			backing->size = 0;
+			backing->fd = fd;
+		}
+#endif
+	}
+	if (fd >= 0) {
+		for (i = 0; i < shared_pmr_backing_count; i++)
+			if (shared_pmr_backings[i].handle == handle) {
+				struct shared_pmr_backing *backing =
+					&shared_pmr_backings[i];
+				if ((uint64_t)len > backing->size &&
+				    S_(SYS_ftruncate, fd, (long)len, 0, 0, 0, 0) < 0) {
+					fd = -1;
+					break;
+				}
+				if ((uint64_t)len > backing->size)
+					backing->size = len;
+				break;
+			}
+	}
+	pthread_mutex_unlock(&shared_pmr_lock);
+	return fd;
+}
+
+static void *map_shared_pmr(size_t len, off_t off)
+{
+	uint64_t handle;
+	int fd;
+	long ret;
+
+	if (off < 0 || ((uint64_t)off & 0xfff) || !len)
+		return MAP_FAILED;
+	handle = (uint64_t)off >> 12;
+	fd = shared_pmr_fd_for(handle, len);
+	if (fd < 0)
+		return MAP_FAILED;
+	ret = S_(SYS_mmap, 0, (long)len, PROT_READ | PROT_WRITE,
+		 MAP_SHARED, fd, 0);
+	if (ret >= 0) {
+		pthread_mutex_lock(&shared_pmr_lock);
+		if (shared_pmr_map_count < SHARED_PMR_MAP_MAX) {
+			struct shared_pmr_map *map =
+				&shared_pmr_maps[shared_pmr_map_count++];
+			map->addr = (void *)ret;
+			map->len = len;
+			map->off = (uint64_t)off;
+		}
+		pthread_mutex_unlock(&shared_pmr_lock);
+	}
+	return (void *)ret;
+}
+
+/* Serialize snapshots with unmap and conservatively forget an entire recorded
+ * view when any part is unmapped. Snapshotting a stale address can fault. */
+static long unmap_shared_pmr(void *addr, size_t len)
+{
+	uintptr_t start = (uintptr_t)addr;
+	uintptr_t end = start + len;
+	unsigned i;
+	int tracked = 0;
+	long ret;
+
+	if (end < start)
+		end = UINTPTR_MAX;
+	pthread_mutex_lock(&shared_pmr_lock);
+	for (i = 0; i < shared_pmr_map_count; i++) {
+		uintptr_t map_start = (uintptr_t)shared_pmr_maps[i].addr;
+		uintptr_t map_end = map_start + shared_pmr_maps[i].len;
+		if (map_end < map_start)
+			map_end = UINTPTR_MAX;
+		if (start < map_end && map_start < end) {
+			tracked = 1;
+			break;
+		}
+	}
+	if (!tracked) {
+		pthread_mutex_unlock(&shared_pmr_lock);
+		return S_(SYS_munmap, (long)addr, len, 0, 0, 0, 0);
+	}
+	ret = S_(SYS_munmap, (long)addr, len, 0, 0, 0, 0);
+	if (ret == 0) {
+		for (i = 0; i < shared_pmr_map_count;) {
+			uintptr_t map_start = (uintptr_t)shared_pmr_maps[i].addr;
+			uintptr_t map_end = map_start + shared_pmr_maps[i].len;
+			if (map_end < map_start)
+				map_end = UINTPTR_MAX;
+			if (start < map_end && map_start < end) {
+				shared_pmr_maps[i] =
+					shared_pmr_maps[--shared_pmr_map_count];
+				continue;
+			}
+			i++;
+		}
+	}
+	pthread_mutex_unlock(&shared_pmr_lock);
+	return ret;
 }
 
 /* Canned outputs that carry the UMD past early init checks. Each entry is
@@ -361,6 +708,24 @@ static void fabricate_sync_alloc(uint8_t *out, uint32_t out_size)
 		memcpy(out + 20, &blk, 4);
 }
 
+/* GetMultiCoreInfo (0x1:0xc) OUT is 16B: caps u64@0, eError u32@8,
+ * num_cores u32@12. The target Rogue topology is one core (r28). Echo the
+ * requested caps and report that count so fabricated UMD replays can pass
+ * the same zero-size TDM-store wall fixed by the kernel bridge in r150. */
+static void fabricate_multicore_info(const uint8_t *in, uint32_t in_size,
+				     uint8_t *out, uint32_t out_size)
+{
+	uint64_t caps = 0;
+	uint32_t cores = 1;
+
+	if (in_size >= sizeof(caps))
+		memcpy(&caps, in, sizeof(caps));
+	if (out_size >= 16) {
+		memcpy(out, &caps, sizeof(caps));
+		memcpy(out + 12, &cores, sizeof(cores));
+	}
+}
+
 /* TDM shared memory (0x89:0x5) OUT is 20B: hMem u64@0, hMem u64@8,
  * eError u32@16. Zero handles stall RGXTDMCreateStaticMem at its first
  * TQPMR map (r87); hand out distinct nonzero fabrications the way the
@@ -384,6 +749,8 @@ static void fabricate_tdm_shmem(uint8_t *out, uint32_t out_size)
  * A zero import handle fails the UMD-side Unmake table lookup
  * (FUN_00148330), aborting TQPMR maps (r92); fabricate nonzero. */
 static uint64_t next_import = 0xb000;
+static uint64_t next_local_import_map_handle = 0x1001;
+static uint64_t info_page_map_handle;
 
 static void fabricate_import_handle(uint8_t *out, uint32_t out_size)
 {
@@ -393,6 +760,33 @@ static void fabricate_import_handle(uint8_t *out, uint32_t out_size)
 		return;
 	h = next_import++;
 	memcpy(out, &h, 8);
+}
+
+/* LocalImportPMR returns mmap metadata whose u64 at +16 is the Services
+ * mmap-handle. Give every imported PMR its own handle in shared-backing mode;
+ * otherwise unrelated PMRs all alias the canned 0x1001 offset. Remember the
+ * AcquireInfoPage import so only that PMR receives the synthetic info header. */
+static void fabricate_local_import(const uint8_t *in, uint32_t in_size,
+				   uint8_t *out, uint32_t out_size)
+{
+	static const uint8_t base[28] = {
+		0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+	};
+	uint64_t pmr = 0, map_handle;
+	if (out_size < 28)
+		return;
+	if (in && in_size >= 8)
+		memcpy(&pmr, in, 8);
+	memcpy(out, base, sizeof(base));
+	pthread_mutex_lock(&shared_pmr_lock);
+	map_handle = next_local_import_map_handle++;
+	if (pmr == 0x1000)
+		info_page_map_handle = map_handle;
+	pthread_mutex_unlock(&shared_pmr_lock);
+	memcpy(out + 16, &map_handle, 8);
 }
 
 /* Transfer context (0x89:0x0) OUT is 12B: hContext u64@0, eError u32@8.
@@ -573,6 +967,181 @@ static void log_hex(const char *tag, const void *ptr, uint32_t size)
 		fprintf(logf, ",\"%s_truncated\":%u", tag, size);
 }
 
+/* Optional pre-submit observation of bytes in the shared fabricated PMRs.
+ * This reports occupied-byte counts and the first nonzero window, not a claim
+ * that the bytes are a valid CCB. */
+static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
+			    uint32_t in_size)
+{
+	const uint8_t *in = in_ptr;
+	uint64_t ccb_va = 0;
+	uint32_t ccb_bytes = 0;
+	unsigned i, m;
+	uint64_t res_handle = 0, res_addr = 0, res_len = 0, pmr = 0;
+	int found = 0;
+
+	if (!in || in_size < 108 || submit_func_id != 0xa)
+		return;
+	ensure_log();
+	/* Offsets per mt_pvr_wire.h SubmitTransfer3 ABI (r151): ccb_data@88,
+	 * ccb_bytes@104. */
+	memcpy(&ccb_va, in + 88, 8);
+	memcpy(&ccb_bytes, in + 104, 4);
+	pthread_mutex_lock(&shared_pmr_lock);
+	for (i = 0; i < va_reservation_count; i++) {
+		uint64_t start = va_reservations[i].addr;
+		uint64_t end = start + va_reservations[i].len;
+
+		if (end < start)
+			end = UINTPTR_MAX;
+		if (ccb_va >= start && ccb_bytes &&
+		    ccb_va + ccb_bytes >= ccb_va &&
+		    ccb_va + ccb_bytes <= end) {
+			res_handle = va_reservations[i].handle;
+			res_addr = start;
+			res_len = va_reservations[i].len;
+			found = 1;
+			break;
+		}
+	}
+	if (found) {
+		found = 0;
+		for (m = 0; m < va_mapping_count; m++) {
+			if (va_mappings[m].reservation == res_handle) {
+				pmr = va_mappings[m].pmr;
+				found = 1;
+				break;
+			}
+		}
+	}
+	if (found && logf && !umd_trace_would_exceed(1024)) {
+		uint64_t backing_off = 0;
+		size_t backing_offset = (size_t)(ccb_va - res_addr);
+		const uint8_t *base = NULL;
+		size_t base_len = 0;
+		size_t j, first = 0, nonzero = 0;
+		int have_base = 0;
+
+		for (m = 0; m < shared_pmr_map_count; m++) {
+			if ((shared_pmr_maps[m].off >> 12) == pmr) {
+				base = shared_pmr_maps[m].addr;
+				base_len = shared_pmr_maps[m].len;
+				backing_off = shared_pmr_maps[m].off;
+				have_base = 1;
+				break;
+			}
+		}
+		if (have_base && base && backing_offset + ccb_bytes <= base_len) {
+			first = ccb_bytes;
+			for (j = 0; j < ccb_bytes; j++) {
+				if (!base[backing_offset + j])
+					continue;
+				if (first == ccb_bytes)
+					first = j;
+				nonzero++;
+			}
+		} else {
+			have_base = 0;
+		}
+		fprintf(logf,
+			"{\"seq\":%lu,\"op\":\"ccb_resolve\","
+			"\"submit\":\"0x89:0x%x\","
+			"\"ccb_va\":\"0x%llx\",\"ccb_bytes\":%u,"
+			"\"reservation\":\"0x%llx\",\"res_addr\":\"0x%llx\","
+			"\"res_len\":%llu,\"pmr\":\"0x%llx\","
+			"\"backing_off\":\"0x%llx\",\"backing_offset\":%zu,"
+			"\"resolved\":%d",
+			++seq, submit_func_id,
+			(unsigned long long)ccb_va, ccb_bytes,
+			(unsigned long long)res_handle,
+			(unsigned long long)res_addr,
+			(unsigned long long)res_len,
+			(unsigned long long)pmr,
+			(unsigned long long)backing_off, backing_offset,
+			have_base);
+		if (have_base) {
+			uint64_t hash = 1469598103934665603ULL;
+
+			for (j = 0; j < ccb_bytes; j++) {
+				hash ^= base[backing_offset + j];
+				hash *= 1099511628211ULL;
+			}
+			fprintf(logf, ",\"nonzero_bytes\":%zu,"
+				"\"first_nonzero\":\"0x%zx\","
+				"\"fnv1a64\":\"0x%llx\"", nonzero, first,
+				(unsigned long long)hash);
+			if (ccb_bytes) {
+				size_t sample_len = ccb_bytes;
+				size_t sample_off =
+					first < ccb_bytes ? first : 0;
+
+				if (sample_len > 32)
+					sample_len = 32;
+				if (sample_off + sample_len > ccb_bytes)
+					sample_len = ccb_bytes - sample_off;
+				fprintf(logf, ",");
+				log_hex("sample",
+					base + backing_offset + sample_off,
+					(uint32_t)sample_len);
+			}
+		}
+		fprintf(logf, "}\n");
+	} else if (logf && !umd_trace_would_exceed(512)) {
+		fprintf(logf,
+			"{\"seq\":%lu,\"op\":\"ccb_resolve\","
+			"\"submit\":\"0x89:0x%x\","
+			"\"ccb_va\":\"0x%llx\",\"ccb_bytes\":%u,"
+			"\"resolved\":0}\n",
+			++seq, submit_func_id,
+			(unsigned long long)ccb_va, ccb_bytes);
+	}
+	pthread_mutex_unlock(&shared_pmr_lock);
+}
+
+static void log_shared_pmr_snapshot(uint32_t submit_func_id)
+{
+	const char *enabled = getenv("UMD_SHARED_SNAPSHOT");
+	unsigned count, i;
+	if (!enabled || !*enabled || !strcmp(enabled, "0"))
+		return;
+	ensure_log();
+	pthread_mutex_lock(&shared_pmr_lock);
+	count = shared_pmr_map_count;
+	for (i = 0; i < count; i++) {
+		const uint8_t *bytes = shared_pmr_maps[i].addr;
+		size_t j, first = shared_pmr_maps[i].len, nonzero = 0;
+		if (!bytes)
+			continue;
+		for (j = 0; j < shared_pmr_maps[i].len; j++) {
+			if (!bytes[j])
+				continue;
+			if (first == shared_pmr_maps[i].len)
+				first = j;
+			nonzero++;
+		}
+		if (!logf || umd_trace_would_exceed(512))
+			continue;
+		fprintf(logf,
+			"{\"seq\":%lu,\"op\":\"pmr_snapshot\","
+			"\"submit\":\"0x89:0x%x\","
+			"\"off\":\"0x%llx\",\"len\":%zu,"
+			"\"nonzero_bytes\":%zu,\"first_nonzero\":\"0x%zx\"",
+			++seq, submit_func_id,
+			(unsigned long long)shared_pmr_maps[i].off,
+			shared_pmr_maps[i].len,
+			nonzero, first);
+		if (first < shared_pmr_maps[i].len) {
+			size_t sample_len = shared_pmr_maps[i].len - first;
+			if (sample_len > 32)
+				sample_len = 32;
+			fprintf(logf, ",");
+			log_hex("sample", bytes + first, (uint32_t)sample_len);
+		}
+		fprintf(logf, "}\n");
+	}
+	pthread_mutex_unlock(&shared_pmr_lock);
+}
+
 static int dri_open(const char *path)
 {
 	int fd;
@@ -684,12 +1253,37 @@ int ioctl(int fd, unsigned long req, ...)
 	 * the fabricated one.
 	 */
 	if (pvr_passthrough()) {
-		ret = S_(SYS_ioctl, fd, req, (long)arg, 0, 0, 0);
+		struct srvkm_cmd fwd;
+		uint64_t fwd_arg = (long)arg;
+		umd_inject_parse();
+		if (req == SRVKM_CMD && arg) {
+			memcpy(&fwd, arg, sizeof(fwd));
+			if (fwd.bridge_id == 0x88 && fwd.bridge_func_id == 0x4) {
+				uint64_t alt = umd_inject_update(fd, &fwd);
+				if (alt) {
+					fwd.in_ptr = alt;
+					fwd_arg = (uint64_t)(uintptr_t)&fwd;
+				}
+			}
+		}
+		ret = S_(SYS_ioctl, fd, req, (long)fwd_arg, 0, 0, 0);
+		if (req == SRVKM_CMD && arg) {
+			struct srvkm_cmd cmd;
+
+			memcpy(&cmd, (const void *)(uintptr_t)fwd_arg,
+			       sizeof(cmd));
+			if (cmd.bridge_id == 0x2 && cmd.bridge_func_id == 0x0 &&
+			    ret == 0 && cmd.out_ptr && cmd.out_size >= 8)
+				umd_inject_note_sync(
+					fd,
+					*(const uint64_t *)(uintptr_t)cmd.out_ptr);
+		}
 		if (logf) {
 			if (req == SRVKM_CMD && arg) {
 				struct srvkm_cmd cmd;
 
-				memcpy(&cmd, arg, sizeof(cmd));
+				memcpy(&cmd, (const void *)(uintptr_t)fwd_arg,
+				       sizeof(cmd));
 				fprintf(logf,
 					"{\"seq\":%lu,\"op\":\"ioctl_real\","
 					"\"fd\":%d,\"bridge\":\"0x%x:0x%x\","
@@ -736,7 +1330,7 @@ int ioctl(int fd, unsigned long req, ...)
 		 * the UMD proceeds to the Services handshake. */
 		struct drm_version *v = arg;
 		if (!v->name || !v->name_len) {
-			v->major = 1;
+			v->major = umd_drm_major();
 			v->minor = 0;
 			v->patch = 0;
 			v->name_len = 4;
@@ -749,6 +1343,7 @@ int ioctl(int fd, unsigned long req, ...)
 		}
 		if (v->name_len >= 4)
 			memcpy(v->name, "pvr", 4);
+		v->major = umd_drm_major();
 		v->name_len = 4;
 		if (v->date && v->date_len >= 1)
 			v->date[0] = '\0';
@@ -772,6 +1367,15 @@ int ioctl(int fd, unsigned long req, ...)
 			return 0;
 		}
 		memcpy(&cmd, arg, sizeof(cmd));
+		if (cmd.bridge_id == 0x89 &&
+		    (cmd.bridge_func_id == 0x4 || cmd.bridge_func_id == 0xa) &&
+		    umd_shared_backing_enabled()) {
+			log_shared_pmr_snapshot(cmd.bridge_func_id);
+			if (cmd.bridge_func_id == 0xa)
+				log_ccb_resolve(cmd.bridge_func_id,
+						(const void *)(uintptr_t)cmd.in_ptr,
+						cmd.in_size);
+		}
 		{
 			/* UMD_TRAP="bridge:func" raises SIGTRAP when that
 			 * bridge fires, so gdb captures the caller stack. */
@@ -839,6 +1443,12 @@ int ioctl(int fd, unsigned long req, ...)
 					(const uint8_t *)(uintptr_t)cmd.in_ptr,
 					cmd.in_size,
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x6 &&
+				 umd_shared_backing_enabled())
+				fabricate_local_import(
+					(const uint8_t *)(uintptr_t)cmd.in_ptr,
+					cmd.in_size,
+					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
 			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x3)
 				fabricate_import_handle(
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
@@ -849,16 +1459,56 @@ int ioctl(int fd, unsigned long req, ...)
 			else if (cmd.bridge_id == 0x2 && cmd.bridge_func_id == 0x0)
 				fabricate_sync_alloc(
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
-			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x13)
+			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x13) {
 				fabricate_handle_out(&next_mapping,
 						     (uint8_t *)(uintptr_t)cmd.out_ptr,
 						     n, 12);
-			else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x15)
+				if (cmd.in_ptr && cmd.in_size >= 24 && n >= 8) {
+					uint64_t pmr = 0, res = 0, mapping = 0;
+
+					memcpy(&pmr,
+					       (const void *)(uintptr_t)cmd.in_ptr + 8,
+					       8);
+					memcpy(&res,
+					       (const void *)(uintptr_t)cmd.in_ptr + 16,
+					       8);
+					memcpy(&mapping,
+					       (const void *)(uintptr_t)cmd.out_ptr,
+					       8);
+					va_note_mapping(res, pmr, mapping);
+				}
+			} else if (cmd.bridge_id == 0x6 && cmd.bridge_func_id == 0x15) {
 				fabricate_handle_out(&next_reservation,
 						     (uint8_t *)(uintptr_t)cmd.out_ptr,
 						     n, 12);
+				if (cmd.in_ptr && cmd.in_size >= 24 && n >= 8) {
+					uint64_t addr = 0, len = 0, heap = 0,
+						 res = 0;
+
+					memcpy(&addr,
+					       (const void *)(uintptr_t)cmd.in_ptr,
+					       8);
+					memcpy(&len,
+					       (const void *)(uintptr_t)cmd.in_ptr + 8,
+					       8);
+					memcpy(&heap,
+					       (const void *)(uintptr_t)cmd.in_ptr + 16,
+					       8);
+					memcpy(&res,
+					       (const void *)(uintptr_t)cmd.out_ptr,
+					       8);
+					va_note_reservation(res, addr, len,
+							    heap);
+				}
+			}
 			else if (cmd.bridge_id == 0x89 && cmd.bridge_func_id == 0x5)
 				fabricate_tdm_shmem(
+					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
+			else if (cmd.bridge_id == 0x1 && cmd.bridge_func_id == 0xc &&
+				 cmd.in_ptr && cmd.in_size)
+				fabricate_multicore_info(
+					(const uint8_t *)(uintptr_t)cmd.in_ptr,
+					cmd.in_size,
 					(uint8_t *)(uintptr_t)cmd.out_ptr, n);
 			else
 				apply_canned(cmd.bridge_id, cmd.bridge_func_id,
@@ -932,7 +1582,7 @@ void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off64_t off)
 
 int munmap(void *addr, size_t len)
 {
-	int ret = (int)S_(SYS_munmap, (long)addr, len, 0, 0, 0, 0);
+	int ret = (int)unmap_shared_pmr(addr, len);
 	/* Same reasoning as mmap(): unmapping the process's own anonymous
 	 * allocations carries no UMD signal and floods the trace. Only record
 	 * a munmap whose address was handed out by a file-backed mapping we
@@ -1047,6 +1697,24 @@ long syscall(long n, ...)
 			return (long)p;
 		}
 		if (is_umd_fd(fd)) {
+			int shared = umd_shared_backing_enabled();
+			if (shared) {
+				p = map_shared_pmr(len, off);
+				/* The info page is itself a PMR. Its imported mmap
+				 * handle is tracked from 0x6:0x6; other PMRs must not
+				 * receive this synthetic header. */
+				if (p != MAP_FAILED && off >= 0 &&
+				    info_page_map_handle &&
+				    ((uint64_t)off >> 12) == info_page_map_handle)
+					fill_info_page(p, len);
+				if (logf && !umd_trace_would_exceed(512))
+					fprintf(logf,
+						"{\"seq\":%lu,\"op\":\"mmap_fabricated\","
+						"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","
+						"\"backing\":\"shared\",\"ret\":\"%p\"}\n",
+						++seq, fd, len, (unsigned long)off, p);
+				return (long)p;
+			}
 			p = (void *)S_(SYS_mmap, 0, (long)len,
 					PROT_READ | PROT_WRITE,
 					MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
