@@ -199,6 +199,7 @@ static int resolving_stat(void) { return resolving_stat_flag; }
 static void set_resolving_stat(int v) { resolving_stat_flag = v; }
 
 static int umd_trace_would_exceed(size_t line);
+static long umd_tid(void);
 
 /* Addresses of file-backed mappings this shim recorded, so munmap() can tell a
  * UMD mapping (worth a log line) from the process's own anonymous ones (noise).
@@ -241,8 +242,8 @@ static void log_path_probe(const char *op, const char *path, int ret)
 	ensure_log();
 	if (logf && !umd_trace_would_exceed(512))
 		fprintf(logf,
-			"{\"seq\":%lu,\"op\":\"%s\",\"path\":\"%s\",\"ret\":%d}\n",
-			++seq, op, path, ret);
+			"{\"seq\":%lu,\"tid\":%ld,\"op\":\"%s\",\"path\":\"%s\",\"ret\":%d}\n",
+			++seq, umd_tid(), op, path, ret);
 }
 
 /* Record every open the UMD makes, whichever libc entry point it used.
@@ -256,8 +257,8 @@ static void log_open(const char *op, const char *path, int fd)
 {
 	ensure_log();
 	if (logf && !umd_trace_would_exceed(512))
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"%s\",\"path\":\"%s\","
-			"\"fd\":%d}\n", ++seq, op, path, fd);
+		fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"%s\",\"path\":\"%s\","
+			"\"fd\":%d}\n", ++seq, umd_tid(), op, path, fd);
 }
 
 static int pvr_passthrough(void)
@@ -282,6 +283,13 @@ static long S_(long n, long a, long b, long c, long d, long e, long f)
 			   "r"(r10), "r"(r8), "r"(r9)
 			 : "rcx", "r11", "memory");
 	return ret;
+}
+
+/* Calling thread id, for attributing interleaved UMD worker traffic (r168).
+ * Raw syscall: this file interposes libc entry points, so call S_ direct. */
+static long umd_tid(void)
+{
+	return S_(SYS_gettid, 0, 0, 0, 0, 0, 0);
 }
 
 /* FDs handed to the UMD for /dev/dri nodes (backed by /dev/null). */
@@ -1044,14 +1052,14 @@ static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
 			have_base = 0;
 		}
 		fprintf(logf,
-			"{\"seq\":%lu,\"op\":\"ccb_resolve\","
+			"{\"seq\":%lu,\"tid\":%ld,\"op\":\"ccb_resolve\","
 			"\"submit\":\"0x89:0x%x\","
 			"\"ccb_va\":\"0x%llx\",\"ccb_bytes\":%u,"
 			"\"reservation\":\"0x%llx\",\"res_addr\":\"0x%llx\","
 			"\"res_len\":%llu,\"pmr\":\"0x%llx\","
 			"\"backing_off\":\"0x%llx\",\"backing_offset\":%zu,"
 			"\"resolved\":%d",
-			++seq, submit_func_id,
+			++seq, umd_tid(), submit_func_id,
 			(unsigned long long)ccb_va, ccb_bytes,
 			(unsigned long long)res_handle,
 			(unsigned long long)res_addr,
@@ -1126,11 +1134,11 @@ static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
 		fprintf(logf, "}\n");
 	} else if (logf && !umd_trace_would_exceed(512)) {
 		fprintf(logf,
-			"{\"seq\":%lu,\"op\":\"ccb_resolve\","
+			"{\"seq\":%lu,\"tid\":%ld,\"op\":\"ccb_resolve\","
 			"\"submit\":\"0x89:0x%x\","
 			"\"ccb_va\":\"0x%llx\",\"ccb_bytes\":%u,"
 			"\"resolved\":0}\n",
-			++seq, submit_func_id,
+			++seq, umd_tid(), submit_func_id,
 			(unsigned long long)ccb_va, ccb_bytes);
 	}
 	pthread_mutex_unlock(&shared_pmr_lock);
@@ -1160,11 +1168,11 @@ static void log_shared_pmr_snapshot(uint32_t submit_func_id)
 		if (!logf || umd_trace_would_exceed(512))
 			continue;
 		fprintf(logf,
-			"{\"seq\":%lu,\"op\":\"pmr_snapshot\","
+			"{\"seq\":%lu,\"tid\":%ld,\"op\":\"pmr_snapshot\","
 			"\"submit\":\"0x89:0x%x\","
 			"\"off\":\"0x%llx\",\"len\":%zu,"
 			"\"nonzero_bytes\":%zu,\"first_nonzero\":\"0x%zx\"",
-			++seq, submit_func_id,
+			++seq, umd_tid(), submit_func_id,
 			(unsigned long long)shared_pmr_maps[i].off,
 			shared_pmr_maps[i].len,
 			nonzero, first);
@@ -1187,8 +1195,8 @@ static int dri_open(const char *path)
 	fd = (int)S_(SYS_dup, devnull(), 0, 0, 0, 0, 0);
 	track_umd_fd(fd);
 	if (logf && !umd_trace_would_exceed(512))
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"open\",\"path\":\"%s\",\"fd\":%d}\n",
-			++seq, path ? path : "?", fd);
+		fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"open\",\"path\":\"%s\",\"fd\":%d}\n",
+			++seq, umd_tid(), path ? path : "?", fd);
 	return fd;
 }
 
@@ -1207,8 +1215,8 @@ int open(const char *path, int flags, ...)
 		int fd = (int)S_(SYS_openat, AT_FDCWD, (long)path, flags, mode, 0, 0);
 		ensure_log();
 		if (logf && !umd_trace_would_exceed(512))
-			fprintf(logf, "{\"seq\":%lu,\"op\":\"open_other\",\"path\":\"%s\","
-				"\"fd\":%d}\n", ++seq, path, fd);
+			fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"open_other\",\"path\":\"%s\","
+				"\"fd\":%d}\n", ++seq, umd_tid(), path, fd);
 		return fd;
 	}
 }
@@ -1323,10 +1331,10 @@ int ioctl(int fd, unsigned long req, ...)
 				memcpy(&cmd, (const void *)(uintptr_t)fwd_arg,
 				       sizeof(cmd));
 				fprintf(logf,
-					"{\"seq\":%lu,\"op\":\"ioctl_real\","
+					"{\"seq\":%lu,\"tid\":%ld,\"op\":\"ioctl_real\","
 					"\"fd\":%d,\"bridge\":\"0x%x:0x%x\","
 					"\"in_size\":%u,\"out_size\":%u,",
-					++seq, fd, cmd.bridge_id,
+					++seq, umd_tid(), fd, cmd.bridge_id,
 					cmd.bridge_func_id, cmd.in_size,
 					cmd.out_size);
 				if (dump_bridge_match(cmd.bridge_id,
@@ -1354,9 +1362,9 @@ int ioctl(int fd, unsigned long req, ...)
 				fprintf(logf, "\"ret\":%ld}\n", ret);
 			} else {
 				fprintf(logf,
-					"{\"seq\":%lu,\"op\":\"ioctl_real\","
+					"{\"seq\":%lu,\"tid\":%ld,\"op\":\"ioctl_real\","
 					"\"fd\":%d,\"req\":\"0x%lx\",\"ret\":%ld}\n",
-					++seq, fd, req, ret);
+					++seq, umd_tid(), fd, req, ret);
 			}
 		}
 		return (int)ret;
@@ -1375,8 +1383,8 @@ int ioctl(int fd, unsigned long req, ...)
 			v->date_len = 1;
 			v->desc_len = 1;
 			if (logf && !umd_trace_would_exceed(512))
-				fprintf(logf, "{\"seq\":%lu,\"op\":\"version_probe\","
-					"\"fd\":%d,\"ret\":0}\n", ++seq, fd);
+				fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"version_probe\","
+					"\"fd\":%d,\"ret\":0}\n", ++seq, umd_tid(), fd);
 			return 0;
 		}
 		if (v->name_len >= 4)
@@ -1390,18 +1398,18 @@ int ioctl(int fd, unsigned long req, ...)
 			v->desc[0] = '\0';
 		v->desc_len = 1;
 		if (logf && !umd_trace_would_exceed(512))
-			fprintf(logf, "{\"seq\":%lu,\"op\":\"version_claim\","
+			fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"version_claim\","
 				"\"fd\":%d,\"name\":\"mtgpu\",\"ret\":0}\n",
-				++seq, fd);
+				++seq, umd_tid(), fd);
 		return 0;
 	}
 
 	if ((req == SRVKM_CMD || req == SRVKM_INIT) && arg) {
 		if (req == SRVKM_INIT) {
 			if (logf && !umd_trace_would_exceed(512))
-				fprintf(logf, "{\"seq\":%lu,\"op\":\"ioctl\",\"fd\":%d,"
+				fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"ioctl\",\"fd\":%d,"
 					"\"req\":\"0x%lx\",\"init_module\":%u,\"ret\":0}\n",
-					++seq, fd, req, *(uint32_t *)arg);
+					++seq, umd_tid(), fd, req, *(uint32_t *)arg);
 			return 0;
 		}
 		memcpy(&cmd, arg, sizeof(cmd));
@@ -1424,9 +1432,9 @@ int ioctl(int fd, unsigned long req, ...)
 				raise(SIGTRAP);
 		}
 		if (logf) {
-			fprintf(logf, "{\"seq\":%lu,\"op\":\"ioctl\",\"fd\":%d,"
+			fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"ioctl\",\"fd\":%d,"
 				"\"bridge\":\"0x%x:0x%x\",\"in_size\":%u,\"out_size\":%u,",
-				++seq, fd, cmd.bridge_id, cmd.bridge_func_id,
+				++seq, umd_tid(), fd, cmd.bridge_id, cmd.bridge_func_id,
 				cmd.in_size, cmd.out_size);
 			if (cmd.in_ptr && cmd.in_size) {
 				log_hex("in", (const void *)(uintptr_t)cmd.in_ptr,
@@ -1570,17 +1578,17 @@ int ioctl(int fd, unsigned long req, ...)
 		if (nr >= 0x40 && nr <= 0x45 && req != SRVKM_CMD) {
 			ensure_log();
 			if (logf && !umd_trace_would_exceed(512))
-				fprintf(logf, "{\"seq\":%lu,\"op\":\"pvr_sync_ioctl\","
+				fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"pvr_sync_ioctl\","
 					"\"fd\":%d,\"req\":\"0x%lx\",\"ret\":0}\n",
-					++seq, fd, req);
+					++seq, umd_tid(), fd, req);
 			return 0;
 		}
 	}
 
 	ret = S_(SYS_ioctl, fd, req, (long)arg, 0, 0, 0);
 	if (logf && !umd_trace_would_exceed(512))
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"ioctl_passthrough\",\"fd\":%d,"
-			"\"req\":\"0x%lx\",\"ret\":%ld}\n", ++seq, fd, req, ret);
+		fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"ioctl_passthrough\",\"fd\":%d,"
+			"\"req\":\"0x%lx\",\"ret\":%ld}\n", ++seq, umd_tid(), fd, req, ret);
 	return (int)ret;
 }
 
@@ -1597,9 +1605,9 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off)
 		umd_map_remember(ret);
 		ensure_log();
 		if (logf && !umd_trace_would_exceed(512))
-			fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap\",\"fd\":%d,"
+			fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"mmap\",\"fd\":%d,"
 				"\"len\":%zu,\"off\":\"0x%lx\",\"ret\":\"%p\"}\n",
-				++seq, fd, len, (unsigned long)off, ret);
+				++seq, umd_tid(), fd, len, (unsigned long)off, ret);
 	}
 	return ret;
 }
@@ -1611,9 +1619,9 @@ void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off64_t off)
 		umd_map_remember(ret);
 		ensure_log();
 		if (logf && !umd_trace_would_exceed(512))
-			fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap\",\"fd\":%d,"
+			fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"mmap\",\"fd\":%d,"
 				"\"len\":%zu,\"off\":\"0x%llx\",\"ret\":\"%p\"}\n",
-				++seq, fd, len, (unsigned long long)off, ret);
+				++seq, umd_tid(), fd, len, (unsigned long long)off, ret);
 	}
 	return ret;
 }
@@ -1629,8 +1637,8 @@ int munmap(void *addr, size_t len)
 	if (umd_mmap_is_interesting(addr)) {
 		ensure_log();
 		if (logf && !umd_trace_would_exceed(512))
-			fprintf(logf, "{\"seq\":%lu,\"op\":\"munmap\",\"addr\":\"%p\","
-				"\"len\":%zu,\"ret\":%d}\n", ++seq, addr, len, ret);
+			fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"munmap\",\"addr\":\"%p\","
+				"\"len\":%zu,\"ret\":%d}\n", ++seq, umd_tid(), addr, len, ret);
 	}
 	return ret;
 }
@@ -1643,9 +1651,9 @@ ssize_t read(int fd, void *buf, size_t count)
 	 * the trace (tens of millions of lines) and fills /tmp. Log reads
 	 * only when explicitly asked. Bridge/ioctl/mmap logging is unaffected. */
 	if (logf && getenv("UMD_TRACE_READ") && (fd > 2 || ret > 0))
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"read\",\"fd\":%d,"
+		fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"read\",\"fd\":%d,"
 			"\"count\":%zu,\"ret\":%zd}\n",
-			++seq, fd, count, ret);
+			++seq, umd_tid(), fd, count, ret);
 	return ret;
 }
 
@@ -1654,9 +1662,9 @@ ssize_t pread(int fd, void *buf, size_t count, off_t off)
 	ssize_t ret = S_(SYS_pread64, fd, (long)buf, count, (long)off, 0, 0);
 	ensure_log();
 	if (logf && !umd_trace_would_exceed(512))
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"pread\",\"fd\":%d,"
+		fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"pread\",\"fd\":%d,"
 			"\"count\":%zu,\"off\":\"0x%lx\",\"ret\":%zd}\n",
-			++seq, fd, count, (unsigned long)off, ret);
+			++seq, umd_tid(), fd, count, (unsigned long)off, ret);
 	return ret;
 }
 
@@ -1665,9 +1673,9 @@ ssize_t pread64(int fd, void *buf, size_t count, off64_t off)
 	ssize_t ret = S_(SYS_pread64, fd, (long)buf, count, (long)off, 0, 0);
 	ensure_log();
 	if (logf && !umd_trace_would_exceed(512))
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"pread\",\"fd\":%d,"
+		fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"pread\",\"fd\":%d,"
 			"\"count\":%zu,\"off\":\"0x%llx\",\"ret\":%zd}\n",
-			++seq, fd, count, (unsigned long long)off, ret);
+			++seq, umd_tid(), fd, count, (unsigned long long)off, ret);
 	return ret;
 }
 
@@ -1676,9 +1684,9 @@ off_t lseek(int fd, off_t off, int whence)
 	off_t ret = (off_t)S_(SYS_lseek, fd, off, whence, 0, 0, 0);
 	ensure_log();
 	if (logf && fd > 2)
-		fprintf(logf, "{\"seq\":%lu,\"op\":\"lseek\",\"fd\":%d,"
+		fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"lseek\",\"fd\":%d,"
 			"\"off\":\"0x%lx\",\"whence\":%d,\"ret\":\"0x%lx\"}\n",
-			++seq, fd, (unsigned long)off, whence,
+			++seq, umd_tid(), fd, (unsigned long)off, whence,
 			(unsigned long)ret);
 	return ret;
 }
@@ -1728,10 +1736,10 @@ long syscall(long n, ...)
 			p = (void *)S_(SYS_mmap, (long)addr, (long)len, prot,
 				       flags, fd, (long)off);
 			if (logf && !umd_trace_would_exceed(512))
-				fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap_real\","
+				fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"mmap_real\","
 					"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","
 					"\"ret\":\"%p\"}\n",
-					++seq, fd, len, (unsigned long)off, p);
+					++seq, umd_tid(), fd, len, (unsigned long)off, p);
 			return (long)p;
 		}
 		if (is_umd_fd(fd)) {
@@ -1747,10 +1755,10 @@ long syscall(long n, ...)
 					fill_info_page(p, len);
 				if (logf && !umd_trace_would_exceed(512))
 					fprintf(logf,
-						"{\"seq\":%lu,\"op\":\"mmap_fabricated\","
+						"{\"seq\":%lu,\"tid\":%ld,\"op\":\"mmap_fabricated\","
 						"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","
 						"\"backing\":\"shared\",\"ret\":\"%p\"}\n",
-						++seq, fd, len, (unsigned long)off, p);
+						++seq, umd_tid(), fd, len, (unsigned long)off, p);
 				return (long)p;
 			}
 			p = (void *)S_(SYS_mmap, 0, (long)len,
@@ -1759,10 +1767,10 @@ long syscall(long n, ...)
 			if (p != MAP_FAILED)
 				fill_info_page(p, len);
 			if (logf && !umd_trace_would_exceed(512))
-				fprintf(logf, "{\"seq\":%lu,\"op\":\"mmap_fabricated\","
+				fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"mmap_fabricated\","
 					"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","
 					"\"ret\":\"%p\"}\n",
-					++seq, fd, len, (unsigned long)off, p);
+					++seq, umd_tid(), fd, len, (unsigned long)off, p);
 			return (long)p;
 		}
 		return S_(SYS_mmap, (long)addr, (long)len, prot, flags, fd,

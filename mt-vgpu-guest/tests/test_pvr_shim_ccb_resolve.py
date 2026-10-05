@@ -133,6 +133,9 @@ class FabricatedCcbResolve(unittest.TestCase):
                          'ccb resolve probe failed: %s%s' %
                          (result.stdout, result.stderr))
         rows = [json.loads(line) for line in self.trace.read_text().splitlines()]
+        tids = {row.get('tid') for row in rows if 'tid' in row}
+        self.assertTrue(tids, 'trace records must carry tid (r168)')
+        self.assertTrue(all(isinstance(t, int) and t > 0 for t in tids))
         resolves = [row for row in rows if row.get('op') == 'ccb_resolve']
         self.assertEqual(len(resolves), 2)
         ok, miss = resolves
