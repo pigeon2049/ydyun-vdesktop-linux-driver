@@ -122,6 +122,7 @@
 | r165 | 复核：门禁/重放/证据链全绿，订正 STATUS 两处过期（CCB 归属、update 语义） |
 | r166 | 活体会話重建（批准执行）：Guest/FW 2/2 pinned，桥默认加载，L3 全绿，freeze |
 | r167 | L4 部分通过（rung1–3 绿；rung5 阻于 UMD 侧 NULL+8，桥无罪，会话健康 freeze 继续） |
+| r168 | trace 加 tid：单线程排除交错；ASLR/SMP/perturb 全排除，发布者仍未命名（批准执行，会话健康） |
 
 ## 关键单篇（本轮最常用）
 
