@@ -141,6 +141,10 @@ class FabricatedCcbResolve(unittest.TestCase):
         self.assertEqual(ok.get('ccb_bytes'), 0x100)
         self.assertEqual(ok.get('backing_offset'), 0x100)
         self.assertEqual(ok.get('nonzero_bytes'), 0x100)
+        self.assertEqual(ok.get('runs'),
+                         [{'o': 0,
+                           'b': ''.join('%02x' % ((i % 255) + 1)
+                                        for i in range(64))}])
         self.assertEqual(miss.get('resolved'), 0)
 
         # Reverse check: without shared backing no resolve record exists.

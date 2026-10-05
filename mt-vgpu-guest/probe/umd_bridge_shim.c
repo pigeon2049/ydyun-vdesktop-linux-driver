@@ -1083,6 +1083,44 @@ static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
 				log_hex("sample",
 					base + backing_offset + sample_off,
 					(uint32_t)sample_len);
+				/* Sparse-window runs: every nonzero run as
+				 * offset + up to 64B hex, capped at 32 runs so
+				 * a dense buffer cannot flood the trace. */
+				fprintf(logf, ",\"runs\":[");
+				{
+					size_t r = 0, k = sample_off;
+
+					while (k < ccb_bytes && r < 32) {
+						size_t start, len;
+
+						while (k < ccb_bytes &&
+						       !base[backing_offset + k])
+							k++;
+						if (k >= ccb_bytes)
+							break;
+						start = k;
+						len = 0;
+						while (k < ccb_bytes &&
+						       base[backing_offset + k] &&
+						       len < 64) {
+							k++;
+							len++;
+						}
+						fprintf(logf, "%s{\"o\":%zu,\"b\":\"",
+							r ? "," : "", start);
+						log_hex_bytes(
+							base + backing_offset + start,
+							(uint32_t)len);
+						fprintf(logf, "\"}");
+						r++;
+						if (len == 64) {
+							while (k < ccb_bytes &&
+							       base[backing_offset + k])
+								k++;
+						}
+					}
+				}
+				fprintf(logf, "]");
 			}
 		}
 		fprintf(logf, "}\n");
