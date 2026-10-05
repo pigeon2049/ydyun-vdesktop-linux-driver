@@ -1,8 +1,8 @@
 # S3000 vGPU 驱动适配 —— 阶段进度快照
 
-**快照时间**：2026-10-03
+**快照时间**：2026-10-05
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
-**对应提交**：`39b150b`（内容基线：最后一次改动本文件快照内容的提交；
+**对应提交**：`e9dd6a7`（内容基线：最后一次改动本文件快照内容的提交；
 纯文档整理提交若未动本文件，不推进该指针，避免 amend 死循环）
 **新 agent 入口**：先读仓库根 [`STATUS.md`](STATUS.md)，再读本文件对应章节。
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
@@ -172,13 +172,17 @@ RGXCreateRenderContext
 
 ---
 
-## 5. 下一步（按序；r148–r149 后更新）
+## 5. 下一步（按序；r157–r163 后更新）
 
 1. **真实绘制 CCB**：r148/r149 已证明 check-only kick 可在 legacy 与
-   `drm_major=2` 路径经真实 DM2 空 marker 完成；仍缺完整绘制路径产出的非零
-   CCB 内容。先从 Rogue2D/TransferContext 创建链拿到可复现输入，再定翻译范围。
-2. **同步 update 语义**：当前源码有 update 数组解析和 marker 完成后写回，尚无活体验证。
-   先按已核对的 UMD 版本确定数组布局、可见性和完成条件；未验证前不将其视为已支持。
+   `drm_major=2` 路径经真实 DM2 空 marker 完成；离屏 fill 的非零 CCB 窗口
+   已在 fabricated major 2 blit 中取得并归属（`0x8000f44000`/`0x1200`，
+   39B 全定位，`+0x10`/`+0x28` 与 `SubmissionCmdGenerate` 吻合，`+0x40`
+   为 job 计数器；r157–r163）。仍缺：第二份独立 CCB 样本（copy 系 producer
+   在 fabrication 下同点 abort，不可达）与翻译范围的最终确定。
+2. **同步 update 语义**：布局/可见性/完成条件已由核对过的 UMD 离线确定
+   （r159：`flag&2` 条目、sync-block 句柄+相对偏移、先写回后交 fd），
+   `flag&2` 来源与活体验证待可重建会话；未验证前不视为已支持。
 3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` 与 `0x81:0x5` 仍是 S4 真提交边界；
    空 marker 结果不推及这些路径。真实工作包与输入规约确认后再推进。
 
@@ -188,8 +192,8 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **234 项通过**（r45–r71 新增 arena/kick-inspect 等门禁；r88 新增 TDM 5 项；r126 新增首帧 envelope 8 项；本轮重跑全绿） |
-| C RAM 模型测试 | **268 checks**（10-03 L1 复核全绿） |
+| Python 测试 | **269 项通过，1 skip**（r88 TDM 5 项；r126 首帧 envelope；r141–r143 DDK2 建销；r152 multicore；r155 shared backing；r157 DRM major；r158/r160 CCB resolve；本轮重跑全绿） |
+| C RAM 模型测试 | **272 checks**（r157–r163 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
 | 节点探针 `pvr_node_probe` | 0 failing step、0 value mismatch |
@@ -208,6 +212,17 @@ RGXCreateRenderContext
 | `test_pvr_kick_packet.py` | kick 包 + inspect | `0x88:0x4` 84 字节字段偏移（编译期 offsetof）与两次真实捕获；inspect 路径只用结构体、无裸偏移读、失败只降级 |
 | `test_pvr_session_ops.py` | bind-path prereqs | 40 位 mask 显式设置；无符号表机制（`__symbol_get` 不可用，不断言 export） |
 | `test_live_tqx_dma_source.py` | DMA 源 | TQX DMA-source 路径的 IOVA/GPU-PA 分离 |
+| `test_pvr_tdm_shmem.py` | 5 | `0x89` TDM 共享内存桥（r88；离线实现，未加载） |
+| `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
+| `test_pvr_multicore_info.py` | 3 | `0x1:0xc` 回显 caps、单核（r152） |
+| `test_pvr_translator.py` | 6 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随（含反向；r126/r147–r148/r159） |
+| `test_pvr_ddk2_render2.py` | 5 | DDK2 render 建销（r142；OUT 以活体 12 为准） |
+| `test_pvr_ddk2_kicksync2.py` | 3 | DDK2 CCB 建销（r143） |
+| `test_pvr_drm_major_gate.py` | 3 | 桥 `drm_major` 参数选路（r134；只读，不加载） |
+| `test_pvr_heap_layout.py` | 2 | 堆几何基础断言 |
+| `test_pvr_shim_drm_major.py` | 3 | shim major 默认 1/opt-in 2/非法值回退（r157） |
+| `test_pvr_shim_shared_backing.py` | 1 | shared backing 别名/隔离 + 提交前 snapshot（r155） |
+| `test_pvr_shim_ccb_resolve.py` | 1 | CCB VA→PMR 归属 + runs 形状 + 越界/反向（r158/r160） |
 | C: `pvr_arena_plan_test` / `system_dma_pages_test` | plan/DMA 页 | arena + per-page 绑定覆盖 12 kick ranges；DMA 页解析与线性连续守卫 |
 
 设计要点：`test_pvr_heap_name_evidence.py` 已从“已知缺陷记录”
