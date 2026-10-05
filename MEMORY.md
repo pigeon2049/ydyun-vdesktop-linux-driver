@@ -9,20 +9,20 @@
 > 2026-10-05 起归档于 [`MEMORY-HISTORY-2026-10-05.md`](MEMORY-HISTORY-2026-10-05.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-05（r158 Submit3 CCB VA→PMR 已关联并转储；归属成立）
+最后更新：2026-10-05（r160 CCB 窗口字段对照；r159 见正文）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
 
-## 本次会话进展（r158：SubmitTransfer3 CCB VA→PMR 关联与转储）
+## 本次会话进展（r160：SubmitTransfer3 CCB 窗口字段对照）
 
-- 零硬件触碰。shim 新增 VA 台账（`0x6:0x15` reservation 范围 + `0x6:0x13` pmr↔reservation），`0x89:0xa` 提交前按 r151 ABI（ccb@88/bytes@104）解出 VA 并定位 backing，记 `ccb_resolve`（窗内非零数/首非零/FNV-1a/32B 采样；不可达记 `resolved:0`）。
-- 重放 `musa_blit_test -device 0 -f -o`（major 2 + shared backing，`timeout -s KILL 15` 终止，UMD 不退出与 r157 相同）：Submit3 解码 `check=0/update=2/pmr_sync=0/ccb=0x8000f44000/0x1200`；`ccb_resolve` 给出 reservation `0x900d`（`0x8000f430fe`+`0xa00fff`）→ PMR `0x500e` → backing `0x500e000`+`0xf02`，窗内 39 非零、首非零 `+0x10`、FNV `0xb9e0f1a18201bf0f`；整块 10MB backing 非零同样 39、首非零 `0xf12`（=`0xf02+0x10`）、采样相同，归属成立。shim 回包仍 fabricated，不证明执行。
-- 门禁全绿：269 Python（1 skip，含新增 `test_pvr_shim_ccb_resolve`：合成 reserve→map→mmap→写 pattern→Submit 断言 `resolved/backing_offset/nonzero` 与越界 `resolved:0`，反向关 shared backing 无记录）+272 C，shim `-Werror` 通过。`lsmod` 无 `mt_*`。下一步对照 `SubmissionCmdGenerate` 语料解读 39B 稀疏窗口。
+- 零硬件触碰。shim `ccb_resolve` 加 `runs`（非零 runs 上限 32，合成门禁断言首 run）；单轮 blit 重放（major 2 + shared backing）27 runs 恰好覆盖窗内 39B。`+0x10`=CCB+`0x58`、`+0x28`=`0x1078` 与语料 `SubmissionCmdGenerate`（SHA 已核）的 `0x58`/`0x1020` 定长拷贝形状吻合；`+0x40` 的 2B 三轮各异（余 37B 一致），来源未定，候选 ASLR/未初始化。
+- `FUN_0015f890`（`TQSubmissionSubmit`）确认提交链：check（`flag&1`）/update（`flag&2`，与 r159 一致）编组后进 `BridgeRGXTDMSubmitTransferDDK2`；本轮 `update_count=2` 与之相符，update 数组走 IN 指针、不在 CCB 窗口内。
+- 门禁全绿：270 Python（1 skip）+272 C，shim `-Werror`，`lsmod` 无 `mt_*`。证据：`reports/r160-ccb-window-fields.md` + trace。下一步离线 GDB 对 `+0x40` 下写观察点；换 producer 闭合扩展区条目算术。
 
 ---
 
-## 本次会话进展（r157：fabricated DDK2 SubmitTransfer3 producer）
+## 本次会话进展（r159：update 语义 UMD 侧离线确定）
 
-- 零硬件触碰。给 shim 增加 opt-in `UMD_DRM_MAJOR=2`，默认 major 1；`musa_blit_test -device 0 -f -o` 在 shared-backing 模式到达 `0x89:0xa`（108B/4B），trace 527 行、105 bridge ioctl、15 个 submit 前 PMR snapshots、无 passthrough。按 r151 ABI 解码出 CCB GPU VA `0x8000f44000`、长度 `0x1200`，fake ioctl 后终止离线进程，未将等待/完成伪装成执行成功。
-- Snapshot 显示 `0x1003000/0x1004000` 与 TQCB `0x5006000`–`0x5008000` 为零；`0x500d000` 有 2,621,440 非零字节，但没有 GPU VA → PMR 证据。修复 snapshot registry 在 munmap 后遗留过期视图并与读取互斥；反向注入时测试进程 SIGSEGV，恢复后通过。`musa_tq_performance_test -n 1` 未到 Submit3，先 SIGABRT。
-- 门禁全绿：268 Python（1 skip）+272 C，shim `-Werror` 编译通过；major override 的默认/opt-in/非法值测试通过，反向固定 major=1 可抓回归。下一步映射 CCB GPU VA 到 PMR backing，再验证对应 `0x1200` 字节。快照 §6 计数仍旧，留待刷新 pass；未动硬件。
+- 零硬件触碰。`SyncUtilGenerateUpdateData` 确定三要素：布局（IN 36/44/52/60，与头一致）、可见性（`flag&2` 条目经 sync block 句柄+相对偏移，与桥 PMR/SYNC 跟随模型一致）、完成条件（poll 等 fd，先写回后交 fd）。`flag&2` 来源待活体（红线禁重载）。
+- 顺手清 r148 调试残留（桥 5 处 DBG）；`make kernel` W=1 零警告，`make check-offline` 全绿。证据：`reports/r159-update-semantics-offline.md`。
+- 遗留：工作区有 59 个未提交改动/未入库文件（含本轮，另有历史包袱）；`r135` jsonl 未动。
