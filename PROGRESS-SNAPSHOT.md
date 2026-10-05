@@ -421,6 +421,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-05 更新；本节是活页）
 
+- **r162（换 producer 探针；零硬件触碰，无代码改动）**：`-n 2` fill 与基线机器比对仅 `+0x40` 计数器不同（38B 全等），fill CCB 与源面数无关；copy（去 `-f`）在 major 1/2 下同点 SIGABRT（`0x500d000` 映射后、`TQJobSubmit` 内 copy-setup 分发深处，无信息），当前不可达。扩展区算术缺新 producer，CCB 侧收敛。门禁复核 269+272 全绿。见 `reports/r162-producer-sweep.md` + 双 trace。
 - **r161（离线 GDB 定写入者；零硬件触碰，无代码改动）**：对 PMR `0x500e` backing 窗口 `+0x40` 的硬件写观察点唯一命中 `SubmissionCmdGenerate` 的 `0x58B` 头拷贝（libc AVX 存），活体栈 `TQJobSubmit → SubmissionCmdGenerate → PVRSRVMemCopy` 确认 r156 路径；job `+0x40` 四轮 `0x288e→0x28ae→0x28bd→0x28d7` 单调递增，计数器形态、命名未定。门禁复核 269+272 全绿。见 `reports/r161-plus40-writer.md` + `r161-plus40-watch.txt`。
 - **r160（fabricated CCB 窗口字段对照；零硬件触碰）**：shim `ccb_resolve` 加 `runs`（非零 runs 上限 32）；单轮 blit 重放 27 runs 恰好覆盖窗内 39B。`+0x10`=CCB+`0x58`、`+0x28`=`0x1078` 与语料 `SubmissionCmdGenerate` 的 `0x58`/`0x1020` 定长拷贝形状吻合；`+0x40` 的 2B 三轮各异（余 37B 一致），来源未定。`FUN_0015f890`（`TQSubmissionSubmit`）确认 check/update 编组链，本轮 `update_count=2` 与 r159 的 `flag&2` 相符。离线 270 Python（1 skip）+272 C 全绿。shim 回包仍 fabricated。见 `reports/r160-ccb-window-fields.md` 与 trace。
 - **r159（update 语义离线确定；零硬件触碰）**：`SyncUtilGenerateUpdateData` 三要素
