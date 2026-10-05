@@ -117,6 +117,7 @@
 | r160 | SubmitTransfer3 CCB 窗口 39B 全定位并对照生成器字段（+0x10/+0x28 吻合，+0x40 轮变待查） |
 | r161 | CCB +0x40 轮变 2B 系生成器头拷贝搬运 job 计数器（活体栈确认 TQJobSubmit 路径；离线 GDB，零硬件触碰） |
 | r162 | 换 producer：fill CCB 与源面数无关（机器比对仅计数器不同）；copy 路径 fabrication 下双 major 同点 abort、不可达 |
+| r163 | tq-perf 同倒于 copy-setup 同一 abort 点（三重一致），非新 producer；producer 线暂止 |
 
 ## 关键单篇（本轮最常用）
 
