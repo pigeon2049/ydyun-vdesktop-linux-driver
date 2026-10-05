@@ -9,21 +9,21 @@
 > 2026-10-05 起归档于 [`MEMORY-HISTORY-2026-10-05.md`](MEMORY-HISTORY-2026-10-05.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-05（r165 复核全绿；两处过期已订正）
+最后更新：2026-10-06（r166 活体会話重建+freeze；L4 候选）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
+
+## 本次会话进展（r166：活体会話重建，批准执行）
+
+- 真机调试已批准。`cold_disconnect` 0/1（idle/`guest=0 firmware=1`，双 clean rmmod）→ `fresh-trial --run --runtime-context` rc=0（trial `20261005T161706Z-cf0d876e`，fw sha `35d40f75…`，`guest=2 firmware=2` pinned ref=1）→ 桥默认加载（`card1`/`renderD128`）→ L3 全绿（node 0 failing/0 mismatch；dma smoke PASS，refs 平衡）。dmesg 无新增 WARN/BUG/Oops，r150 Oops 未复现但根因未命名。
+- **Freeze**：probe ref 1、bridge ref 0，不 rmmod、不 unbind、不提交额外工作；`make probe`/`make umd` 继续禁用。证据：`reports/r166-session-rebuild.md`。候选下一步：L4 阶梯或 update 活体验证（需批准）。
+
+---
 
 ## 本次会话进展（r165：复核）
 
 - 零硬件触碰，无代码改动。门禁重跑 269+272 全绿；blit 重放复现 r158/r160（同 VA/PMR，39B/27 runs）；SHA、无模块、r157–r164 文件逐项存在。订正 STATUS 现状两处过期；指针 trailing 属 bA32 惯例不动。
 - 证据：`reports/r165-verification.md`。遗留：57 项历史包袱未动。
-
----
-
-## 本次会话进展（r164：快照刷新 pass）
-
-- 纯文档，零硬件触碰。快照 §5→r157–r163 状态、§6 计数→269 Python（1 skip）+272 C 并补 11 个门禁文件行、STATUS L1→269、快照时间→2026-10-05；`对应提交` 先提交后 amend（bA32 做法）。§7 长期项与历史章节未动。
-- 门禁实测复核全绿；translator 方法数订正为 6（r159 文“4 项”为口径差）。证据：`reports/r164-snapshot-refresh.md`。
 
 ---
 

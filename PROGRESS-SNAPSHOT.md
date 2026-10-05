@@ -434,7 +434,9 @@ as-built 机制（`da3df8b`，r45–r63）：
 3. 对象存储已满：需空存储的实验（含再次的 `live_3d`）会被 `-EBUSY` 拒绝；
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
-## 12. 运行态（2026-10-05 更新；本节是活页）
+## 12. 运行态（2026-10-06 更新；本节是活页）
+
+- **新会话 freeze 中（r166，批准执行）**：`mt_guest_probe` 绑定 `00:0e.0`（trial `20261005T161706Z-cf0d876e`，Guest/FW `2/2` pinned，ref 1），`mt_pvr_bridge` 默认参数在载（`card1`/`renderD128`，ref 0）；L3 全绿（node 0 failing/0 mismatch，dma smoke PASS refs 平衡）；dmesg 无新增 WARN/BUG/Oops。**不 rmmod、不 unbind、不提交额外工作。**见 `reports/r166-session-rebuild.md`。
 
 - **r165（复核全绿；零硬件触碰，无代码改动）**：门禁重跑 269+272 全绿；blit 重放复现 r158/r160（同 VA/PMR，39B/27 runs）；SHA、无模块、r157–r164 文件逐项存在；订正 STATUS 现状两处过期（CCB 归属、update 语义）。见 `reports/r165-verification.md`。
 - **r163（tq-perf 同 abort；零硬件触碰，无代码改动）**：`musa_tq_performance_test -n 1`（64×64）510 行后 SIGABRT，无 Submit3；GDB 栈与 r162 copy-blit 三重一致（同 aborter PC、同 `TQJobSubmit+738`、同位置）——同一阻塞点，非新 producer。按名断点因符号不可见 pending，止损。门禁复核 269+272 全绿。见 `reports/r163-tq-same-abort.md` + trace。

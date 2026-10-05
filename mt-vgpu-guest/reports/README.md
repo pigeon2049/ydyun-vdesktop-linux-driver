@@ -120,6 +120,7 @@
 | r163 | tq-perf 同倒于 copy-setup 同一 abort 点（三重一致），非新 producer；producer 线暂止 |
 | r164 | 快照刷新 pass（§5/§6/门禁计数同步；对应提交按 bA32 做法 amend） |
 | r165 | 复核：门禁/重放/证据链全绿，订正 STATUS 两处过期（CCB 归属、update 语义） |
+| r166 | 活体会話重建（批准执行）：Guest/FW 2/2 pinned，桥默认加载，L3 全绿，freeze |
 
 ## 关键单篇（本轮最常用）
 
