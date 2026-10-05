@@ -9,9 +9,16 @@
 > 2026-10-05 起归档于 [`MEMORY-HISTORY-2026-10-05.md`](MEMORY-HISTORY-2026-10-05.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-05（r164 快照刷新 pass；执行态见 r162–r163）
+最后更新：2026-10-05（r165 复核全绿；两处过期已订正）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
+
+## 本次会话进展（r165：复核）
+
+- 零硬件触碰，无代码改动。门禁重跑 269+272 全绿；blit 重放复现 r158/r160（同 VA/PMR，39B/27 runs）；SHA、无模块、r157–r164 文件逐项存在。订正 STATUS 现状两处过期；指针 trailing 属 bA32 惯例不动。
+- 证据：`reports/r165-verification.md`。遗留：57 项历史包袱未动。
+
+---
 
 ## 本次会话进展（r164：快照刷新 pass）
 
@@ -20,7 +27,3 @@
 
 ---
 
-## 本次会话进展（r163：tq-perf 同倒于同一 abort 点）
-
-- 零硬件触碰，无代码改动。`musa_tq_performance_test -n 1`（64×64，major 2 + shared backing）510 行后 SIGABRT，无 Submit3；GDB 栈与 r162 copy-blit 三重一致（aborter PC、`TQJobSubmit+738` 返回地址、trace 位置）——同一阻塞点，非新 producer。按名断点因符号不可见 pending，止损。
-- 证据：`reports/r163-tq-same-abort.md` + `r163-tq-abort.jsonl`。门禁复核全绿（269+272）。producer 线暂止；候选步骤 2（待可重建会话）或 copy-setup 缺口单独立项。

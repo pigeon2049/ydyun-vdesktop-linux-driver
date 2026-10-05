@@ -14,7 +14,7 @@
 
 ## vGPU 一句话现状
 
-`mt_guest_probe` 与 `mt_pvr_bridge` 当前均未加载，S3000 `00:0e.0` 未绑定，设备 Guest/FW 状态为 2/1。r151 静态修正了 `pvr_mmap()` vmalloc 页转换/判空，以及 arena GPU 页表被 lazy VM 初始化覆盖和未初始化 close 泄漏；同时补了 `0x89:0xa` SubmitTransfer3 的 108B/4B packed wire ABI 描述与偏移断言，但 handler 未接入。r157 使用 opt-in `UMD_DRM_MAJOR=2` 使 fabricated 离屏 blit 到达 SubmitTransfer3，观测到 CCB GPU VA `0x8000f44000` 和长度 `0x1200`；shared-backing snapshot 中高占用 pool 的 CCB 归属尚未证明。shim 的 Submit/Wait 回包仍为伪造结果，trace 不证明 bridge 接受或 GPU 执行。最近一次 Oops 缺少 RIP/调用栈，尚不能证明缺陷根因，故不重复加载 bridge。UMD check-only kick 已在 legacy 与 `drm_major=2` 下经真实 DM2 空 marker 完成；真实绘制 CCB、update 数组语义和 TA/CDM 专属提交仍未验证。RGX 像素读回与 20 帧批量是已完成结果，不代表 `mt_live_3d_drm` 当前加载。
+`mt_guest_probe` 与 `mt_pvr_bridge` 当前均未加载，S3000 `00:0e.0` 未绑定，设备 Guest/FW 状态为 2/1。r151 静态修正了 `pvr_mmap()` vmalloc 页转换/判空，以及 arena GPU 页表被 lazy VM 初始化覆盖和未初始化 close 泄漏；同时补了 `0x89:0xa` SubmitTransfer3 的 108B/4B packed wire ABI 描述与偏移断言，但 handler 未接入。r157 使用 opt-in `UMD_DRM_MAJOR=2` 使 fabricated 离屏 blit 到达 SubmitTransfer3，观测到 CCB GPU VA `0x8000f44000` 和长度 `0x1200`；r158–r160 已将其归属到 PMR backing 并定位全部 39B（r165 重放复核一致）。shim 的 Submit/Wait 回包仍为伪造结果，trace 不证明 bridge 接受或 GPU 执行。最近一次 Oops 缺少 RIP/调用栈，尚不能证明缺陷根因，故不重复加载 bridge。UMD check-only kick 已在 legacy 与 `drm_major=2` 下经真实 DM2 空 marker 完成；update 数组语义已离线确定（r159，活体待定），真实绘制第二样本与 TA/CDM 专属提交仍未验证。RGX 像素读回与 20 帧批量是已完成结果，不代表 `mt_live_3d_drm` 当前加载。
 细节见 `PROGRESS-SNAPSHOT.md`，逐轮记录见 `MEMORY.md`（只留最新两节），
 证据在 `mt-vgpu-guest/reports/r*.md`（索引见该目录 `reports/README.md`）。
 
