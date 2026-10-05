@@ -1,4 +1,4 @@
-# STATUS — 仓库当前状态总入口（2026-10-03）
+# STATUS — 仓库当前状态总入口（2026-10-05）
 
 > 新 agent 先读完本文件再动手。历史文件都有归档头；状态冲突时裁决顺序为
 > `STATUS.md`（本文件）→ `PROGRESS-SNAPSHOT.md`（细节）→ `MEMORY.md`（过程）。
@@ -10,23 +10,17 @@
 | 线 | 目录 | 做什么 | 当前结论 |
 |---|---|---|---|
 | 云电脑 USB/画面 | `linux/`、`wayland/`、`docs/` | Debian 云电脑 USB 转发 + KDE Wayland 分辨率 | v0.2.52 可安装（见根 `README.md` 教程）；云端联调待真实会话 |
-| S3000 vGPU Guest | `mt-vgpu-guest/` | 自研内核栈点亮 Moore Threads S3000 vGPU | 会话已连通（Guest/FW 2/2）；厂商 UMD 桥 8 符号全绿；RGX 已真实执行并读回像素 |
+| S3000 vGPU Guest | `mt-vgpu-guest/` | 自研内核栈点亮 Moore Threads S3000 vGPU | bridge Oops 栈缺失、根因未定；r158 major 2 fabricated blit 到达 SubmitTransfer3，CCB GPU VA `0x8000f44000` / 长 `0x1200` 已关联到 PMR `0x500e` backing 并转储（39 非零，归属成立）；当前无驱动绑定、Guest/FW=2/1，仍不重复加载 bridge |
 
 ## vGPU 一句话现状
 
-`mt_guest_probe` 绑定 `00:0e.0` 并连通固件；`mt_pvr_bridge`（`894faf50`，
-arena backing + cover-page plan + kick T1/T2 只读观察）在载；
-厂商 MASA UMD 走完全链路符号全部返回 0（kick 提交是 accept-and-inspect
-即时 fence，真提交入口仍拒绝，那是 S4 边界）；`live_3d_drm` 已做单帧
-DM2 + 64 KiB 像素读回 + 20 帧批量，21 次执行零 fault。
-（2026-10-04 新会话已重建并 freeze，现状见 r125 与快照 §12。）
+`mt_guest_probe` 与 `mt_pvr_bridge` 当前均未加载，S3000 `00:0e.0` 未绑定，设备 Guest/FW 状态为 2/1。r151 静态修正了 `pvr_mmap()` vmalloc 页转换/判空，以及 arena GPU 页表被 lazy VM 初始化覆盖和未初始化 close 泄漏；同时补了 `0x89:0xa` SubmitTransfer3 的 108B/4B packed wire ABI 描述与偏移断言，但 handler 未接入。r157 使用 opt-in `UMD_DRM_MAJOR=2` 使 fabricated 离屏 blit 到达 SubmitTransfer3，观测到 CCB GPU VA `0x8000f44000` 和长度 `0x1200`；shared-backing snapshot 中高占用 pool 的 CCB 归属尚未证明。shim 的 Submit/Wait 回包仍为伪造结果，trace 不证明 bridge 接受或 GPU 执行。最近一次 Oops 缺少 RIP/调用栈，尚不能证明缺陷根因，故不重复加载 bridge。UMD check-only kick 已在 legacy 与 `drm_major=2` 下经真实 DM2 空 marker 完成；真实绘制 CCB、update 数组语义和 TA/CDM 专属提交仍未验证。RGX 像素读回与 20 帧批量是已完成结果，不代表 `mt_live_3d_drm` 当前加载。
 细节见 `PROGRESS-SNAPSHOT.md`，逐轮记录见 `MEMORY.md`（只留最新两节），
 证据在 `mt-vgpu-guest/reports/r*.md`（索引见该目录 `reports/README.md`）。
 
 ## 活会话红线（先读这段，违反会毁掉数小时工作）
 
-- `mt_guest_probe`、`mt_pvr_bridge`、`mt_live_3d_drm` 保持加载，
-  不 rmmod、不 unbind、不提交额外工作。
+- 当前 probe/bridge 均未加载，设备 Guest/FW=2/1 且 PCI 未绑定；先定位上次 bridge 启动后的 kernel NULL dereference，暂不重复加载。
 - 顶层 `make probe` / `make umd` 会先 rmmod 再 insmod，
   **在活会话上禁止直接使用**；只在可重建会话上跑。
 - `timeout` 不得落在 bridge ioctl 临界区内（r67：device-mutex
@@ -38,7 +32,7 @@ DM2 + 64 KiB 像素读回 + 20 帧批量，21 次执行零 fault。
 
 | 命令 | 含义 | 动硬件 |
 |---|---|---|
-| `make check-offline` | L1：234 Python + 268 C RAM checks | 否 |
+| `make check-offline` | L1：268 Python（1 skip）+ 272 C RAM checks | 否 |
 | `make check` | L1+L2：+ 内核 `W=1` 构建 + ABI 门禁 | 否（但依赖 gitignore 的 `build/` 产物，新 clone 会失败，见快照 §7） |
 | `make kernel` | 全模块 `W=1` 构建 | 否 |
 | `make probe` / `make umd` | L3/L4：加载模块跑探针 / 真实 UMD 八级阶梯 | **是**，且会重载模块——活会话上禁用 |
@@ -63,13 +57,7 @@ DM2 + 64 KiB 像素读回 + 20 帧批量，21 次执行零 fault。
 
 ## 下一步（vGPU，按序）
 
-1. **真实绘制 kick 观察**：合成零 count 与非零 check 均已复现
-   （fabricated r72 + 活体 r73，T2 `ufo_known=1/1`）；update 侧需
-   DDK2，而 DDK2 需桥特性开关（改代码 + 重编 + 重载，单独立项，r78）；
-   非零 CCB 内容仍只能来自完整绘制路径（Rogue2D 推进到
-   TransferContext 创建，legacy-TDM 疑死代码，r86–r112）。
-2. **Translator T3**：DM 队列格式改从 UMD 侧反推（r82–r84、r114；
-   `mtkm64.sys` 已排除）；check-only 首帧翻译设计已完成，待新会话
-   执行（r113）；在拿到真实 CCB 内容之前不写翻译器骨架——输入规约
-   先行，代码随后。
-3. 长期：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。
+1. **真实绘制 CCB**：check-only kick 已在 legacy 与 `drm_major=2` 路径经真实 DM2 空 marker 完成（r148–r149）。r157 已在 fabricated major 2 blit 中到达 `0x89:0xa`，得到 CCB GPU VA `0x8000f44000` / 长 `0x1200`；r158 已用 VA 台账将其关联到 PMR `0x500e` backing `0x500e000`+`0xf02` 并转储窗口字节（39 非零/FNV 已定，归属成立）。下一步对照 `SubmissionCmdGenerate` 语料解读该稀疏窗口字段。shim 回包仍是假的，不能外推为真实提交。
+2. **同步 update 语义**：源码已有 update 数组解析与完成后写回，但尚无活体验证；先从已核对 UMD 侧确定布局、可见性和完成条件。
+3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` / `0x81:0x5` 仍属 S4 真提交边界，空 marker 结果不能外推；待取得真实工作包与输入规约后再推进。
+4. 长期：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。

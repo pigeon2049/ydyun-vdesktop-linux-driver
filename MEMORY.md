@@ -6,29 +6,23 @@
 > [`MEMORY-HISTORY-2026-10-01.md`](MEMORY-HISTORY-2026-10-01.md)、
 > [`MEMORY-HISTORY-2026-10-03.md`](MEMORY-HISTORY-2026-10-03.md)、
 > [`MEMORY-HISTORY-2026-10-04.md`](MEMORY-HISTORY-2026-10-04.md)（只读）。
+> 2026-10-05 起归档于 [`MEMORY-HISTORY-2026-10-05.md`](MEMORY-HISTORY-2026-10-05.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-04（r134 门控=DRM major，订正 r131；最旧节已归档）
+最后更新：2026-10-05（r158 Submit3 CCB VA→PMR 已关联并转储；归属成立）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
----
 
-## 本次会话进展（r134：DDK2 门控=DRM version_major==2，离线；零硬件触碰）
+## 本次会话进展（r158：SubmitTransfer3 CCB VA→PMR 关联与转储）
 
-- 语料（SHA 已对）：UMD 自 calloc 特性块，`+0x54=(drm major==2)+1`；桥 `.major=0`→1→legacy。
-  r131 开关写的是 UMD 不读的内核块，故 r132/r133 无差异（事实仍成立，作用点错）。
-- 下一步：桥加 `drm_major` 参数（默认 0），重载 `=2` 跑 r133 同链（需批准）。
-- 无需重启：模块干净卸载重载，引用 0/113，无 D 态。证据：`reports/r134-ddk-gate-is-drm-major.md`。
-- 遗留：71 提交未 push；`ddk_feature_set` 去留待定。
+- 零硬件触碰。shim 新增 VA 台账（`0x6:0x15` reservation 范围 + `0x6:0x13` pmr↔reservation），`0x89:0xa` 提交前按 r151 ABI（ccb@88/bytes@104）解出 VA 并定位 backing，记 `ccb_resolve`（窗内非零数/首非零/FNV-1a/32B 采样；不可达记 `resolved:0`）。
+- 重放 `musa_blit_test -device 0 -f -o`（major 2 + shared backing，`timeout -s KILL 15` 终止，UMD 不退出与 r157 相同）：Submit3 解码 `check=0/update=2/pmr_sync=0/ccb=0x8000f44000/0x1200`；`ccb_resolve` 给出 reservation `0x900d`（`0x8000f430fe`+`0xa00fff`）→ PMR `0x500e` → backing `0x500e000`+`0xf02`，窗内 39 非零、首非零 `+0x10`、FNV `0xb9e0f1a18201bf0f`；整块 10MB backing 非零同样 39、首非零 `0xf12`（=`0xf02+0x10`）、采样相同，归属成立。shim 回包仍 fabricated，不证明执行。
+- 门禁全绿：269 Python（1 skip，含新增 `test_pvr_shim_ccb_resolve`：合成 reserve→map→mmap→写 pattern→Submit 断言 `resolved/backing_offset/nonzero` 与越界 `resolved:0`，反向关 shared backing 无记录）+272 C，shim `-Werror` 通过。`lsmod` 无 `mt_*`。下一步对照 `SubmissionCmdGenerate` 语料解读 39B 稀疏窗口。
 
 ---
 
-## 本次会话进展（r133：非零 CCB create + ddk_feature_set=2，仍无差异；批准执行）
+## 本次会话进展（r157：fabricated DDK2 SubmitTransfer3 producer）
 
-- 按 r76/r77 还原 r78 命令（pack 0x0733），仅 create+destroy 不 kick；
-  `=2` 与默认各重载各跑，桥调用 91=91 逐项一致，无 SyncPrim/SubmissionBuf。
-- 模块停在默认参数新桥，引用 0/113，无新 WARN。
-- 下一步（离线）：语料核 `RGXCreateKickSyncContextCCB@0x52180` 门控读取点，别再盲重载。
-- 证据：`mt-vgpu-guest/reports/r133-ddk2-ccb-create-live.md`。遗留：70 提交未 push。
-
----
+- 零硬件触碰。给 shim 增加 opt-in `UMD_DRM_MAJOR=2`，默认 major 1；`musa_blit_test -device 0 -f -o` 在 shared-backing 模式到达 `0x89:0xa`（108B/4B），trace 527 行、105 bridge ioctl、15 个 submit 前 PMR snapshots、无 passthrough。按 r151 ABI 解码出 CCB GPU VA `0x8000f44000`、长度 `0x1200`，fake ioctl 后终止离线进程，未将等待/完成伪装成执行成功。
+- Snapshot 显示 `0x1003000/0x1004000` 与 TQCB `0x5006000`–`0x5008000` 为零；`0x500d000` 有 2,621,440 非零字节，但没有 GPU VA → PMR 证据。修复 snapshot registry 在 munmap 后遗留过期视图并与读取互斥；反向注入时测试进程 SIGSEGV，恢复后通过。`musa_tq_performance_test -n 1` 未到 Submit3，先 SIGABRT。
+- 门禁全绿：268 Python（1 skip）+272 C，shim `-Werror` 编译通过；major override 的默认/opt-in/非法值测试通过，反向固定 major=1 可抓回归。下一步映射 CCB GPU VA 到 PMR backing，再验证对应 `0x1200` 字节。快照 §6 计数仍旧，留待刷新 pass；未动硬件。

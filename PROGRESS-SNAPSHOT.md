@@ -172,36 +172,17 @@ RGXCreateRenderContext
 
 ---
 
-## 5. 下一步（按序；r79–r114 后更新）
+## 5. 下一步（按序；r148–r149 后更新）
 
-1. **真实绘制 kick 观察**：合成零 count 与非零 check 均已复现
-   （fabricated + 活体，r72/r73）；update 侧需 DDK2（r74–r77），
-   而 DDK2 需桥特性开关（r78，改代码 + 重编 + 重载，单独立项）；
-   非零 CCB 内容仍只能来自完整绘制路径（r56 原判不变；
-   Rogue2D 系已推进到 TransferContext 创建，r86–r112，
-   legacy-TDM 疑 vendor 死代码）。
-   在拿到真实 CCB 内容之前不写翻译器骨架——输入规约先行，代码随后。
-2. **Translator T3**：DM 队列格式改从 UMD 侧反推（r82：
-   `mtkm64.sys` 系 host KMD，无 guest kick 语义，已排除）；
-   TA 提交链已静态打通（KickTA→PrepareTA→SubmitTA→`0x82:0x14c`，
-   r83/r84）+ fence 生成器语义（r114）；check-only 首帧翻译设计
-   已完成待新会话执行（r113）。
-3. `RGXCreateZSBuffer` 的 13 参数形状已摸清，但它要 UMD 内部的
-   heap/context 对象，小 buffer 冒充会直接段错误。gdb 证明崩溃点在
-   `MTSRVAllocExportableDevMem ← MIW` 经 libc 字符串函数：
-   MIW 把 `*param_1` 当 `MemHeap_*` 名字表下标。
-   要驱动它，需要先拿到真正的 psDevMemCtx/MemHeap 描述符指针，
-   这是 ZSBuffer/freelist/HWRT 这一串的共同前提。
-3. `RGXCreateZSBuffer` 的 13 参数形状已摸清，但它要 UMD 内部的
-   heap/context 对象，小 buffer 冒充会直接段错误。gdb 证明崩溃点在
-   `MTSRVAllocExportableDevMem ← MIW` 经 libc 字符串函数：
-   MIW 把 `*param_1` 当 `MemHeap_*` 名字表下标。
-   要驱动它，需要先拿到真正的 psDevMemCtx/MemHeap 描述符指针，
-   这是 ZSBuffer/freelist/HWRT 这一串的共同前提。
+1. **真实绘制 CCB**：r148/r149 已证明 check-only kick 可在 legacy 与
+   `drm_major=2` 路径经真实 DM2 空 marker 完成；仍缺完整绘制路径产出的非零
+   CCB 内容。先从 Rogue2D/TransferContext 创建链拿到可复现输入，再定翻译范围。
+2. **同步 update 语义**：当前源码有 update 数组解析和 marker 完成后写回，尚无活体验证。
+   先按已核对的 UMD 版本确定数组布局、可见性和完成条件；未验证前不将其视为已支持。
+3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` 与 `0x81:0x5` 仍是 S4 真提交边界；
+   空 marker 结果不推及这些路径。真实工作包与输入规约确认后再推进。
 
-长期项（不影响当前推进）：快照 §7 的门禁可复现与 in-tree 构建外移。
-
----
+长期项：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。
 
 ## 6. 质量门禁现状
 
@@ -438,9 +419,100 @@ as-built 机制（`da3df8b`，r45–r63）：
 3. 对象存储已满：需空存储的实验（含再次的 `live_3d`）会被 `-EBUSY` 拒绝；
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
-## 12. 运行态（2026-10-04 新会话已重建并 freeze；本节是活页）
+## 12. 运行态（2026-10-05 更新；本节是活页）
 
-- **r133**：非零 CCB create 在 `ddk_feature_set=2` 与默认下桥调用 91=91 一致；
+- **r158（fabricated CCB VA→PMR 关联；零硬件触碰）**：shim 新增 VA 台账（`0x6:0x15` reservation 范围 + `0x6:0x13` pmr↔reservation），`0x89:0xa` 提交前按 r151 ABI 解出 `ccb_data@88`/`ccb_bytes@104` 并记 `ccb_resolve`（窗内非零/首非零/FNV-1a/32B 采样；不可达记 `resolved:0`）。重放离屏 blit（major 2 + shared backing，`timeout -s KILL 15` 终止）解码 `check=0/update=2/pmr_sync=0/ccb=0x8000f44000/0x1200`；`ccb_resolve` 给出 reservation `0x900d`（`0x8000f430fe`+`0xa00fff`）→ PMR `0x500e` → backing `0x500e000`+`0xf02`，窗内 39 非零、首非零 `+0x10`、FNV `0xb9e0f1a18201bf0f`；整块 10MB backing 非零同样 39、首非零 `0xf12`、采样相同，归属成立。新增 `test_pvr_shim_ccb_resolve` 合成门禁（含越界与反向）。离线 269 Python（1 skip）+272 C 全绿。shim 回包仍 fabricated，不证明执行。见 `reports/r158-ccb-backing-resolve.md` 与 trace。
+- **r157（fabricated DDK2 producer；零硬件触碰）**：shim 新增 opt-in `UMD_DRM_MAJOR=2`（默认 major 1），离屏 `musa_blit_test -device 0 -f -o` 到达 `0x89:0xa`（108B/4B）；按 r151 ABI 描述解码的 CCB GPU VA=`0x8000f44000`、长度=`0x1200`。Submit 前 15 个 active shared-PMR snapshot 已记录；TDM/TQCB 区仍全零，heap/pool 非零数据未能映射归属 CCB。发现 snapshot registry 的 stale-unmap 风险，加入 unmap 清理和锁定，反向注入可使离线 replay SIGSEGV；恢复后 268 Python（1 skip）+272 C 全绿。Submit 回包为 fabricated，看到 ioctl 不代表接受或执行。下一步用 GPU VA 关联 PMR backing。见 `reports/r157-ddk2-tq-submit.md` 与 trace。
+- **r156（fabricated producer 路径辨析；零硬件触碰）**：SHA 匹配的 5.2 UMD 语料表明 `TQJobSubmit`/`TQJobMultiSubmit` 调用 `SubmissionCmdGenerate()` 后经 `FUN_0015f890` 走 `0x89:0xa SubmitTransfer3`；r155 的 `musa_blit_test` 则走 `RGXTDMSubmit` / `0x89:0x4 SubmitTransfer2`，没有进入前者。GDB 抽查 legacy ioctl 嵌套栈块未识别到 CCB，不能外推其他 PMR。下一步寻找可离线复现的 DDK2 producer 输入，再追踪生成结果；静态语料属于路径假设，不是运行时 CCB 证据。见 `reports/r156-submit-path-split.md`。
+- **r155（fabricated PMR shared backing；零硬件触碰）**：shim opt-in `UMD_SHARED_BACKING=1` 为每个 mmap handle 建独立 memfd，同 handle 映射共享、不同 PMR 隔离；LocalImportPMR 分配不同句柄，AcquireInfoPage 的映射才写 info-page 头。离线别名/隔离测试通过，注入 MAP_PRIVATE 可使其失败。UMD 到达 legacy `0x89:0x4`；Submit 前 TDM `0x1003000/0x1004000` 与三块 TQCB 映射全零，其他 heap/pool 区间有非零数据但用途尚未核实。门禁 265 Python（1 skip）+272 C 全绿。见 `reports/r155-shared-fabricated-pmr.md` 与 trace。
+- **r154（fabricated 离屏 blit；零硬件触碰）**：`musa_blit_test -device 0 -f -o` 打印 TransferContext 创建、Submit 与 Wait OK，最终像素比对失败；578 行 trace、169 次 bridge ioctl 到达 legacy `0x89:0x4 SubmitTransfer2`（108B/8B），没有 `0x89:0xa`。UMD fd mmap 被 shim 替换成独立匿名映射，故该像素失败和 fake backing 抽样不能验证真实 CCB；后续应实现 handle/offset 关联 backing 再重放。见 `reports/r154-musa-blit-offscreen.md` 与 trace。
+- **r153（fabricated Rogue2D replay；零硬件触碰）**：复用 `umd_connect_harness` 调 `R2DCreateContext(out)`，UMD 返回 0；95 条 bridge ioctl 中两次 `0x1:0xc` 均回 `num_cores=1`，随后走到 fabricated `0x89:0x5` / `0x89:0x0`，未出现 `0x89:0xa`。Surface 与 Layout 扩展调用返回 3，但没有新增 bridge ioctl，参数 ABI 尚未确认。见 `reports/r153-rogue2d-context.md` 与 trace。
+- **r152（fabricated replay 适配；零硬件触碰）**：`probe/umd_bridge_shim.c` 对 `0x1:0xc` 回显 caps、fabricate `num_cores=1`，与 r150 bridge handler 对齐；新增回归测试，注入零核能失败。离线门禁 264 Python（1 skip）+272 C，shim `-Werror` 构建通过。完整 Rogue2D replay 尚未运行，SubmitTransfer3/绘制 CCB 未验证；bridge 仍不重载。见 `reports/r152-fabricated-multicore.md`。
+- **r151（只读静态审计 + ABI 预备；零硬件触碰）**：`pvr_mmap()` 改逐页 vmalloc 转换并判空；
+  修复 lazy VM 覆盖 DMA 已填 arena GPU 页表，以及 VM 未就绪时 close 的页表回收。5.2 UMD
+  wrapper 静态恢复 `0x89:0xa` 108B/4B、check/update 各 32 项上限、PMR sync 17 项上限；
+  packed wire 描述与关键 offset 断言已加，handler 尚未接入。离线 263 Python（1 skip）+272 C，
+  `W=1` 全模块成功；逆向注入门禁均能抓回归。Oops 仍无 RIP/栈，根因未定，不重复加载 bridge。
+  见 `reports/r151-bridge-null-leak-audit.md`。
+- **r150（live 重验暂停）**：bridge 加载后 8 秒出现 DMA/CPU-only allocations；紧接 ChatGPT PID 2704 SIGSEGV 与 kernel NULL dereference（间隔 16 ms）。Oops 只有首行，无 RIP/调用栈；未运行 `musa_blit_test`。再启动后 S3000 `00:0e.0` 未绑定，Guest=`2`/FW=`1`，无 probe/bridge，仅 `card0`。不要直接重复加载 bridge；先查 Oops。详见 `reports/r150-tdm-core-count.md`。
+- `0x1:0xc` 单核响应仍未 live 验证；TDM 双 PMR lifetime 与 TransferContext2 token 已由 r150 前次 bridge trace/离线门禁覆盖。r157 仅在 fabricated shim 中出现 `0x89:0xa`，未有真实 SubmitTransfer3 或真实绘制 CCB。
+
+- **r149（批准执行，主线）**：`drm_major=2, translate_kick=1` 下真实 UMD
+  DDK2 同链命中 `0x82:0x12`、`0x88:0x5`、`0x88:0x4`，均 ret=0；check-only
+  kick 经 DM2 空 marker 完成（tag=1/fence=2）。桥 clean unload，probe ref 25→1；
+  Guest/FW retained 2/2，当前 bridge 未加载，`/dev/dri` 仅 `card0`。真绘制 CCB、
+  TA/CDM 专属口和 update 数组语义仍未验证。见 `reports/r149-ddk2-translated-check.md`。
+- **r148（批准执行，主线）**：check-only kick 经真实空 marker 回 0（tag=1/fence=1）；
+  正常 bridge teardown 首次活体验证通过：`unloaded cleanly`，probe ref 25→1，
+  无新增 WARNING。初次错误期望值产生 -ETIMEDOUT，无 marker 提交；修正到 PMR 实测值后成功。
+  见 `reports/r148-translator-teardown.md`。
+
+
+- **r147（批准执行，主线）**：check-only 首帧打通。UMD check-kick 经真实
+  DM2 空 marker 回 0（×3：tag 1/2/3，fence 9/10/11；REF 28 平；零 WARNING）。
+  修 5 处：模板循环丢增量（soft lockup，重启恢复）、跨模块 ops 复本、
+  持锁等 fence 自饿、RT+CSW 补丁、fence 引用漏 put。
+  桥以 `translate_kick=Y` 在载（ref 28/0），L3 全绿。**继续 freeze。**
+  下一轮：Translator 收尾（update 侧诚实拒绝已在；真绘制 CCB 仍缺）或 DDK2 纵深。
+- **r146（批准执行，主线）**：DDK2 kick 语义。`=2` 下零 count 同步 kick
+  仍走 `0x88:0x4`（84B）原样受理，全链全绿；TA/CDM 专属口（`0x82:0xC`/
+  `0x81:0x5`）属 S4 不碰。桥恢复默认（ref 1/0），L3 全绿，零 WARNING。
+  **继续 freeze。** 下一轮：Translator T3（r113 首帧执行）。
+- **r145（批准执行，主线）**：`0x2:0x8` 落地后 DDK2 全链首绿（六符号全 0，
+  122 行轨迹零非零；`b5*` 复验成立）。新会话：`mt_guest_probe` 绑定 `00:0e.0`
+  （Guest/FW `2/2` retained pinned，trial `20261004T084935Z-5d5c38fb`，
+  引用数 **1**），`mt_pvr_bridge` 在载（默认参数，引用数 0），
+  `/dev/dri` 有 `card1`/`renderD128`（桥）。L3 全绿；L4 未跑（UMD 阶梯另行）。
+  dmesg 零 WARNING，无 D 态。**不要卸载任何已加载模块、解绑设备或提交额外工作。**
+- **r144（主线诊断）**：分配器崩溃系 harness 传参（`b5*` 后全绿，见报告），
+  非桥缺口；`0x2:0x8`=SyncFreeEvent 为下一实现目标。
+  重启后无任何 `mt_*` 模块加载，`/dev/dri` 仅 `card0`，`/tmp` 已清空，
+  r125–r143 会话不存在。**重建（r138 流程）待批准后执行。**
+- **r143（批准执行，主线）**：DDK2 CCB 建销落地。`=2` 同链 render/syncprim/0x88:0x5
+  全回 0；UMD 随后在 `SubmissionBufAlloctorCreate` 空解引用（gdb 活体三帧栈，
+  内核零异常——r134 预言的门控下游）。桥恢复默认（ref 8/0），L3 全绿。
+  **继续 freeze。** 下一轮：分配器输入只读追踪。
+- **r142（批准执行，主线）**：DDK2 render 建销落地。`=2` 同链 render 首返 0、
+  syncprim 0；`0x2:0x2` 归属为 SyncPrimSet（stub-ok）；续堵于 `0x88:0x5`
+  （CCB2，仍 `-ENOTTY`，UMD 随即用户态段错误，内核零异常）。
+  OUT 以活体 12 为准（订正 r141 的 4）。桥恢复默认（ref 8/0），L3 全绿。
+  **继续 freeze。** 下一轮：`0x88:0x5` 及其 destroy 对端。
+- **r141（批准执行，主线）**：`drm_major=2` 首触 DDK2：同链 render → 37
+  （=0 对照全绿，91 调用），差值 = 3 新桥命令全 `-ENOTTY`
+  （`0x82:0x12`=CreateRenderContext2、`0x88:0x5`=CreateKickSyncContext2 已按名归属，
+  `0x2:0x2` 待定）+ AlignmentCheck 消失（r134 预测兑现）；37 系 stub 失败常量；
+  UMD 内 DDK2 桩共 18 个。桥已恢复默认（ref 0），probe ref 8，零 WARNING。
+  **继续 freeze。** 下一轮：按依赖实现 `0x82:0x12/0x13` → `0x88:0x5` → CCB 期再定。
+- **r140（批准执行 ②-1）**：Δ1 猎杀终结。`lease_free` 补 `drm_gem_object_release`
+  + `drm_dev_put`（与 `mt_live_drm.c`/`mt_gem.h` 对齐；仅 live_3d_drm.ko 重编，
+  probe/bridge 未动，会话保留）。单 fill 与全 smoke 卸后 ref 均为 **8**（Δ0），
+  dmesg 零 WARNING，L3 未重跑（bridge 未动）。probe 引用数 **8**（历史冻结，
+  不再增长）。**继续 freeze。**
+- **r139（批准执行 ②）**：修复已部署并验证。`mt_guest_probe` 绑定 `00:0e.0`
+  （Guest/FW `2/2` retained pinned，trial `20261004T070741Z-1966ee3f`，引用数 **2**），
+  `mt_pvr_bridge` 已加载（修后构建，引用数 0），`/dev/dri` 有 `card2`/`renderD129`。
+  空载周期 Δ0（MID=36 卸后回 1），带帧周期 Δ1（3/3 零 fault，卸后 2）。
+  L3 全绿；L4 未跑。dmesg 零 WARNING（destroy WARN 消失）。
+  **不要卸载任何已加载模块、解绑设备或提交额外工作**（Δ1 猎杀除外，需批准）。
+- **r138（批准执行 ①）**：会话重建完成。`mt_guest_probe` 绑定 `00:0e.0`
+  （Guest/FW `2/2` retained pinned，trial `20261004T065633Z-546d5bc5`，引用数 **86**），
+  `mt_pvr_bridge` 已加载（在盘新鲜构建，含 `drm_major`，引用数 0），
+  `/dev/dri` 有 `card2`/`renderD129`（桥；minor 顺延）。
+  Δ1 二分：首周期+34，空载+25，带帧+26（3/3 completed 零 fault）。
+  L3 全绿（node 0 failing + dma smoke PASS，refs 86→87→86）；L4 未跑。
+  dmesg 6 WARNING（全 destroy -EBUSY，无新模式），无 D 态。
+  **不要卸载任何已加载模块、解绑设备或提交额外工作**（② 的修复验证除外，已批准）。
+- **r137（只读诊断，零硬件触碰）**：+26/周期根因静态闭环——`fini` 见 sealed 即 `-EBUSY`
+  （`mt_gpu_vm.h:309`），两 space 皆 seal 且全树无 unseal，destroy 的 2 条 WARN 即证据；
+  每周期 25 backing 不释放（3+8+11+1+2 tables），首周期 +34 另含一次性 boot borrow 9；
+  稳态 Δ1 未归属，需活体二分。修语义单独立项。证据见 `reports/r137-sealed-vm-ref-leak.md`。
+- **r136（只读排查，零硬件触碰）**：uptime 仅 23 分钟，无任何 `mt_*` 模块加载，
+  `/dev/dri` 仅 `card0`，`/tmp` 1%（`opencode` 空、UMD 解包目录已清空），
+  `dmesg` 0 WARN、无 D 态——当前无泄漏在发生，r125–r134 retained 会话已不存在。
+  内核零文件写调用；`/tmp` 写者全是用户态（shim trace 有 256MB 顶）。
+  “几小时卡死”候选：①live 每周期 +26 probe 引用（r44/r127–r130）；②r67 device-mutex；
+  ③Chrome 持 renderD128。重建待批准。证据见 `reports/r136-leak-tmp-audit.md`。
+- 以下为重启前记录（已过期，仅保留原文）：**r133**：非零 CCB create 在 `ddk_feature_set=2` 与默认下桥调用 91=91 一致；
   模块停在默认参数新桥，引用 0/113，无新 WARN，继续 freeze。
 
 - **r132 桥已重载（默认参数）**：`mt_pvr_bridge` 先以 `ddk_feature_set=2`
