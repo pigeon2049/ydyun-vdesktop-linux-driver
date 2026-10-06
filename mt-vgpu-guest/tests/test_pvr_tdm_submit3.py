@@ -20,7 +20,7 @@ def code():
 
 
 def fn_body(src, name):
-    m = re.search(r'static int %s\([^;]*\)\s*\{(.*?)^}' % re.escape(name),
+    m = re.search(r'static (?:int|void) %s\([^;]*\)\s*\{(.*?)^}' % re.escape(name),
                   src, re.S | re.M)
     assert m, '%s definition not found' % name
     return m.group(0)
@@ -57,10 +57,13 @@ class TdmSubmit3Observe(unittest.TestCase):
                              'observe path must not read nested %s' % field)
 
     def test_no_execution_path(self):
-        for token in ('dma_submit', 'mt_fw_event', 'translator',
-                      'mt_system_submit', 'doorbell'):
+        # r182 added a bring-up hook (prepare only); submission stays out.
+        for token in ('dma_submit', 'mt_fw_event',
+                      'mt_system_submit', 'doorbell', 'submit_tqx_work',
+                      'submit_context', 'dma_fence'):
             self.assertNotIn(token, self.body,
                              'observe path must not reach %s' % token)
+        self.assertIn('pvr_translator_prepare_locked', self.body)
 
     def test_dry_run_gated_default_off(self):
         m = re.search(r'static bool translate_transfer;', self.src)
@@ -93,6 +96,41 @@ class TdmSubmit3Observe(unittest.TestCase):
                       src, re.S)
         self.assertIsNotNone(m)
         self.assertIn('= {0}', m.group(0))
+
+    def test_tqx_ctx_gated_default_off(self):
+        m = re.search(r'static bool translate_tqx_ctx;', self.src)
+        self.assertIsNotNone(m, 'translate_tqx_ctx switch must exist')
+        self.assertRegex(self.src,
+                         r'module_param\(translate_tqx_ctx, bool, 0400\)')
+
+    def test_tqx_bringup_inside_prepare_before_seal(self):
+        # The sealed space refuses binds and re-upload, so the flavor-1
+        # context plus command/DMA/state Bos must be built in prepare.
+        body = fn_body(self.src, 'pvr_translator_prepare_locked')
+        self.assertIn('mt_execution_context_create(&translator.tqx_context',
+                      body)
+        for tok in ('translator.tqx_cmd', 'translator.tqx_dma',
+                    'translator.tqx_state'):
+            self.assertIn(tok, body)
+        self.assertIn('translator.tqx_ready = true;', body)
+        seal_at = body.find('ops->seal(translator.space)')
+        ready_at = body.find('translator.tqx_ready = true;')
+        self.assertTrue(0 < seal_at and ready_at < seal_at,
+                        'TQX objects must be bound before the seal')
+
+    def test_tqx_teardown_wired(self):
+        body = fn_body(self.src, 'pvr_translator_teardown_locked')
+        for tok in ('mt_execution_context_destroy(&translator.tqx_context)',
+                    'mt_bo_put(&translator.tqx_cmd)',
+                    'mt_bo_put(&translator.tqx_dma)',
+                    'mt_bo_put(&translator.tqx_state)'):
+            self.assertIn(tok, body)
+
+    def test_tqx_no_submit_in_bringup(self):
+        body = fn_body(self.src, 'pvr_translator_prepare_locked')
+        for tok in ('submit_tqx_work', 'submit_context', 'dma_fence'):
+            self.assertNotIn(tok, body,
+                             'bring-up must not submit (r182)')
 
 
 if __name__ == '__main__':

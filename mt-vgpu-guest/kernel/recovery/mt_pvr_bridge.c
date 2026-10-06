@@ -116,6 +116,15 @@ static bool translate_transfer;
 module_param(translate_transfer, bool, 0400);
 MODULE_PARM_DESC(translate_transfer, "dry-run transfer translation: build (never submit) the TQX fill program for 0x89:0xa (default: observe only)");
 
+/* TQX context bring-up (r182). Off by default. When on, the first
+ * SubmitTransfer3 also builds the flavor-1 TQX context plus command/DMA/state
+ * Bos inside prepare (before its seal); a session whose translator is already
+ * sealed misses the window and fails loudly instead of half-working.
+ */
+static bool translate_tqx_ctx;
+module_param(translate_tqx_ctx, bool, 0400);
+MODULE_PARM_DESC(translate_tqx_ctx, "build the translator TQX context and Bos on first 0x89:0xa (default: off; no submission)");
+
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
 #define DRM_IOCTL_PVR_SYNC_RENAME _IOW('d', 0x41, struct mt_pvr_sync_rename_data)
@@ -1578,6 +1587,14 @@ struct mt_pvr_translator {
 	struct mt_bo command;
 	struct mt_bo rt;
 	struct mt_bo ctx_bos[MT_GFX_CONTEXT_BO_COUNT];
+	/* TQX flavor (r182): second context under the same process plus the
+	 * command/DMA/state Bos a TQX fill submission needs. Built lazily by
+	 * the bring-up below; torn down with everything else. No submission
+	 * happens here.
+	 */
+	bool tqx_ready;
+	struct mt_execution_context tqx_context;
+	struct mt_bo tqx_cmd, tqx_dma, tqx_state;
 	u64 seq;
 };
 
@@ -1685,12 +1702,20 @@ static void pvr_translator_teardown_locked(void)
 
 	if (d && translator.context.process)
 		WARN_ON(mt_execution_context_destroy(&translator.context));
+	if (d && translator.tqx_context.process)
+		WARN_ON(mt_execution_context_destroy(&translator.tqx_context));
 	if (d && translator.process.store)
 		WARN_ON(mt_execution_process_destroy(&translator.process));
 	if (translator.command.refs)
 		WARN_ON(mt_bo_put(&translator.command));
 	if (translator.rt.refs)
 		WARN_ON(mt_bo_put(&translator.rt));
+	if (translator.tqx_cmd.refs)
+		WARN_ON(mt_bo_put(&translator.tqx_cmd));
+	if (translator.tqx_dma.refs)
+		WARN_ON(mt_bo_put(&translator.tqx_dma));
+	if (translator.tqx_state.refs)
+		WARN_ON(mt_bo_put(&translator.tqx_state));
 	{
 		u32 i;
 
@@ -1795,6 +1820,39 @@ static int pvr_translator_prepare_locked(void)
 					      csw, sizeof(csw));
 		if (ret)
 			goto out;
+	}
+	/* TQX flavor (r182, opt-in): flavor-1 context under the same process
+	 * plus command/DMA/state Bos at live_3d's VAs, bound before the seal
+	 * below (a sealed space refuses binds and re-upload). Gated so the
+	 * validated DM-only prepare stays bit-identical when off.
+	 */
+	if (translate_tqx_ctx) {
+		static const u64 tqx_va[3] = { 0x40000000ULL, 0x40010000ULL,
+					       0x40020000ULL };
+		static const u32 tqx_bytes[3] = { 4096, 8192, 4096 };
+		struct mt_bo *tqx_bo[3] = {
+			&translator.tqx_cmd, &translator.tqx_dma,
+			&translator.tqx_state,
+		};
+		u32 k;
+
+		ret = mt_execution_context_create(&translator.tqx_context,
+						  &translator.process, 1, 0);
+		if (ret)
+			goto out;
+		for (k = 0; k < 3; k++) {
+			ret = mt_bo_create(tqx_bo[k], d->buffers.ops,
+					   &d->buffers, tqx_bytes[k], PAGE_SIZE);
+			if (ret)
+				goto out;
+			ret = d->address_spaces.ops->bind(translator.space,
+							  tqx_bo[k], tqx_va[k],
+							  0, tqx_bytes[k],
+							  MT_GPU_MAP_DEFAULT);
+			if (ret)
+				goto out;
+		}
+		translator.tqx_ready = true;
 	}
 	for (off = 0; off < MT_GFX_LINUX_PACKET_BYTES;) {
 		chunk = MT_GFX_LINUX_PACKET_BYTES - off;
@@ -3116,6 +3174,25 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 				ret);
 			return ret;
 		}
+	}
+	if (translate_tqx_ctx) {
+		mutex_lock(&translator_lock);
+		if (!translator.ready) {
+			ret = pvr_translator_prepare_locked();
+			if (ret) {
+				mutex_unlock(&translator_lock);
+				pr_info("mt_pvr_bridge: submit3 tqx-ctx: prepare failed: %d\n",
+					ret);
+				return ret;
+			}
+		}
+		if (!translator.tqx_ready) {
+			mutex_unlock(&translator_lock);
+			pr_info("mt_pvr_bridge: submit3 tqx-ctx: sealedmiss\n");
+			return -EOPNOTSUPP;
+		}
+		pr_info("mt_pvr_bridge: submit3 tqx-ctx: ready\n");
+		mutex_unlock(&translator_lock);
 	}
 	return pvr_out(cmd, &out, sizeof(out));
 }
