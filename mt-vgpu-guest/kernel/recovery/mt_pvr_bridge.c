@@ -626,7 +626,7 @@ static int pvr_gpu_vm_destroy(struct mt_pvr_file *file)
 static struct mt_guest *pvr_session_acquire(struct module **owner_out)
 {
 	struct pci_dev *pdev =
-		pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+		pci_get_domain_bus_and_slot(0, 0, MT_PVR_PCI_DEVFN);
 	struct module *owner = NULL;
 	struct mt_guest *g = NULL;
 
@@ -697,7 +697,7 @@ static int pvr_pmr_dma_register(struct mt_pvr_file *file,
 	g = pvr_session_acquire(&pmr->dma_owner);
 	if (!g)
 		return -ENODEV;
-	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	pdev = pci_get_domain_bus_and_slot(0, 0, MT_PVR_PCI_DEVFN);
 	if (!pdev) {
 		ret = -ENODEV;
 		goto put_session;
@@ -2201,12 +2201,12 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 	u64 handle;
 	int ret;
 
-	if (function == 0x2) {
+	if (function == MT_PVR_FN_KICKSYNC2) {
 		ret = pvr_in(cmd, &in2, sizeof(in2));
 		if (ret)
 			return ret;
 		handle = in2.kicksync_context;
-	} else if (function == 0x3) {
+	} else if (function == MT_PVR_FN_KICKSYNC_PROP) {
 		ret = pvr_in(cmd, &in_prop, sizeof(in_prop));
 		if (ret)
 			return ret;
@@ -2224,9 +2224,9 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 	if (&obj->link == &file->objects)
 		return -ENOENT;
 	/* A property query has no fence to complete. */
-	if (function == 0x3)
+	if (function == MT_PVR_FN_KICKSYNC_PROP)
 		return pvr_out(cmd, &out_prop, sizeof(out_prop));
-	if (function == 0x4) {
+	if (function == MT_PVR_FN_KICKSYNC3) {
 		if (translate_kick) {
 			if (in3.client_check_count || in3.client_update_count)
 				return pvr_translate_kick(file, cmd, &in3);
@@ -2241,7 +2241,7 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 				    O_RDWR | O_CLOEXEC);
 	if (fence_fd < 0)
 		return fence_fd;
-	if (function == 0x2) {
+	if (function == MT_PVR_FN_KICKSYNC2) {
 		out2.update_fence_fd = fence_fd;
 		ret = pvr_out(cmd, &out2, sizeof(out2));
 	} else {

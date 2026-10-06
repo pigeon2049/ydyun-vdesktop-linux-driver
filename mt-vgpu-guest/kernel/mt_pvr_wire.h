@@ -354,6 +354,13 @@ struct MT_PVR_PACKED mt_pvr_kicksyncctx2_create_out {
 	u32 error;
 };
 
+/* 0x88 RGXKICKSYNC function IDs compared by name in kicksync_submit
+ * (r187; dispatch case labels carry the same names as comments).
+ */
+#define MT_PVR_FN_KICKSYNC2 0x2U
+#define MT_PVR_FN_KICKSYNC_PROP 0x3U
+#define MT_PVR_FN_KICKSYNC3 0x4U
+
 /* 0x88:0x2 RGXKickSync2 -- 56-byte IN, 8-byte OUT.
  * 0x88:0x3 RGXSetKickSyncContextProperty -- 20-byte IN, 12-byte OUT.
  * 0x88:0x4 RGXKickSync3 (the TA-submit entry point) -- 84-byte IN, 8-byte OUT.

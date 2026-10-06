@@ -18,6 +18,7 @@ from pathlib import Path
 
 GUEST = Path(__file__).resolve().parents[1]
 PROBE = GUEST / 'kernel/mt_guest_probe.c'
+BRIDGE = GUEST / 'kernel/recovery/mt_pvr_bridge.c'
 
 
 def strip_comments(text):
@@ -60,6 +61,20 @@ class SessionPrereqs(unittest.TestCase):
             self.assertNotIn(name, self.text,
                              f'{name} must not appear: symbol resolution '
                              'does not work on this kernel')
+
+    def test_bridge_lookup_uses_single_slot_macro(self):
+        bridge = strip_comments(BRIDGE.read_text())
+        self.assertRegex(
+            bridge,
+            r'#define\s+MT_PVR_PCI_DEVFN\s+PCI_DEVFN\(14,\s*0\)',
+            'the S3000 slot assumption must live in exactly one macro')
+        self.assertEqual(
+            bridge.count('PCI_DEVFN(14, 0)'), 1,
+            'the S3000 slot literal may appear exactly once (inside the '
+            'MT_PVR_PCI_DEVFN definition); lookups must use the macro')
+        self.assertGreaterEqual(
+            bridge.count('MT_PVR_PCI_DEVFN'), 3,
+            'macro definition plus every lookup site must reference it')
 
 
 if __name__ == '__main__':
