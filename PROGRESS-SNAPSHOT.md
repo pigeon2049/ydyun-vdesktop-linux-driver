@@ -436,6 +436,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-06 更新；本节是活页）
 
+- **r180 接线规约（只读 recon；零硬件触碰，会话未碰）**：scratch 中转架构（外页绑不进空间是决定性依据；表容量已够）；VA `0x49000000`；fill 五步 + copy 双面 + 门禁计划。见 `reports/r180-transfer-wiring.md`。
 - **r179 fill 构造器（零硬件触碰，会话未碰）**：新增 `mt_transfer_fill.h`（池解析 + 矩形构造，错配大声拒绝）；C 门禁 16 项（274+288 全绿），反向验证通过；未接桥无发射。见 `reports/r179-fill-builder.md`。
 - **r178 几何通道落定（零硬件触碰，无代码改动）**：5MB 池实转储——3841 零头 + `ff0000ff`×1310720（1280×1024，行连续）+ 254 零尾；64×64 复核 `3841+16384+254` 精确成立；颜色即像素字。见 `reports/r178-geometry-channel.md`。
 - **r177 输出侧盘点（纯只读；零硬件触碰，会话未碰）**：DM2 空 marker、TQX fill 矩形、TQX copy 计划均有发射能力；Transfer 归 TQX（DM 只欠 TA/3D）。CCB 几乎全指针/标志，颜色几何不在其中——T3-transfer 首要缺口；`0xa3xxxx` 归属未定。门禁复核 274+272 全绿。见 `reports/r177-output-inventory.md`。
