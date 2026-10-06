@@ -75,7 +75,7 @@ class TdmShmemBridge(unittest.TestCase):
 
     def test_dispatch_has_tdm_group(self):
         self.assertIn('MT_PVR_BRIDGE_RGXTDM', self.text)
-        self.assertIn('case 0x5:', self.text)
+        self.assertIn('case MT_PVR_FN_RGXTDMGETSHAREDMEMORY:', self.text)
         self.assertIn('pvr_cmd_tdm_shmem', self.text)
         self.assertIn('pvr_cmd_tdm_release', self.text)
 
@@ -83,7 +83,7 @@ class TdmShmemBridge(unittest.TestCase):
         create = self.text[self.text.index(
             'static int pvr_cmd_tdm_shmem'):]
         create = create[:create.index('\n}\n')]
-        self.assertIn('pvr_pmr_new(file, 0x2000, 12)', create)
+        self.assertIn('pvr_pmr_new(file, MT_PVR_TDM_SHMEM_BYTES, 12)', create)
         self.assertNotIn('pvr_stub_ok', create)
 
     def test_aliases_have_distinct_pmr_lifetimes(self):
@@ -92,7 +92,7 @@ class TdmShmemBridge(unittest.TestCase):
         create = create[:create.index('\n}\n')]
         self.assertIn('out.ptr1 = cli_pmr->handle;', create)
         self.assertIn('out.ptr2 = usc_pmr->handle;', create)
-        self.assertGreaterEqual(create.count('pvr_pmr_new(file, 0x2000, 12)'), 2)
+        self.assertGreaterEqual(create.count('pvr_pmr_new(file, MT_PVR_TDM_SHMEM_BYTES, 12)'), 2)
         release = self.text[self.text.index(
             'static int pvr_cmd_tdm_release'):]
         release = release[:release.index('\n}\n')]

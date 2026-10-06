@@ -38,7 +38,7 @@ class TdmSubmit3Observe(unittest.TestCase):
 
     def test_submit3_routed(self):
         self.assertRegex(self.dispatch,
-                         r'case 0xa:[\s\S]*?pvr_cmd_tdm_submit3_observe',
+                         r'case MT_PVR_FN_RGXTDMSUBMITTRANSFER3:[\s\S]*?pvr_cmd_tdm_submit3_observe',
                          '0x89:0xa must reach the observe handler, not -ENOTTY')
 
     def test_window_bounded(self):

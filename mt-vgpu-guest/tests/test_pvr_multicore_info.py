@@ -24,9 +24,9 @@ class MulticoreInfoDispatch(unittest.TestCase):
     def test_srvcore_dispatch_uses_real_handler(self):
         srvcore = self.source[self.source.index('case MT_PVR_BRIDGE_SRVCORE:'):]
         srvcore = srvcore[:srvcore.index('\n\tcase MT_PVR_BRIDGE_SYNC:')]
-        self.assertIn('case 0xc:', srvcore)
+        self.assertIn('case MT_PVR_FN_GETMULTICOREINFO:', srvcore)
         self.assertIn('return pvr_cmd_multicore_info(cmd);', srvcore)
-        self.assertNotIn('case 0xc:\t\t\t/* GetMultiCoreInfo */\n\t\t\treturn pvr_stub_ok(cmd);',
+        self.assertNotIn('case MT_PVR_FN_GETMULTICOREINFO:\t\t\t/* GetMultiCoreInfo */\n\t\t\treturn pvr_stub_ok(cmd);',
                          srvcore)
 
     def test_fabricated_replay_reports_single_core_and_echoes_caps(self):

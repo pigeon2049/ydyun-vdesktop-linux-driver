@@ -9,9 +9,9 @@ WIRE = ROOT / 'kernel' / 'mt_pvr_wire.h'
 BRIDGE = ROOT / 'kernel' / 'recovery' / 'mt_pvr_bridge.c'
 
 PINNED = {
-    'MT_PVR_FN_KICKSYNC2': '0x2U',
-    'MT_PVR_FN_KICKSYNC_PROP': '0x3U',
-    'MT_PVR_FN_KICKSYNC3': '0x4U',
+    'MT_PVR_FN_RGXKICKSYNC2': '0x2U',
+    'MT_PVR_FN_RGXSETKICKSYNCCONTEXTPROPERTY': '0x3U',
+    'MT_PVR_FN_RGXKICKSYNC3': '0x4U',
 }
 
 

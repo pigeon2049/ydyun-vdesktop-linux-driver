@@ -31,13 +31,13 @@ def kicksync_block(src):
 class Ddk2KickSyncContext(unittest.TestCase):
     def test_create_routed(self):
         block = kicksync_block(code())
-        self.assertRegex(block, r'case 0x5:[\s\S]*?pvr_cmd_kicksyncctx2_create',
+        self.assertRegex(block, r'case MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT2:[\s\S]*?pvr_cmd_kicksyncctx2_create',
                          '0x88:0x5 must reach the DDK2 create handler')
 
     def test_destroy_routed(self):
         block = kicksync_block(code())
         self.assertRegex(block,
-                         r'case 0x6:[\s\S]*?pvr_cmd_kicksync_destroy\(file, cmd\)',
+                         r'case MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT2:[\s\S]*?pvr_cmd_kicksync_destroy\(file, cmd\)',
                          '0x88:0x6 must share the kicksync release path')
 
     def test_create_mints_kicksync_and_answers_12byte_out(self):

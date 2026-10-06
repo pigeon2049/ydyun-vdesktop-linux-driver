@@ -14,6 +14,7 @@ CONSUMERS = [
     'kernel/recovery/mt_live_copy_bridge.c',
     'kernel/recovery/mt_live_tqx.c',
     'kernel/recovery/mt_live_tqx_repeat.c',
+    'kernel/recovery/mt_live_tqx_readback.c',
 ]
 # Macro -> the exact legacy literal it replaced (values must never change
 # without a deliberate, documented round).
@@ -33,6 +34,9 @@ PINNED = {
     'MT_TRANSLATE_WAIT_SLICE_MS': '5U',
     'MT_TRANSFER_PROTO_W': '1280U',
     'MT_TRANSFER_PROTO_H': '1024U',
+    'MT_TQX_STREAM_SRC_VA': '0x40100000ULL',
+    'MT_TQX_STREAM_DST_VA': '0x40200000ULL',
+    'MT_TQX_STREAM_SLOT_BYTES': '4096U',
 }
 # Raw scene literals that must not appear as code in consumers.
 # Stream endpoints (0x40100000/0x40200000), slot_va bases and the unrelated

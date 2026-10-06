@@ -81,9 +81,9 @@ class TdmContext2Lifecycle(unittest.TestCase):
         # arrays untouched, no execution path).
         tdm = self.source[self.source.index('case MT_PVR_BRIDGE_RGXTDM:'):]
         tdm = tdm[:tdm.index('\n\t\tdefault:')]
-        self.assertIn('case 0x8:', tdm)
-        self.assertIn('case 0x9:', tdm)
-        self.assertRegex(tdm, r'case 0xa:[\s\S]*?pvr_cmd_tdm_submit3_observe')
+        self.assertIn('case MT_PVR_FN_RGXTDMCREATETRANSFERCONTEXT2:', tdm)
+        self.assertIn('case MT_PVR_FN_RGXTDMDESTROYTRANSFERCONTEXT2:', tdm)
+        self.assertRegex(tdm, r'case MT_PVR_FN_RGXTDMSUBMITTRANSFER3:[\s\S]*?pvr_cmd_tdm_submit3_observe')
 
 
 if __name__ == '__main__':

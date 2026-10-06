@@ -331,10 +331,10 @@ module_param_cb(run, &run_ops, NULL, 0200);
 
 static int prepare(void)
 {
-	const u64 va[5] = {MT_TQX_CMD_VA, 0x40100000, 0x40200000, MT_TQX_DMA_VA, MT_TQX_STATE_VA};
-	const u32 bytes[5] = {MT_TQX_CMD_BO_BYTES, 4096, 4096, MT_TQX_DMA_BO_BYTES, MT_TQX_STATE_BO_BYTES};
+	const u64 va[5] = {MT_TQX_CMD_VA, MT_TQX_STREAM_SRC_VA, MT_TQX_STREAM_DST_VA, MT_TQX_DMA_VA, MT_TQX_STATE_VA};
+	const u32 bytes[5] = {MT_TQX_CMD_BO_BYTES, MT_TQX_STREAM_SLOT_BYTES, MT_TQX_STREAM_SLOT_BYTES, MT_TQX_DMA_BO_BYTES, MT_TQX_STATE_BO_BYTES};
 	struct mt_tqx_submission_input input = {
-		.stream = {.copy = {0x40100000, 0x40200000, 256}, .va = {MT_TQX_CMD_VA}},
+		.stream = {.copy = {MT_TQX_STREAM_SRC_VA, MT_TQX_STREAM_DST_VA, 256}, .va = {MT_TQX_CMD_VA}},
 		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA,
 	};
 	struct mt_bo *bos[5];

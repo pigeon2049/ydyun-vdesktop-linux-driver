@@ -96,7 +96,7 @@ static int one_copy(u32 iteration)
 {
 	const struct copy_case *c = &cases[iteration % ARRAY_SIZE(cases)];
 	struct mt_tqx_submission_input input = {
-		.stream = {.copy = {0x40100000 + c->src, 0x40200000 + c->dst, c->bytes},
+		.stream = {.copy = {MT_TQX_STREAM_SRC_VA + c->src, MT_TQX_STREAM_DST_VA + c->dst, c->bytes},
 			.va = {MT_TQX_CMD_VA}},
 		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA,
 	};
@@ -213,8 +213,8 @@ module_param_cb(run, &run_ops, NULL, 0200);
 
 static int attach_context(void)
 {
-	const u64 va[5] = {MT_TQX_CMD_VA, 0x40100000, 0x40200000, MT_TQX_DMA_VA, MT_TQX_STATE_VA};
-	const u32 bytes[5] = {MT_TQX_CMD_BO_BYTES, 4096, 4096, MT_TQX_DMA_BO_BYTES, MT_TQX_STATE_BO_BYTES};
+	const u64 va[5] = {MT_TQX_CMD_VA, MT_TQX_STREAM_SRC_VA, MT_TQX_STREAM_DST_VA, MT_TQX_DMA_VA, MT_TQX_STATE_VA};
+	const u32 bytes[5] = {MT_TQX_CMD_BO_BYTES, MT_TQX_STREAM_SLOT_BYTES, MT_TQX_STREAM_SLOT_BYTES, MT_TQX_DMA_BO_BYTES, MT_TQX_STATE_BO_BYTES};
 	const u32 pool_order[3] = {1, 0, 2};
 	struct mt_vm_vram *v;
 	u32 i, j;

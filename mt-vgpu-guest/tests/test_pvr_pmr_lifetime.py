@@ -242,7 +242,7 @@ class PmrLifetime(unittest.TestCase):
                       'nothing releases PMRs any more; 0x86:0x5 must call '
                       'pvr_pmr_put()')
         self.assertRegex(self.text,
-                         r'case\s+0x5:.*\n.*pvr_cmd_hwperf_release',
+                         r'case\s+MT_PVR_FN_RGXRELEASEHWPERFFSETTINGS:.*\n.*pvr_cmd_hwperf_release',
                          '0x86:0x5 is no longer routed to pvr_cmd_hwperf_release')
 
 
@@ -259,15 +259,15 @@ class PmrImportRouting(unittest.TestCase):
     def test_make_import_has_its_own_handler(self):
         self.assertRegex(
             self.text,
-            r'case\s+0x3:.*\n.*pvr_cmd_pmr_make_import',
+            r'case\s+MT_PVR_FN_PMRMAKELOCALIMPORTHANDLE:.*\n.*pvr_cmd_pmr_make_import',
             '0x6:0x3 is not routed to its own handler')
         self.assertRegex(
             self.text,
-            r'case\s+0x4:.*\n.*pvr_cmd_pmr_unmake_import',
+            r'case\s+MT_PVR_FN_PMRUNMAKELOCALIMPORTHANDLE:.*\n.*pvr_cmd_pmr_unmake_import',
             '0x6:0x4 is not routed to its own handler')
         self.assertRegex(
             self.text,
-            r'case\s+0x6:.*\n.*pvr_cmd_pmr_import',
+            r'case\s+MT_PVR_FN_PMRLOCALIMPORTPMR:.*\n.*pvr_cmd_pmr_import',
             '0x6:0x6 is not routed to its own handler')
         self.assertIn('mt_pvr_make_import_in', self.make_import)
         self.assertIn('mt_pvr_make_import_out', self.make_import)
@@ -305,11 +305,11 @@ class ZsBufferRouting(unittest.TestCase):
                           f'{func} does not use the ZSBUFFER kind')
         self.assertRegex(
             self.text,
-            r'case\s+0x2:.*\n.*pvr_cmd_zs_create',
+            r'case\s+MT_PVR_FN_RGXCREATEZSBUFFER:.*\n.*pvr_cmd_zs_create',
             '0x82:0x2 is not routed to its own handler')
         self.assertRegex(
             self.text,
-            r'case\s+0x3:.*\n.*pvr_cmd_zs_destroy',
+            r'case\s+MT_PVR_FN_RGXDESTROYZSBUFFER:.*\n.*pvr_cmd_zs_destroy',
             '0x82:0x3 is not routed to its own handler')
 
     def test_probe_round_trips_a_zsbuffer(self):

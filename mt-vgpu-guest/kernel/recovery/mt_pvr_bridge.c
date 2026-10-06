@@ -152,6 +152,13 @@ static_assert(_IOC_SIZE(DRM_IOCTL_PVR_SYNC_RENAME) ==
  */
 #define MT_PVR_MAX_MAP_BYTES (16U << 20)
 
+/* Bridge-side PMR allocation presets (r188): sync/UFO block, hwperf
+ * settings handle, and TDM shared-memory pair. Sizes, not policies.
+ */
+#define MT_PVR_SYNC_BLOCK_BYTES 0x1000U
+#define MT_PVR_HWPERF_PMR_BYTES 0x1000U
+#define MT_PVR_TDM_SHMEM_BYTES 0x2000U
+
 /* Bridge groups we serve. Anything else is rejected instead of guessed at. */
 #define MT_PVR_BRIDGE_SRVCORE 0x1U
 #define MT_PVR_BRIDGE_SYNC 0x2U
@@ -2201,12 +2208,12 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 	u64 handle;
 	int ret;
 
-	if (function == MT_PVR_FN_KICKSYNC2) {
+	if (function == MT_PVR_FN_RGXKICKSYNC2) {
 		ret = pvr_in(cmd, &in2, sizeof(in2));
 		if (ret)
 			return ret;
 		handle = in2.kicksync_context;
-	} else if (function == MT_PVR_FN_KICKSYNC_PROP) {
+	} else if (function == MT_PVR_FN_RGXSETKICKSYNCCONTEXTPROPERTY) {
 		ret = pvr_in(cmd, &in_prop, sizeof(in_prop));
 		if (ret)
 			return ret;
@@ -2224,9 +2231,9 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 	if (&obj->link == &file->objects)
 		return -ENOENT;
 	/* A property query has no fence to complete. */
-	if (function == MT_PVR_FN_KICKSYNC_PROP)
+	if (function == MT_PVR_FN_RGXSETKICKSYNCCONTEXTPROPERTY)
 		return pvr_out(cmd, &out_prop, sizeof(out_prop));
-	if (function == MT_PVR_FN_KICKSYNC3) {
+	if (function == MT_PVR_FN_RGXKICKSYNC3) {
 		if (translate_kick) {
 			if (in3.client_check_count || in3.client_update_count)
 				return pvr_translate_kick(file, cmd, &in3);
@@ -2241,7 +2248,7 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 				    O_RDWR | O_CLOEXEC);
 	if (fence_fd < 0)
 		return fence_fd;
-	if (function == MT_PVR_FN_KICKSYNC2) {
+	if (function == MT_PVR_FN_RGXKICKSYNC2) {
 		out2.update_fence_fd = fence_fd;
 		ret = pvr_out(cmd, &out2, sizeof(out2));
 	} else {
@@ -2857,7 +2864,7 @@ static int pvr_cmd_sync_block(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	obj = pvr_object_new(file, MT_PVR_KIND_SYNC);
 	if (!obj)
 		return -ENOMEM;
-	pmr = pvr_pmr_new(file, 0x1000, 12);
+	pmr = pvr_pmr_new(file, MT_PVR_SYNC_BLOCK_BYTES, 12);
 	if (!pmr) {
 		list_del(&obj->link);
 		kfree(obj);
@@ -2866,7 +2873,7 @@ static int pvr_cmd_sync_block(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	obj->arg0 = pmr->handle;
 	out.sync_handle = obj->handle;
 	out.sync_pmr = pmr->handle;
-	out.block_size = 0x1000;
+	out.block_size = MT_PVR_SYNC_BLOCK_BYTES;
 	/* PVRSRV_BRIDGE_OUT_ALLOCSYNCPRIMITIVEBLOCK ends in
 	 * ui32SyncPrimVAddr, a 32-bit virtual address -- not a handle. Since
 	 * no stage-one work touches the sync arena, the CPU mapping of the
@@ -2982,7 +2989,7 @@ static int pvr_cmd_hwperf(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	struct mt_pvr_handle_out out = { 0 };
 	struct mt_pvr_pmr *pmr;
 
-	pmr = pvr_pmr_new(file, 0x1000, 12);
+	pmr = pvr_pmr_new(file, MT_PVR_HWPERF_PMR_BYTES, 12);
 	if (!pmr)
 		return -ENOMEM;
 	out.handle = pmr->handle;
@@ -3020,10 +3027,10 @@ static int pvr_cmd_tdm_shmem(struct mt_pvr_file *file,
 	struct mt_pvr_tdm_shmem_out out = { 0 };
 	struct mt_pvr_pmr *cli_pmr, *usc_pmr;
 
-	cli_pmr = pvr_pmr_new(file, 0x2000, 12);
+	cli_pmr = pvr_pmr_new(file, MT_PVR_TDM_SHMEM_BYTES, 12);
 	if (!cli_pmr)
 		return -ENOMEM;
-	usc_pmr = pvr_pmr_new(file, 0x2000, 12);
+	usc_pmr = pvr_pmr_new(file, MT_PVR_TDM_SHMEM_BYTES, 12);
 	if (!usc_pmr) {
 		pvr_pmr_put(file, cli_pmr->handle);
 		return -ENOMEM;
@@ -3348,81 +3355,81 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 	switch (bridge) {
 	case MT_PVR_BRIDGE_SRVCORE:
 		switch (function) {
-		case 0x0:
+		case MT_PVR_FN_CONNECT:
 			return pvr_cmd_connect(file, cmd);
-		case 0x1:			/* Disconnect */
-		case 0x10:			/* ReleaseInfoPage */
+		case MT_PVR_FN_DISCONNECT:			/* Disconnect */
+		case MT_PVR_FN_RELEASEINFOPAGE:			/* ReleaseInfoPage */
 			return pvr_stub_ok(cmd);
-		case 0x2:			/* AcquireGlobalEventObject */
-		case 0x4:			/* EventObjectOpen */
+		case MT_PVR_FN_ACQUIREGLOBALEVENTOBJECT:			/* AcquireGlobalEventObject */
+		case MT_PVR_FN_EVENTOBJECTOPEN:			/* EventObjectOpen */
 			return pvr_cmd_event_handle(file, cmd);
-		case 0x3:			/* ReleaseGlobalEventObject */
-		case 0x5:			/* EventObjectWait */
-		case 0x6:			/* EventObjectClose */
-		case 0xa:			/* AlignmentCheck */
-		case 0xd:			/* EventObjectWaitTimeout */
+		case MT_PVR_FN_RELEASEGLOBALEVENTOBJECT:			/* ReleaseGlobalEventObject */
+		case MT_PVR_FN_EVENTOBJECTWAIT:			/* EventObjectWait */
+		case MT_PVR_FN_EVENTOBJECTCLOSE:			/* EventObjectClose */
+		case MT_PVR_FN_ALIGNMENTCHECK:			/* AlignmentCheck */
+		case MT_PVR_FN_EVENTOBJECTWAITTIMEOUT:			/* EventObjectWaitTimeout */
 			return pvr_stub_ok(cmd);
-		case 0xc:			/* GetMultiCoreInfo */
+		case MT_PVR_FN_GETMULTICOREINFO:			/* GetMultiCoreInfo */
 			return pvr_cmd_multicore_info(cmd);
-		case 0xf:			/* AcquireInfoPage */
+		case MT_PVR_FN_ACQUIREINFOPAGE:			/* AcquireInfoPage */
 			return pvr_cmd_info_page(file, cmd);
 		default:
 			return -ENOTTY;
 		}
 	case MT_PVR_BRIDGE_SYNC:
 		switch (function) {
-		case 0x0:
+		case MT_PVR_FN_ALLOCSYNCPRIMITIVEBLOCK:
 			return pvr_cmd_sync_block(file, cmd);
-		case 0x1:			/* FreeSyncPrimitiveBlock */
-		case 0x2:			/* SyncPrimSet (DDK2 render tail, r142) */
-		case 0x7:			/* SyncAllocEvent */
-		case 0x8:			/* SyncFreeEvent (DDK2 destroy tail, r144) */
+		case MT_PVR_FN_FREESYNCPRIMITIVEBLOCK:			/* FreeSyncPrimitiveBlock */
+		case MT_PVR_FN_SYNCPRIMSET:			/* SyncPrimSet (DDK2 render tail, r142) */
+		case MT_PVR_FN_SYNCALLOCEVENT:			/* SyncAllocEvent */
+		case MT_PVR_FN_SYNCFREEEVENT:			/* SyncFreeEvent (DDK2 destroy tail, r144) */
 			return pvr_stub_ok(cmd);
 		default:
 			return -ENOTTY;
 		}
 	case MT_PVR_BRIDGE_MM:
 		switch (function) {
-		case 0x3:			/* PmrMakeLocalImportHandle */
+		case MT_PVR_FN_PMRMAKELOCALIMPORTHANDLE:			/* PmrMakeLocalImportHandle */
 			return pvr_cmd_pmr_make_import(file, cmd);
-		case 0x4:			/* PmrUnmakeLocalImportHandle */
+		case MT_PVR_FN_PMRUNMAKELOCALIMPORTHANDLE:			/* PmrUnmakeLocalImportHandle */
 			return pvr_cmd_pmr_unmake_import(file, cmd);
-		case 0x6:			/* PmrLocalImportPmr */
+		case MT_PVR_FN_PMRLOCALIMPORTPMR:			/* PmrLocalImportPmr */
 			return pvr_cmd_pmr_import(file, cmd);
-		case 0x7:			/* PmrUnrefPmr */
+		case MT_PVR_FN_PMRUNREFPMR:			/* PmrUnrefPmr */
 			return pvr_cmd_pmr_unref(file, cmd);
-		case 0x10:			/* DevmemIntCtxDestroy */
+		case MT_PVR_FN_DEVMEMINTCTXDESTROY:			/* DevmemIntCtxDestroy */
 			return pvr_cmd_ctx_destroy(file, cmd);
-		case 0x12:			/* DevmemIntHeapDestroy */
+		case MT_PVR_FN_DEVMEMINTHEAPDESTROY:			/* DevmemIntHeapDestroy */
 			return pvr_cmd_heap_destroy(file, cmd);
-		case 0x9:			/* PhysMemNewRamBackedPmr */
+		case MT_PVR_FN_PHYSMEMNEWRAMBACKEDPMR:			/* PhysMemNewRamBackedPmr */
 			return pvr_cmd_pmr_alloc(file, cmd);
-		case 0xf:			/* DevmemIntCtxCreate */
+		case MT_PVR_FN_DEVMEMINTCTXCREATE:			/* DevmemIntCtxCreate */
 			return pvr_cmd_ctx_create(file, cmd);
-		case 0x11:			/* DevmemIntHeapCreate */
+		case MT_PVR_FN_DEVMEMINTHEAPCREATE:			/* DevmemIntHeapCreate */
 			return pvr_cmd_heap_create(file, cmd);
-		case 0x13:			/* DevmemIntMapPmr */
+		case MT_PVR_FN_DEVMEMINTMAPPMR:			/* DevmemIntMapPmr */
 			return pvr_cmd_pmr_map(file, cmd);
-		case 0x14:			/* DevmemIntUnmapPMR */
+		case MT_PVR_FN_DEVMEMINTUNMAPPMR:			/* DevmemIntUnmapPMR */
 			return pvr_cmd_unmap_pmr(file, cmd);
-		case 0x15:			/* DevmemIntReserveRange */
+		case MT_PVR_FN_DEVMEMINTRESERVERANGE:			/* DevmemIntReserveRange */
 			return pvr_cmd_pmr_reserve(file, cmd);
-		case 0x16:			/* DevmemIntUnreserveRange */
+		case MT_PVR_FN_DEVMEMINTUNRESERVERANGE:			/* DevmemIntUnreserveRange */
 			return pvr_cmd_unreserve_range(file, cmd);
-		case 0x1e:			/* HeapCfgHeapCount */
+		case MT_PVR_FN_HEAPCFGHEAPCOUNT:			/* HeapCfgHeapCount */
 			return pvr_cmd_heap_count(file, cmd);
-		case 0x20:			/* HeapCfgHeapDetails */
+		case MT_PVR_FN_HEAPCFGHEAPDETAILS:			/* HeapCfgHeapDetails */
 			return pvr_cmd_heap_details(file, cmd);
-		case 0x27:			/* MTGPUUpdateOOMStats */
+		case MT_PVR_FN_MTGPUUPDATEOOMSTATS:			/* MTGPUUpdateOOMStats */
 			return pvr_cmd_oom_stats(file, cmd);
 		default:
 			return -ENOTTY;
 		}
 	case MT_PVR_BRIDGE_RGXCOMPUTE:
 		switch (function) {
-		case 0x0:			/* RGXCreateComputeContext */
+		case MT_PVR_FN_RGXCREATECOMPUTECONTEXT:			/* RGXCreateComputeContext */
 			return pvr_cmd_compute_create(file, cmd);
-		case 0x1:			/* RGXDestroyComputeContext */
+		case MT_PVR_FN_RGXDESTROYCOMPUTECONTEXT:			/* RGXDestroyComputeContext */
 			return pvr_cmd_compute_destroy(file, cmd);
 		default:
 			/* 0x81:0x5 RGXKICKSYNC2 and friends submit real work;
@@ -3432,23 +3439,23 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		}
 	case MT_PVR_BRIDGE_RGXTA3D:
 		switch (function) {
-		case 0x2:			/* RGXCreateZSBuffer */
+		case MT_PVR_FN_RGXCREATEZSBUFFER:			/* RGXCreateZSBuffer */
 			return pvr_cmd_zs_create(file, cmd);
-		case 0x3:			/* RGXDestroyZSBuffer */
+		case MT_PVR_FN_RGXDESTROYZSBUFFER:			/* RGXDestroyZSBuffer */
 			return pvr_cmd_zs_destroy(file, cmd);
-		case 0x8:			/* RGXCreateRenderContext */
+		case MT_PVR_FN_RGXCREATERENDERCONTEXT:			/* RGXCreateRenderContext */
 			return pvr_cmd_handle_only(file, cmd,
 						    MT_PVR_KIND_CONTEXT);
-		case 0x9:			/* RGXDestroyRenderContext */
+		case MT_PVR_FN_RGXDESTROYRENDERCONTEXT:			/* RGXDestroyRenderContext */
 			/* The UMD always tears the context down, even when
 			 * creation itself failed partway, so refusing this
 			 * with -ENOTTY leaves the teardown incomplete.
 			 */
 			return pvr_cmd_handle_release(file, cmd,
 						      MT_PVR_KIND_CONTEXT);
-		case 0x12:			/* BridgeRGXCreateRenderContext2 (DDK2) */
+		case MT_PVR_FN_RGXCREATERENDERCONTEXT2:			/* BridgeRGXCreateRenderContext2 (DDK2) */
 			return pvr_cmd_render2_create(file, cmd);
-		case 0x13:			/* BridgeRGXDestroyRenderContext2 (DDK2) */
+		case MT_PVR_FN_RGXDESTROYRENDERCONTEXT2:			/* BridgeRGXDestroyRenderContext2 (DDK2) */
 			return pvr_cmd_handle_release(file, cmd,
 						      MT_PVR_KIND_CONTEXT);
 		default:
@@ -3456,41 +3463,41 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		}
 	case MT_PVR_BRIDGE_RGXKICKSYNC:
 		switch (function) {
-		case 0x0:			/* RGXCreateKickSyncContext */
+		case MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT:			/* RGXCreateKickSyncContext */
 			return pvr_cmd_kicksync_create(file, cmd);
-		case 0x1:			/* RGXDestroyKickSyncContext */
+		case MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT:			/* RGXDestroyKickSyncContext */
 			return pvr_cmd_kicksync_destroy(file, cmd);
-		case 0x2:			/* RGXKickSync2 */
-		case 0x3:			/* RGXSetKickSyncContextProperty */
-		case 0x4:			/* RGXKickSync3 (TA submit) */
+		case MT_PVR_FN_RGXKICKSYNC2:			/* RGXKickSync2 */
+		case MT_PVR_FN_RGXSETKICKSYNCCONTEXTPROPERTY:			/* RGXSetKickSyncContextProperty */
+		case MT_PVR_FN_RGXKICKSYNC3:			/* RGXKickSync3 (TA submit) */
 			return pvr_cmd_kicksync_submit(file, cmd, function);
-		case 0x5:			/* BridgeRGXCreateKickSyncContext2 (DDK2) */
+		case MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT2:			/* BridgeRGXCreateKickSyncContext2 (DDK2) */
 			return pvr_cmd_kicksyncctx2_create(file, cmd);
-		case 0x6:			/* BridgeRGXDestroyKickSyncContext2 (DDK2) */
+		case MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT2:			/* BridgeRGXDestroyKickSyncContext2 (DDK2) */
 			return pvr_cmd_kicksync_destroy(file, cmd);
 		default:
 			return -ENOTTY;
 		}
 	case MT_PVR_BRIDGE_RGXHWPERF:
 		switch (function) {
-		case 0x4:		/* MUSA:MUSAAcquireHWPerfSettings */
+		case MT_PVR_FN_RGXACQUIREHWPERFFSETTINGS:		/* MUSA:MUSAAcquireHWPerfSettings */
 			return pvr_cmd_hwperf(file, cmd);
-		case 0x5:		/* MUSA:MUSAReleaseHWPerfSettings */
+		case MT_PVR_FN_RGXRELEASEHWPERFFSETTINGS:		/* MUSA:MUSAReleaseHWPerfSettings */
 			return pvr_cmd_hwperf_release(file, cmd);
 		default:
 			return -ENOTTY;
 		}
 	case MT_PVR_BRIDGE_RGXTDM:
 		switch (function) {
-		case 0x8: /* RGXTDMCreateTransferContext2 */
+		case MT_PVR_FN_RGXTDMCREATETRANSFERCONTEXT2: /* RGXTDMCreateTransferContext2 */
 			return pvr_cmd_tdm_context2_create(file, cmd);
-		case 0x9: /* RGXTDMDestroyTransferContext2 */
+		case MT_PVR_FN_RGXTDMDESTROYTRANSFERCONTEXT2: /* RGXTDMDestroyTransferContext2 */
 			return pvr_cmd_tdm_context2_destroy(file, cmd);
-		case 0x5:		/* RGXTDMGetSharedMemory */
+		case MT_PVR_FN_RGXTDMGETSHAREDMEMORY:		/* RGXTDMGetSharedMemory */
 			return pvr_cmd_tdm_shmem(file, cmd);
-		case 0x6:		/* RGXTDMReleaseSharedMemory */
+		case MT_PVR_FN_RGXTDMRELEASESHAREDMEMORY:		/* RGXTDMReleaseSharedMemory */
 			return pvr_cmd_tdm_release(file, cmd);
-		case 0xa:		/* RGXTDMSubmitTransfer3 (accept-and-log, r174) */
+		case MT_PVR_FN_RGXTDMSUBMITTRANSFER3:		/* RGXTDMSubmitTransfer3 (accept-and-log, r174) */
 			return pvr_cmd_tdm_submit3_observe(file, cmd);
 		default:
 			return -ENOTTY;

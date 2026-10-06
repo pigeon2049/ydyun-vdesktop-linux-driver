@@ -43,7 +43,7 @@ static u64 slot_va(u32 i) { return 0x41000000ULL + i * 0x1000000ULL; }
 #else
 #define MT_LIVE_SLOT_MAX MT_DRM_SLOT_BYTES
 static u32 slot_bytes(u32 i) { return MT_DRM_SLOT_BYTES; }
-static u64 slot_va(u32 i) { return 0x40100000ULL + i * 0x100000ULL; }
+static u64 slot_va(u32 i) { return MT_TQX_STREAM_SRC_VA + i * MT_CTX_BO_STRIDE; }
 #endif
 struct lease { struct drm_gem_object base; struct slot *slot; };
 static_assert(sizeof(struct mt_guest_device) == 30784);
@@ -543,7 +543,7 @@ static int prepare_context(void)
 	const u32 size[3] = {MT_TQX_CMD_BO_BYTES, MT_TQX_DMA_BO_BYTES, MT_TQX_STATE_BO_BYTES};
 	struct mt_bo *bos[5];
 	struct mt_tqx_submission_input input = {
-		.stream = {.copy = {0x40100000, 0x40200000, 256}, .va = {MT_TQX_CMD_VA}},
+		.stream = {.copy = {MT_TQX_STREAM_SRC_VA, MT_TQX_STREAM_DST_VA, 256}, .va = {MT_TQX_CMD_VA}},
 		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA};
 	u32 i;
 	int ret = idle();

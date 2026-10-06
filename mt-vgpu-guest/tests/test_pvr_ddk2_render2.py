@@ -31,13 +31,13 @@ def ta3d_block(src):
 class Ddk2RenderContext(unittest.TestCase):
     def test_create_routed(self):
         block = ta3d_block(code())
-        self.assertRegex(block, r'case 0x12:[\s\S]*?pvr_cmd_render2_create',
+        self.assertRegex(block, r'case MT_PVR_FN_RGXCREATERENDERCONTEXT2:[\s\S]*?pvr_cmd_render2_create',
                          '0x82:0x12 must reach the DDK2 create handler')
 
     def test_destroy_routed(self):
         block = ta3d_block(code())
         self.assertRegex(block,
-                         r'case 0x13:[\s\S]*?pvr_cmd_handle_release\(file, cmd,\s*'
+                         r'case MT_PVR_FN_RGXDESTROYRENDERCONTEXT2:[\s\S]*?pvr_cmd_handle_release\(file, cmd,\s*'
                          r'MT_PVR_KIND_CONTEXT\)',
                          '0x82:0x13 must share the context release path')
 
@@ -47,7 +47,7 @@ class Ddk2RenderContext(unittest.TestCase):
                       src, re.S)
         self.assertIsNotNone(m, 'SYNC dispatch block not found')
         self.assertRegex(m.group(1),
-                         r'case 0x2:[\s\S]*?pvr_stub_ok',
+                         r'case MT_PVR_FN_SYNCPRIMSET:[\s\S]*?pvr_stub_ok',
                          '0x2:0x2 (SyncPrimSet) must answer zeroed OUT, '
                          'like its 0x2:0x1/0x2:0x7 siblings')
 
@@ -57,7 +57,7 @@ class Ddk2RenderContext(unittest.TestCase):
                       src, re.S)
         self.assertIsNotNone(m, 'SYNC dispatch block not found')
         self.assertRegex(m.group(1),
-                         r'case 0x8:[\s\S]*?pvr_stub_ok',
+                         r'case MT_PVR_FN_SYNCFREEEVENT:[\s\S]*?pvr_stub_ok',
                          '0x2:0x8 (SyncFreeEvent, r144) must answer zeroed OUT; '
                          'the UMD ignores the value on the destroy path')
 

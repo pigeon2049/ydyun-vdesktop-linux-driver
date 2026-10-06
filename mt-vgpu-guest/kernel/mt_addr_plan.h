@@ -43,4 +43,13 @@
 #define MT_TRANSFER_PROTO_W 1280U
 #define MT_TRANSFER_PROTO_H 1024U
 
+/* TQX stream copy endpoints and stream-slot array (live-only scene
+ * internals, r188): copy src/dst pair, per-slot bytes, and the slot_va()
+ * base both live modules share. The readback divisor below reuses the
+ * command-segment VA; the arithmetic is preserved verbatim.
+ */
+#define MT_TQX_STREAM_SRC_VA 0x40100000ULL
+#define MT_TQX_STREAM_DST_VA 0x40200000ULL
+#define MT_TQX_STREAM_SLOT_BYTES 4096U
+
 #endif /* MT_ADDR_PLAN_H */

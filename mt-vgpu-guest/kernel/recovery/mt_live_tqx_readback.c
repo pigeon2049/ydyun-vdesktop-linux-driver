@@ -4,6 +4,7 @@
  * writes no MMIO, and refuses to read while a job is pending.
  */
 #include "../mt_guest_device.h"
+#include "../mt_addr_plan.h"
 
 #define TEST_TARGET_BAR_OFFSET 0x122e000ULL
 #define TEST_BYTES 4096U
@@ -117,7 +118,7 @@ static int __init readback_init(void)
 		if (tables) {
 			memcpy_fromio(tables, block->mapping, block->size);
 			memcpy(&root_entry, tables +
-			       ((0x40100000ULL / 0x40000000ULL) % 1024) * 4,
+			       ((MT_TQX_STREAM_SRC_VA / MT_TQX_CMD_VA) % 1024) * 4,
 			       sizeof(root_entry));
 			root_present = !!(root_entry & 1);
 			if (root_present) {
