@@ -38,3 +38,14 @@
 - 证据：`reports/r185-snapshot-refresh.md`。候选下一步：等硬件批准（kill-while-busy 关账 / 真发射 / `=2` update 验证）。
 
 ---
+
+## 本次会话进展（r186：scene 预设值抽取）
+
+- 零硬件触碰。bridge 与 6 live 文件重复写死的 scene VA 收敛到新建
+  `kernel/mt_addr_plan.h`（15 宏）；stream 端点等异语义字面量保留。
+  过程撞车 `MT_TQX_STATE_BYTES`（`mt_tqx_copy.h` 同名 `0xa8`）被 `W=1`
+  抓获，改名解决——此前碰撞检查被 `head -3` 截断，教训重演。
+  新增门禁 5 项 + 反向验证；全量 287+292 全绿，`W=1` 零警告。
+- 证据：`reports/r186-addr-plan.md`。候选下一步：等硬件批准（关账 / 真发射 / `=2` update）。
+
+---

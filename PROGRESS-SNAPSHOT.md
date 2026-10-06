@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **290 项通过，零 skip**（r187 kicksync_fn 2 项 + session 槽位宏 1 项；余同 r186） |
+| Python 测试 | **292 项通过，零 skip**（r188 fn_ids 2 项；余同 r187） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -238,8 +238,9 @@ RGXCreateRenderContext
 | `test_pvr_shim_drm_major.py` | 3 | shim major 默认 1/opt-in 2/非法值回退（r157） |
 | `test_pvr_shim_shared_backing.py` | 1 | shared backing 别名/隔离 + 提交前 snapshot（r155） |
 | `test_pvr_shim_ccb_resolve.py` | 1 | CCB VA→PMR 归属 + runs 形状 + 越界/反向（r158/r160） |
-| `test_pvr_addr_plan.py` | 5 | scene VA 预设逐值钉死 + 7 文件 include + code 区无裸字面量 + 别名引宏（r186） |
-| `test_pvr_kicksync_fn.py` | 2 | `0x88` 功能号逐值钉死 + submit 按名比较（r187） |
+| `test_pvr_addr_plan.py` | 5 | scene VA 预设逐值钉死 + 8 文件 include + code 区无裸字面量 + 别名引宏（r186；r188 补 stream/slot） |
+| `test_pvr_kicksync_fn.py` | 2 | `0x88` 功能号逐值钉死 + submit 按名比较（r187；r188 改全名） |
+| `test_pvr_fn_ids.py` | 2 | 55 分发功能号逐值钉死 + dispatch 零裸标签（r188） |
 | C: `pvr_arena_plan_test` / `system_dma_pages_test` | plan/DMA 页 | arena + per-page 绑定覆盖 12 kick ranges；DMA 页解析与线性连续守卫 |
 
 设计要点：`test_pvr_heap_name_evidence.py` 已从“已知缺陷记录”
@@ -454,6 +455,8 @@ as-built 机制（`da3df8b`，r45–r63）：
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
+
+- **r188 保留项全抽取（零硬件触碰，含内核改动，未加载）**：55 dispatch 标签命名（逐组计数，零残留；未分发 ID 不命名）；PMR 三尺寸；stream/slot 三宏；15 旧门禁同步宏形式（两处误伤已纠正）。门禁 292+292，反向全过。见 `reports/r188-fn-table.md`。
 
 - **r187 预设复核二轮 + bridge 审计（零硬件触碰，含内核改动，未加载）**：PCI 槽位宏统一（字面量仅剩定义处）、`0x88` 功能号命名进 wire.h（5 处比较）；其余 6 类预设故意保留（注释/断言在位）；19 WARN/锁序/分支全走查无动作项（释放语义冻结）。门禁 290+292，反向全过。见 `reports/r187-preset-audit-refactor.md`。
 
