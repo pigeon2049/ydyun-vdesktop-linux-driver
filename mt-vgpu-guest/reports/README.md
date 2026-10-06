@@ -131,6 +131,7 @@
 | r174 | Submit3 accept-and-log 上线；真实 CCB 39/39 落定（仅+0x40 轮变，计数器命名收回） |
 | r175 | 扩展区算术闭合：39B 逐字节溯源（entry+载荷三段），T3 输入侧可解释（零硬件触碰） |
 | r176 | T3 translator 输入规约 v1（envelope/header/扩展区机/实例账/未知清单；纯文档） |
+| r177 | T3 输出侧盘点：Transfer 归 TQX，颜色/几何不在 CCB 内（首要缺口）；DM 只欠 TA/3D |
 
 ## 关键单篇（本轮最常用）
 

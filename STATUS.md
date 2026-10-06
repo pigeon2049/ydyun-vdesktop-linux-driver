@@ -59,7 +59,7 @@
 
 ## 下一步（vGPU，按序）
 
-1. **真实绘制 CCB**：check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；离屏 fill 的非零 CCB 窗口已在 fabricated major 2 blit 中取得并归属（r157–r161）；r172–r174 以 DDK2 重载拿到真实 Submit 并以 accept-and-log 落定全部 39B（与 fabricated 逐字节一致，仅 `+0x40` 轮变；桥回 0 仍无执行）；r175–r176 闭合扩展区算术并冻结 T3 输入规约 v1（DM 格式与完成语义在外）。下一步：DM 队列格式反推。
+1. **真实绘制 CCB**：check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；离屏 fill 的非零 CCB 窗口已在 fabricated major 2 blit 中取得并归属（r157–r161）；r172–r174 以 DDK2 重载拿到真实 Submit 并以 accept-and-log 落定全部 39B（与 fabricated 逐字节一致，仅 `+0x40` 轮变；桥回 0 仍无执行）；r175–r177 闭合扩展区算术、冻结输入规约 v1、盘点输出侧（Transfer 归 TQX；颜色/几何不在 CCB 内，首要缺口）。下一步：追踪 transfer surface 对象。
 2. **同步 update 语义**：离线已确定（r159）；legacy 活体注入已证伪（r171）；DDK2 活体链已通（r172），非零 update kick 可在下次 `=2` 窗口验证。验证前不视为已支持。
 3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` / `0x81:0x5` 仍属 S4 真提交边界，空 marker 结果不能外推；待取得真实工作包与输入规约后再推进。
 4. 长期：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。
