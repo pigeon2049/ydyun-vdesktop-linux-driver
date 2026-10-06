@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **287 项通过，零 skip**（r186 addr plan 5 项；余同 r185：r88 TDM；r126 首帧 envelope；r141–r143 DDK2 建销；r152 multicore；r155 shared backing；r157 DRM major；r158/r160 CCB resolve；r174/r181/r182 SubmitTransfer3/dry-run/bring-up） |
+| Python 测试 | **290 项通过，零 skip**（r187 kicksync_fn 2 项 + session 槽位宏 1 项；余同 r186） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -224,7 +224,7 @@ RGXCreateRenderContext
 | `test_windows_heap_table_decoded.py` | 10 | 从驱动二进制解表并逐字比对；MMU mode 差异；物理表与 PVR 蓝图不再混用 |
 | `test_pvr_heap_name_evidence.py` | 5 | 厂商蓝图上的 PDS/USC 槽位与桥接初始化一致 |
 | `test_pvr_kick_packet.py` | kick 包 + inspect | `0x88:0x4` 84 字节字段偏移（编译期 offsetof）与两次真实捕获；inspect 路径只用结构体、无裸偏移读、失败只降级 |
-| `test_pvr_session_ops.py` | bind-path prereqs | 40 位 mask 显式设置；无符号表机制（`__symbol_get` 不可用，不断言 export） |
+| `test_pvr_session_ops.py` | bind-path prereqs | 40 位 mask 显式设置；无符号表机制（`__symbol_get` 不可用，不断言 export）；S3000 槽位字面量仅存宏定义一处（r187） |
 | `test_live_tqx_dma_source.py` | DMA 源 | TQX DMA-source 路径的 IOVA/GPU-PA 分离 |
 | `test_pvr_tdm_shmem.py` | 5 | `0x89` TDM 共享内存桥（r88；离线实现，未加载） |
 | `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
@@ -239,6 +239,7 @@ RGXCreateRenderContext
 | `test_pvr_shim_shared_backing.py` | 1 | shared backing 别名/隔离 + 提交前 snapshot（r155） |
 | `test_pvr_shim_ccb_resolve.py` | 1 | CCB VA→PMR 归属 + runs 形状 + 越界/反向（r158/r160） |
 | `test_pvr_addr_plan.py` | 5 | scene VA 预设逐值钉死 + 7 文件 include + code 区无裸字面量 + 别名引宏（r186） |
+| `test_pvr_kicksync_fn.py` | 2 | `0x88` 功能号逐值钉死 + submit 按名比较（r187） |
 | C: `pvr_arena_plan_test` / `system_dma_pages_test` | plan/DMA 页 | arena + per-page 绑定覆盖 12 kick ranges；DMA 页解析与线性连续守卫 |
 
 设计要点：`test_pvr_heap_name_evidence.py` 已从“已知缺陷记录”
@@ -453,6 +454,8 @@ as-built 机制（`da3df8b`，r45–r63）：
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
+
+- **r187 预设复核二轮 + bridge 审计（零硬件触碰，含内核改动，未加载）**：PCI 槽位宏统一（字面量仅剩定义处）、`0x88` 功能号命名进 wire.h（5 处比较）；其余 6 类预设故意保留（注释/断言在位）；19 WARN/锁序/分支全走查无动作项（释放语义冻结）。门禁 290+292，反向全过。见 `reports/r187-preset-audit-refactor.md`。
 
 - **r186 scene 预设值抽取（零硬件触碰，含内核改动，未加载）**：bridge+6 live 的 scene VA 收敛到 `mt_addr_plan.h`（15 宏）；`MT_TQX_STATE_BYTES` 撞车（`mt_tqx_copy.h` 同名 `0xa8`）被 `W=1` 抓获后改名。门禁 287+292，反向全过。见 `reports/r186-addr-plan.md`。
 

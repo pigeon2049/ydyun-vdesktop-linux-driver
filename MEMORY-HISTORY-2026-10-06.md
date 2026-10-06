@@ -30,3 +30,11 @@
 - 证据：`reports/r184-defaults-differential-d0.md` + `r184-defaults-blit.jsonl`。候选下一步：kill-while-busy 关账轮（待批）→ 真发射。
 
 ---
+
+## 本次会话进展（r185：快照刷新 pass）
+
+- 零硬件触碰。r164 后积压 20 轮，快照 §1/§2/§5/§6/§11 已同步 r165–r184
+ （门禁实测 282 + 292；pmr 门禁 11→58；§5 重写为 ref 收尾 → 真发射 → update → TA/CDM）。§12 历史计数为同期记录，不动。
+- 证据：`reports/r185-snapshot-refresh.md`。候选下一步：等硬件批准（kill-while-busy 关账 / 真发射 / `=2` update 验证）。
+
+---
