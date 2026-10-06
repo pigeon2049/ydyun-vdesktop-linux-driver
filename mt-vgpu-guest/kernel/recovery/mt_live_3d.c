@@ -11,6 +11,7 @@
 #include <linux/delay.h>
 #include <linux/ktime.h>
 #include "../mt_guest_device.h"
+#include "../mt_addr_plan.h"
 #include "../mt_gfx_context.h"
 #include "../mt_gfx_context_data.h"
 #include "../mt_gfx_packet.h"
@@ -204,7 +205,7 @@ static int __init mt_live_3d_init(void)
 	for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++) {
 		u32 bytes = mt_gfx_context_bo_specs[i].bytes;
 		u32 alloc_size = PAGE_ALIGN(bytes);
-		u64 va = 0x50000000ULL + i * 0x100000ULL; /* 1MB spacing */
+		u64 va = MT_CTX_BO_BASE_VA + i * MT_CTX_BO_STRIDE; /* 1MB spacing */
 
 		st->context_vas[i] = va;
 		addrs.va[i] = va;
@@ -238,8 +239,9 @@ static int __init mt_live_3d_init(void)
 	}
 
 	/* 4. Allocate command BO (32 KiB) */
-	st->command_va = 0x48000000ULL;
-	ret = mt_bo_create(&st->command_bo, d->buffers.ops, &d->buffers, 32768, PAGE_SIZE);
+	st->command_va = MT_TRANSLATE_CMD_VA;
+	ret = mt_bo_create(&st->command_bo, d->buffers.ops, &d->buffers,
+			   MT_TRANSLATE_CMD_BYTES, PAGE_SIZE);
 	if (ret) {
 		pr_err("mt_live_3d: failed to create command BO: %d\n", ret);
 		goto err_cleanup;
@@ -271,7 +273,8 @@ static int __init mt_live_3d_init(void)
 
 	/* Bind command BO to GPU VM */
 	ret = d->address_spaces.ops->bind(st->space, &st->command_bo,
-					  st->command_va, 0, 32768, MT_GPU_MAP_DEFAULT);
+					  st->command_va, 0, MT_TRANSLATE_CMD_BYTES,
+					  MT_GPU_MAP_DEFAULT);
 	if (ret) {
 		pr_err("mt_live_3d: failed to bind command BO: %d\n", ret);
 		goto err_cleanup;

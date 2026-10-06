@@ -4,6 +4,7 @@
  * First root seal retains this module/context until a real withdrawal protocol
  * is implemented. No raw commands, user GPU VA, mmap or PRIME are exposed. */
 #include "../mt_guest_device.h"
+#include "../mt_addr_plan.h"
 #include "../mt_tqx_fill_work.h"
 #include <linux/capability.h>
 #include <linux/dma-resv.h>
@@ -308,8 +309,8 @@ static int copy_ioctl(struct drm_device *dev, void *data, struct drm_file *file)
 	bos[3] = &dma; bos[4] = &state;
 	input = (struct mt_tqx_submission_input){
 		.stream = {.copy = {src->slot->va + r->source_offset,
-			dst->slot->va + r->destination_offset, r->bytes}, .va = {0x40000000}},
-		.dma_va = 0x40010000, .state_va = 0x40020000};
+			dst->slot->va + r->destination_offset, r->bytes}, .va = {MT_TQX_CMD_VA}},
+		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA};
 	mutex_lock(&d->state.trial_lock);
 	ret = faulted ? -EIO : idle();
 	if (ret)
@@ -424,7 +425,7 @@ static int fill_ioctl(struct drm_device *dev, void *data, struct drm_file *file)
 	dst = container_of(objects[0], struct lease, base);
 	bos[0] = &command; bos[1] = &dst->slot->bo; bos[2] = &dma; bos[3] = &state;
 	input = (struct mt_tqx_fill_input){
-		.destination_va = dst->slot->va + r->offset, .command_va = 0x40000000,
+		.destination_va = dst->slot->va + r->offset, .command_va = MT_TQX_CMD_VA,
 		.element_bytes = 4, .width = r->width, .height = r->height,
 		.x = r->x, .y = r->y, .rect_width = r->rect_width, .rect_height = r->rect_height,
 		.color = {r->color, 0, 0, 0}};
@@ -433,7 +434,7 @@ static int fill_ioctl(struct drm_device *dev, void *data, struct drm_file *file)
 	if (ret)
 		goto unlock_session;
 	ret = mt_tqx_fill_work_prepare(&work, fill_workspace, &upload, &d->shared_boot,
-		&d->gem.profile, cores, &context, bos, &input, 0x40010000, 0x40020000);
+		&d->gem.profile, cores, &context, bos, &input, MT_TQX_DMA_VA, MT_TQX_STATE_VA);
 	if (!ret && !retained) {
 		ret = d->address_spaces.ops->seal(space);
 		if (!ret) {
@@ -538,12 +539,12 @@ static void release_unpublished(void)
 static int prepare_context(void)
 {
 	struct mt_bo *private[3] = {&command, &dma, &state};
-	const u64 va[3] = {0x40000000, 0x40010000, 0x40020000};
-	const u32 size[3] = {4096, 8192, 4096};
+	const u64 va[3] = {MT_TQX_CMD_VA, MT_TQX_DMA_VA, MT_TQX_STATE_VA};
+	const u32 size[3] = {MT_TQX_CMD_BO_BYTES, MT_TQX_DMA_BO_BYTES, MT_TQX_STATE_BO_BYTES};
 	struct mt_bo *bos[5];
 	struct mt_tqx_submission_input input = {
-		.stream = {.copy = {0x40100000, 0x40200000, 256}, .va = {0x40000000}},
-		.dma_va = 0x40010000, .state_va = 0x40020000};
+		.stream = {.copy = {0x40100000, 0x40200000, 256}, .va = {MT_TQX_CMD_VA}},
+		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA};
 	u32 i;
 	int ret = idle();
 	if (ret)

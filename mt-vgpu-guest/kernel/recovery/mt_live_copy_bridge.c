@@ -5,6 +5,7 @@
  * This is not a DRM/UMD implementation and does not enable desktop rendering.
  */
 #include "../mt_guest_device.h"
+#include "../mt_addr_plan.h"
 #include <linux/capability.h>
 #include <linux/compat.h>
 #include <linux/miscdevice.h>
@@ -91,8 +92,8 @@ static int execute_copy(struct mt_copy_request *r)
 {
 	struct mt_tqx_submission_input input = {
 		.stream = {.copy = {0x40100000 + r->source_offset,
-			0x40200000 + r->destination_offset, r->bytes}, .va = {0x40000000}},
-		.dma_va = 0x40010000, .state_va = 0x40020000,
+			0x40200000 + r->destination_offset, r->bytes}, .va = {MT_TQX_CMD_VA}},
+		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA,
 	};
 	struct dma_fence *fence = NULL;
 	bool published = false;
@@ -243,8 +244,8 @@ static struct miscdevice bridge_device = {
 
 static int attach_context(void)
 {
-	const u64 va[5] = {0x40000000, 0x40100000, 0x40200000, 0x40010000, 0x40020000};
-	const u32 bytes[5] = {4096, 4096, 4096, 8192, 4096};
+	const u64 va[5] = {MT_TQX_CMD_VA, 0x40100000, 0x40200000, MT_TQX_DMA_VA, MT_TQX_STATE_VA};
+	const u32 bytes[5] = {MT_TQX_CMD_BO_BYTES, 4096, 4096, MT_TQX_DMA_BO_BYTES, MT_TQX_STATE_BO_BYTES};
 	const u32 pool_order[3] = {1, 0, 2};
 	struct mt_vm_vram *v;
 	u32 i, j;

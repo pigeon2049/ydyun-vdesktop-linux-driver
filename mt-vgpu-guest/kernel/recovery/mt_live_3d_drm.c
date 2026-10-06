@@ -5,6 +5,7 @@
  * and DRM_IOCTL_MT_SUBMIT_3D for userspace graphics workloads.
  */
 #include "../mt_guest_device.h"
+#include "../mt_addr_plan.h"
 #include "../mt_tqx_fill_work.h"
 #include "../mt_gfx_context.h"
 #include "../mt_gfx_context_data.h"
@@ -39,7 +40,7 @@ static struct mt_tqx_fill_workspace *fill_workspace;
 static struct mt_bo context_bos[MT_GFX_CONTEXT_BO_COUNT];
 static u64 context_vas[MT_GFX_CONTEXT_BO_COUNT];
 static struct mt_bo command_3d;
-static u64 command_3d_va = 0x48000000ULL;
+static u64 command_3d_va = MT_TRANSLATE_CMD_VA;
 static u8 csw_3d[MT_GFX_CONTEXT_CSW_BYTES];
 static bool ready_3d;
 
@@ -345,8 +346,8 @@ static int copy_ioctl(struct drm_device *dev, void *data, struct drm_file *file)
 	input = (struct mt_tqx_submission_input){
 		.stream = {.copy = {src->slot->va + r->source_offset,
 				    dst->slot->va + r->destination_offset, r->bytes},
-			   .va = {0x40000000}},
-		.dma_va = 0x40010000, .state_va = 0x40020000};
+			   .va = {MT_TQX_CMD_VA}},
+		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA};
 	bos[0] = &command_2d; bos[1] = &src->slot->bo; bos[2] = &dst->slot->bo;
 	bos[3] = &dma_2d; bos[4] = &state_2d;
 	ret = mt_tqx_work_prepare_from_pools(&work_2d, &d->shared_boot, workspace,
@@ -449,12 +450,12 @@ static int fill_ioctl(struct drm_device *dev, void *data, struct drm_file *file)
 		goto unlock_session;
 	bos[0] = &command_2d; bos[1] = &dst->slot->bo; bos[2] = &dma_2d; bos[3] = &state_2d;
 	input = (struct mt_tqx_fill_input){
-		.destination_va = dst->slot->va + r->offset, .command_va = 0x40000000,
+		.destination_va = dst->slot->va + r->offset, .command_va = MT_TQX_CMD_VA,
 		.element_bytes = 4, .width = r->width, .height = r->height,
 		.x = r->x, .y = r->y, .rect_width = r->rect_width, .rect_height = r->rect_height,
 		.color = {r->color, 0, 0, 0}};
 	ret = mt_tqx_fill_work_prepare(&work_2d, fill_workspace, &upload, &d->shared_boot,
-		&d->gem.profile, cores, &context_2d, bos, &input, 0x40010000, 0x40020000);
+		&d->gem.profile, cores, &context_2d, bos, &input, MT_TQX_DMA_VA, MT_TQX_STATE_VA);
 	if (ret)
 		goto unlock_session;
 	d->markers.ready = true;
@@ -697,12 +698,12 @@ static void release_unpublished(void)
 static int prepare_context(void)
 {
 	struct mt_bo *private[3] = {&command_2d, &dma_2d, &state_2d};
-	const u64 va[3] = {0x40000000, 0x40010000, 0x40020000};
-	const u32 size[3] = {4096, 8192, 4096};
+	const u64 va[3] = {MT_TQX_CMD_VA, MT_TQX_DMA_VA, MT_TQX_STATE_VA};
+	const u32 size[3] = {MT_TQX_CMD_BO_BYTES, MT_TQX_DMA_BO_BYTES, MT_TQX_STATE_BO_BYTES};
 	struct mt_bo *bos[5];
 	struct mt_tqx_submission_input input = {
-		.stream = {.copy = {0x40100000, 0x40200000, 256}, .va = {0x40000000}},
-		.dma_va = 0x40010000, .state_va = 0x40020000};
+		.stream = {.copy = {0x40100000, 0x40200000, 256}, .va = {MT_TQX_CMD_VA}},
+		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA};
 	struct mt_gfx_context_bo_addresses addrs;
 	u32 i;
 	int ret = idle();
@@ -775,7 +776,7 @@ static int prepare_context(void)
 	for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++) {
 		u32 bytes = mt_gfx_context_bo_specs[i].bytes;
 		u32 alloc_size = PAGE_ALIGN(bytes);
-		u64 bva = 0x50000000ULL + i * 0x100000ULL;
+		u64 bva = MT_CTX_BO_BASE_VA + i * MT_CTX_BO_STRIDE;
 
 		context_vas[i] = bva;
 		addrs.va[i] = bva;
@@ -795,7 +796,8 @@ static int prepare_context(void)
 	if (ret)
 		return ret;
 
-	ret = mt_bo_create(&command_3d, d->buffers.ops, &d->buffers, 32768, PAGE_SIZE);
+	ret = mt_bo_create(&command_3d, d->buffers.ops, &d->buffers,
+			   MT_TRANSLATE_CMD_BYTES, PAGE_SIZE);
 	if (ret)
 		return ret;
 
@@ -813,7 +815,9 @@ static int prepare_context(void)
 	if (ret)
 		return ret;
 
-	ret = d->address_spaces.ops->bind(space_3d, &command_3d, command_3d_va, 0, 32768, MT_GPU_MAP_DEFAULT);
+	ret = d->address_spaces.ops->bind(space_3d, &command_3d, command_3d_va, 0,
+					  MT_TRANSLATE_CMD_BYTES,
+					  MT_GPU_MAP_DEFAULT);
 	if (ret)
 		return ret;
 

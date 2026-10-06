@@ -51,6 +51,7 @@
 #include <linux/sched.h>
 #include <linux/sync_file.h>
 #include "../mt_translate_kick.h"
+#include "../mt_addr_plan.h"
 #include "../mt_gfx_packet_template.h"
 #include "../mt_transfer_fill.h"
 #include "../mt_tqx_fill.h"
@@ -1569,12 +1570,8 @@ out:
  * under trial_lock (probe/live code never sees bridge files) and nothing
  * else takes translator_lock, so the order is deadlock-free. The UFO wait
  * holds file->lock only and sleeps in interruptible slices.
+ * Translator scene addresses live in ../mt_addr_plan.h (r186).
  */
-#define MT_TRANSLATE_CMD_VA 0x48000000ULL
-#define MT_TRANSLATE_CMD_BYTES 32768U
-#define MT_TRANSLATE_SPACE_PAGES 32U
-#define MT_TRANSLATE_FENCE_WAIT_MS 5000U
-#define MT_TRANSLATE_WAIT_SLICE_MS 5U
 
 struct mt_pvr_translator {
 	bool ready;
@@ -1788,7 +1785,7 @@ static int pvr_translator_prepare_locked(void)
 		for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++) {
 			u32 bytes = mt_gfx_context_bo_specs[i].bytes;
 			u32 alloc_size = PAGE_ALIGN(bytes);
-			u64 bva = 0x50000000ULL + i * 0x100000ULL;
+			u64 bva = MT_CTX_BO_BASE_VA + i * MT_CTX_BO_STRIDE;
 
 			csw_addrs.va[i] = bva;
 			ret = mt_bo_create(&translator.ctx_bos[i],
@@ -1827,9 +1824,11 @@ static int pvr_translator_prepare_locked(void)
 	 * validated DM-only prepare stays bit-identical when off.
 	 */
 	if (translate_tqx_ctx) {
-		static const u64 tqx_va[3] = { 0x40000000ULL, 0x40010000ULL,
-					       0x40020000ULL };
-		static const u32 tqx_bytes[3] = { 4096, 8192, 4096 };
+		static const u64 tqx_va[3] = { MT_TQX_CMD_VA, MT_TQX_DMA_VA,
+					       MT_TQX_STATE_VA };
+		static const u32 tqx_bytes[3] = { MT_TQX_CMD_BO_BYTES,
+						  MT_TQX_DMA_BO_BYTES,
+						  MT_TQX_STATE_BO_BYTES };
 		struct mt_bo *tqx_bo[3] = {
 			&translator.tqx_cmd, &translator.tqx_dma,
 			&translator.tqx_state,
@@ -3216,11 +3215,10 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
-/* Prototype fill geometry (r178: orientation evidence pending; the rect
- * builder rejects anything that does not factor the parsed pixel count).
+/* Prototype fill geometry lives in ../mt_addr_plan.h (r186; r178:
+ * orientation evidence pending; the rect builder rejects anything that
+ * does not factor the parsed pixel count).
  */
-#define MT_TRANSFER_PROTO_W 1280U
-#define MT_TRANSFER_PROTO_H 1024U
 
 /* Dry-run transfer translation (r181): resolve the destination pool, parse
  * geometry/color, build the TQX fill program the submission would emit, log
