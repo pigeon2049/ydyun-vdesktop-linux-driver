@@ -147,6 +147,7 @@
 | r190 | update 路径定位：非零 update 走 `0x82:0x14` RGXKickTA3D5（离线 recon + 活体计划；无代码改动） |
 | r191 | kill-while-busy 关账轮：mid-maps 击杀亦 Δ0，+65 仍未命名但边界收紧（批准执行；`=2` 路被 infra 持有挡回） |
 | r192 | TA producer 收敛：harness 可直调导出符号 RGXKickTA（离线 recon；psKickTA 构造待续） |
+| r193 | psKickTA 构造 recon：无铸造函数，以真实 render 上下文为锚手塑（离线；整形实测需活体） |
 
 ## 关键单篇（本轮最常用）
 

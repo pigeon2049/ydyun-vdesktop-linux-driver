@@ -457,6 +457,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r193 psKickTA 构造（离线 recon，无代码改动）**：无铸造函数；锚点是真实 render 上下文（`+0xc`）；features `+0x54` 门内第二次出现。手塑回合可在 fabricated shim 下离线做。见 `reports/r193-taskickta-shape.md`。
+
 - **r192 TA producer 收敛（离线 recon，无代码改动）**：`RGXKickTA` 等系导出符号，harness 直调可达 TA 链；前置 `psKickTA+0x30`（r85 的墙）；update 编组只活在提交链内。见 `reports/r192-ta-producer.md`。
 
 - **r191 kill-while-busy 关账（批准执行；无重载）**：`rmmod` 被工具链持有挡回；GDB #104 处击杀（3 MAPs live），66→66 Δ0，无 D 态，L3 复绿。file_release 假设无活体支持；+65 未命名但边界收紧；7 活体轮零新增泄漏。见 `reports/r191-killbusy-d0.md` + trace。

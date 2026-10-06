@@ -90,3 +90,14 @@
 - 证据：`reports/r190-update-path-recon.md`。候选下一步：producer recon（离线）或等硬件批准。
 
 ---
+
+## 本次会话进展（r191：kill-while-busy 关账轮）
+
+- 批准执行活体（无重载：`rmmod` 被会话工具链持有挡回 EBUSY）。
+  GDB 监督 #104 mmap 处击杀（死时 3 MAPs live），事后 66→66（Δ0），
+  无 D 态，L3 复绿。file_release 假设至此无活体支持；+65 仍未命名，
+  边界收紧（maps/abort/击杀/prepare 记账/残留进程全排除）。
+  7 活体轮零新增泄漏。
+- 证据：`reports/r191-killbusy-d0.md` + `r191-killbusy.jsonl`。候选下一步：解持有后 `=2` 轮 / 真发射。
+
+---
