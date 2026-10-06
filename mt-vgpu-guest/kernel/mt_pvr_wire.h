@@ -90,6 +90,19 @@ struct MT_PVR_PACKED mt_pvr_event_open_out {
 	u32 error;
 };
 
+/* 0x1:0xc BridgeGetMultiCoreInfo. Request/reply layouts follow the 5.2 UMD
+ * wrapper and its observed 12-byte IN / 16-byte OUT call (r150). */
+struct MT_PVR_PACKED mt_pvr_multicore_info_in {
+	u64 caps;
+	u32 query_flags;
+};
+
+struct MT_PVR_PACKED mt_pvr_multicore_info_out {
+	u64 caps;
+	u32 error;
+	u32 num_cores;
+};
+
 /* 0x86:0x4 MUSA:MUSAAcquireHWPerfSettings -- no IN, 12-byte OUT.
  *
  * The 5.2.0 generated header declares
@@ -119,12 +132,9 @@ struct MT_PVR_PACKED mt_pvr_hwperf_release_out {
  * stores at client+0x30/+0x38 and feeds to TQPMR_MapMem / TQPMR_MapUSCMem
  * (r87). eError rides LAST here ({u64, u64, u32}), unlike the 0x88 family.
  *
- * Spike semantics (r87): both u64s alias ONE real 8 KiB arena PMR
- * (handle minted twice, single lifetime). Release takes either alias and
- * retires the PMR once; the second alias dies with it, matching
- * ReleaseSharedMemory's single-handle contract. If live traffic shows the
- * two slots must diverge (descriptors vs USC scratch), split into two
- * PMRs with a per-file pairing record.
+ * Initial spike semantics (r87) aliased both u64s to one PMR. Live r150
+ * falsified that: the UMD imports and releases them independently, so the
+ * bridge now returns distinct CLI and USC PMR handles.
  */
 struct MT_PVR_PACKED mt_pvr_tdm_shmem_out {
 	u64 ptr1;
@@ -137,6 +147,63 @@ struct MT_PVR_PACKED mt_pvr_tdm_release_in {
 };
 
 struct MT_PVR_PACKED mt_pvr_tdm_release_out {
+	u32 error;
+};
+
+/* 0x89:0x8 RGXTDMCreateTransferContext2 -- 12B IN/OUT.
+ * Context lifecycle only: SubmitTransfer3 now has an ABI shape below, but its
+ * nested-pointer/PMR validation and CCB completion contract remain unresolved. */
+struct MT_PVR_PACKED mt_pvr_tdm_context2_create_in {
+	u64 device_mem_context;
+	u32 context_type;
+};
+
+struct MT_PVR_PACKED mt_pvr_tdm_context2_create_out {
+	u64 transfer_context;
+	u32 error;
+};
+
+/* 0x89:0x9 DestroyTransferContext2 -- 8B IN/4B OUT. */
+struct MT_PVR_PACKED mt_pvr_tdm_context2_destroy_in {
+	u64 transfer_context;
+};
+
+struct MT_PVR_PACKED mt_pvr_tdm_context2_destroy_out {
+	u32 error;
+};
+
+/* 0x89:0xa RGXTDMSubmitTransfer3 -- 108B IN/4B OUT, recovered from the
+ * 5.2.0 Linux UMD wrapper/callsite, not a generated KMD header. These fields
+ * mirror its packed scalar/pointer slots. The caller builds up to 32 check
+ * syncs and 32 update syncs as parallel handle/offset/value arrays, and up to
+ * 17 PMR syncs as handle/access-flag arrays. `ccb_data` points to bytes from
+ * SubmissionCmdGenerate; `ccb_bytes` is that generated buffer size.
+ * `submit_opaque` is passed through by the UMD but its meaning is not established.
+ * This describes the input ABI only; the bridge accept-and-logs the submission
+ * (reports the CCB window, returns 0) without executing it or reading nested
+ * pointers, until pointer bounds, PMR/CCB ownership and completion semantics
+ * are safe enough to translate.
+ */
+struct MT_PVR_PACKED mt_pvr_tdm_submit3_in {
+	u64 transfer_context;
+	u32 check_count;
+	u64 check_handles;
+	u64 check_offsets;
+	u64 check_values;
+	u32 update_count;
+	u64 update_handles;
+	u64 update_offsets;
+	u64 update_values;
+	u32 pmr_sync_count;
+	u64 pmr_sync_access_flags;
+	u64 pmr_sync_handles;
+	u32 submit_flags;
+	u64 ccb_data;
+	u64 submit_opaque;
+	u32 ccb_bytes;
+};
+
+struct MT_PVR_PACKED mt_pvr_tdm_submit3_out {
 	u32 error;
 };
 
@@ -220,6 +287,27 @@ struct MT_PVR_PACKED mt_pvr_zs_destroy_out {
 	u32 error;
 };
 
+/* 0x82:0x12 BridgeRGXCreateRenderContext2 (DDK2; r141) -- 12-byte IN, 12-byte OUT.
+ * 0x82:0x13 BridgeRGXDestroyRenderContext2 (DDK2) -- 8-byte IN, 4-byte OUT.
+ *
+ * IN 0x82:0x12 = { hPrivData, ui32Priority } per the 2.7.1 generated header;
+ * the decompiled UMD stub (FUN_00137b20) passes {u64, u32=0} the same way.
+ * OUT 0x82:0x12 = { hRenderContext, eError } per the header AND the live wire
+ * (r142: the render-phase callsite passes out_size=12; an early stub reading
+ * suggested 4, but execution shows 12 -- execution wins).
+ * Like legacy 0x82:0x8 the bridge mints a context without interpreting the
+ * IN payload; only the sizes are validated.
+ */
+struct MT_PVR_PACKED mt_pvr_render2_create_in {
+	u64 priv_data;
+	u32 priority;
+};
+
+struct MT_PVR_PACKED mt_pvr_render2_create_out {
+	u64 handle;
+	u32 error;
+};
+
 /* 0x88:0x0 RGXCreateKickSyncContext -- 16-byte IN, 12-byte OUT.
  * 0x88:0x1 RGXDestroyKickSyncContext -- 8-byte IN, 4-byte OUT.
  *
@@ -246,6 +334,23 @@ struct MT_PVR_PACKED mt_pvr_kicksync_destroy_in {
 };
 
 struct MT_PVR_PACKED mt_pvr_kicksync_destroy_out {
+	u32 error;
+};
+
+/* 0x88:0x5 BridgeRGXCreateKickSyncContext2 (DDK2; r141) -- 8-byte IN, 12-byte OUT.
+ * 0x88:0x6 BridgeRGXDestroyKickSyncContext2 (DDK2) -- 8-byte IN, 4-byte OUT.
+ *
+ * IN 0x88:0x5 = { hPrivData } (single u64, per the decompiled stub
+ * FUN_00135d90 and the r141/r142 live traces). OUT 0x88:0x5 =
+ * { hKickSyncContext, eError }, mirroring legacy 0x88:0x0.
+ * 0x88:0x6 reuses the legacy 8-in/4-out destroy shape, no new structs.
+ */
+struct MT_PVR_PACKED mt_pvr_kicksyncctx2_create_in {
+	u64 priv_data;
+};
+
+struct MT_PVR_PACKED mt_pvr_kicksyncctx2_create_out {
+	u64 kicksync_context;
 	u32 error;
 };
 
@@ -565,10 +670,14 @@ static_assert(sizeof(struct mt_pvr_connect_out) == 17, "0x1:0x0 out");
 static_assert(sizeof(struct mt_pvr_handle_out) == 12, "0x1:0x2/0x1:0xf out");
 static_assert(sizeof(struct mt_pvr_event_open_in) == 8, "0x1:0x4 in");
 static_assert(sizeof(struct mt_pvr_event_open_out) == 12, "0x1:0x4 out");
+static_assert(sizeof(struct mt_pvr_multicore_info_in) == 12, "0x1:0xc in");
+static_assert(sizeof(struct mt_pvr_multicore_info_out) == 16, "0x1:0xc out");
 static_assert(sizeof(struct mt_pvr_zs_create_in) == 24, "0x82:0x2 in");
 static_assert(sizeof(struct mt_pvr_zs_create_out) == 12, "0x82:0x2 out");
 static_assert(sizeof(struct mt_pvr_zs_destroy_in) == 8, "0x82:0x3 in");
 static_assert(sizeof(struct mt_pvr_zs_destroy_out) == 4, "0x82:0x3 out");
+static_assert(sizeof(struct mt_pvr_render2_create_in) == 12, "0x82:0x12 in");
+static_assert(sizeof(struct mt_pvr_render2_create_out) == 12, "0x82:0x12 out");
 static_assert(sizeof(struct mt_pvr_compute_create_in) == 60, "0x81:0x0 in");
 static_assert(sizeof(struct mt_pvr_compute_create_out) == 12, "0x81:0x0 out");
 static_assert(sizeof(struct mt_pvr_compute_destroy_in) == 8, "0x81:0x1 in");
@@ -583,6 +692,8 @@ static_assert(sizeof(struct mt_pvr_kicksync_prop_out) == 12, "0x88:0x3 out");
 static_assert(sizeof(struct mt_pvr_kicksync3_out) == 8, "0x88:0x4 out");
 static_assert(sizeof(struct mt_pvr_kicksync_destroy_in) == 8, "0x88:0x1 in");
 static_assert(sizeof(struct mt_pvr_kicksync_destroy_out) == 4, "0x88:0x1 out");
+static_assert(sizeof(struct mt_pvr_kicksyncctx2_create_in) == 8, "0x88:0x5 in");
+static_assert(sizeof(struct mt_pvr_kicksyncctx2_create_out) == 12, "0x88:0x5 out");
 static_assert(sizeof(struct mt_pvr_unmake_import_in) == 8, "0x6:0x4 in");
 static_assert(sizeof(struct mt_pvr_unmake_import_out) == 4, "0x6:0x4 out");
 static_assert(sizeof(struct mt_pvr_make_import_in) == 8, "0x6:0x3 in");
@@ -593,6 +704,16 @@ static_assert(sizeof(struct mt_pvr_hwperf_release_out) == 4, "0x86:0x5 out");
 static_assert(sizeof(struct mt_pvr_tdm_shmem_out) == 20, "0x89:0x5 out");
 static_assert(sizeof(struct mt_pvr_tdm_release_in) == 8, "0x89:0x6 in");
 static_assert(sizeof(struct mt_pvr_tdm_release_out) == 4, "0x89:0x6 out");
+static_assert(sizeof(struct mt_pvr_tdm_submit3_in) == 108, "0x89:0xa in");
+static_assert(sizeof(struct mt_pvr_tdm_submit3_out) == 4, "0x89:0xa out");
+static_assert(__builtin_offsetof(struct mt_pvr_tdm_submit3_in, check_handles) == 12,
+	      "0x89:0xa check handles offset");
+static_assert(__builtin_offsetof(struct mt_pvr_tdm_submit3_in, pmr_sync_count) == 64,
+	      "0x89:0xa PMR sync count offset");
+static_assert(__builtin_offsetof(struct mt_pvr_tdm_submit3_in, ccb_data) == 88,
+	      "0x89:0xa CCB pointer offset");
+static_assert(__builtin_offsetof(struct mt_pvr_tdm_submit3_in, ccb_bytes) == 104,
+	      "0x89:0xa CCB size offset");
 /* 0x86:0x4 reuses mt_pvr_handle_out; its 12 bytes are the UMD's out_size, and
  * the 8-byte header form would truncate the handle away. */
 static_assert(sizeof(struct mt_pvr_import_out) == 28, "0x6:0x6 out");

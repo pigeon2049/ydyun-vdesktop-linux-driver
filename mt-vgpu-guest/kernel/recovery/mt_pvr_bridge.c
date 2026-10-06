@@ -40,9 +40,18 @@
 #include "../mt_pvr_device.h"
 #include "../mt_pvr_queue.h"
 #include "../mt_pvr_session.h"
+#include "../mt_gfx_context.h"
+#include "../mt_gfx_context_data.h"
 #include "../mt_mmu.h"
 #include "../mt_guest_device.h"
+#include <linux/delay.h>
 #include <linux/dma-mapping.h>
+#include <linux/file.h>
+#include <linux/jiffies.h>
+#include <linux/sched.h>
+#include <linux/sync_file.h>
+#include "../mt_translate_kick.h"
+#include "../mt_gfx_packet_template.h"
 
 /* The driver hard-codes these two numbers, and the vendor declares them the
  * same way in inc/pvr/include/pvr_drm.h:
@@ -77,6 +86,22 @@ MODULE_PARM_DESC(drm_major, "DRM version_major reported to the UMD (0 default; 2
 static unsigned int ddk_feature_set;
 module_param(ddk_feature_set, uint, 0400);
 MODULE_PARM_DESC(ddk_feature_set, "features+0x54 DDK feature set (0=legacy path)");
+
+/* Check-only kick translator (first frame, r113/r147). Off by default, which
+ * preserves the validated accept-and-inspect path bit-for-bit. When on, a
+ * 0x88:0x4 kick with any check/update counts is translated: checks are
+ * waited in PMR host memory, an empty DM2 marker is submitted through the
+ * live firmware session, updates are published on completion, and a fence
+ * backed by real completion is returned instead of the always-ready eventfd.
+ * Zero-count kicks stay on inspect (no reason to burn GPU time).
+ */
+static bool translate_kick;
+module_param(translate_kick, bool, 0400);
+MODULE_PARM_DESC(translate_kick, "translate check-only 0x88:0x4 kicks into real DM2 empty markers (default: accept-and-inspect)");
+
+static unsigned int translate_wait_ms = 5000U;
+module_param(translate_wait_ms, uint, 0400);
+MODULE_PARM_DESC(translate_wait_ms, "UFO condition wait budget per translated kick, milliseconds");
 
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
@@ -126,6 +151,7 @@ enum mt_pvr_kind {
 	MT_PVR_KIND_RESERVATION,
 	MT_PVR_KIND_COMPUTE,
 	MT_PVR_KIND_ZSBUFFER,
+	MT_PVR_KIND_TDM_CONTEXT,
 	/* A kick-sync context is a CONTEXT-shaped object but must never be
 	 * mistaken for a render context: ctx_create() reuses the first object
 	 * of its kind, so sharing the kind would alias the two.
@@ -212,6 +238,7 @@ struct mt_pvr_object {
 	u64 handle;
 	u32 kind;
 	/* Payload by kind. RESERVATION carries the VA range the UMD reserved;
+	 * SYNC carries its backing PMR handle (the waitable memory);
 	 * everything else leaves these zero. The range is what a future GPU
 	 * page-table bind will program; recording it now (with overlap checks)
 	 * is what makes that bind possible later without changing the wire.
@@ -350,13 +377,11 @@ static int pvr_gpu_vm_ensure(struct mt_pvr_file *file)
 	if (!storage)
 		return -ENOMEM;
 	file->gpu_vm_storage = storage;
-	file->arena_gpu_pages = kcalloc(MT_PVR_ARENA_PAGES,
-					sizeof(*file->arena_gpu_pages),
-					GFP_KERNEL);
-	if (!file->arena_gpu_pages) {
+	ret = pvr_arena_pages_ensure(file);
+	if (ret) {
 		kvfree(file->gpu_vm_storage);
 		file->gpu_vm_storage = NULL;
-		return -ENOMEM;
+		return ret;
 	}
 	file->gpu_tables = (struct mt_bo){
 		.backing = {.gpu_pa = MT_PVR_VM_ROOT_PA,
@@ -373,8 +398,6 @@ static int pvr_gpu_vm_ensure(struct mt_pvr_file *file)
 			mt_bo_put(file->gpu_vm.tables);
 		if (file->gpu_tables.refs)
 			mt_bo_put(&file->gpu_tables);
-		kfree(file->arena_gpu_pages);
-		file->arena_gpu_pages = NULL;
 		kvfree(file->gpu_vm_storage);
 		file->gpu_vm_storage = NULL;
 		memset(&file->gpu_vm, 0, sizeof(file->gpu_vm));
@@ -383,8 +406,6 @@ static int pvr_gpu_vm_ensure(struct mt_pvr_file *file)
 	ret = mt_bo_put(&file->gpu_tables); /* leave only the VM's table reference */
 	if (ret) {
 		WARN_ON(mt_gpu_vm_fini(&file->gpu_vm));
-		kfree(file->arena_gpu_pages);
-		file->arena_gpu_pages = NULL;
 		kvfree(file->gpu_vm_storage);
 		file->gpu_vm_storage = NULL;
 		return ret;
@@ -827,8 +848,16 @@ static void pvr_file_release(struct kref *kref)
 	ret = pvr_gpu_vm_destroy(file);
 	if (WARN_ON(ret))
 		return;
+	/* DMA registration can allocate the page-address table before the lazy
+	 * VM is initialized. In that case destroy() is a no-op, so close owns the
+	 * final cleanup of the still-unattached table.
+	 */
+	kfree(file->arena_gpu_pages);
+	file->arena_gpu_pages = NULL;
 	list_for_each_entry_safe(pmr, tmp, &file->pmrs, link) {
 		list_del(&pmr->link);
+		while (pmr->refcount > 1)
+			pvr_pmr_unref(pmr);
 		pvr_pmr_unref(pmr);
 	}
 	/* Every PMR slot is back by now. Drain the free list, then report
@@ -1225,6 +1254,23 @@ static int pvr_cmd_event_handle(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* The target Rogue topology is one core (live probe/TQX observation r28).
+ * Reporting zero through the generic stub makes the UMD request a zero-byte
+ * TDM context-store allocation and abort before creating a CCB. */
+static int pvr_cmd_multicore_info(struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_multicore_info_in in;
+	struct mt_pvr_multicore_info_out out = { 0 };
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	out.caps = in.caps;
+	out.num_cores = 1;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
 static int pvr_cmd_info_page(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 {
 	struct mt_pvr_handle_out out = { 0 };
@@ -1485,6 +1531,570 @@ out:
 	kfree(update_ufo);
 }
 
+/* Check-only kick translator: empty-DM2-marker emission (r113/r147).
+ *
+ * Global (one DM context for the bridge, shared by all files under
+ * translator_lock; UFO resolution stays per-file). Lifecycle: prepared lazily
+ * on the first translated kick, torn down at module exit. The owner ref taken
+ * at prepare pins the probe module while translator objects reference its
+ * stores; teardown requires the session (bridge-rmmod-first discipline).
+ *
+ * Locking: dispatch holds file->lock; here translator_lock is taken, then
+ * trial_lock only around store/submit operations. No path takes file->lock
+ * under trial_lock (probe/live code never sees bridge files) and nothing
+ * else takes translator_lock, so the order is deadlock-free. The UFO wait
+ * holds file->lock only and sleeps in interruptible slices.
+ */
+#define MT_TRANSLATE_CMD_VA 0x48000000ULL
+#define MT_TRANSLATE_CMD_BYTES 32768U
+#define MT_TRANSLATE_SPACE_PAGES 32U
+#define MT_TRANSLATE_FENCE_WAIT_MS 5000U
+#define MT_TRANSLATE_WAIT_SLICE_MS 5U
+
+struct mt_pvr_translator {
+	bool ready;
+	struct module *owner;
+	struct mt_guest *guest;
+	struct mt_guest_device *dev;
+	struct mt_vm_vram *space;
+	struct mt_execution_process process;
+	struct mt_execution_context context;
+	struct mt_bo command;
+	struct mt_bo rt;
+	struct mt_bo ctx_bos[MT_GFX_CONTEXT_BO_COUNT];
+	u64 seq;
+};
+
+static DEFINE_MUTEX(translator_lock);
+static struct mt_pvr_translator translator;
+
+static int pvr_translator_bo_write(struct mt_guest_device *d,
+				   struct mt_bo *bo, u64 off,
+				   const void *src, u64 bytes);
+
+struct mt_pvr_ufo_cond {
+	void *host;
+	u32 offset;
+	u32 expected;
+	u64 gpu_pa;
+	bool has_gpu_pa;
+};
+
+/* Range-check offset against one PMR and fill the wait condition.
+ * PMR list membership already established by the caller. */
+static int pvr_translator_pmr_cond(struct mt_pvr_pmr *pmr, u32 offset,
+				   struct mt_pvr_ufo_cond *out)
+{
+	u64 idx;
+
+	if (!pmr->host || !pmr->bytes)
+		return -EOPNOTSUPP;
+	if ((u64)offset + sizeof(u32) > pmr->bytes)
+		return -ERANGE;
+	out->host = pmr->host;
+	out->offset = offset;
+	out->gpu_pa = 0;
+	out->has_gpu_pa = false;
+	idx = (u64)offset >> PAGE_SHIFT;
+	if (pmr->gpu_pages && idx < pmr->dma_npages)
+		out->gpu_pa = pmr->gpu_pages[idx] +
+			       ((u64)offset & (PAGE_SIZE - 1)),
+		out->has_gpu_pa = true;
+	return 0;
+}
+
+static int pvr_translator_resolve(struct mt_pvr_file *file, u64 handle,
+				  u32 offset,
+				  struct mt_pvr_ufo_cond *out)
+{
+	struct mt_pvr_pmr *pmr;
+	struct mt_pvr_object *obj;
+
+	/* A PMR handle resolves directly; a SYNC object handle follows its
+	 * backing PMR link. Anything else has no CPU-visible memory to wait
+	 * on. file->lock held. */
+
+	list_for_each_entry(pmr, &file->pmrs, link) {
+		if (pmr->handle == handle)
+			return pvr_translator_pmr_cond(pmr, offset, out);
+	}
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == handle && obj->kind == MT_PVR_KIND_SYNC &&
+		    obj->arg0) {
+			pmr = pvr_pmr_find(file, obj->arg0);
+			if (pmr)
+				return pvr_translator_pmr_cond(pmr, offset, out);
+		}
+	}
+	return -EOPNOTSUPP;
+}
+
+
+/* Wait until every condition reads its expected value. file->lock held,
+ * no other locks; interruptible slices so a stuck UMD can still be killed. */
+static int pvr_translator_wait(struct mt_pvr_ufo_cond *conds, u32 n)
+{
+	unsigned long deadline = jiffies + msecs_to_jiffies(translate_wait_ms);
+	u32 i;
+
+	for (;;) {
+		bool ok = true;
+
+		for (i = 0; i < n; i++) {
+			u32 v;
+
+			memcpy(&v, (u8 *)conds[i].host + conds[i].offset,
+			       sizeof(v));
+			if (v != conds[i].expected) {
+				ok = false;
+				break;
+			}
+		}
+		if (ok)
+			return 0;
+		if (time_after_eq(jiffies, deadline))
+			return -ETIMEDOUT;
+		if (msleep_interruptible(MT_TRANSLATE_WAIT_SLICE_MS))
+			return -ERESTARTSYS;
+		if (signal_pending(current))
+			return -ERESTARTSYS;
+	}
+}
+
+/* Drop translator objects. translator_lock held; takes trial_lock.
+ * Partial-state safe: every destroy primitive rejects empty input. */
+static void pvr_translator_teardown_locked(void)
+{
+	struct mt_guest_device *d = translator.dev;
+
+	if (d && translator.context.process)
+		WARN_ON(mt_execution_context_destroy(&translator.context));
+	if (d && translator.process.store)
+		WARN_ON(mt_execution_process_destroy(&translator.process));
+	if (translator.command.refs)
+		WARN_ON(mt_bo_put(&translator.command));
+	if (translator.rt.refs)
+		WARN_ON(mt_bo_put(&translator.rt));
+	{
+		u32 i;
+
+		for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++)
+			if (translator.ctx_bos[i].refs)
+				WARN_ON(mt_bo_put(&translator.ctx_bos[i]));
+	}
+	if (d && translator.space)
+		WARN_ON(d->address_spaces.ops->destroy(translator.space));
+	if (translator.owner)
+		module_put(translator.owner);
+	memset(&translator, 0, sizeof(translator));
+}
+
+/* Build the DM context once. translator_lock held; takes trial_lock. */
+static int pvr_translator_prepare_locked(void)
+{
+	struct module *owner = NULL;
+	struct mt_guest *g;
+	struct mt_guest_device *d;
+	u32 off, chunk;
+	int ret;
+
+	if (translator.ready)
+		return 0;
+	g = pvr_session_acquire(&owner);
+	if (!g)
+		return -ENODEV;
+	d = container_of(g, struct mt_guest_device, state);
+	mutex_lock(&g->trial_lock);
+	ret = d->address_spaces.ops->create(&d->address_spaces,
+					    MT_TRANSLATE_SPACE_PAGES,
+					    &translator.space);
+	if (ret)
+		goto out;
+	ret = d->address_spaces.ops->bind_boot_shared(translator.space,
+						       &d->gem.profile);
+	if (ret)
+		goto out;
+	ret = mt_bo_create(&translator.command, d->buffers.ops, &d->buffers,
+			   MT_TRANSLATE_CMD_BYTES, PAGE_SIZE);
+	if (ret)
+		goto out;
+	ret = d->address_spaces.ops->bind(translator.space, &translator.command,
+					  MT_TRANSLATE_CMD_VA, 0,
+					  MT_TRANSLATE_CMD_BYTES,
+					  MT_GPU_MAP_DEFAULT);
+	if (ret)
+		goto out;
+	ret = mt_bo_create(&translator.rt, d->buffers.ops, &d->buffers,
+			   MT_TRANSLATE_RT_BYTES, PAGE_SIZE);
+	if (ret)
+		goto out;
+	ret = d->address_spaces.ops->bind(translator.space, &translator.rt,
+					  MT_TRANSLATE_RT_VA, 0,
+					  MT_TRANSLATE_RT_BYTES,
+					  MT_GPU_MAP_DEFAULT);
+	if (ret)
+		goto out;
+	/* Context switch (CSW) state, mirroring live_3d_drm's prepare: the raw
+	 * template's CSW pointer names VAs valid only in another space, so the
+	 * firmware would fault following it. Build the CSW for this space's
+	 * context BOs and patch the packet's CSW pointer + words. */
+	{
+		struct mt_gfx_context_bo_addresses csw_addrs;
+		u8 csw[MT_GFX_CONTEXT_CSW_BYTES];
+		u64 csw_va = MT_TRANSLATE_CMD_VA + 0x58ULL;
+		u32 i;
+
+		for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++) {
+			u32 bytes = mt_gfx_context_bo_specs[i].bytes;
+			u32 alloc_size = PAGE_ALIGN(bytes);
+			u64 bva = 0x50000000ULL + i * 0x100000ULL;
+
+			csw_addrs.va[i] = bva;
+			ret = mt_bo_create(&translator.ctx_bos[i],
+					   d->buffers.ops, &d->buffers,
+					   alloc_size, PAGE_SIZE);
+			if (ret)
+				goto out;
+			ret = pvr_translator_bo_write(d,
+						      &translator.ctx_bos[i], 0,
+						      mt_gfx_bo_init_metas[i].data,
+						      bytes);
+			if (ret)
+				goto out;
+			ret = d->address_spaces.ops->bind(translator.space,
+							  &translator.ctx_bos[i],
+							  bva, 0, alloc_size,
+							  MT_GPU_MAP_DEFAULT);
+			if (ret)
+				goto out;
+		}
+		ret = mt_gfx_context_build_csw(csw, sizeof(csw), &csw_addrs);
+		if (ret)
+			goto out;
+		ret = pvr_translator_bo_write(d, &translator.command, 0x10,
+					      &csw_va, 8);
+		if (ret)
+			goto out;
+		ret = pvr_translator_bo_write(d, &translator.command, 0x58,
+					      csw, sizeof(csw));
+		if (ret)
+			goto out;
+	}
+	for (off = 0; off < MT_GFX_LINUX_PACKET_BYTES;) {
+		chunk = MT_GFX_LINUX_PACKET_BYTES - off;
+		if (chunk > PAGE_SIZE)
+			chunk = PAGE_SIZE;
+		ret = pvr_translator_bo_write(d, &translator.command, off,
+						  mt_gfx_linux_packet_template + off,
+						  chunk);
+		if (ret)
+			goto out;
+		off += chunk;
+	}
+	{
+		u64 va = MT_TRANSLATE_RT_VA;
+		u64 stride = MT_TRANSLATE_RT_STRIDE;
+		u64 extent = MT_TRANSLATE_RT_EXTENT;
+
+		ret = pvr_translator_bo_write(d, &translator.command,
+					      MT_TRANSLATE_RT_OFF_VA,
+					      &va, 8);
+		if (ret)
+			goto out;
+		ret = pvr_translator_bo_write(d, &translator.command,
+					      MT_TRANSLATE_RT_OFF_STRIDE,
+					      &stride, 8);
+		if (ret)
+			goto out;
+		ret = pvr_translator_bo_write(d, &translator.command,
+					      MT_TRANSLATE_RT_OFF_EXTENT,
+					      &extent, 8);
+		if (ret)
+			goto out;
+		ret = pvr_translator_bo_write(d, &translator.command,
+					      MT_TRANSLATE_RT_OFF_DIRECT,
+					      &va, 8);
+		if (ret)
+			goto out;
+	}
+	ret = d->address_spaces.ops->upload(translator.space);
+	if (ret)
+		goto out;
+	ret = d->address_spaces.ops->seal(translator.space);
+	if (ret)
+		goto out;
+	ret = mt_execution_process_create(&d->execution, &translator.process,
+					  &translator.space->vm,
+					  task_tgid_nr(current));
+	if (ret)
+		goto out;
+	ret = mt_execution_context_create(&translator.context,
+					  &translator.process, 5, 0);
+	if (ret)
+		goto out;
+	translator.owner = owner;
+	translator.guest = g;
+	translator.dev = d;
+	translator.seq = 0;
+	translator.ready = true;
+	mutex_unlock(&g->trial_lock);
+	return 0;
+out:
+	pvr_translator_teardown_locked();
+	mutex_unlock(&g->trial_lock);
+	module_put(owner);
+	return ret;
+}
+
+/* BO byte write for translator-owned objects (r147).
+ *
+ * Cannot use mt_bo_vram_write(): its ops-identity gate compares against the
+ * CALLER module's copy of mt_bo_vram_ops, but that table is a static const
+ * in a shared header, so the probe and the bridge each own a distinct copy
+ * (live dmesg: ops=[mt_guest_probe] vs &mt_bo_vram_ops=[mt_pvr_bridge]).
+ * Mirrors live_3d_drm's transfer(): validate against the owning store's ops
+ * pointer (single copy, no duplication issue), then cpu_begin/end -- whose
+ * map call dispatches through bo->ops to the correct copy. trial_lock held.
+ */
+static int pvr_translator_bo_write(struct mt_guest_device *d,
+				   struct mt_bo *bo, u64 off,
+				   const void *src, u64 bytes)
+{
+	struct mt_bo_vram_handle *handle;
+	void *mapping;
+	int ret;
+
+	if (bo->store != &d->buffers || bo->ops != d->buffers.ops)
+		return -EXDEV;
+	ret = mt_bo_check_range(bo, off, bytes);
+	if (ret)
+		return ret;
+	ret = mt_bo_cpu_begin(bo, &mapping);
+	if (ret)
+		return ret;
+	handle = bo->backing.handle;
+	if (handle->system)
+		memcpy((u8 *)mapping + off, src, bytes);
+	else
+		memcpy_toio((void __iomem *)mapping + off, src, bytes);
+	return mt_bo_cpu_end(bo);
+}
+
+/* Submit one empty marker tagged with seq. translator_lock and trial_lock
+ * held. Returns a held fence reference for the caller; the caller MUST drop
+ * all session locks before waiting on it, because completion events are
+ * drained under trial_lock (same discipline as live_3d_drm: unlock, then
+ * wait). Waiting while holding trial_lock starves the drain and always
+ * times out (r147).
+ */
+static int pvr_translator_submit_locked(struct mt_guest_device *d, u64 tag,
+					 struct dma_fence **out)
+{
+	struct mt_execution_request req = {
+		.command_va = MT_TRANSLATE_CMD_VA,
+		.bytes = MT_GFX_LINUX_PACKET_BYTES,
+		.type = 3,
+		.submit_flags = 0,
+	};
+	struct dma_fence *fence = NULL;
+	int ret;
+
+	ret = pvr_translator_bo_write(d, &translator.command,
+				      MT_TRANSLATE_TAG_OFFSET,
+				      &tag, MT_TRANSLATE_TAG_BYTES);
+	if (ret)
+		return ret;
+	d->markers.ready = true;
+	d->markers.work_ready = true;
+	ret = d->markers.ops->submit_context(&d->markers, &translator.context,
+					     &translator.command, &req, &fence);
+	d->markers.work_ready = false;
+	d->markers.ready = false;
+	if (ret)
+		return ret;
+	*out = fence;
+	return 0;
+}
+
+/* Wait for a submitted translator fence. No session locks held. */
+static int pvr_translator_wait_fence(struct dma_fence *fence)
+{
+	long waited = dma_fence_wait_timeout(fence, false,
+					msecs_to_jiffies(MT_TRANSLATE_FENCE_WAIT_MS));
+	int ret = waited > 0 ? dma_fence_get_status(fence) :
+		(waited < 0 ? (int)waited : -ETIMEDOUT);
+
+	return ret == 1 ? 0 : (ret ? ret : -EIO);
+}
+
+/* Translate one check-only kick (ncheck in 1..64, update == 0) into a real
+ * empty-marker submission. file->lock held. Returns 0 with OUT written, or a
+ * negative errno; never silently falls back to accept. */
+static int pvr_translate_kick(struct mt_pvr_file *file,
+			      struct mt_pvr_cmd *cmd,
+			      const struct mt_pvr_kicksync3_in *in)
+{
+	u32 ncheck = in->client_check_count;
+	u32 nupdate = in->client_update_count;
+	u32 *offs = NULL, *vals = NULL;
+	u64 *ufos = NULL;
+	struct mt_pvr_ufo_cond *conds = NULL;
+	u32 *uoffs = NULL, *uvals = NULL;
+	u64 *uufos = NULL;
+	struct mt_pvr_ufo_cond *uconds = NULL;
+	struct mt_guest_device *d;
+	struct mt_pvr_kicksync3_out out3 = { 0 };
+	struct dma_fence *fence = NULL;
+	struct sync_file *sync_file = NULL;
+	int fd = -1, ret;
+	u32 i;
+	u64 tag;
+	u64 fence_seqno;
+
+	if (ncheck > MT_PVR_KICK_SYNC_MAX ||
+	    nupdate > MT_PVR_KICK_SYNC_MAX)
+		return -EOPNOTSUPP;
+	offs = kcalloc(ncheck ? ncheck : 1, sizeof(*offs), GFP_KERNEL);
+	vals = kcalloc(ncheck ? ncheck : 1, sizeof(*vals), GFP_KERNEL);
+	ufos = kcalloc(ncheck ? ncheck : 1, sizeof(*ufos), GFP_KERNEL);
+	conds = kcalloc(ncheck ? ncheck : 1, sizeof(*conds), GFP_KERNEL);
+	uoffs = kcalloc(nupdate ? nupdate : 1, sizeof(*uoffs), GFP_KERNEL);
+	uvals = kcalloc(nupdate ? nupdate : 1, sizeof(*uvals), GFP_KERNEL);
+	uufos = kcalloc(nupdate ? nupdate : 1, sizeof(*uufos), GFP_KERNEL);
+	uconds = kcalloc(nupdate ? nupdate : 1, sizeof(*uconds), GFP_KERNEL);
+	if ((ncheck && (!offs || !vals || !ufos || !conds)) ||
+	    (nupdate && (!uoffs || !uvals || !uufos || !uconds))) {
+		ret = -ENOMEM;
+		goto free;
+	}
+	if ((ncheck &&
+	     (copy_from_user(offs, u64_to_user_ptr(in->check_devvar_offset),
+			     (size_t)ncheck * sizeof(*offs)) ||
+	      copy_from_user(vals, u64_to_user_ptr(in->check_value),
+			     (size_t)ncheck * sizeof(*vals)) ||
+	      copy_from_user(ufos, u64_to_user_ptr(in->check_ufo_block),
+			     (size_t)ncheck * sizeof(*ufos)))) ||
+	    (nupdate &&
+	     (copy_from_user(uoffs, u64_to_user_ptr(in->update_devvar_offset),
+			     (size_t)nupdate * sizeof(*uoffs)) ||
+	      copy_from_user(uvals, u64_to_user_ptr(in->update_value),
+			     (size_t)nupdate * sizeof(*uvals)) ||
+	      copy_from_user(uufos, u64_to_user_ptr(in->update_ufo_block),
+			     (size_t)nupdate * sizeof(*uufos))))) {
+		ret = -EFAULT;
+		goto free;
+	}
+	for (i = 0; i < ncheck; i++) {
+		ret = pvr_translator_resolve(file, ufos[i], offs[i], &conds[i]);
+		if (ret)
+			goto free;
+		conds[i].expected = vals[i];
+	}
+	for (i = 0; i < nupdate; i++) {
+		ret = pvr_translator_resolve(file, uufos[i], uoffs[i],
+					     &uconds[i]);
+		if (ret)
+			goto free;
+		/* The update value is applied below, after the marker
+		 * completes; record it in the condition slot now. */
+		uconds[i].expected = uvals[i];
+	}
+	if (nupdate)
+		ret = pvr_translator_wait(conds, ncheck);
+	if (ret)
+		goto free;
+	mutex_lock(&translator_lock);
+	ret = pvr_translator_prepare_locked();
+	if (ret) {
+		mutex_unlock(&translator_lock);
+		goto free;
+	}
+	d = translator.dev;
+	mutex_lock(&d->state.trial_lock);
+	tag = ++translator.seq;
+	ret = pvr_translator_submit_locked(d, tag, &fence);
+	mutex_unlock(&d->state.trial_lock);
+	mutex_unlock(&translator_lock);
+	if (ret)
+		goto free;
+	/* Session locks are dropped: completion events drain under trial_lock. */
+	ret = pvr_translator_wait_fence(fence);
+	if (ret) {
+		dma_fence_put(fence);
+		goto free;
+	}
+	/* The kick completed: publish update values so later waiters observe
+	 * them. file->lock is still held by dispatch; plain CPU writes. */
+	for (i = 0; i < nupdate; i++)
+		memcpy((u8 *)uconds[i].host + uconds[i].offset,
+		       &uconds[i].expected, sizeof(u32));
+	sync_file = sync_file_create(fence);
+	if (!sync_file) {
+		dma_fence_put(fence);
+		ret = -ENOMEM;
+		goto free;
+	}
+	/* The sync_file holds its own fence reference from here on; drop the
+	 * submit caller reference (r147: leaking it pins one probe ref and
+	 * the whole marker per translated kick). */
+	fence_seqno = fence->seqno;
+	dma_fence_put(fence);
+	fence = NULL;
+	fd = get_unused_fd_flags(O_CLOEXEC);
+	if (fd < 0) {
+		fput(sync_file->file);
+		ret = fd;
+		goto free;
+	}
+	fd_install(fd, sync_file->file);
+	out3.error = 0;
+	out3.update_fence_fd = fd;
+	ret = pvr_out(cmd, &out3, sizeof(out3));
+	if (ret)
+		close_fd(fd);
+	else
+		pr_info("mt_pvr_bridge: translated kick: check=%u update=%u tag=%llu fence=%llu\n",
+			ncheck, nupdate, tag, fence_seqno);
+free:
+	kfree(offs);
+	kfree(vals);
+	kfree(ufos);
+	kfree(conds);
+	kfree(uoffs);
+	kfree(uvals);
+	kfree(uufos);
+	kfree(uconds);
+	return ret;
+}
+
+/* Best-effort translator teardown at module exit. The bridge-rmmod-first
+ * discipline guarantees the probe session still exists; anything else leaks
+ * the translator objects with a warning instead of touching dead stores. */
+static void pvr_translator_exit(void)
+{
+	struct module *owner = NULL;
+	struct mt_guest *g;
+
+	mutex_lock(&translator_lock);
+	if (!translator.ready) {
+		mutex_unlock(&translator_lock);
+		return;
+	}
+	g = pvr_session_acquire(&owner);
+	if (!g || g != translator.guest) {
+		pr_warn("mt_pvr_bridge: translator teardown without live session; objects retained\n");
+		if (owner)
+			module_put(owner);
+		mutex_unlock(&translator_lock);
+		return;
+	}
+	mutex_lock(&g->trial_lock);
+	pvr_translator_teardown_locked();
+	mutex_unlock(&g->trial_lock);
+	module_put(owner);
+	mutex_unlock(&translator_lock);
+}
+
 static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 				   struct mt_pvr_cmd *cmd, u32 function)
 {
@@ -1524,8 +2134,13 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 	/* A property query has no fence to complete. */
 	if (function == 0x3)
 		return pvr_out(cmd, &out_prop, sizeof(out_prop));
-	if (function == 0x4)
+	if (function == 0x4) {
+		if (translate_kick) {
+			if (in3.client_check_count || in3.client_update_count)
+				return pvr_translate_kick(file, cmd, &in3);
+		}
 		pvr_kick_inspect(file, &in3);
+	}
 	/* A fence that is already complete: poll/select on it returns at once.
 	 * Bridge-stage completion only -- the GPU did nothing, because there is
 	 * no channel by which this bridge could ask it to.
@@ -1661,6 +2276,32 @@ static int pvr_cmd_kicksync_create(struct mt_pvr_file *file,
 	if (!obj)
 		return -ENOMEM;
 	out.kicksync_context = obj->handle;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* 0x88:0x5 BridgeRGXCreateKickSyncContext2 (DDK2 CCB create, r141/r143).
+ * 8-byte IN, 12-byte OUT {handle, error}. Same object model as legacy
+ * 0x88:0x0: mint a KIND_KICKSYNC object; the IN payload stays opaque.
+ *
+ * Called with file->lock already held by pvr_bridge_dispatch(), so it must not
+ * take it again.
+ */
+static int pvr_cmd_kicksyncctx2_create(struct mt_pvr_file *file,
+				       struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_kicksyncctx2_create_in in;
+	struct mt_pvr_kicksyncctx2_create_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	obj = pvr_object_new(file, MT_PVR_KIND_KICKSYNC);
+	if (!obj)
+		return -ENOMEM;
+	out.kicksync_context = obj->handle;
+	(void)in;
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -1968,6 +2609,9 @@ static int pvr_cmd_pmr_import(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	pmr = pvr_pmr_find(file, in.ext_handle);
 	if (!pmr)
 		return -ENOENT;
+	if (pmr->refcount == U32_MAX)
+		return -EOVERFLOW;
+	pmr->refcount++;
 	out.align = 1ULL << pmr->log2_page_size;
 	out.size = pmr->bytes;
 	/* PVRSRV_BRIDGE_OUT_PMRLOCALIMPORTPMR declares uiAlign/uiSize/hPMR;
@@ -2122,8 +2766,12 @@ static int pvr_cmd_sync_block(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	if (!obj)
 		return -ENOMEM;
 	pmr = pvr_pmr_new(file, 0x1000, 12);
-	if (!pmr)
+	if (!pmr) {
+		list_del(&obj->link);
+		kfree(obj);
 		return -ENOMEM;
+	}
+	obj->arg0 = pmr->handle;
 	out.sync_handle = obj->handle;
 	out.sync_pmr = pmr->handle;
 	out.block_size = 0x1000;
@@ -2147,6 +2795,33 @@ static int pvr_cmd_handle_only(struct mt_pvr_file *file,
 	if (!obj)
 		return -ENOMEM;
 	out.handle = obj->handle;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* 0x82:0x12 BridgeRGXCreateRenderContext2 (DDK2 render create, r141).
+ * 12-byte IN, 12-byte OUT {handle, error}. Same object model as legacy
+ * 0x82:0x8: mint a KIND_CONTEXT object; the IN payload stays opaque to the
+ * bridge (legacy ignores its own IN the same way).
+ *
+ * Called with file->lock already held by pvr_bridge_dispatch(), so it must not
+ * take it again.
+ */
+static int pvr_cmd_render2_create(struct mt_pvr_file *file,
+				  struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_render2_create_in in;
+	struct mt_pvr_render2_create_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	obj = pvr_object_new(file, MT_PVR_KIND_CONTEXT);
+	if (!obj)
+		return -ENOMEM;
+	out.handle = obj->handle;
+	(void)in;
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -2177,15 +2852,9 @@ static int pvr_cmd_handle_release(struct mt_pvr_file *file,
 	return -ENOENT;
 }
 
-/* Drop a PMR from the file's table and free it. Returns -ENOENT if the handle
- * is unknown, so a double release is visible instead of silently accepted.
- */
-/* Release the PMR's own list reference.
- *
- * The PMR may still be alive if something took a reference of its own -- most
- * importantly an in-flight mmap(), which has to keep using pmr->host after
- * dropping file->lock. Only unlinking is unconditional; the memory goes away
- * once the last user is done with it.
+/* Drop one PMR reference and unlink it once that was the final reference.
+ * UMD local imports share the PMR handle and each unrefs it, so keep it
+ * discoverable until all imported and mmap references have gone away.
  *
  * Called with file->lock held (from pvr_bridge_dispatch()).
  */
@@ -2199,7 +2868,8 @@ static int pvr_pmr_put(struct mt_pvr_file *file, u64 handle)
 	/* PVR VM bindings hold a reference to this PMR's GPU-PA page list. */
 	if (pmr->mapped)
 		return -EBUSY;
-	list_del(&pmr->link);
+	if (pmr->refcount == 1)
+		list_del(&pmr->link);
 	pvr_pmr_unref(pmr);
 	return 0;
 }
@@ -2248,22 +2918,26 @@ static int pvr_cmd_hwperf_release(struct mt_pvr_file *file,
  *
  * Transfer (2D/blit) shared memory for RGXTDMCreateStaticMem (r87): the UMD
  * passes no input and stores the two returned u64s at client+0x30/+0x38 for
- * TQPMR_MapMem / TQPMR_MapUSCMem. Both aliases point at ONE real 8 KiB
- * arena PMR (see mt_pvr_wire.h spike note); release retires it once via the
- * normal PMR path, so a second release honestly reports -ENOENT instead of
- * double-freeing. eError rides last in this family ({u64, u64, u32}).
+ * TQPMR_MapMem / TQPMR_MapUSCMem. Live r150 evidence shows the UMD imports,
+ * unrefs, and releases these as distinct CLI and USC PMRs, so they need
+ * separate handles and lifetimes. eError rides last ({u64, u64, u32}).
  */
 static int pvr_cmd_tdm_shmem(struct mt_pvr_file *file,
 			     struct mt_pvr_cmd *cmd)
 {
 	struct mt_pvr_tdm_shmem_out out = { 0 };
-	struct mt_pvr_pmr *pmr;
+	struct mt_pvr_pmr *cli_pmr, *usc_pmr;
 
-	pmr = pvr_pmr_new(file, 0x2000, 12);
-	if (!pmr)
+	cli_pmr = pvr_pmr_new(file, 0x2000, 12);
+	if (!cli_pmr)
 		return -ENOMEM;
-	out.ptr1 = pmr->handle;
-	out.ptr2 = pmr->handle;
+	usc_pmr = pvr_pmr_new(file, 0x2000, 12);
+	if (!usc_pmr) {
+		pvr_pmr_put(file, cli_pmr->handle);
+		return -ENOMEM;
+	}
+	out.ptr1 = cli_pmr->handle;
+	out.ptr2 = usc_pmr->handle;
 	out.error = 0;
 	return pvr_out(cmd, &out, sizeof(out));
 }
@@ -2282,6 +2956,143 @@ static int pvr_cmd_tdm_release(struct mt_pvr_file *file,
 	if (ret)
 		return ret;
 	out.error = 0;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* 0x89:0x8/0x9 DDK2 transfer-context lifecycle (r150).
+ * The handle is a per-file bookkeeping token only. This does not allocate a
+ * firmware context or submit work; SubmitTransfer3 (0x89:0xa) is accept-and-log
+ * only (pvr_cmd_tdm_submit3_observe, r174): it reports the named CCB window
+ * and returns 0 without executing anything. */
+static int pvr_cmd_tdm_context2_create(struct mt_pvr_file *file,
+				      struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_tdm_context2_create_in in;
+	struct mt_pvr_tdm_context2_create_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	obj = pvr_object_new(file, MT_PVR_KIND_TDM_CONTEXT);
+	if (!obj)
+		return -ENOMEM;
+	obj->arg0 = in.device_mem_context;
+	obj->arg1 = in.context_type;
+	out.transfer_context = obj->handle;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+static int pvr_cmd_tdm_context2_destroy(struct mt_pvr_file *file,
+					struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_tdm_context2_destroy_in in;
+	struct mt_pvr_tdm_context2_destroy_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == in.transfer_context &&
+		    obj->kind == MT_PVR_KIND_TDM_CONTEXT) {
+			list_del(&obj->link);
+			kfree(obj);
+			return pvr_out(cmd, &out, sizeof(out));
+		}
+	}
+	return -ENOENT;
+}
+
+/* 0x89:0xa RGXTDMSubmitTransfer3 accept-and-log (r174).
+ *
+ * Accepts the submission (OUT error 0) and reports the CCB window it names,
+ * without executing anything: no firmware channel, no page-table upload, no
+ * fence, and no nested-pointer reads (check/update/PMR-sync arrays stay
+ * untouched). Lets the real UMD walk past SubmitTransfer3 so its generated
+ * CCB bytes become observable; the window digest below is the observation.
+ * Anything outside a mapped reservation answers -EINVAL with no logging.
+ *
+ * Called with file->lock already held by pvr_bridge_dispatch(), so it must
+ * not take it again.
+ */
+#define MT_PVR_SUBMIT3_LOG_MAX (1U << 20)
+
+static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
+				       struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_tdm_submit3_in in;
+	struct mt_pvr_tdm_submit3_out out = { 0 };
+	struct mt_pvr_object *obj;
+	struct mt_pvr_binding *binding = NULL, *b;
+	struct mt_pvr_pmr *pmr = NULL;
+	u64 end, off, i, nonzero = 0, first = 0;
+	u64 hash = 1469598103934665603ULL;
+	u8 head[64];
+	u32 head_len = 0;
+	bool have_ctx = false;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == in.transfer_context &&
+		    obj->kind == MT_PVR_KIND_TDM_CONTEXT) {
+			have_ctx = true;
+			break;
+		}
+	}
+	if (!have_ctx)
+		return -ENOENT;
+	if (!in.ccb_bytes || in.ccb_bytes > MT_PVR_SUBMIT3_LOG_MAX ||
+	    in.ccb_data + in.ccb_bytes < in.ccb_data)
+		return -EINVAL;
+	end = in.ccb_data + in.ccb_bytes;
+	list_for_each_entry(b, &file->bindings, link) {
+		struct mt_pvr_object *res =
+			pvr_reservation_find(file, b->reservation);
+
+		if (!res || res->arg0 > in.ccb_data)
+			continue;
+		if (in.ccb_data - res->arg0 > res->arg1)
+			continue;
+		if (end - res->arg0 > res->arg1)
+			continue;
+		binding = b;
+		break;
+	}
+	if (!binding)
+		return -EINVAL;
+	pmr = pvr_pmr_find(file, binding->pmr);
+	if (!pmr || !pmr->host || !pmr->bytes)
+		return -EINVAL;
+	if (binding->va > in.ccb_data)
+		return -EINVAL;
+	off = in.ccb_data - binding->va;
+	if (off > pmr->bytes || in.ccb_bytes > pmr->bytes - off)
+		return -EINVAL;
+	for (i = 0; i < in.ccb_bytes; i++) {
+		u8 byte = ((u8 *)pmr->host)[off + i];
+
+		hash ^= byte;
+		hash *= 1099511628211ULL;
+		if (!byte)
+			continue;
+		if (!nonzero)
+			first = i;
+		nonzero++;
+		if (head_len < sizeof(head))
+			head[head_len++] = byte;
+	}
+	pr_info("mt_pvr_bridge: submit3 observe: va=%#llx bytes=%u res=%#llx pmr=%#llx nonzero=%llu first=%#llx fnv=%#llx head=%*ph\n",
+		(unsigned long long)in.ccb_data, in.ccb_bytes,
+		(unsigned long long)binding->reservation,
+		(unsigned long long)binding->pmr,
+		(unsigned long long)nonzero, (unsigned long long)first,
+		(unsigned long long)hash, head_len, head);
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -2335,9 +3146,10 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case 0x5:			/* EventObjectWait */
 		case 0x6:			/* EventObjectClose */
 		case 0xa:			/* AlignmentCheck */
-		case 0xc:			/* GetMultiCoreInfo */
 		case 0xd:			/* EventObjectWaitTimeout */
 			return pvr_stub_ok(cmd);
+		case 0xc:			/* GetMultiCoreInfo */
+			return pvr_cmd_multicore_info(cmd);
 		case 0xf:			/* AcquireInfoPage */
 			return pvr_cmd_info_page(file, cmd);
 		default:
@@ -2348,7 +3160,9 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case 0x0:
 			return pvr_cmd_sync_block(file, cmd);
 		case 0x1:			/* FreeSyncPrimitiveBlock */
+		case 0x2:			/* SyncPrimSet (DDK2 render tail, r142) */
 		case 0x7:			/* SyncAllocEvent */
+		case 0x8:			/* SyncFreeEvent (DDK2 destroy tail, r144) */
 			return pvr_stub_ok(cmd);
 		default:
 			return -ENOTTY;
@@ -2418,6 +3232,11 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			 */
 			return pvr_cmd_handle_release(file, cmd,
 						      MT_PVR_KIND_CONTEXT);
+		case 0x12:			/* BridgeRGXCreateRenderContext2 (DDK2) */
+			return pvr_cmd_render2_create(file, cmd);
+		case 0x13:			/* BridgeRGXDestroyRenderContext2 (DDK2) */
+			return pvr_cmd_handle_release(file, cmd,
+						      MT_PVR_KIND_CONTEXT);
 		default:
 			return -ENOTTY;
 		}
@@ -2431,6 +3250,10 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case 0x3:			/* RGXSetKickSyncContextProperty */
 		case 0x4:			/* RGXKickSync3 (TA submit) */
 			return pvr_cmd_kicksync_submit(file, cmd, function);
+		case 0x5:			/* BridgeRGXCreateKickSyncContext2 (DDK2) */
+			return pvr_cmd_kicksyncctx2_create(file, cmd);
+		case 0x6:			/* BridgeRGXDestroyKickSyncContext2 (DDK2) */
+			return pvr_cmd_kicksync_destroy(file, cmd);
 		default:
 			return -ENOTTY;
 		}
@@ -2445,10 +3268,16 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		}
 	case MT_PVR_BRIDGE_RGXTDM:
 		switch (function) {
+		case 0x8: /* RGXTDMCreateTransferContext2 */
+			return pvr_cmd_tdm_context2_create(file, cmd);
+		case 0x9: /* RGXTDMDestroyTransferContext2 */
+			return pvr_cmd_tdm_context2_destroy(file, cmd);
 		case 0x5:		/* RGXTDMGetSharedMemory */
 			return pvr_cmd_tdm_shmem(file, cmd);
 		case 0x6:		/* RGXTDMReleaseSharedMemory */
 			return pvr_cmd_tdm_release(file, cmd);
+		case 0xa:		/* RGXTDMSubmitTransfer3 (accept-and-log, r174) */
+			return pvr_cmd_tdm_submit3_observe(file, cmd);
 		default:
 			return -ENOTTY;
 		}
@@ -2655,8 +3484,16 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 			ret = -EINVAL;
 			goto out;
 		}
-		page = vmalloc_to_page(pmr->host);
 		for (i = 0; i < pages; i++) {
+			/* vmalloc pages are virtually contiguous, but their struct page
+			 * entries need not be. Resolve each page independently and fail
+			 * through the shared exit if the backing is unexpectedly absent.
+			 */
+			page = vmalloc_to_page((u8 *)pmr->host + (i << PAGE_SHIFT));
+			if (!page) {
+				ret = -EFAULT;
+				break;
+			}
 			/* PAGE_KERNEL is a *kernel* pgprot: its _PAGE_USER bit
 			 * is clear, so the resulting PTE is not reachable from
 			 * user space and the first read faults (observed as a
@@ -2665,7 +3502,7 @@ static int pvr_mmap(struct file *filp, struct vm_area_struct *vma)
 			 */
 			ret = remap_pfn_range(vma,
 					vma->vm_start + (i << PAGE_SHIFT),
-					page_to_pfn(page + i), PAGE_SIZE,
+					page_to_pfn(page), PAGE_SIZE,
 					__pgprot(pgprot_val(PAGE_KERNEL) |
 						 _PAGE_USER));
 			if (ret)
@@ -2752,6 +3589,7 @@ static int __init pvr_start(void)
 
 static void __exit pvr_stop(void)
 {
+	pvr_translator_exit();
 	WRITE_ONCE(pvr_ready, false);
 	if (pvr_drm) {
 		drm_dev_unregister(pvr_drm);
