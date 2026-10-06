@@ -27,7 +27,7 @@ static inline int mt_tqx_fill_build(void *out, u32 capacity,
 {
 	struct mt_tqx_fill_image next = {0};
 	struct mt_tqx_stream_input finish = {0};
-	struct mt_tqx_destination_input dest;
+	struct mt_tqx_destination_input dest = {0};
 	u8 base[MT_TQX_DESTINATION_BYTES];
 	u32 right, bottom, i;
 	int ret;

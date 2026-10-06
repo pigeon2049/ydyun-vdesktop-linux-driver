@@ -52,6 +52,8 @@
 #include <linux/sync_file.h>
 #include "../mt_translate_kick.h"
 #include "../mt_gfx_packet_template.h"
+#include "../mt_transfer_fill.h"
+#include "../mt_tqx_fill.h"
 
 /* The driver hard-codes these two numbers, and the vendor declares them the
  * same way in inc/pvr/include/pvr_drm.h:
@@ -102,6 +104,17 @@ MODULE_PARM_DESC(translate_kick, "translate check-only 0x88:0x4 kicks into real 
 static unsigned int translate_wait_ms = 5000U;
 module_param(translate_wait_ms, uint, 0400);
 MODULE_PARM_DESC(translate_wait_ms, "UFO condition wait budget per translated kick, milliseconds");
+
+/* Transfer translator dry-run (r181). Off by default, which preserves the
+ * accept-and-log path bit-for-bit. When on, a SubmitTransfer3 additionally
+ * resolves its pool, parses geometry/color and builds the TQX fill program
+ * bytes the submission would emit -- then stops: no session objects, no
+ * page-table changes, no submission, no fence. The program digest in dmesg
+ * is the observation; live emission is a later round.
+ */
+static bool translate_transfer;
+module_param(translate_transfer, bool, 0400);
+MODULE_PARM_DESC(translate_transfer, "dry-run transfer translation: build (never submit) the TQX fill program for 0x89:0xa (default: observe only)");
 
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
@@ -324,6 +337,9 @@ struct mt_pvr_file {
 
 static struct drm_device *pvr_drm;
 static bool pvr_ready;
+static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
+					const struct mt_pvr_tdm_submit3_in *in,
+					u64 ccb_pmr);
 
 /* Declared here because pvr_file_release() below drops the PMRs' list
  * references, which are handed back through this.
@@ -3093,7 +3109,111 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 		(unsigned long long)binding->pmr,
 		(unsigned long long)nonzero, (unsigned long long)first,
 		(unsigned long long)hash, head_len, head);
+	if (translate_transfer) {
+		ret = pvr_submit3_transfer_dry_run(file, &in, binding->pmr);
+		if (ret) {
+			pr_info("mt_pvr_bridge: submit3 dry-run refused: %d\n",
+				ret);
+			return ret;
+		}
+	}
 	return pvr_out(cmd, &out, sizeof(out));
+}
+
+/* Prototype fill geometry (r178: orientation evidence pending; the rect
+ * builder rejects anything that does not factor the parsed pixel count).
+ */
+#define MT_TRANSFER_PROTO_W 1280U
+#define MT_TRANSFER_PROTO_H 1024U
+
+/* Dry-run transfer translation (r181): resolve the destination pool, parse
+ * geometry/color, build the TQX fill program the submission would emit, log
+ * its digest -- then stop. No session objects, no page-table changes, no
+ * submission, no fence. Any ambiguity fails loudly with errno instead of
+ * guessing. file->lock held; must not take it again.
+ */
+static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
+					const struct mt_pvr_tdm_submit3_in *in,
+					u64 ccb_pmr)
+{
+	struct mt_pvr_pmr *pmr, *dst = NULL;
+	struct mt_pvr_binding *b, *dst_binding = NULL;
+	struct mt_transfer_surface surf = { 0 };
+	struct mt_transfer_fill_rect rect;
+	struct mt_tqx_fill_input fi;
+	u8 prog[sizeof(struct mt_tqx_fill_image)];
+	u64 phash = 1469598103934665603ULL;
+	u64 best = 0, best_nz = 0;
+	u32 k;
+	int ret;
+
+	/* Destination pool: among parsed PMRs (excluding the submission's
+	 * own CCB PMR), the one with the most nonzero content. Fill-only
+	 * prototype: all-zero pools (unfilled sources, black fills) cannot
+	 * be told apart and fail with -EOPNOTSUPP instead of guessing.
+	 */
+	list_for_each_entry(pmr, &file->pmrs, link) {
+		struct mt_transfer_surface cand;
+		u64 i, nz = 0;
+
+		if (pmr->handle == ccb_pmr)
+			continue;
+		if (pmr->bytes < (1ULL << 20) || !pmr->host)
+			continue;
+		if (mt_transfer_pool_parse(pmr->host, pmr->bytes, &cand))
+			continue;
+		for (i = 0; i < pmr->bytes; i++) {
+			if (((const u8 *)pmr->host)[i]) {
+				if (++nz > best_nz)
+					break;
+			}
+		}
+		if (!nz || cand.pixels < best)
+			continue;
+		if (cand.pixels == best && nz <= best_nz)
+			continue;
+		best = cand.pixels;
+		best_nz = nz;
+		dst = pmr;
+		surf = cand;
+	}
+	if (!dst) {
+		pr_info("mt_pvr_bridge: submit3 dry-run: no parsed pool\n");
+		return -EOPNOTSUPP;
+	}
+	ret = mt_transfer_fill_rect(&rect, 0, MT_TRANSFER_PROTO_W,
+				    MT_TRANSFER_PROTO_H, surf.color, surf.pixels);
+	if (ret)
+		return ret;
+	list_for_each_entry(b, &file->bindings, link) {
+		if (b->pmr == dst->handle) {
+			dst_binding = b;
+			break;
+		}
+	}
+	if (!dst_binding)
+		return -ENOENT;
+	rect.dst_va = dst_binding->va + MT_TRANSFER_POOL_HEAD;
+	fi = (struct mt_tqx_fill_input){
+		.destination_va = rect.dst_va, .command_va = MT_TRANSLATE_CMD_VA,
+		.element_bytes = MT_TRANSFER_PIXEL_BYTES, .width = rect.width,
+		.height = rect.height, .x = 0, .y = 0,
+		.rect_width = rect.width, .rect_height = rect.height,
+		.color = { rect.color, 0, 0, 0 },
+	};
+	ret = mt_tqx_fill_build(prog, sizeof(prog), &fi);
+	if (ret)
+		return ret;
+	for (k = 0; k < sizeof(prog); k++) {
+		phash ^= prog[k];
+		phash *= 1099511628211ULL;
+	}
+	pr_info("mt_pvr_bridge: submit3 dry-run: pool=%#llx pixels=%llu color=%#x va=%#llx %ux%u fnv=%#llx\n",
+		(unsigned long long)dst->handle,
+		(unsigned long long)surf.pixels, surf.color,
+		(unsigned long long)rect.dst_va, rect.width, rect.height,
+		(unsigned long long)phash);
+	return 0;
 }
 
 /* Succeed at a command whose only observable output is eError (and, for some,

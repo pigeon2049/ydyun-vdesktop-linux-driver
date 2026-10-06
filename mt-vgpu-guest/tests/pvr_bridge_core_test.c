@@ -15,6 +15,7 @@
 #include "../kernel/mt_pvr_queue.h"
 #include "../kernel/mt_pvr_device.h"
 #include "../kernel/mt_transfer_fill.h"
+#include "../kernel/mt_tqx_fill.h"
 
 static int checks;
 
@@ -477,6 +478,35 @@ static int test_transfer_fill_parse(void)
 	return 0;
 }
 
+static int test_tqx_fill_build_deterministic(void)
+{
+	/* r181: the destination block inside mt_tqx_fill_build was left
+	 * stack-uninitialized (worked live only because fresh kernel/user
+	 * stacks read back zeros). Builds must succeed repeatably with
+	 * identical bytes; pollute the stack between the two calls so reuse
+	 * cannot hide behind a clean frame.
+	 */
+	struct mt_tqx_fill_input fi = {
+		.destination_va = 0x8000a00000ULL, .command_va = 0x48000000ULL,
+		.element_bytes = 4, .width = 1280, .height = 1024,
+		.x = 0, .y = 0, .rect_width = 1280, .rect_height = 1024,
+		.color = { 0xff0000ffU, 0, 0, 0 },
+	};
+	static u8 p1[512], p2[512];
+	volatile u8 trash[512];
+	u32 i;
+
+	memset((void *)trash, 0xA5, sizeof(trash));
+	for (i = 0; i < sizeof(trash); i++)
+		if (trash[i] != 0xA5)
+			return 1;
+	CHECK(mt_tqx_fill_build(p1, sizeof(p1), &fi) == 0);
+	memset((void *)trash, 0x5A, sizeof(trash));
+	CHECK(mt_tqx_fill_build(p2, sizeof(p2), &fi) == 0);
+	CHECK(memcmp(p1, p2, sizeof(p1)) == 0);
+	return 0;
+}
+
 int main(void)
 {
 	CHECK(test_wire_offsets() == 0);
@@ -490,6 +520,7 @@ int main(void)
 	CHECK(test_heap_table() == 0);
 	CHECK(test_rgx_app_table() == 0);
 	CHECK(test_transfer_fill_parse() == 0);
+	CHECK(test_tqx_fill_build_deterministic() == 0);
 	printf("pvr_bridge_core_test OK (%d checks)\n", checks);
 	return 0;
 }

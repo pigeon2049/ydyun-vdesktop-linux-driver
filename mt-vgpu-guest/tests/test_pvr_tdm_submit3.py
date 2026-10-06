@@ -20,8 +20,9 @@ def code():
 
 
 def fn_body(src, name):
-    m = re.search(r'static int %s\(.*?^}' % re.escape(name), src, re.S | re.M)
-    assert m, '%s not found' % name
+    m = re.search(r'static int %s\([^;]*\)\s*\{(.*?)^}' % re.escape(name),
+                  src, re.S | re.M)
+    assert m, '%s definition not found' % name
     return m.group(0)
 
 
@@ -60,6 +61,38 @@ class TdmSubmit3Observe(unittest.TestCase):
                       'mt_system_submit', 'doorbell'):
             self.assertNotIn(token, self.body,
                              'observe path must not reach %s' % token)
+
+    def test_dry_run_gated_default_off(self):
+        m = re.search(r'static bool translate_transfer;', self.src)
+        self.assertIsNotNone(m, 'translate_transfer switch must exist')
+        self.assertRegex(self.src,
+                         r'module_param\(translate_transfer, bool, 0400\)')
+
+    def test_observe_calls_dry_run_only_when_on(self):
+        self.assertRegex(self.body,
+                         r'if \(translate_transfer\)[\s\S]*?'
+                         r'pvr_submit3_transfer_dry_run')
+
+    def test_dry_run_builds_but_never_submits(self):
+        body = fn_body(self.src, 'pvr_submit3_transfer_dry_run')
+        for token in ('mt_transfer_pool_parse', 'mt_transfer_fill_rect',
+                      'mt_tqx_fill_build'):
+            self.assertIn(token, body)
+        self.assertIn('-EOPNOTSUPP', body)
+        for token in ('submit_tqx_work', 'submit_context', 'dma_fence',
+                      'mt_bo_create'):
+            self.assertNotIn(token, body,
+                             'dry-run must not reach %s' % token)
+
+    def test_fill_destination_zero_initialized(self):
+        # r181: stack-uninitialized destination block made builds depend on
+        # frame garbage (live only survived on fresh zero stacks).
+        fill_h = Path(__file__).resolve().parents[1] / 'kernel/mt_tqx_fill.h'
+        src = re.sub(r'/\*.*?\*/', '', fill_h.read_text(), flags=re.S)
+        m = re.search(r'struct mt_tqx_destination_input dest(.*?);',
+                      src, re.S)
+        self.assertIsNotNone(m)
+        self.assertIn('= {0}', m.group(0))
 
 
 if __name__ == '__main__':
