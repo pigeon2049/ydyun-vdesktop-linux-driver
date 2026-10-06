@@ -436,7 +436,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
-- **r182 bring-up 受阻（批准执行；含内核改动，已恢复 freeze）**：flavor-1 上下文 + 3 Bo 首活体报 `-22`（大声失败，无 GPU 动作）；单轮 probe ref 1→24（功能完好，仅禁 unload，未解释）；代码 param 门控入库（282+292，反向可抓）。桥恢复默认 + L3 复绿。见 `reports/r182-tqx-blocked.md`。
+- **r182 bring-up 打通（批准执行；含内核改动，已恢复 freeze）**：`-22` 系 TQX 块在 process 前（`!p->store`），拆分后活体 `tqx-ctx: ready`；translator 持有 +18/rmmod -18 对称；失败轮 +65 未解释（功能无损）。代码 param 门禁入库（282+292，反向全过）。桥恢复默认 + L3 复绿。见 `reports/r182-tqx-bringup.md`。
 
 - **r181 dry-run 活体验证（批准执行；含内核改动，已恢复 freeze）**：`translate_transfer` dry-run 上线（278+292，反向全过）；首轮选择 bug 修复；次轮程序 digest 与离线预言逐位一致；附带修 fill 未初始化（双门禁）。桥恢复默认 + L3 复绿（probe 1/bridge 0）。见 `reports/r181-dryrun-verified.md`。
 - **r180 接线规约（只读 recon；零硬件触碰，会话未碰）**：scratch 中转架构（外页绑不进空间是决定性依据；表容量已够）；VA `0x49000000`；fill 五步 + copy 双面 + 门禁计划。见 `reports/r180-transfer-wiring.md`。

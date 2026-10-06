@@ -19,3 +19,8 @@
 
 1. `-22` 定位：prepare 内分步日志（重编+重载一轮）或离线读完 boot_shared VA 图二选一。
 2. ref 审计：干净操作差分（smoke/blit/prepare 各自前后 refcnt），定位泄漏点。
+
+## 后续验证（同轮，r182-tqx-bringup.md 为准）
+
+- `-22` 已定位：TQX 块原在 process 创建之前（`!p->store`）；拆分为 Bo 绑定（seal 前）+ flavor-1 创建（process 后 DM 上下文旁）后，活体报 `tqx-ctx: ready`，bring-up 打通（无 GPU 动作）。上文“此路本就不通”之忧解除——flavor-1 可与 DM 进程共存。
+- ref 记账更新：translator 持有集 +18 随 rmmod -18 对称归零（bring-up/teardown 对称实证）；失败 prepare 轮次另累计 +65（≈14/轮 ≈ map 数，未解释；无残留/fd，功能完好，仅禁 unload）。完整证据与差分数据见 `r182-tqx-bringup.md`。

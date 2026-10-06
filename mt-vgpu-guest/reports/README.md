@@ -136,7 +136,7 @@
 | r179 | T3-transfer fill-input 构造器（纯函数+16 项 C 门禁+反向验证；未接活） |
 | r180 | T3-transfer 活体接线规约：scratch 中转（只用已验证原语；只读 recon） |
 | r181 | transfer dry-run 活体验证：程序字节与离线预言一致；附带修 fill 未初始化（批准执行） |
-| r182 | TQX bring-up 受阻（prepare -22；+23 ref 漂移待查；会话功能完好 freeze 继续） |
+| r182 | TQX bring-up 打通（-22 系创建顺序）；ref 部分澄清（translator 对称，余量待查） |
 
 ## 关键单篇（本轮最常用）
 
