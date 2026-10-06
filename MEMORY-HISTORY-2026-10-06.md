@@ -16,3 +16,10 @@
 - 证据：`reports/r182-tqx-bringup.md`。候选下一步：ref 审计（defaults legacy 差分）+ 真发射。
 
 ---
+
+## 本次会话进展（r183：ref 漂移离线审计）
+
+- 零硬件触碰（只读代码审计 + `lsmod` 只读；未重载模块、未提交 GPU 工作；`dmesg` 本容器无权读）。首要嫌疑已命名：`pvr_file_release` 双 early-return（unbind/destroy 失败即 `return`，`mt_pvr_bridge.c:868-875`）可 abandon 整文件 PMR 的 `dma_owner`（每 map +1），量级 ≈14/轮与失败轮 +14 同形；活体 probe Used by=66（=1+65）只读吻合。prepare 失败路/DMA 注册释放经走查配平，已排除。以上为推断，活体差分待可重载窗口（需批准）；释放语义未动。
+- 证据：`reports/r183-ref-audit-offline.md`。候选下一步：活体差分（defaults legacy 差分，需批准）→ 真发射。
+
+---

@@ -1,8 +1,8 @@
 # S3000 vGPU 驱动适配 —— 阶段进度快照
 
-**快照时间**：2026-10-05
+**快照时间**：2026-10-06
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
-**对应提交**：`e9dd6a7`（内容基线：最后一次改动本文件快照内容的提交；
+**对应提交**：`2f3637c`（内容基线：最后一次改动本文件快照内容的提交；
 纯文档整理提交若未动本文件，不推进该指针，避免 amend 死循环）
 **新 agent 入口**：先读仓库根 [`STATUS.md`](STATUS.md)，再读本文件对应章节。
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.107+deb13-amd64`
@@ -33,6 +33,14 @@ r72–r114 进展：合成 kick 之外，非零 check 包已 fabricated 复现
 TA 提交链打通到 `0x82:0x14c` 桥（r82–r84）；
 Rogue2D/0x89 TDM 组已映射并实现共享内存桥（r86–r89，未加载）；
 check-only 首帧翻译设计完成（r113）；T1/T2 输入侧链条闭环（r114）。
+r115–r184 进展：DDK2 全链在 `drm_major=2` 下走通（render2/CCB2 建销，
+r141–r146）；check-only kick 经真实 DM2 空 marker 完成（r147–r149，
+legacy 与 DDK2）；真实 SubmitTransfer3 的 39B 非零 CCB 活体落定，
+与 fabricated 逐字节一致（r172–r174）；扩展区算术闭合、T3 输入规约
+v1、输出侧盘点、几何通道、fill 构造器、dry-run 活体验证通过
+（r175–r181）；TQX bring-up 打通（r182，`-22` 系创建顺序）；
+ref 漂移离线审计 + defaults 活体差分 Δ0（r183–r184，maps 无罪，
+kill-while-busy 精炼假设待关账）。
 
 ---
 
@@ -72,6 +80,12 @@ check-only 首帧翻译设计完成（r113）；T1/T2 输入侧链条闭环（r1
 update 侧不在 `RGXKickSync` 路径（证伪），候选 `RGXKickSyncDDK2`
 需桥广播新 DDK 特性（`features+0x54>=2`，桥故意钉死 legacy，r78），
 改桥 + 重载单独立项。
+补充（r141–r184）：`drm_major=2` 下 DDK2 同链（render2、CCB2 建销、
+sync event）全绿；真实 `musa_blit_test` 发出首个真实 `0x89:0xa`
+（CCB `0x8000f44000`/`0x1200`，桥 accept-and-log，39/39 字节落定）；
+`translate_transfer` dry-run 程序字节与离线预言一致；
+TQX flavor-1 上下文 bring-up 打通（`tqx-ctx: ready`，无提交）。
+真提交入口的 `-25`/`-ENOTTY` 仍是 S4 边界（设计拒绝，非缺陷）。
 
 第 4 步的完整失败链（全部由 gdb 实测，不是推测）：
 
@@ -172,18 +186,18 @@ RGXCreateRenderContext
 
 ---
 
-## 5. 下一步（按序；r157–r163 后更新）
+## 5. 下一步（按序；r184 后更新）
 
-1. **真实绘制 CCB**：r148/r149 已证明 check-only kick 可在 legacy 与
-   `drm_major=2` 路径经真实 DM2 空 marker 完成；离屏 fill 的非零 CCB 窗口
-   已在 fabricated major 2 blit 中取得并归属（`0x8000f44000`/`0x1200`，
-   39B 全定位，`+0x10`/`+0x28` 与 `SubmissionCmdGenerate` 吻合，`+0x40`
-   为 job 计数器；r157–r163）。仍缺：第二份独立 CCB 样本（copy 系 producer
-   在 fabrication 下同点 abort，不可达）与翻译范围的最终确定。
-2. **同步 update 语义**：布局/可见性/完成条件已由核对过的 UMD 离线确定
-   （r159：`flag&2` 条目、sync-block 句柄+相对偏移、先写回后交 fd），
-   `flag&2` 来源与活体验证待可重建会话；未验证前不视为已支持。
-3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` 与 `0x81:0x5` 仍是 S4 真提交边界；
+1. **ref 审计收尾**：defaults 差分 Δ0 已证 maps 无罪（r184）；
+   kill-while-busy 关账轮（故意挂起再杀 + 四点采样）待可重载窗口
+   （需批准）；释放语义在归因确认前不动。
+2. **TQX 真发射**：bring-up 已通、无提交（r182）；submit+fence+
+   落位+像素回读排在 ref 归因之后。
+3. **同步 update 语义**：布局/可见性/完成条件已由核对过的 UMD 离线确定
+   （r159：`flag&2` 条目、sync-block 句柄+相对偏移、先写回后交 fd）；
+   legacy 活体注入已证伪（r171）；DDK2 活体链已通（r172），非零
+   update kick 可在下次 `=2` 窗口验证。验证前不视为已支持。
+4. **DDK2 TA/CDM 专属提交**：`0x82:0xC` 与 `0x81:0x5` 仍是 S4 真提交边界；
    空 marker 结果不推及这些路径。真实工作包与输入规约确认后再推进。
 
 长期项：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。
@@ -192,8 +206,8 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **269 项通过，1 skip**（r88 TDM 5 项；r126 首帧 envelope；r141–r143 DDK2 建销；r152 multicore；r155 shared backing；r157 DRM major；r158/r160 CCB resolve；本轮重跑全绿） |
-| C RAM 模型测试 | **272 checks**（r157–r163 复核全绿） |
+| Python 测试 | **282 项通过，零 skip**（r88 TDM；r126 首帧 envelope；r141–r143 DDK2 建销；r152 multicore；r155 shared backing；r157 DRM major；r158/r160 CCB resolve；r174/r181/r182 SubmitTransfer3/dry-run/bring-up；r183–r184 复核全绿） |
+| C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
 | 节点探针 `pvr_node_probe` | 0 failing step、0 value mismatch |
@@ -204,7 +218,7 @@ RGXCreateRenderContext
 
 | 文件 | 项数 | 守住什么 |
 |---|---|---|
-| `test_pvr_pmr_lifetime.py` | 11 | PMR 引用计数、mmap 不重复加锁、释放只能走 `pvr_pmr_unref`；`0x6:0x3/0x6:0x4` 各有独立 handler 且探针覆盖 |
+| `test_pvr_pmr_lifetime.py` | 58 | PMR 引用计数、mmap 逐页 vmalloc 转换判空、arena 页表复用与 close 回收（r151 增补）；`0x6:0x3/0x6:0x4` 各有独立 handler 且探针覆盖 |
 | `test_pvr_heap_index_field.py` | 6 | `heap_index` 而非 `heap_config_index`；探针按名查找 |
 | `test_pvr_heap_table_geometry.py` | 7 | 压掉空槽；count 由实际存入数派生；厂商蓝图逐项核对 |
 | `test_windows_heap_table_decoded.py` | 10 | 从驱动二进制解表并逐字比对；MMU mode 差异；物理表与 PVR 蓝图不再混用 |
@@ -214,6 +228,7 @@ RGXCreateRenderContext
 | `test_live_tqx_dma_source.py` | DMA 源 | TQX DMA-source 路径的 IOVA/GPU-PA 分离 |
 | `test_pvr_tdm_shmem.py` | 5 | `0x89` TDM 共享内存桥（r88；离线实现，未加载） |
 | `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
+| `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182） |
 | `test_pvr_multicore_info.py` | 3 | `0x1:0xc` 回显 caps、单核（r152） |
 | `test_pvr_translator.py` | 6 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随（含反向；r126/r147–r148/r159） |
 | `test_pvr_ddk2_render2.py` | 5 | DDK2 render 建销（r142；OUT 以活体 12 为准） |
@@ -423,14 +438,16 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 当前清单：
 
-1. **真实绘制 kick 的非零 CCB 观察**（r56 点名的缺失输入）：
-   非零 counts 已复现（fabricated r72 + 活体 r73）；
-   update 侧与非零 CCB 内容仍待完整绘制路径——Rogue2D 系推进到
-   TransferContext 创建即止步（legacy-TDM 疑 vendor 死代码，r112），
-   真绘制大概率需新 DDK 路径；只要只读观察，不提交 GPU 工作。
-2. **Translator T3 的 DM 队列格式**：改从 UMD 侧反推（r82–r84、
-   r114；`mtkm64.sys` 已排除）；check-only 首帧翻译设计已完成
-   （r113），待新会话执行；在拿到非零 CCB 之前不写骨架。
+1. **真实绘制 kick 的非零 CCB**（r56 点名的缺失输入已归位）：
+   真实 blit 的 39B 非零 CCB 已活体落定（`0x8000f44000`/`0x1200`，
+   与 fabricated 逐字节一致，仅 `+0x40` 轮变；r172–r174）；
+   扩展区算术闭合（r175）、T3 输入规约 v1（r176）、dry-run 活体
+   验证通过（r181）、TQX bring-up 打通（r182）。
+   只要只读观察，不提交 GPU 工作。
+2. **Translator T3 的 DM 队列格式**：T3-transfer 首要缺口在输出侧
+   （颜色/几何不在 CCB 内，r177）；几何通道已落定（r178）、fill
+   构造器就绪（r179）、接线规约（scratch 中转，r180）。
+   真发射（submit+fence+落位+回读）排在 ref 归因之后。
 3. 对象存储已满：需空存储的实验（含再次的 `live_3d`）会被 `-EBUSY` 拒绝；
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
