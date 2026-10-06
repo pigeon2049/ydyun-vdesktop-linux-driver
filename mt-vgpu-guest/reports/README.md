@@ -128,6 +128,7 @@
 | r171 | update 活体注入证伪：legacy 自组包递不进，需 DDK2 重载（freeze 挡，待批） |
 | r172 | DDK2 重载+全链全绿+首个真实 Submit3（同 VA/尺寸；字节未捕），桥已恢复默认 freeze |
 | r173 | 门控活体兑现：`=2`→Submit3，默认→legacy 自拆；两路皆按设计拒收 |
+| r174 | Submit3 accept-and-log 上线；真实 CCB 39/39 落定（仅+0x40 轮变，计数器命名收回） |
 
 ## 关键单篇（本轮最常用）
 
