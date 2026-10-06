@@ -10,9 +10,20 @@
 > 2026-10-06 起归档于 [`MEMORY-HISTORY-2026-10-06.md`](MEMORY-HISTORY-2026-10-06.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-06（r190 update 路径定位；未 push）
+最后更新：2026-10-06（r191 kill-while-busy Δ0；未 push）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
+
+## 本次会话进展（r191：kill-while-busy 关账轮）
+
+- 批准执行活体（无重载：`rmmod` 被会话工具链持有挡回 EBUSY）。
+ GDB 监督 #104 mmap 处击杀（死时 3 MAPs live），事后 66→66（Δ0），
+ 无 D 态，L3 复绿。file_release 假设至此无活体支持；+65 仍未命名，
+ 边界收紧（maps/abort/击杀/prepare 记账/残留进程全排除）。
+ 7 活体轮零新增泄漏。
+- 证据：`reports/r191-killbusy-d0.md` + `r191-killbusy.jsonl`。候选下一步：解持有后 `=2` 轮 / 真发射。
+
+---
 
 ## 本次会话进展（r190：update 路径定位）
 
@@ -22,16 +33,6 @@
  `CMD_LAST`——即 STATUS 第二项的 concrete 缺口。活体计划已列
  （observer + producer 待定）；producer 本身仍 open。
 - 证据：`reports/r190-update-path-recon.md`。候选下一步：producer recon（离线）或等硬件批准。
-
----
-
-## 本次会话进展（r189：对象查找去重）
-
-- 零硬件触碰。`pvr_object_find` 收敛 9 处重复查找；map 删锁内重复
- reservation 查找；另走查 connect/event/info/heap/pmr/open 等区域，
- 结论均为不动。新增门禁 3 项 + 反向验证；全量 295+292 全绿，
- `W=1` 零警告。
-- 证据：`reports/r189-object-find.md`。候选下一步：等硬件批准（关账 / 真发射 / `=2` update）。
 
 ---
 

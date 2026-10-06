@@ -457,6 +457,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r191 kill-while-busy 关账（批准执行；无重载）**：`rmmod` 被工具链持有挡回；GDB #104 处击杀（3 MAPs live），66→66 Δ0，无 D 态，L3 复绿。file_release 假设无活体支持；+65 未命名但边界收紧；7 活体轮零新增泄漏。见 `reports/r191-killbusy-d0.md` + trace。
+
 - **r190 update 路径定位（离线 recon，无代码改动）**：非零 update 走 TA 链至 `0x82:0x14` RGXKickTA3D5（IN 108/OUT 4）；桥无此 handler，requirements 表亦 `CMD_LAST`。活体计划已列（observer + producer 待定）。见 `reports/r190-update-path-recon.md`。
 
 - **r189 对象查找去重（零硬件触碰，含内核改动，未加载）**：`pvr_object_find` 收敛 9 处重复查找；map 删锁内重复 reservation 查找；connect/event/info/heap/pmr/open 走查无动作项。门禁 295+292，反向全过。见 `reports/r189-object-find.md`。

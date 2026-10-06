@@ -69,3 +69,13 @@
 - 证据：`reports/r188-fn-table.md`。候选下一步：等硬件批准（关账 / 真发射 / `=2` update）。
 
 ---
+
+## 本次会话进展（r189：对象查找去重）
+
+- 零硬件触碰。`pvr_object_find` 收敛 9 处重复查找；map 删锁内重复
+  reservation 查找；另走查 connect/event/info/heap/pmr/open 等区域，
+  结论均为不动。新增门禁 3 项 + 反向验证；全量 295+292 全绿，
+  `W=1` 零警告。
+- 证据：`reports/r189-object-find.md`。候选下一步：等硬件批准（关账 / 真发射 / `=2` update）。
+
+---
