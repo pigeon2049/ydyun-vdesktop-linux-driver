@@ -436,6 +436,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-06 更新；本节是活页）
 
+- **r173 门控活体兑现（批准执行；本轮零重载）**：mtime 对重载线证明双峰即参数窗口——`=2`→`0x89:0x8`→`0x89:0xa`（`-25`），默认→legacy `0x89:0x0`（`-25`）→有序自拆；桥 0x89 组仅 `{0x5,0x6,0x8,0x9}`，两路按设计拒收。会话健康（probe 1/bridge 默认在载）。见 `reports/r173-ddk-gate-live.md` + unwind 全 trace。
 - **r172 DDK2 重载 + 真实 Submit3（批准执行；已恢复 freeze）**：`=2` 下 DDK2 全链 123 调用零非零；真实 blit 首个真实 `0x89:0xa`（`0/2/0`、`0x8000f44000`/`0x1200`，桥回 `-25`，无 GPU 工作）；真实 CCB 字节未捕获（Rss=0 之谜）。桥已恢复默认 + L3 复绿（probe 1/bridge 0）。见 `reports/r172-ddk2-reload-real-submit.md` + 双 trace。
 - **r171 update 注入证伪（批准执行；freeze 继续）**：rung9（wire IN 摆 update）`RGXKickSync→1` 且无桥调用；语料：b26 是 UMD CMD 对象（count 在 `+0xD8`），84B 错位，且该函数无 update 组装——活体验证需 DDK2 重载（freeze 挡，待批）。会话健康（probe 1/bridge 0）。见 `reports/r171-update-inject-refuted.md` + trace。
 - **r170 L4 全绿（GDB 监督；批准执行；freeze 继续）**：rung5 syncprim、rung6 kicksync 建销、rung7 compute 建销、rung8 `RGXKickSync→0`（inspect，无 GPU 工作）逐级全绿，四轮 trace 全 ret=0，probe ref 稳 1，dmesg 干净。rung5 standalone 崩溃仍在；监督非常规但调用/桥一致。见 `reports/r170-supervised-ladder.md` + rung8 trace。
