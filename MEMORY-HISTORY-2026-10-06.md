@@ -59,3 +59,13 @@
 - 证据：`reports/r187-preset-audit-refactor.md`。候选下一步：等硬件批准（关账 / 真发射 / `=2` update）。
 
 ---
+
+## 本次会话进展（r188：保留项全抽取）
+
+- 零硬件触碰。55 dispatch 标签命名进 wire.h（逐组计数替换，零残留）；
+  PMR 三尺寸进 bridge 顶部；stream/slot 三宏进 addr_plan（含 readback
+  除数）。未分发 ID 不命名。15 个旧门禁同步到宏形式；两处误伤已纠正。
+  新增 fn_ids 门禁 2 项 + 反向验证；全量 292+292 全绿，`W=1` 零警告。
+- 证据：`reports/r188-fn-table.md`。候选下一步：等硬件批准（关账 / 真发射 / `=2` update）。
+
+---
