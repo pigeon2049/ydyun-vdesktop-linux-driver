@@ -140,6 +140,7 @@
 | r183 | ref 离线审计：`pvr_file_release` 双 early-return 可 abandon 全部 PMR `dma_owner`（零硬件触碰；活体差分待批） |
 | r184 | defaults 活体差分 Δ0：maps 无罪，+65 与 prepare/挂起强相关（kill-while-busy 精炼假设；批准执行） |
 | r185 | 快照刷新 pass（r165–r184 合并；§1/§2/§5/§6/§11 同步；零硬件触碰） |
+| r186 | scene 预设值抽入 `mt_addr_plan.h`（bridge+6 live 去重；287+292；反向全过） |
 
 ## 关键单篇（本轮最常用）
 

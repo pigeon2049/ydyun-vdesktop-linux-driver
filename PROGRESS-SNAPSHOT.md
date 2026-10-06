@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **282 项通过，零 skip**（r88 TDM；r126 首帧 envelope；r141–r143 DDK2 建销；r152 multicore；r155 shared backing；r157 DRM major；r158/r160 CCB resolve；r174/r181/r182 SubmitTransfer3/dry-run/bring-up；r183–r184 复核全绿） |
+| Python 测试 | **287 项通过，零 skip**（r186 addr plan 5 项；余同 r185：r88 TDM；r126 首帧 envelope；r141–r143 DDK2 建销；r152 multicore；r155 shared backing；r157 DRM major；r158/r160 CCB resolve；r174/r181/r182 SubmitTransfer3/dry-run/bring-up） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -238,6 +238,7 @@ RGXCreateRenderContext
 | `test_pvr_shim_drm_major.py` | 3 | shim major 默认 1/opt-in 2/非法值回退（r157） |
 | `test_pvr_shim_shared_backing.py` | 1 | shared backing 别名/隔离 + 提交前 snapshot（r155） |
 | `test_pvr_shim_ccb_resolve.py` | 1 | CCB VA→PMR 归属 + runs 形状 + 越界/反向（r158/r160） |
+| `test_pvr_addr_plan.py` | 5 | scene VA 预设逐值钉死 + 7 文件 include + code 区无裸字面量 + 别名引宏（r186） |
 | C: `pvr_arena_plan_test` / `system_dma_pages_test` | plan/DMA 页 | arena + per-page 绑定覆盖 12 kick ranges；DMA 页解析与线性连续守卫 |
 
 设计要点：`test_pvr_heap_name_evidence.py` 已从“已知缺陷记录”
@@ -452,6 +453,8 @@ as-built 机制（`da3df8b`，r45–r63）：
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
+
+- **r186 scene 预设值抽取（零硬件触碰，含内核改动，未加载）**：bridge+6 live 的 scene VA 收敛到 `mt_addr_plan.h`（15 宏）；`MT_TQX_STATE_BYTES` 撞车（`mt_tqx_copy.h` 同名 `0xa8`）被 `W=1` 抓获后改名。门禁 287+292，反向全过。见 `reports/r186-addr-plan.md`。
 
 - **r184 defaults 活体差分 Δ0（批准执行；无重载、无 GPU 工作）**：真实 blit 走 legacy（`0x89:0x0 → -25`，SIGABRT，exit 134；无 kick 无 prepare；DDK2 零调用），9 maps/11 mmaps/abort/close 后 probe 66→66、bridge 1→1，无 D 态。maps 无罪；+65 与 prepare/挂起强相关（kill-while-busy 精炼假设）。renderD128 另 2 持有者为本会话工具链（无 PMR）。见 `reports/r184-defaults-differential-d0.md` + trace。
 

@@ -23,3 +23,10 @@
 - 证据：`reports/r183-ref-audit-offline.md`。候选下一步：活体差分（defaults legacy 差分，需批准）→ 真发射。
 
 ---
+
+## 本次会话进展（r184：defaults 活体差分 Δ0）
+
+- 批准执行单次活体（无重载、无 GPU 工作：legacy `0x89:0x0 → -25` 后 SIGABRT）。真实 blit（passthrough 记录，UMD SHA `b3058c02…`）：9 maps/11 mmaps/abort/close 后 probe 66→66、bridge 1→1（Δ0），无 D 态。maps 无罪；+65 与 prepare/挂起强相关——r183 假设修正为条件触发（kill-while-busy 命中 destroy `-EBUSY` 才 abandon；干净 abort 不触发）。
+- 证据：`reports/r184-defaults-differential-d0.md` + `r184-defaults-blit.jsonl`。候选下一步：kill-while-busy 关账轮（待批）→ 真发射。
+
+---
