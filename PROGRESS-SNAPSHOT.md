@@ -436,6 +436,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-06 更新；本节是活页）
 
+- **r176 T3 输入规约 v1（纯文档；零硬件触碰）**：冻结 envelope、header 字段表、body 拷贝、扩展区状态机、fill 实例账、未知清单、消费契约；DM 格式与完成语义明确在外。门禁复核 274+272 全绿。见 `reports/r176-t3-input-spec.md`。
 - **r175 扩展区算术闭合（零硬件触碰，无代码改动）**：离线 GDB 读生成器 job（`c1064=0/c106c=0/c2c=1`，单 type=3 条目）；`0x1078+0x18+32+224+40=0x11B8` 内容终点；条目 `+8`=`uVar16` 写回；三段源与 39B 逐项对齐；载荷 B 为传输描述符（含 `0xa3xxxx` 小 VA）。T3 输入侧可解释。见 `reports/r175-extension-arithmetic.md`。
 - **r174 真实 CCB 落定（批准执行；含内核改动，已恢复 freeze）**：`0x89:0xa` accept-and-log 上线（定界/鉴权/零嵌套读/零执行，5 门禁+反向；r150 断言改判）；真实 blit 39/39 非零字节与 fabricated 逐字节一致（仅 `+0x40` 轮变非单调，计数器命名收回）。桥恢复默认 + L3 复绿（probe 1/bridge 0）。见 `reports/r174-real-ccb-captured.md` + trace。
 
