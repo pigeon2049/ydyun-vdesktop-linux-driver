@@ -79,3 +79,14 @@
 - 证据：`reports/r189-object-find.md`。候选下一步：等硬件批准（关账 / 真发射 / `=2` update）。
 
 ---
+
+## 本次会话进展（r190：update 路径定位）
+
+- 零硬件触碰。语料按名定位：非零 update 走 TA 链
+  `RGXKickGfx→SubmissionSetUpdateSyncPrim→BridgeRGXKickTA3D5`
+  （0x82:0x14，IN 108/OUT 4）；桥无此 handler，requirements 表亦
+  `CMD_LAST`——即 STATUS 第二项的 concrete 缺口。活体计划已列
+  （observer + producer 待定）；producer 本身仍 open。
+- 证据：`reports/r190-update-path-recon.md`。候选下一步：producer recon（离线）或等硬件批准。
+
+---

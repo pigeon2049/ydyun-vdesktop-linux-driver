@@ -146,6 +146,7 @@
 | r189 | 对象查找去重 + 二次审计：`pvr_object_find` 收敛 9 处（295+292；反向全过） |
 | r190 | update 路径定位：非零 update 走 `0x82:0x14` RGXKickTA3D5（离线 recon + 活体计划；无代码改动） |
 | r191 | kill-while-busy 关账轮：mid-maps 击杀亦 Δ0，+65 仍未命名但边界收紧（批准执行；`=2` 路被 infra 持有挡回） |
+| r192 | TA producer 收敛：harness 可直调导出符号 RGXKickTA（离线 recon；psKickTA 构造待续） |
 
 ## 关键单篇（本轮最常用）
 
