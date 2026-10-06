@@ -9201,6 +9201,18 @@
    "umd_input_size": 12,
    "umd_output_size": 12,
    "umd_callsite": "0x37b59",
+   "observed": {
+    "count": 1,
+    "input_sizes": [
+     12
+    ],
+    "output_sizes": [
+     12
+    ],
+    "traces": [
+     "r142-major2-render2.jsonl"
+    ]
+   },
    "in_struct": {
     "tag": "PVRSRV_BRIDGE_IN_RGXCREATERENDERCONTEXT2",
     "header": "src/mtgpu-2.7.1-6.12/inc/pvr/generated/common_rgxta3d_bridge.h",
@@ -10615,11 +10627,23 @@
    "bridge": "0x88",
    "function": "0x5",
    "group": "RGXKICKSYNC",
-   "command": null,
+   "command": "RGXCREATEKICKSYNCCONTEXT2",
    "header": null,
    "umd_input_size": 8,
    "umd_output_size": 12,
-   "umd_callsite": "0x35dc5"
+   "umd_callsite": "0x35dc5",
+   "observed": {
+    "count": 1,
+    "input_sizes": [
+     8
+    ],
+    "output_sizes": [
+     12
+    ],
+    "traces": [
+     "r143-major2-ccb2.jsonl"
+    ]
+   }
   },
   {
    "bridge_id": 136,
@@ -10627,11 +10651,18 @@
    "bridge": "0x88",
    "function": "0x6",
    "group": "RGXKICKSYNC",
-   "command": null,
+   "command": "RGXDESTROYKICKSYNCCONTEXT2",
    "header": null,
    "umd_input_size": 8,
    "umd_output_size": 4,
-   "umd_callsite": "0x35ed1"
+   "umd_callsite": "0x35ed1",
+   "observed": {
+    "count": 0,
+    "input_sizes": [],
+    "output_sizes": [],
+    "traces": [],
+    "note": "not yet exercised live; destroy2 runs after a successful CCB create returns"
+   }
   },
   {
    "bridge_id": 136,

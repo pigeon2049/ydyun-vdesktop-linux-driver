@@ -68,6 +68,9 @@ class PmrLifetime(unittest.TestCase):
         cls.pmr_put = function_body('pvr_pmr_put', cls.text)
         cls.pmr_new = function_body('pvr_pmr_new', cls.text)
         cls.unref = function_body('pvr_pmr_unref', cls.text)
+        cls.pmr_import = function_body('pvr_cmd_pmr_import', cls.text)
+        cls.file_release = function_body('pvr_file_release', cls.text)
+        cls.gpu_vm_ensure = function_body('pvr_gpu_vm_ensure', cls.text)
 
     def test_pmr_is_reference_counted(self):
         self.assertIn('refcount', self.pmr_struct,
@@ -135,11 +138,44 @@ class PmrLifetime(unittest.TestCase):
             self.assertIn('mutex_unlock', between,
                           'mmap holds file->lock across a second lock')
 
+    def test_mmap_resolves_and_checks_each_vmalloc_page(self):
+        self.assertRegex(
+            self.mmap,
+            r'page\s*=\s*vmalloc_to_page\s*\(\s*\(u8\s*\*\)pmr->host\s*\+\s*\(i\s*<<\s*PAGE_SHIFT\)\s*\)',
+            'mmap must translate each virtually contiguous backing page '
+            'independently')
+        self.assertRegex(
+            self.mmap,
+            r'if\s*\(!page\)\s*\{\s*ret\s*=\s*-EFAULT;\s*break;\s*\}',
+            'mmap must reject a missing vmalloc page before page_to_pfn()')
+        self.assertIn('page_to_pfn(page)', self.mmap)
+        self.assertNotRegex(self.mmap, r'page_to_pfn\s*\(\s*page\s*\+')
+
+    def test_gpu_vm_reuses_dma_populated_arena_page_table(self):
+        self.assertIn('ret = pvr_arena_pages_ensure(file);',
+                      self.gpu_vm_ensure)
+        self.assertNotRegex(
+            self.gpu_vm_ensure,
+            r'file->arena_gpu_pages\s*=\s*kcalloc',
+            'VM initialization must not overwrite the page table populated '
+            'by earlier PMR DMA registration')
+
+    def test_close_frees_arena_page_table_when_lazy_vm_never_started(self):
+        destroy = self.file_release.index('pvr_gpu_vm_destroy(file)')
+        free = self.file_release.index('kfree(file->arena_gpu_pages)')
+        pmr_cleanup = self.file_release.index('list_for_each_entry_safe(pmr')
+        self.assertLess(destroy, free)
+        self.assertLess(free, pmr_cleanup,
+                        'close must reclaim DMA-side table allocation even '
+                        'when the lazy GPU VM was never initialized')
+        self.assertIn('file->arena_gpu_pages = NULL;', self.file_release)
+
     def test_pmr_put_unlinks_then_delegates(self):
         # It must not free the PMR itself: the mmap reference may still be
         # outstanding, and freeing here is exactly the use-after-free.
-        self.assertIn('list_del', self.pmr_put,
-                      'pvr_pmr_put must unlink the PMR from file->pmrs')
+        self.assertRegex(self.pmr_put,
+                         r'if\s*\(\s*pmr->refcount\s*==\s*1\s*\)\s*list_del',
+                         'pvr_pmr_put must keep imported PMRs discoverable')
         self.assertIn('pvr_pmr_unref', self.pmr_put,
                       'pvr_pmr_put must delegate the release to pvr_pmr_unref')
         for direct in ('vfree', 'kfree'):
@@ -147,6 +183,19 @@ class PmrLifetime(unittest.TestCase):
                 direct, self.pmr_put,
                 f'pvr_pmr_put calls {direct}() directly, so an outstanding '
                 'mmap reference would be freed out from under its user')
+
+    def test_local_import_takes_a_reference(self):
+        self.assertIn('pmr->refcount++', self.pmr_import,
+                      '0x6:0x6 must hold the PMR until its matching 0x6:0x7')
+        self.assertIn('pmr->refcount == U32_MAX', self.pmr_import,
+                      'PMR import must reject refcount overflow')
+        self.assertIn('return -EOVERFLOW;', self.pmr_import)
+
+    def test_file_release_drains_import_references(self):
+        self.assertRegex(self.file_release,
+                         r'while\s*\(\s*pmr->refcount\s*>\s*1\s*\)')
+        self.assertGreaterEqual(self.file_release.count('pvr_pmr_unref(pmr)'),
+                                2)
 
     def test_unref_frees_only_at_zero(self):
         self.assertRegex(self.unref, r'--\s*pmr->refcount')
@@ -391,10 +440,23 @@ class SessionHandoff(unittest.TestCase):
         cls.pmr_put = function_body('pvr_pmr_put', cls.text)
 
     def test_no_symbol_machinery(self):
-        for name in ('symbol_get', 'symbol_put', 'ops->'):
+        for name in ('symbol_get', 'symbol_put'):
             self.assertNotIn(name, self.text,
                              f'{name} must not appear: symbol resolution '
                              'does not work on this kernel')
+
+    def test_handoff_uses_no_ops_tables(self):
+        # The DMA handoff path itself stays on PCI lookup + drvdata +
+        # try_module_get + core DMA only. Indirect ops calls through
+        # drvdata-resolved pointers need no symbol resolution and are used
+        # elsewhere (translator submit, live modules), so the ban is scoped
+        # to these functions instead of the whole file.
+        bodies = (self.register, self.release, self.acquire, self.map,
+                  self.unmap, self.file_release, self.pmr_put)
+        for body in bodies:
+            self.assertNotIn('ops->', body,
+                             'ops-> must not appear in the DMA handoff: '
+                             'use PCI lookup + drvdata + try_module_get')
 
     def test_acquire_validates_binding_and_liveness(self):
         self.assertIn('device_lock', self.acquire)

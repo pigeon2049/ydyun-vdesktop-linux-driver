@@ -124,6 +124,14 @@ static int mt_vm_vram_destroy(struct mt_vm_vram *v)
 	void *image = v->vm.image, *scratch = v->vm.scratch;
 	int ret;
 	lockdep_assert_held(v->store->buffers->lock);
+	/* The seal protected this space while live. With no active uses or
+	 * owners nothing can observe the reopening, so idle teardown unseals
+	 * first instead of stranding every owned reference (r137/r138). */
+	if (v->vm.sealed) {
+		ret = mt_gpu_vm_unseal(&v->vm);
+		if (ret)
+			return ret;
+	}
 	ret = mt_gpu_vm_fini(&v->vm);
 	if (ret)
 		return ret;

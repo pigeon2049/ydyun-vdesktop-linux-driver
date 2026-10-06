@@ -1,10 +1,9 @@
-"""0x89 TDM shared-memory gate ( translator 2D path, r87/r88).
+"""0x89 TDM shared-memory gate (2D path, r87/r88/r150).
 
 0x89:0x5 RGXTDMGetSharedMemory takes no input and returns two u64s plus a
 trailing eError (20 bytes); 0x89:0x6 RGXTDMReleaseSharedMemory takes one
-handle and returns eError (4 bytes). The bridge backs both aliases with one
-real 8 KiB arena PMR and retires it once, so a second release must report
--ENOENT instead of double-freeing.
+handle and returns eError (4 bytes). The bridge returns separate CLI and USC
+PMRs, with one local import reference and release for each.
 """
 import re
 import subprocess
@@ -68,7 +67,7 @@ class TdmShmemLayout(unittest.TestCase):
 
 
 class TdmShmemBridge(unittest.TestCase):
-    """The bridge must back the aliases with a real PMR and retire once."""
+    """The bridge must back CLI and USC slots with separate PMRs."""
 
     @classmethod
     def setUpClass(cls):
@@ -87,12 +86,13 @@ class TdmShmemBridge(unittest.TestCase):
         self.assertIn('pvr_pmr_new(file, 0x2000, 12)', create)
         self.assertNotIn('pvr_stub_ok', create)
 
-    def test_both_aliases_share_one_lifetime(self):
+    def test_aliases_have_distinct_pmr_lifetimes(self):
         create = self.text[self.text.index(
             'static int pvr_cmd_tdm_shmem'):]
         create = create[:create.index('\n}\n')]
-        self.assertIn('out.ptr1 = pmr->handle;', create)
-        self.assertIn('out.ptr2 = pmr->handle;', create)
+        self.assertIn('out.ptr1 = cli_pmr->handle;', create)
+        self.assertIn('out.ptr2 = usc_pmr->handle;', create)
+        self.assertGreaterEqual(create.count('pvr_pmr_new(file, 0x2000, 12)'), 2)
         release = self.text[self.text.index(
             'static int pvr_cmd_tdm_release'):]
         release = release[:release.index('\n}\n')]

@@ -1,5 +1,5 @@
 {
-  "utc": "2026-10-03T04:14:44.660300+00:00",
+  "utc": "2026-10-04T09:48:51.561006+00:00",
   "passed": true,
   "checks": {
     "runtime_context_test": "PASS: atomic preparation, 31 blocked publication states, ordered publication, repeat rejection and retained lifetime\n",
@@ -20,10 +20,11 @@
     "boot_bo_lifetime_test": "PASS: actual BO/VM boot borrowing, eighteen view failures, three pool allocation rollbacks, foreign/detached blocks, shared cache reuse, GPU retention, no borrowed clear/free, balanced module and backing lifetimes; RAM models only\n",
     "system_memory_test": "PASS: system-RAM preparation, kmalloc/vmalloc page paths, both allocation failures, final-page lookup/translation failures, zero policy and balanced ownership; OS primitives modeled\n",
     "boot_resource_stage_test": "PASS: actual boot preparation stages separate static PDS/USC images, ten allocation failures, profile rollback, unchanged backing bytes and balanced ownership; RAM models only\n",
-    "pvr_bridge_core_test": "pvr_bridge_core_test OK (268 checks)\n",
+    "translator_packet_test": "PASS: translator envelope is template-identical outside the tag slot\n",
+    "pvr_bridge_core_test": "pvr_bridge_core_test OK (272 checks)\n",
     "kernel_build": "make[1]: \u8fdb\u5165\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\nmake -C /lib/modules/6.12.111+deb13-amd64/build M=/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel modules\nmake[2]: \u8fdb\u5165\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.111+deb13-amd64\u201d\nmake[2]: \u79bb\u5f00\u76ee\u5f55\u201c/usr/src/linux-headers-6.12.111+deb13-amd64\u201d\nmake[1]: \u79bb\u5f00\u76ee\u5f55\u201c/opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/kernel\u201d\n"
   },
-  "module_sha256": "6425a32a6e3135484048418678e068e32acdb35edb53b0d6749ba408d8599b6d",
+  "module_sha256": "12a71315d864601c10342c6c98f971e20af80597807b8f51f94a334ea895310c",
   "shared_mt_guest_abi_matches_backup": true,
   "shared_abi_structures": {
     "mt_guest": "206912aa9b52a0014a91e2c672b306680f1cbab22594c2b4d824c6b8e2ece30f",

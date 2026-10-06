@@ -37,11 +37,12 @@ class BridgeCommandTable(unittest.TestCase):
 
         0x88:0x5-0x7 exist in the UMD but not in the 2.7.1 RGXKICKSYNC header
         (which stops at +4) nor in the 5.2 Host package (which omits the RGX
-        groups entirely). They stay unnamed on purpose so the gap is visible.
+        groups entirely). 0x88:0x5/0x88:0x6 are named from the decompiled UMD
+        stubs (r143); 0x88:0x7 stays unnamed on purpose so the gap is visible.
         """
         unnamed = {(entry["bridge"], entry["function"]) for entry
                    in self.document["entries"] if not entry["command"]}
-        self.assertEqual(unnamed, {("0x88", "0x5"), ("0x88", "0x6"), ("0x88", "0x7")})
+        self.assertEqual(unnamed, {("0x88", "0x7")})
 
     def test_phase_one_layouts_are_complete(self):
         """Every command in the verified session has fully parsed layouts."""

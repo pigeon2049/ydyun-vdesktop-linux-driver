@@ -199,6 +199,30 @@ int main(void)
  assert(!vms.ops->create(&vms,16,&a));assert(!vms.ops->bind_boot_shared(a,&profile));
  assert(!vms.ops->destroy(a));a=NULL;
  assert(!modules && !mt_boot_bo_can_release(&shared));
+ /* Sealed-but-idle teardown (r137/r138): destroy reopens the space itself,
+  * so every owned reference is released. A space with live GPU uses stays
+  * sealed and busy. Direct fini remains strict throughout. */
+ {unsigned m0=modules,o0=buffers.objects;u64 b0=buffers.allocated_bytes;
+  assert(!vms.ops->create(&vms,16,&a));assert(!vms.ops->bind_boot_shared(a,&profile));
+  assert(a->vm.count);
+  a->vm.uploaded=true; /* Model an unpublished upload; never a hardware ack. */
+  assert(!vms.ops->seal(a));
+  assert(mt_gpu_vm_fini(&a->vm)==-EBUSY);
+  a->vm.active_uses=1;
+  assert(vms.ops->destroy(a)==-EBUSY && a->vm.sealed);
+  a->vm.active_uses=0;
+  assert(!vms.ops->destroy(a));a=NULL;
+  assert(modules==m0 && buffers.objects==o0 && buffers.allocated_bytes==b0);
+  assert(!vms.ops->create(&vms,16,&a));
+  assert(mt_gpu_vm_unseal(&a->vm)==-EALREADY);
+  assert(!vms.ops->bind_boot_shared(a,&profile));
+  a->vm.uploaded=true;assert(!vms.ops->seal(a));
+  assert(!mt_gpu_vm_unseal(&a->vm) && !a->vm.sealed);
+  assert(mt_gpu_vm_unseal(&a->vm)==-EALREADY);
+  assert(!vms.ops->destroy(a));a=NULL;
+  assert(modules==m0 && buffers.objects==o0 && buffers.allocated_bytes==b0);
+  assert(!mt_boot_bo_can_release(&shared));
+ }
  for(i=0;i<5;i++){
   struct mt_vram_block *block=blocks[i];
   for(j=0;j<block->size;j++)assert(((u8 *)block->mapping)[j]==0x5a);

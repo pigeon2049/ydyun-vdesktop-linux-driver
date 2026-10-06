@@ -25,7 +25,10 @@
 
 /* Private, initially unpublished address space. Editing is transactional in
  * CPU memory; it never rewrites an active root. A sealed VM cannot be edited
- * or freed until a real context-withdrawal/TLB protocol is implemented.
+ * while live. Destroy of an idle sealed VM (no active uses or owners)
+ * automatically reopens it first, so teardown never strands references;
+ * direct fini stays strict and still refuses a sealed VM. There is still no
+ * context-withdrawal/TLB protocol for anything fancier than idle teardown.
  * BO containers, not just their backing, must outlive all VM references.
  *
  * The binding table and the planner scratch are allocated separately from the
@@ -298,6 +301,21 @@ static inline int mt_gpu_vm_seal(struct mt_gpu_vm *vm)
 	if (vm->sealed)
 		return -EALREADY;
 	vm->sealed = true;
+	return 0;
+}
+
+/* Teardown assist: reopen an idle sealed VM so destroy can release every
+ * reference it owns. Never reopens a VM the GPU may still use; direct fini
+ * stays strict and still returns -EBUSY on a sealed VM. */
+static inline int mt_gpu_vm_unseal(struct mt_gpu_vm *vm)
+{
+	if (!vm || !vm->tables)
+		return -EINVAL;
+	if (!vm->sealed)
+		return -EALREADY;
+	if (vm->active_uses || vm->owners)
+		return -EBUSY;
+	vm->sealed = false;
 	return 0;
 }
 

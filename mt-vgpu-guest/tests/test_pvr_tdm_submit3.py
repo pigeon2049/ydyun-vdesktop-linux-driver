@@ -103,20 +103,22 @@ class TdmSubmit3Observe(unittest.TestCase):
         self.assertRegex(self.src,
                          r'module_param\(translate_tqx_ctx, bool, 0400\)')
 
-    def test_tqx_bringup_inside_prepare_before_seal(self):
-        # The sealed space refuses binds and re-upload, so the flavor-1
-        # context plus command/DMA/state Bos must be built in prepare.
+    def test_tqx_bringup_split_around_process(self):
+        # Bos must bind before the seal (sealed space refuses binds);
+        # the flavor-1 context needs the process, which only exists after
+        # it (r182: creating it pre-process was the -22, !p->store).
         body = fn_body(self.src, 'pvr_translator_prepare_locked')
         self.assertIn('mt_execution_context_create(&translator.tqx_context',
                       body)
-        for tok in ('translator.tqx_cmd', 'translator.tqx_dma',
-                    'translator.tqx_state'):
-            self.assertIn(tok, body)
-        self.assertIn('translator.tqx_ready = true;', body)
         seal_at = body.find('ops->seal(translator.space)')
+        bind_at = body.find('tqx_bo[k], tqx_va[k]')
+        proc_at = body.find('mt_execution_process_create(&d->execution, '
+                            '&translator.process')
         ready_at = body.find('translator.tqx_ready = true;')
-        self.assertTrue(0 < seal_at and ready_at < seal_at,
-                        'TQX objects must be bound before the seal')
+        self.assertTrue(0 < bind_at < seal_at,
+                        'TQX Bos must bind before the seal')
+        self.assertTrue(0 < proc_at < ready_at,
+                        'TQX context must come after the process exists')
 
     def test_tqx_teardown_wired(self):
         body = fn_body(self.src, 'pvr_translator_teardown_locked')

@@ -1735,6 +1735,11 @@ long syscall(long n, ...)
 			 */
 			p = (void *)S_(SYS_mmap, (long)addr, (long)len, prot,
 				       flags, fd, (long)off);
+			/* Remember real file-backed mappings too so a later munmap
+			 * of a PMR backing is logged (r172: UMD may unmap before
+			 * submit, which would otherwise hide the unmap point). */
+			if (fd >= 0)
+				umd_map_remember(p);
 			if (logf && !umd_trace_would_exceed(512))
 				fprintf(logf, "{\"seq\":%lu,\"tid\":%ld,\"op\":\"mmap_real\","
 					"\"fd\":%d,\"len\":%zu,\"off\":\"0x%lx\","

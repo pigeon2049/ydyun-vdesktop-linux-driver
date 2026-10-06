@@ -1836,23 +1836,28 @@ static int pvr_translator_prepare_locked(void)
 		};
 		u32 k;
 
-		ret = mt_execution_context_create(&translator.tqx_context,
-						  &translator.process, 1, 0);
-		if (ret)
-			goto out;
+		/* NOTE: the flavor-1 context itself is created after the
+		 * process exists (below, next to the DM context); only the
+		 * Bos bind here, before the seal.
+		 */
 		for (k = 0; k < 3; k++) {
 			ret = mt_bo_create(tqx_bo[k], d->buffers.ops,
 					   &d->buffers, tqx_bytes[k], PAGE_SIZE);
-			if (ret)
+			if (ret) {
+				pr_info("mt_pvr_bridge: tqx bring-up: alloc %u: %d\n",
+					k, ret);
 				goto out;
+			}
 			ret = d->address_spaces.ops->bind(translator.space,
 							  tqx_bo[k], tqx_va[k],
 							  0, tqx_bytes[k],
 							  MT_GPU_MAP_DEFAULT);
-			if (ret)
+			if (ret) {
+				pr_info("mt_pvr_bridge: tqx bring-up: bind %u: %d\n",
+					k, ret);
 				goto out;
+			}
 		}
-		translator.tqx_ready = true;
 	}
 	for (off = 0; off < MT_GFX_LINUX_PACKET_BYTES;) {
 		chunk = MT_GFX_LINUX_PACKET_BYTES - off;
@@ -1906,6 +1911,20 @@ static int pvr_translator_prepare_locked(void)
 					  &translator.process, 5, 0);
 	if (ret)
 		goto out;
+	/* TQX flavor (r182): the process exists only here, so the flavor-1
+	 * context could never be created in the pre-seal block above (that
+	 * was the -22: !p->store). Bos are already bound; completing here.
+	 */
+	if (translate_tqx_ctx) {
+		ret = mt_execution_context_create(&translator.tqx_context,
+						  &translator.process, 1, 0);
+		if (ret) {
+			pr_info("mt_pvr_bridge: tqx bring-up: context: %d\n",
+				ret);
+			goto out;
+		}
+		translator.tqx_ready = true;
+	}
 	translator.owner = owner;
 	translator.guest = g;
 	translator.dev = d;

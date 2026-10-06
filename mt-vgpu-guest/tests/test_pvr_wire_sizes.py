@@ -36,6 +36,8 @@ MAPPING = {
     "mt_pvr_handle_out": (0x1, 0xF),
     "mt_pvr_event_open_in": (0x1, 0x4),
     "mt_pvr_event_open_out": (0x1, 0x4),
+    "mt_pvr_multicore_info_in": (0x1, 0xC),
+    "mt_pvr_multicore_info_out": (0x1, 0xC),
     "mt_pvr_unmake_import_in": (0x6, 0x4),
     "mt_pvr_unmake_import_out": (0x6, 0x4),
     "mt_pvr_make_import_in": (0x6, 0x3),
@@ -99,6 +101,16 @@ MAPPING = {
     "mt_pvr_kicksync_create_out": (0x88, 0x0),
     "mt_pvr_kicksync_destroy_in": (0x88, 0x1),
     "mt_pvr_kicksync_destroy_out": (0x88, 0x1),
+    # 0x82:0x12 BridgeRGXCreateRenderContext2 (DDK2, r141/r142): 12-byte IN,
+    # 12-byte OUT, header and live wire agree.
+    # 0x82:0x13 reuses the 8-in/4-out destroy shape, no new structs.
+    "mt_pvr_render2_create_in": (0x82, 0x12),
+    "mt_pvr_render2_create_out": (0x82, 0x12),
+    # 0x88:0x5 BridgeRGXCreateKickSyncContext2 (DDK2, r141/r143): 8-byte IN,
+    # 12-byte OUT, header and live wire agree.
+    # 0x88:0x6 reuses the 8-in/4-out destroy shape, no new structs.
+    "mt_pvr_kicksyncctx2_create_in": (0x88, 0x5),
+    "mt_pvr_kicksyncctx2_create_out": (0x88, 0x5),
     "mt_pvr_unmap_pmr_in": (0x6, 0x14),
     "mt_pvr_unmap_out": (0x6, 0x14),
     # 0x89 RGXTQ2 has no generated header in-tree, so there is no wire
@@ -107,6 +119,11 @@ MAPPING = {
     "mt_pvr_tdm_shmem_out": None,
     "mt_pvr_tdm_release_in": None,
     "mt_pvr_tdm_release_out": None,
+    # SubmitTransfer3's wrapper is present in the 5.2 Linux UMD but absent
+    # from the generated KMD header table. Its packed request slots are
+    # reverse-engineered and size/offset gated in mt_pvr_wire.h.
+    "mt_pvr_tdm_submit3_in": None,
+    "mt_pvr_tdm_submit3_out": None,
     "mt_pvr_unreserve_in": (0x6, 0x16),
     "mt_pvr_heap_destroy_in": (0x6, 0x12),
     "mt_pvr_heap_destroy_out": (0x6, 0x12),
@@ -118,6 +135,8 @@ DIRECTION = {
     "mt_pvr_connect_in": "in", "mt_pvr_connect_out": "out",
     "mt_pvr_handle_out": "out",
     "mt_pvr_event_open_in": "in", "mt_pvr_event_open_out": "out",
+    "mt_pvr_multicore_info_in": "in",
+    "mt_pvr_multicore_info_out": "out",
     "mt_pvr_unmake_import_in": "in", "mt_pvr_unmake_import_out": "out",
     "mt_pvr_make_import_in": "in", "mt_pvr_make_import_out": "out",
     "mt_pvr_import_in": "in", "mt_pvr_import_out": "out",
@@ -140,6 +159,9 @@ DIRECTION = {
     "mt_pvr_kicksync3_out": "out",
     "mt_pvr_kicksync_create_in": "in", "mt_pvr_kicksync_create_out": "out",
     "mt_pvr_kicksync_destroy_in": "in", "mt_pvr_kicksync_destroy_out": "out",
+    "mt_pvr_render2_create_in": "in", "mt_pvr_render2_create_out": "out",
+    "mt_pvr_kicksyncctx2_create_in": "in",
+    "mt_pvr_kicksyncctx2_create_out": "out",
     "mt_pvr_unmap_pmr_in": "in", "mt_pvr_unmap_out": "out",
     "mt_pvr_unreserve_in": "in",
     "mt_pvr_heap_destroy_in": "in", "mt_pvr_heap_destroy_out": "out",
@@ -147,6 +169,8 @@ DIRECTION = {
     "mt_pvr_tdm_shmem_out": "out",
     "mt_pvr_tdm_release_in": "in",
     "mt_pvr_tdm_release_out": "out",
+    "mt_pvr_tdm_submit3_in": "in",
+    "mt_pvr_tdm_submit3_out": "out",
 }
 
 # Table key holding the wire size for each direction.

@@ -132,6 +132,7 @@ static int allowed(void)
 static void lease_free(struct drm_gem_object *obj)
 {
 	struct lease *l = container_of(obj, struct lease, base);
+	struct drm_device *dev = obj->dev;
 	mutex_lock(&slot_lock);
 	mutex_lock(&d->state.trial_lock);
 	if (l->slot) {
@@ -141,7 +142,13 @@ static void lease_free(struct drm_gem_object *obj)
 	}
 	mutex_unlock(&d->state.trial_lock);
 	mutex_unlock(&slot_lock);
+	/* Custom GEM free must run the core release itself (mirrors
+	 * mt_live_drm.c): without dma_resv_fini the last submit fence in the
+	 * reservation stays referenced (+1 probe ref per submitting file,
+	 * r140 Δ1), and the create-time drm_dev_get leaks with it. */
+	drm_gem_object_release(obj);
 	kfree(l);
+	drm_dev_put(dev);
 }
 
 static struct dma_buf *lease_export(struct drm_gem_object *obj, int flags)
