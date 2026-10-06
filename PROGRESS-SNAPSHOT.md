@@ -457,6 +457,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r194 psKickTA 手塑首轮（fabricated 离线，无代码改动）**：`RGXKickTA → 3` 干净退出；4 崩溃逐一定位；元素偏移纠偏；GDB 翻车 3 则已记。下步造 `flag&2`。见 `reports/r194-takick-shaping.md` + trace。
+
 - **r193 psKickTA 构造（离线 recon，无代码改动）**：无铸造函数；锚点是真实 render 上下文（`+0xc`）；features `+0x54` 门内第二次出现。手塑回合可在 fabricated shim 下离线做。见 `reports/r193-taskickta-shape.md`。
 
 - **r192 TA producer 收敛（离线 recon，无代码改动）**：`RGXKickTA` 等系导出符号，harness 直调可达 TA 链；前置 `psKickTA+0x30`（r85 的墙）；update 编组只活在提交链内。见 `reports/r192-ta-producer.md`。

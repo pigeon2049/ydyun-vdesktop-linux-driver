@@ -101,3 +101,13 @@
 - 证据：`reports/r191-killbusy-d0.md` + `r191-killbusy.jsonl`。候选下一步：解持有后 `=2` 轮 / 真发射。
 
 ---
+
+## 本次会话进展（r192：TA producer 收敛）
+
+- 零硬件触碰。`nm -D` 实测 `RGXKickTA` 等为导出符号——producer
+  不需罐装 3D 程序，harness 直调 `RGXKickTA` 可达 TA 链；
+  前置为 `psKickTA+0x30`（PrepareTA 产物，r85 的墙）。
+  调用边确认 update 编组只活在提交链内。
+- 证据：`reports/r192-ta-producer.md`。候选下一步：psKickTA 构造 recon（离线）→ 活体 ladder（待批）。
+
+---
