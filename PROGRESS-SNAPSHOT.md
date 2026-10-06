@@ -436,6 +436,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r183 ref 离线审计（零硬件触碰，无代码改动）**：首要嫌疑已命名——`pvr_file_release` 双 early-return（unbind/destroy 失败即 return）可 abandon 整文件 PMR `dma_owner`（≈14/轮，与失败轮 +14 同形）；prepare 失败路与 DMA 注册/释放经走查配平，已排除。只读 `lsmod`：probe Used by=66（=1+65）、bridge 1。释放语义未动；活体差分待可重载窗口（需批准）。见 `reports/r183-ref-audit-offline.md`。
+
 - **r182 bring-up 打通（批准执行；含内核改动，已恢复 freeze）**：`-22` 系 TQX 块在 process 前（`!p->store`），拆分后活体 `tqx-ctx: ready`；translator 持有 +18/rmmod -18 对称；失败轮 +65 未解释（功能无损）。代码 param 门禁入库（282+292，反向全过）。桥恢复默认 + L3 复绿。见 `reports/r182-tqx-bringup.md`。
 
 - **r181 dry-run 活体验证（批准执行；含内核改动，已恢复 freeze）**：`translate_transfer` dry-run 上线（278+292，反向全过）；首轮选择 bug 修复；次轮程序 digest 与离线预言逐位一致；附带修 fill 未初始化（双门禁）。桥恢复默认 + L3 复绿（probe 1/bridge 0）。见 `reports/r181-dryrun-verified.md`。

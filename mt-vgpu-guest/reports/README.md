@@ -137,6 +137,7 @@
 | r180 | T3-transfer 活体接线规约：scratch 中转（只用已验证原语；只读 recon） |
 | r181 | transfer dry-run 活体验证：程序字节与离线预言一致；附带修 fill 未初始化（批准执行） |
 | r182 | TQX bring-up 打通（-22 系创建顺序）；ref 部分澄清（translator 对称，余量待查） |
+| r183 | ref 离线审计：`pvr_file_release` 双 early-return 可 abandon 全部 PMR `dma_owner`（零硬件触碰；活体差分待批） |
 
 ## 关键单篇（本轮最常用）
 
