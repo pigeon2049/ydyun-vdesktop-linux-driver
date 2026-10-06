@@ -1222,6 +1222,21 @@ static struct mt_pvr_object *pvr_object_of_kind(struct mt_pvr_file *file,
 	return NULL;
 }
 
+/* Find an object by handle and kind (r189: unifies the per-handler search
+ * loops). NULL covers unknown handles and wrong-kind handles alike:
+ * neither is retirable. Callers hold file->lock (all dispatch paths).
+ */
+static struct mt_pvr_object *pvr_object_find(struct mt_pvr_file *file,
+					     u64 handle, u32 kind)
+{
+	struct mt_pvr_object *obj;
+
+	list_for_each_entry(obj, &file->objects, link)
+		if (obj->handle == handle && obj->kind == kind)
+			return obj;
+	return NULL;
+}
+
 static int pvr_out(struct mt_pvr_cmd *cmd, const void *src, size_t bytes)
 {
 	if (cmd->out_size < bytes)
@@ -1386,15 +1401,12 @@ static int pvr_cmd_ctx_destroy(struct mt_pvr_file *file,
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == in.devmem_heap &&
-		    obj->kind == MT_PVR_KIND_CONTEXT) {
-			list_del(&obj->link);
-			kfree(obj);
-			return pvr_out(cmd, &out, sizeof(out));
-		}
-	}
-	return -ENOENT;
+	obj = pvr_object_find(file, in.devmem_heap, MT_PVR_KIND_CONTEXT);
+	if (!obj)
+		return -ENOENT;
+	list_del(&obj->link);
+	kfree(obj);
+	return pvr_out(cmd, &out, sizeof(out));
 }
 
 /* 0x6:0x12 MM:DevmemIntHeapDestroy -- release the object Create handed out.
@@ -1421,13 +1433,12 @@ static int pvr_cmd_heap_destroy(struct mt_pvr_file *file,
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == in.devmem_heap && obj->kind == MT_PVR_KIND_HEAP) {
-			list_del(&obj->link);
-			kfree(obj);
-			return pvr_out(cmd, &out, sizeof(out));
-		}
-	}
+	obj = pvr_object_find(file, in.devmem_heap, MT_PVR_KIND_HEAP);
+	if (!obj)
+		return -ENOENT;
+	list_del(&obj->link);
+	kfree(obj);
+	return pvr_out(cmd, &out, sizeof(out));
 	/* Refuse a handle we never issued, or one already destroyed, rather than
 	 * silently succeeding.
 	 */
@@ -2224,11 +2235,8 @@ static int pvr_cmd_kicksync_submit(struct mt_pvr_file *file,
 			return ret;
 		handle = in3.kicksync_context;
 	}
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == handle && obj->kind == MT_PVR_KIND_KICKSYNC)
-			break;
-	}
-	if (&obj->link == &file->objects)
+	obj = pvr_object_find(file, handle, MT_PVR_KIND_KICKSYNC);
+	if (!obj)
 		return -ENOENT;
 	/* A property query has no fence to complete. */
 	if (function == MT_PVR_FN_RGXSETKICKSYNCCONTEXTPROPERTY)
@@ -2299,15 +2307,12 @@ static int pvr_cmd_zs_destroy(struct mt_pvr_file *file,
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == in.zs_buffer &&
-		    obj->kind == MT_PVR_KIND_ZSBUFFER) {
-			list_del(&obj->link);
-			kfree(obj);
-			return pvr_out(cmd, &out, sizeof(out));
-		}
-	}
-	return -ENOENT;
+	obj = pvr_object_find(file, in.zs_buffer, MT_PVR_KIND_ZSBUFFER);
+	if (!obj)
+		return -ENOENT;
+	list_del(&obj->link);
+	kfree(obj);
+	return pvr_out(cmd, &out, sizeof(out));
 }
 
 /* 0x81:0x0 RGXCreateComputeContext and 0x81:0x1 RGXDestroyComputeContext.
@@ -2344,15 +2349,12 @@ static int pvr_cmd_compute_destroy(struct mt_pvr_file *file,
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == in.compute_context &&
-		    obj->kind == MT_PVR_KIND_COMPUTE) {
-			list_del(&obj->link);
-			kfree(obj);
-			return pvr_out(cmd, &out, sizeof(out));
-		}
-	}
-	return -ENOENT;
+	obj = pvr_object_find(file, in.compute_context, MT_PVR_KIND_COMPUTE);
+	if (!obj)
+		return -ENOENT;
+	list_del(&obj->link);
+	kfree(obj);
+	return pvr_out(cmd, &out, sizeof(out));
 }
 
 /* 0x88:0x0 RGXCreateKickSyncContext and 0x88:0x1 RGXDestroyKickSyncContext.
@@ -2415,15 +2417,12 @@ static int pvr_cmd_kicksync_destroy(struct mt_pvr_file *file,
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == in.kicksync_context &&
-		    obj->kind == MT_PVR_KIND_KICKSYNC) {
-			list_del(&obj->link);
-			kfree(obj);
-			return pvr_out(cmd, &out, sizeof(out));
-		}
-	}
-	return -ENOENT;
+	obj = pvr_object_find(file, in.kicksync_context, MT_PVR_KIND_KICKSYNC);
+	if (!obj)
+		return -ENOENT;
+	list_del(&obj->link);
+	kfree(obj);
+	return pvr_out(cmd, &out, sizeof(out));
 }
 
 /* 0x6:0x14 MM:DevmemIntUnmapPMR and 0x6:0x16 MM:DevmemIntUnreserveRange.
@@ -2763,7 +2762,8 @@ static int pvr_cmd_pmr_map(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 	}
 	pmr->mapped++;
 	pmr->mapped_reservation = in.reservation;
-	res = pvr_reservation_find(file, in.reservation);
+	/* res is still valid: file->lock never drops across this path and
+	 * nothing above mutates the object list, so no second lookup. */
 	binding = kzalloc(sizeof(*binding), GFP_KERNEL);
 	if (!binding) {
 		pmr->mapped--;
@@ -2795,13 +2795,7 @@ static int pvr_cmd_pmr_map(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 static struct mt_pvr_object *pvr_reservation_find(struct mt_pvr_file *file,
 						  u64 handle)
 {
-	struct mt_pvr_object *obj;
-
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == handle && obj->kind == MT_PVR_KIND_RESERVATION)
-			return obj;
-	}
-	return NULL;
+	return pvr_object_find(file, handle, MT_PVR_KIND_RESERVATION);
 }
 
 static int pvr_cmd_pmr_reserve(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
@@ -2941,14 +2935,12 @@ static int pvr_cmd_handle_release(struct mt_pvr_file *file,
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == in.devmem_heap && obj->kind == kind) {
-			list_del(&obj->link);
-			kfree(obj);
-			return pvr_out(cmd, &out, sizeof(out));
-		}
-	}
-	return -ENOENT;
+	obj = pvr_object_find(file, in.devmem_heap, kind);
+	if (!obj)
+		return -ENOENT;
+	list_del(&obj->link);
+	kfree(obj);
+	return pvr_out(cmd, &out, sizeof(out));
 }
 
 /* Drop one PMR reference and unlink it once that was the final reference.
@@ -3094,15 +3086,12 @@ static int pvr_cmd_tdm_context2_destroy(struct mt_pvr_file *file,
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	list_for_each_entry(obj, &file->objects, link) {
-		if (obj->handle == in.transfer_context &&
-		    obj->kind == MT_PVR_KIND_TDM_CONTEXT) {
-			list_del(&obj->link);
-			kfree(obj);
-			return pvr_out(cmd, &out, sizeof(out));
-		}
-	}
-	return -ENOENT;
+	obj = pvr_object_find(file, in.transfer_context, MT_PVR_KIND_TDM_CONTEXT);
+	if (!obj)
+		return -ENOENT;
+	list_del(&obj->link);
+	kfree(obj);
+	return pvr_out(cmd, &out, sizeof(out));
 }
 
 /* 0x89:0xa RGXTDMSubmitTransfer3 accept-and-log (r174).

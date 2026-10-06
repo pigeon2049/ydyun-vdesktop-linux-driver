@@ -67,8 +67,8 @@ class TdmContext2Lifecycle(unittest.TestCase):
         destroy = self.source[self.source.index(
             'static int pvr_cmd_tdm_context2_destroy'):]
         destroy = destroy[:destroy.index('\n}\n')]
-        self.assertIn('obj->handle == in.transfer_context', destroy)
-        self.assertIn('obj->kind == MT_PVR_KIND_TDM_CONTEXT', destroy)
+        self.assertIn('pvr_object_find(file, in.transfer_context, '
+                      'MT_PVR_KIND_TDM_CONTEXT)', destroy)
         self.assertIn('list_del(&obj->link);', destroy)
         self.assertIn('kfree(obj);', destroy)
         self.assertIn('return -ENOENT;', destroy)
