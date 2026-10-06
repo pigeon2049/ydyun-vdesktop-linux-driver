@@ -14,6 +14,7 @@
 #include "../kernel/mt_pvr_wire.h"
 #include "../kernel/mt_pvr_queue.h"
 #include "../kernel/mt_pvr_device.h"
+#include "../kernel/mt_transfer_fill.h"
 
 static int checks;
 
@@ -444,6 +445,38 @@ static int test_rgx_app_table(void)
 	return 0;
 }
 
+static int test_transfer_fill_parse(void)
+{
+	/* r178 pool algebra: pool = HEAD + pixels*4 + TAIL, both measured. */
+	static mt_tf_u8 pool[MT_TRANSFER_POOL_HEAD + 16 + MT_TRANSFER_POOL_TAIL];
+	struct mt_transfer_surface s;
+	struct mt_transfer_fill_rect r;
+	mt_tf_u32 color = 0xff0000ffU;
+
+	memset(pool, 0, sizeof(pool));
+	memcpy(pool + MT_TRANSFER_POOL_HEAD, &color, sizeof(color));
+	CHECK(mt_transfer_pool_parse(pool, sizeof(pool), &s) == 0);
+	CHECK(s.pixels == 4);
+	CHECK(s.color == 0xff0000ffU);
+	/* Example VA passthrough (pool reservation VA at live time). */
+	CHECK(mt_transfer_fill_rect(&r, 0x8000a00000ULL, 1280, 1024,
+				    s.color, 1310720) == 0);
+	CHECK(r.dst_va == 0x8000a00000ULL);
+	CHECK(r.width == 1280 && r.height == 1024);
+	/* Rejects: nulls, short/non-multiple/empty pools, wrong splits. */
+	CHECK(mt_transfer_pool_parse(NULL, sizeof(pool), &s) == -EINVAL);
+	CHECK(mt_transfer_pool_parse(pool, sizeof(pool), NULL) == -EINVAL);
+	CHECK(mt_transfer_pool_parse(pool, MT_TRANSFER_POOL_HEAD, &s) == -EINVAL);
+	CHECK(mt_transfer_pool_parse(pool, sizeof(pool) - 1, &s) == -EINVAL);
+	CHECK(mt_transfer_pool_parse(pool, MT_TRANSFER_POOL_HEAD +
+				     MT_TRANSFER_POOL_TAIL, &s) == -EINVAL);
+	CHECK(mt_transfer_fill_rect(NULL, 0, 1280, 1024, color, 4) == -EINVAL);
+	CHECK(mt_transfer_fill_rect(&r, 0, 0, 1024, color, 4) == -EINVAL);
+	CHECK(mt_transfer_fill_rect(&r, 0, 1024, 1024, color, 4) == -EINVAL);
+	CHECK(mt_transfer_fill_rect(&r, 0, 2, 2, color, 0) == -EINVAL);
+	return 0;
+}
+
 int main(void)
 {
 	CHECK(test_wire_offsets() == 0);
@@ -456,6 +489,7 @@ int main(void)
 	CHECK(test_mmap_page_count() == 0);
 	CHECK(test_heap_table() == 0);
 	CHECK(test_rgx_app_table() == 0);
+	CHECK(test_transfer_fill_parse() == 0);
 	printf("pvr_bridge_core_test OK (%d checks)\n", checks);
 	return 0;
 }
