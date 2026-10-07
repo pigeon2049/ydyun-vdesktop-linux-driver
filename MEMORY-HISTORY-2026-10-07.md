@@ -184,3 +184,11 @@
 - 遗留：真实绘制 CCB 仍待 DDK2 render backend 接线；update 语义活体待 `0x82:0x14` handler。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r214：真实绘制第二样本，批准执行）
+
+- r211 新会话上真实 `musa_blit_test -device 0 -f -o`（`=2` 桥，shim 仅 passthrough 记录）发出单次 `0x89:0xa`（8201 行 trace，与 r174 次轮同行数）；observe 行 VA/尺寸/res/PMR/39B/首偏移与 r174 全同；39 非零字节 37 跨会话一致，仅 `+0x40` 取第三值 `33 57`。执行级比对（非推断）+ 源码核对 observe 回 0 无执行。
+- UMD 随后用户态 SIGABRT（r172 同例），内核侧干净；拆桥干净，桥恢复默认 + L3 全绿（node + smoke），dmesg 零 WARNING/BUG/Oops。trace 已入库 `reports/r214-realblit-sample2.jsonl`。详见 `reports/r214-realblit-sample2.md`。
+- **Freeze 已恢复。**
+- 遗留：真实绘制执行仍待 backend 接线；update 语义活体待 `0x82:0x14` handler。USB 短页标题日期问题留待对应轮。
+
+---

@@ -458,6 +458,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r216 r215 新构建上机 + L3（批准执行）**：单桥重载（probe 未碰，装盘前验 strings + vermagic），节点仍 `renderD128`；node/smoke 全绿，refs 1/0，dmesg 零 WARNING/BUG/Oops。observer 已在载但尚无真实流量（parked，不是 proven）。**Freeze 已恢复。**见 `reports/r216-newbuild-reload.md`。
 - **r215 `0x82:0x14` observer 离线实现（零硬件触碰）**：STATUS #2 缺口（r190）闭合一半：新增 `pvr_cmd_kickta3d5_observe`（r174 模式：108B 定界 + render 上下文鉴权 + 三重定界 + 标量上报回 0，不读嵌套指针、不执行、无 fence）；分发接 `case MT_PVR_FN_RGXKICKTA3D5`（wire.h 新宏）。门禁 7 项新 + fn 55→56（含反向掐断验证）；`check-offline` 302 Python + 292 C 全绿；`make kernel` W=1 零警告。未加载（在载桥仍旧构建，待批准窗口重载验证）。活体 GFX 方向已止损（无现成生产者）。见 `reports/r215-kickta3d5-observer.md`。
 - **r214 真实绘制第二样本（批准执行）**：新会话真实 `musa_blit_test -device 0 -f -o`（`=2` 桥，零 fabrication）单次 `0x89:0xa`（8201 行 trace，与 r174 次轮同行数）；observe 行 VA/尺寸/res/PMR/39B/首偏移与 r174 全同，39 非零字节 37 跨会话一致、仅 `+0x40` 取第三值 `33 57`（执行级比对；源码核对 observe 回 0 无执行）。UMD 随后用户态 SIGABRT（r172 同例），内核干净；拆桥干净 + 默认恢复 + L3 全绿，dmesg 零 WARNING/BUG/Oops。**Freeze 已恢复。**见 `reports/r214-realblit-sample2.md` + `.jsonl`。
 - **r213 DDK2 check-only 新会话复验（批准执行）**：`=2` + `translate_kick=1` 下六符号全 0，`0x82:0x12`/`0x88:0x5`/`0x88:0x4` 全 `ret=0`，dmesg `translated kick: check=1 update=0 tag=1 fence=2`（与 r149 逐字同形）。首跑复现 r144 `b5*` 间接缺失（CCB create 后用户态 SIGSEGV，桥侧干净回收），修正后即绿。拆桥干净、probe ref 25→1，桥恢复默认 + node probe 0 failing，dmesg 零 WARNING/BUG/Oops。trace 249 行已入库。**Freeze 已恢复。**见 `reports/r213-ddk2checkonly-reverify.md`。
