@@ -1,8 +1,8 @@
 # S3000 vGPU 驱动适配 —— 阶段进度快照
 
-**快照时间**：2026-10-06
+**快照时间**：2026-10-08
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
-**对应提交**：`2f3637c`（内容基线：最后一次改动本文件快照内容的提交；
+**对应提交**：`1c7026c`（内容基线：最后一次改动本文件快照内容的提交；
 纯文档整理提交若未动本文件，不推进该指针，避免 amend 死循环）
 **新 agent 入口**：先读仓库根 [`STATUS.md`](STATUS.md)，再读本文件对应章节。
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.111+deb13-amd64`；Guest 配额 1GiB（`vm_memory_size_bytes`，r270；BAR2 窗口 16G、固件启动池 90MB 均非配额）
@@ -41,6 +41,24 @@ v1、输出侧盘点、几何通道、fill 构造器、dry-run 活体验证通�
 （r175–r181）；TQX bring-up 打通（r182，`-22` 系创建顺序）；
 ref 漂移离线审计 + defaults 活体差分 Δ0（r183–r184，maps 无罪，
 kill-while-busy 精炼假设待关账）。
+r185–r279 进展：残留收敛（scene 预设/槽位/驱动名/DID 合一，r186–r189，
+r271–r273）；update 路径定位到 `0x82:0x14`（r190）；GFX producer
+recon（r192–r210：`MUSAKICKGFX5` 108B 对齐，0x4700 UMD 原始 CCB 捕获）；
+会话两度重建（r211/r264，2/2 pinned）；`0x82:0x14` observer 落桥并全路径
+活体验证（r215–r218，r224–r225）；TQX bring-up 新会话复验（r219）；
+SyncPrimSet 真写 + translator 值语义闭环（r220–r223，r227/r231–r236）；
+TQX slices bring-up（r261–r266，r263 死锁→r265 锁序修复）；fire 离线实现
+（r267–r268）与 64 页绕行验证（r278–r279）。
+r280–r316 进展：桥分块 fire（r280）→ 独立模块自有节点（r282）→ 首次真发射
+全绿（r283：21 块/1310720 像素逐块验过）→ 通用性/soak/上限/拒绝全覆盖
+（r284/r285/r287/r289）→ UMD 驱动 fire 首绿及复现/双发（r290–r292）→
+hanging 定为 `SyncPrimWait` 用户态 spin + 100 秒有界自杀（r293–r296：
+wchan/R/GDB/core/入口三元组）→ submit3 update 回写满足 UMD 越过 submit3
+（r297–r299：`-95` 拒/NULL 跳过/`0x1029` 写 1）→ fire-into-destination
+（r300–r301）→ 归属反转与 CCB 定向（r302–r304：官方树无执行逻辑可抄）→
+magic 全零/VA 普查/pristine 规则（r305–r307）→ 颜色三杀（r308–r309）→
+形态 solid/边界（r310–r313）→ 比对点名 `dest+0 vs source+3841`（r314）→
+池基修正后 **`Test PASS (exit=0)`，真实绘制像素闭环**（r315–r316）。
 
 ---
 
@@ -186,17 +204,20 @@ RGXCreateRenderContext
 
 ---
 
-## 5. 下一步（按序；r184 后更新）
+## 5. 下一步（按序；r316 后更新）
 
 1. **ref 审计收尾**：defaults 差分 Δ0 已证 maps 无罪（r184）；
    kill-while-busy 关账轮（故意挂起再杀 + 四点采样）待可重载窗口
    （需批准）；释放语义在归因确认前不动。
-2. **TQX 真发射**：bring-up 已通、无提交（r182，r219 在新会话+新构建上复验通过、`tqx-ctx: ready`，对称归零）；submit+fence+
-   落位+像素回读排在 ref 归因之后。
-3. **同步 update 语义**：布局/可见性/完成条件已由核对过的 UMD 离线确定
-   （r159：`flag&2` 条目、sync-block 句柄+相对偏移、先写回后交 fd）；
-   legacy 活体注入已证伪（r171）；DDK2 活体链已通（r172），非零
-   update kick 可在下次 `=2` 窗口验证。验证前不视为已支持。
+2. **真实绘制 transfer-fill 闭环（r316 完成）**：UMD 全链条（建链→提交→
+   同步→GPU 执行→落池→比对）`Test PASS (exit=0)`；fire 独立模块收敛为
+   正式验证工具（r288 决策），桥侧三开（`=2` + tqx_ctx + fire + bump +
+   to_dst）在 holder 窗口可重复。余量是扩展（TA/3D、copy 路径、更大几何），
+   不是证伪。
+3. **同步 update 语义 UMD 驱动验证**：translator 值语义已闭环（r222；
+   ping 工具）；UMD 驱动的 update 数组（submit3 `update=2`）经 bump 写 1
+   已满足 SyncPrimWait（r299），回写时序（先写回后交 fd，r159）在真实
+   提交下成立。验证前不视为已支持。
 4. **DDK2 TA/CDM 专属提交**：`0x82:0xC` 与 `0x81:0x5` 仍是 S4 真提交边界；
    空 marker 结果不推及这些路径。真实工作包与输入规约确认后再推进。
 
@@ -206,8 +227,8 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **347 项通过，零 skip**（r271 helper 1 项；余同 r269） |
-| C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
+| Python 测试 | **386 项通过，零 skip**（r312 poolbox 门 + r308 颜色覆盖 + r306 普查/pristine + r304 定向 + r297 bump 8 项 + r282 独立模块 12 项；余见下表） |
+| C RAM 模型测试 | **299 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿；r304 CCB 目的回环自测 +2） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
 | 节点探针 `pvr_node_probe` | 0 failing step、0 value mismatch |
@@ -228,9 +249,11 @@ RGXCreateRenderContext
 | `test_live_tqx_dma_source.py` | DMA 源 | TQX DMA-source 路径的 IOVA/GPU-PA 分离 |
 | `test_pvr_tdm_shmem.py` | 5 | `0x89` TDM 共享内存桥（r88；离线实现，未加载） |
 | `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
-| `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182；r267 locate 抽取改判） |
-| `test_pvr_tqx_fire.py` | 8 | fire 参数门/接线/slices 就绪/单飞复用/提交不等/ work 无文件/teardown 首 cancel/scratch 预置（含反向；r267，未加载） |
-| `test_pvr_tqx_slices.py` | 8 | TQX slices bring-up 调度/copy prepare/非致命标志/teardown 释放/读镜像/零执行/scratch 预绑/trial_lock 分段（含反向；r261/r263/r265，未加载） |
+| `test_pvr_tdm_submit3.py` | 20 | SubmitTransfer3 observe/dry-run/digest/清单/CCB 定向/VA 普查/pristine/形态/边界门禁（r174/r181/r182；r267 locate；r302/r304/r306/r310/r312） |
+| `test_pvr_tqx_fire.py` | 18 | 分块/串行/落池/颜色/池基门禁 + 调度不等 fence 等/ work 验拷/teardown 中止优先（r267/r280/r290/r300/r308/r315；含反向） |
+| `test_pvr_submit3_bump.py` | 8 | update 回写：opt-in 开关/32 上限/用户数组拷贝/先解后写/UMD 自值/空柄跳过/observe 接线（含反向；r297/r299） |
+| `test_pvr_live_tqx_fire.py` | 12 | 独立模块：自有节点/无桥依赖/64 页/slices 锁序/分块上限/单发/等待锁外/teardown 对称/忙门上报/无前置完成门（含反向；r282/r283） |
+| `test_pvr_tqx_slices.py` | 9 | TQX slices bring-up 调度/copy prepare/非致命标志/teardown 释放/读镜像/零执行/scratch 预绑/trial_lock 分段/忙门上报（含反向；r261/r263/r265/r283） |
 | `test_pvr_kickta3d5_observe.py` | 7 | KickTA3D5 observe 路由/定界/鉴权/零嵌套读/标量上报/零执行/零填充回 0（含反向；r215，未加载） |
 | `test_pvr_observe_ping.py` | 11 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown + 非零相预置/重 fire + CCB 相载入/fire + 负向定界双 errno（含反向；r217/r218/r224/r225/r238） |
 | `test_pvr_syncprimset.py` | 7 | SyncPrimSet 真写路由/ABI/解析复用/定界/仅 host 写/零执行/零填充回 0（含反向；r220，未加载） |
@@ -440,25 +463,28 @@ as-built 机制（`da3df8b`，r45–r63）：
 2 只需页表 image 逐字节核对，不上传；3 先审包不上交）。
 1、2 已真机验证（r49/r51/r60/r61）；3 的 T1+T2 已落桥实测（r63）。
 
-## 11. 下个硬件窗口的验证清单（按序；上一版三项已全绿）
+## 11. 下个硬件窗口的验证清单（按序；transfer-fill 已闭环，余 TA/3D 与 copy）
 
 上一版清单已完成：① DMA mask 显式化（bA43 代码 + r46 重启首绑核验 40）；
 ② DMA 回读比对（r49 GPU-PA 窗口转换 + TQX 回读成功）；
 ③ 新 probe 构建上机（r47/r51 新构建已加载建会话，非“未加载”）。
 
-当前清单：
+当前清单（r316 后更新；transfer-fill 真实绘制已闭环）：
 
-1. **真实绘制 kick 的非零 CCB**（r56 点名的缺失输入已归位）：
-   真实 blit 的 39B 非零 CCB 已活体落定（`0x8000f44000`/`0x1200`，
-   与 fabricated 逐字节一致，仅 `+0x40` 轮变；r172–r174）；
-   扩展区算术闭合（r175）、T3 输入规约 v1（r176）、dry-run 活体
-   验证通过（r181）、TQX bring-up 打通（r182）。
-   只要只读观察，不提交 GPU 工作。
-2. **Translator T3 的 DM 队列格式**：T3-transfer 首要缺口在输出侧
-   （颜色/几何不在 CCB 内，r177）；几何通道已落定（r178）、fill
-   构造器就绪（r179）、接线规约（scratch 中转，r180）。
-   真发射（submit+fence+落位+回读）排在 ref 归因之后。
-3. 对象存储已满：需空存储的实验（含再次的 `live_3d`）会被 `-EBUSY` 拒绝；
+1. **真实绘制 transfer-fill 闭环（r316 完成）**：UMD 全链条 `Test PASS
+   (exit=0)`——建链（DDK2 render2/CCB2）→ 真实 `0x89:0xa`（VA/尺寸稳定，
+   `+0x40` 轮变 + 偶发 +1 字节）→ translator bring-up → UMD 矩形分块
+   fire（GPU 执行 + fence + 逐块验）→ 落 UMD 目的池（`dest+0 vs
+   source+3841`，GDB 点名）→ sync bump 满足 → 像素比对通过。fire 独立
+   模块收敛为正式验证工具；桥三开在 holder 窗口可重复（桌面 stop，
+   用户协调制）。
+2. **TA/3D 专属提交**：`0x82:0xC` 与 `0x81:0x5` 仍是 S4 真提交边界；
+   真实工作包与输入规约确认后再推进（blit 在 submit3 后 hanging 是
+   已知前置：SyncPrimWait 等同步值约 100 秒后自杀，满足即继续）。
+3. **copy 路径与更大几何**：blit `-f` 走 fill；copy（源→目）与 4K 级
+   矩形未覆盖。fire 分块上限 64（r287 顶满验证），超限 `-E2BIG`
+   大声拒绝（r289）。
+4. 对象存储已满：需空存储的实验（含再次的 `live_3d`）会被 `-EBUSY` 拒绝；
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
