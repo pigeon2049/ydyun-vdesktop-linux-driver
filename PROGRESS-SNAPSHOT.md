@@ -457,6 +457,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r205 `RGXKICKTA3D5` 字段偏移（零硬件触碰）**：SHA 匹配 wrapper + r203 seq 123 trace 对上八个指针槽和 check/update/PMR count 偏移（1/1/0）；`0x48`–`0x5f` 尾部参数语义未知。与 2.7.1 的 VA/size/count 偏移不同；下一步找 5.2 schema 或目标 Guest handler 字段证据。见 `reports/r205-kickta3d5-field-offsets.md`。
 - **r204 `RGXKICKTA3D5` ABI 边界（零硬件触碰）**：r203 fabricated trace/匹配 SHA UMD wrapper 确认 `0x82:0x14` 输入 108、输出 4；2.7.1 结构 96/4、2.3 Guest 无定义，5.2 Host schema 的 108/4 不证明 Guest handler 语义。先恢复逐字段契约并确认目标 handler，暂不直接复用 96B 结构。见 `reports/r204-kickta3d5-abi-boundary.md`。
 - **r203 GFX update fabricated 干净返回（零硬件触碰）**：GDB watchpoint 把 r201 abort 定位到 `RGXKickGfx` RVA `0x7ee1a` 的 `rep movsq`：0x408 字节复制写越界，update-list size header `0x91→0x1151`。将 harness 的 `param_3`/`param_5` 缓冲均设为 0x410 后，header 保持 `0x91`，`0x82:0x14` 仍发出且 RGXKickGfx 返回 0、进程正常退出。shim 是 fabricated；真实 bridge handler/同步语义/GPU 执行未验证。r204 已确认 UMD/KMD 结构大小差异，逐字段契约仍待恢复。见 `reports/r203-gfx-update-clean.md` + trace。
 - **r202 update-list 生命周期静态核对（零硬件触碰）**：`FUN_00178800` 按 count 分配 update-list block 并复制条目，成功路径在 fake bridge 返回后释放；SubmissionHead 另行拥有 region descriptor。helper-only 重放确认 descriptor 由 SubmissionDestroy 释放，但与 r201 abort 无直接因果证据；r203 已定位 abort 为缓冲越界写。见 `reports/r202-update-list-lifetime.md`。

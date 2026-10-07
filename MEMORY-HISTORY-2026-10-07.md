@@ -88,3 +88,11 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
 
 ---
+
+## 本次会话进展（r203：GFX update fabricated 干净返回）
+
+- 零硬件触碰。GDB watchpoint 证明 `RGXKickGfx` 在 RVA `0x7ee1a` 将 0x408 字节复制到仅 0x80 bytes 的 b24，覆盖 update-list chunk size（`0x91→0x1151`），造成 r201 free abort。b24/b25 扩为 0x410 后 header 完整，`0x82:0x14` 发出且 RGXKickGfx 返回 0、进程正常退出。
+- 证据：`reports/r203-gfx-update-clean.md` + trace。下一步离线核对并补齐 bridge `0x82:0x14` handler ABI；真实 CCB 仍冻结待批准。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---

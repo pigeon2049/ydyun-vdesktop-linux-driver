@@ -159,6 +159,7 @@
 | r202 | 排除 region descriptor 重复释放解释；r201 崩溃 free 槽属于 RGXPrepareTA update-list，heap 损坏写入者待查 |
 | r203 | 修正两个 GFX 输出缓冲尺寸；watchpoint 定位 0x408 字节复制越界，fabricated `RGXKickGfx` 返回 0 |
 | r204 | `0x82:0x14` UMD 发 108/4；2.7.1 结构为 96/4，Guest handler 契约未闭合，不直接复用 |
+| r205 | wrapper 与 fabricated trace 对齐数组/count 偏移；尾部 12B 结构差仍未解释，不补 handler |
 
 ## 关键单篇（本轮最常用）
 
