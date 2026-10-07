@@ -3472,6 +3472,54 @@ free:
 	return ret;
 }
 
+/* CCB VA-reference census (r306): the real CCB carries no TQX
+ * destination block, but it may reference surfaces by VA. Collect
+ * distinct u64 values in GPU-VA range and map each against pool
+ * bindings; the log names every surface the CCB touches (self-refs
+ * included, which calibrates the mechanism).
+ */
+#define MT_PVR_CCBREF_MAX 16U
+
+static void pvr_ccb_va_census(struct mt_pvr_file *file, const u8 *win,
+			      u32 bytes)
+{
+	u64 seen[MT_PVR_CCBREF_MAX];
+	u32 nseen = 0, i;
+	struct mt_pvr_binding *b;
+
+	for (i = 0; i + 8 <= bytes; i += 4) {
+		u64 v, k;
+		bool dup = false;
+
+		memcpy(&v, win + i, sizeof(v));
+		if (v < MT_TQX_CMD_VA || v >= (1ULL << MT_GPU_VA_BITS))
+			continue;
+		for (k = 0; k < nseen; k++) {
+			if (seen[k] == v) {
+				dup = true;
+				break;
+			}
+		}
+		if (dup || nseen >= MT_PVR_CCBREF_MAX)
+			continue;
+		seen[nseen++] = v;
+		list_for_each_entry(b, &file->bindings, link) {
+			struct mt_pvr_object *res =
+				pvr_reservation_find(file, b->reservation);
+
+			if (!res || res->arg0 > v ||
+			    v - res->arg0 > res->arg1)
+				continue;
+			pr_info("mt_pvr_bridge: submit3 ccbref: va=%#llx res=%#llx pmr=%#llx\n",
+				(unsigned long long)v,
+				(unsigned long long)b->reservation,
+				(unsigned long long)b->pmr);
+			break;
+		}
+	}
+	pr_info("mt_pvr_bridge: submit3 ccbref: total=%u\n", nseen);
+}
+
 /* CCB magic census (r305): the real UMD CCB carries no anchored
  * 4B-destination block (ccbdst: none), so report where the known TQX
  * command magics actually sit. One line per magic, first four hit
@@ -3592,6 +3640,7 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 		(unsigned long long)nonzero, (unsigned long long)first,
 		(unsigned long long)hash, head_len, head);
 	pvr_ccb_magic_census((const u8 *)pmr->host + off, in.ccb_bytes);
+	pvr_ccb_va_census(file, (const u8 *)pmr->host + off, in.ccb_bytes);
 
 /* CCB destination scan (r304): the UMD-named destination VA,
 	 * matched against pool bindings. Deterministic attribution for
@@ -3829,12 +3878,13 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 				  u8 *prog, u32 prog_size,
 				  struct mt_transfer_surface *surf_out)
 {
-	struct mt_pvr_pmr *pmr, *dst = NULL;
+	struct mt_pvr_pmr *pmr, *dst = NULL, *pristine = NULL;
 	struct mt_pvr_binding *b, *dst_binding = NULL;
-	struct mt_transfer_surface surf = { 0 };
+	struct mt_transfer_surface surf = { 0 }, pristine_surf = { 0 };
 	struct mt_transfer_fill_rect rect;
 	struct mt_tqx_fill_input fi;
-	u64 best = 0, best_nz = 0;
+	u64 best = 0, best_nz = 0, pristine_pixels = 0;
+	u32 best_color = 0;
 	int ret;
 
 	if (force_pmr) {
@@ -3873,12 +3923,18 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 			(unsigned long long)pmr->bytes,
 			(unsigned long long)cand.pixels,
 			(unsigned long long)nz, cand.color);
+		if (!nz && cand.pixels > pristine_pixels) {
+			pristine = pmr;
+			pristine_surf = cand;
+			pristine_pixels = cand.pixels;
+		}
 		if (!nz || cand.pixels < best)
 			continue;
 		if (cand.pixels == best && nz <= best_nz)
 			continue;
 		best = cand.pixels;
 		best_nz = nz;
+		best_color = cand.color;
 		dst = pmr;
 		surf = cand;
 	}
@@ -3887,6 +3943,24 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 		return -EOPNOTSUPP;
 	}
 build:
+	/* Pristine override (r306): a fill target starts unwritten; when
+	 * the best-heuristic lands on a patterned pool while a pristine
+	 * pool of the same geometry exists, the pristine one is the
+	 * destination. Forced (CCB-derived) selections are honored as-is.
+	 */
+	if (!force_pmr && best_nz > 0 && pristine &&
+	    pristine_pixels == best) {
+		dst = pristine;
+		surf = pristine_surf;
+		/* The pristine pool's own first pixel is zero; the fill
+		 * colour comes from the patterned (source) pool. Solid
+		 * patterns only -- our fill primitive cannot do gradients
+		 * (documented r306 boundary).
+		 */
+		surf.color = best_color;
+		pr_info("mt_pvr_bridge: submit3 dst: pristine override pool=%#llx color=%#x\n",
+			(unsigned long long)dst->handle, surf.color);
+	}
 	pr_info("mt_pvr_bridge: submit3 dst: pool=%#llx pixels=%llu color=%#x forced=%d\n",
 		(unsigned long long)dst->handle,
 		(unsigned long long)surf.pixels,

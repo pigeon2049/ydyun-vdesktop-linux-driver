@@ -154,6 +154,21 @@ class TdmSubmit3Observe(unittest.TestCase):
         self.assertIn('-ENODATA', locate)
         self.assertIn('ccbdst_pmr', self.body)
 
+    def test_ccb_va_census(self):
+        # r306: VA references in the CCB are mapped against bindings
+        # (self-refs calibrate); layout recovery aid.
+        self.assertIn('submit3 ccbref:', self.src)
+        self.assertIn('pvr_ccb_va_census', self.body)
+
+    def test_pristine_override(self):
+        # r306: a fill target starts unwritten; a pristine pool of the
+        # same geometry wins over the patterned best pool, taking the
+        # fill colour from the patterned (source) pool (solid only).
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('pristine override', locate)
+        self.assertIn('best_color', locate)
+        self.assertIn('surf.color = best_color', locate)
+
     def test_ccb_magic_census(self):
         # r305: the real CCB has no anchored block, so the observe
         # handler reports known-magic hit offsets for layout recovery.
