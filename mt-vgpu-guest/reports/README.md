@@ -202,6 +202,8 @@
 | r245 | L4 legacy 部分：compute 全过；render 路径 6 连崩 + GDB 全过（r167 翻版，桥无罪） |
 | r246 | DDK2 param_1 三候选证伪（`b14*`/`b5*`/conn 全崩，同 RVA）：合法输入超 harness 能力，工具边界 |
 | r247 | translator 并发冲突实锤：双混合并行一胜一败，败者 submit 环节 `-EBUSY`；附带修 poll 假阳性 |
+| r248 | EBUSY 后重试：败者链单独重跑全过（0.18ms）；拒绝无副作用、可恢复 |
+| r249 | observer 在 transfer 桥下回归：`=2` + transfer 下 24 步全过；开关正交补格 |
 
 ## 关键单篇（本轮最常用）
 

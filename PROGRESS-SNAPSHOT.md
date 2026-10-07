@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r249 observer 在 transfer 桥下回归（批准执行）**：`=2` + transfer 下 24 步全过（含负向双测），CCB 行一致；开关正交补格。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r249-transfer-observe-regression.md`。
+- **r248 EBUSY 后重试（批准执行）**：循环并发第 2 轮复现一胜一败；败者链单独重跑全过（0.18ms）；拒绝无副作用、可恢复。同窗口续跑 r249。见 `reports/r248-ebusy-retry.md`。
 - **r247 translator 并发冲突（批准执行）**：双混合进程并行一胜一败，败者 submit 环节 `-EBUSY`（59µs 即拒，tag 被消费无行）；全局 markers 状态机不支持并发 submit。附带修 poll 假阳性 + 门禁更新。拆桥干净，默认 + L3 全绿。见 `reports/r247-translator-contention.md`。
 - **r246 DDK2 param_1 三候选证伪（批准执行）**：`b14*`/`b5*`/conn DDK2 下全崩（同 RVA `0xa0b38`）；GDB 定三级链断裂点；语料确认 SetSyncPrim 系外部导出。工具边界，非桥缺口。拆桥干净，默认 + L3 全绿。见 `reports/r246-ddk2param-shape.md` + `.jsonl`。
 - **r245 L4 legacy 部分（批准执行）**：rung7 compute 全过 exit 0；rung5/6/8 在 render create 处 standalone 6 连崩、GDB 全过（r167 翻版，桥无罪）。refs 不变，L3 全绿。见 `reports/r245-l4legacy-partial.md`。
