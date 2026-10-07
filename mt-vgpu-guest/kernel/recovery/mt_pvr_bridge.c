@@ -3778,11 +3778,14 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 		if (mt_transfer_pool_parse(pmr->host, pmr->bytes, &cand))
 			continue;
 		for (i = 0; i < pmr->bytes; i++) {
-			if (((const u8 *)pmr->host)[i]) {
-				if (++nz > best_nz)
-					break;
-			}
+			if (((const u8 *)pmr->host)[i])
+				nz++;
 		}
+		pr_info("mt_pvr_bridge: submit3 pool: pmr=%#llx bytes=%llu pixels=%llu nz=%llu color=%#x\n",
+			(unsigned long long)pmr->handle,
+			(unsigned long long)pmr->bytes,
+			(unsigned long long)cand.pixels,
+			(unsigned long long)nz, cand.color);
 		if (!nz || cand.pixels < best)
 			continue;
 		if (cand.pixels == best && nz <= best_nz)
@@ -3796,6 +3799,9 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 		pr_info("mt_pvr_bridge: submit3 dst: no parsed pool\n");
 		return -EOPNOTSUPP;
 	}
+	pr_info("mt_pvr_bridge: submit3 dst: pool=%#llx pixels=%llu color=%#x\n",
+		(unsigned long long)dst->handle, best,
+		surf.color);
 	ret = mt_transfer_fill_rect(&rect, 0, MT_TRANSFER_PROTO_W,
 				    MT_TRANSFER_PROTO_H, surf.color, surf.pixels);
 	if (ret)

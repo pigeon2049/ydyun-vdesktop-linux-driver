@@ -136,6 +136,14 @@ class TdmSubmit3Observe(unittest.TestCase):
             self.assertNotIn(tok, body,
                              'bring-up must not submit (r182)')
 
+    def test_pool_inventory_logged_per_candidate(self):
+        # r302: locate logs every >=1MB pool candidate (handle/bytes/
+        # pixels/nz/color) plus the chosen one, so pool attribution is
+        # decidable from dmesg alone.
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('submit3 pool: pmr=', locate)
+        self.assertIn('submit3 dst: pool=', locate)
+
 
 if __name__ == '__main__':
     unittest.main()
