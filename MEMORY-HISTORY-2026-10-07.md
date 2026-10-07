@@ -576,3 +576,10 @@
 - 遗留：fire 函数（离线）；fired/verified 活体。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r267：fire 函数离线实现，零硬件触碰）
+
+- 开工声明零硬件触碰。TQX 真发射第二步离线落地：scratch 8MB（space 32→2112）+ locate helper（digest 不变）+ fire/submit + workqueue 回读 + param 门；teardown 首 cancel。门禁 fire 8 项 + 双改判（含反向）；`check-offline` 343+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r267-fire-impl.md`。
+- 修 5 处如实记录。遗留：fired/verified 活体（批准执行）。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
