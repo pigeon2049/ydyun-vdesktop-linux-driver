@@ -463,6 +463,9 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r304 CCB 扫描（离线）**：官方树无执行逻辑可抄（OS 胶水 + 闭二进制，已持续 RE 采矿）；共享头目的扫描 + C 回环自测 + locate 定向；380+299 全绿，W=1 零警告。未加载。见 `reports/r304-ccb-scan.md`。
+- **r303 归属反转（批准执行）**：三池同尺寸，nz=0/1/2621440——fire 在填源池（`0x1032` 图案完整），目的池（`0x1019`）恒零；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r303-pool-inventory.md` + `.jsonl`。
+
 - **r301 落池首验（批准执行）**：五开两发——首发尾块 span bug（排序正确拒 bump）；复打 `fired=1 ... todst=1` + bump，UMD 仍像素 FAIL（候选错池/stride/错色，r302 离线判）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r301-dstfire-live.md` + 双 `.jsonl`/双 stdout。
 - **r300 落池设计（离线）**：work 验拷 + handler 等 fire 再 bump；门禁 +5；378+292 全绿，W=1 零警告。见 `reports/r300-dstfire-design.md`。
 
