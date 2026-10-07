@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r320 机制收官（批准执行）**：batch 符号教训（`start` 需 `main` 符号；绝对地址断点经 python 现算可用）；abort 点寄存器已破坏；栈取证得 destination-magic + 维度对（组装期 abort）。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r320-abort-mechanics.md` + 双 `.txt`。
+
 - **r319 三发全同（批准执行）**：sysmem/小几何/对照三发同形 abort（134/8200 行/101 全零/末 map）——abort 与配置无关；abort 桩已定位（file `0x2c8c0`，`TQ_BlitInit→…→ReleaseCPUMapping` 后）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r319-tqperf-matrix.md` + 三 `.jsonl`/stdout。
 
 - **r318 copy RE（离线）**：abort 系断言式自杀（setup 深水区），bridge 全 0 无罪；候选按验证成本排序（sysmem/小几何/GDB/全反汇编）；无代码改动。见 `reports/r318-copy-abort-re.md`。

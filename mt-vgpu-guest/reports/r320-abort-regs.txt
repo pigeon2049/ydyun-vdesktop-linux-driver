@@ -1,0 +1,26 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGABRT, Aborted.
+0x00007ffff72a069c in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#0  0x00007ffff72a069c in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff724bc42 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff72344ac in abort () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff742c8d1 in ?? () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#4  0x00007ffff74601e2 in TQJobSubmit () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#5  0x000055555555802b in ?? ()
+rdi            0x20de0             134624
+rsi            0x20de0             134624
+rdx            0x6                 6
+rcx            0x7ffff72a069c      140737340114588
+r8             0x1600008           23068680
+r9             0x0                 0
+rax            0x0                 0
+rbx            0x20de0             134624
+r12            0x7fffffffccd0      140737488342224
+r13            0x6                 6
+r14            0x7fffffffd240      140737488343616
+r15            0x555555588ad0      93824992447184
+rbp            0x7fffffffc2b0      0x7fffffffc2b0
+Kill the program being debugged? (y or n) [answered Y; input not from terminal]
+[Inferior 1 (process 134624) killed]

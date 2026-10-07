@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r319：tq-perf 三连发矩阵，批准执行）
+## 本轮进展（r320：abort 机制收官，批准执行）
 
-- sysmem/小几何/对照三发同形 abort（134/8200/101 全零/末 map），abort 与配置无关；反汇编定位 abort 桩与调用链。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
+- GDB batch 教训（start/pending/commands 的可用子集已探明）；abort 点寄存器已破坏；栈取证：destination-magic + 0x3ff 维度对（组装期 abort）。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
 - **Freeze 已恢复。**
-- 遗留：r320 GDB 断 abort 桩读参。已推送（本轮起恢复 push）。
+- 提议收官：push；大项（TA producer recon / copy 全反汇编）另立，需拍板。
 ---
 

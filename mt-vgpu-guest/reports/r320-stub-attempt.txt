@@ -1,0 +1,14 @@
+Function "main" not defined.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGABRT, Aborted.
+0x00007ffff72a069c in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+Breakpoint 1 at 0x7ffff742c8c0
+STUB-BREAK @7ffff742c8c0
+
+Program terminated with signal SIGABRT, Aborted.
+The program no longer exists.
+No stack.
+The program has no registers now.
+The program is not being run.
