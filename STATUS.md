@@ -1,4 +1,4 @@
-# STATUS — 仓库当前状态总入口（2026-10-05）
+# STATUS — 仓库当前状态总入口（2026-10-07）
 
 > 新 agent 先读完本文件再动手。历史文件都有归档头；状态冲突时裁决顺序为
 > `STATUS.md`（本文件）→ `PROGRESS-SNAPSHOT.md`（细节）→ `MEMORY.md`（过程）。
@@ -59,7 +59,7 @@
 
 ## 下一步（vGPU，按序）
 
-1. **真实绘制 CCB**：check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；离屏 fill 的非零 CCB 窗口已在 fabricated major 2 blit 中取得并归属（r157–r161）；r172–r182 以 DDK2 重载拿到真实 Submit、accept-and-log、闭合扩展区算术、冻结规约、盘点输出侧、落定几何通道、建成构造器、验证 dry-run 并尝试 TQX bring-up（`-22` 受阻，ref 漂移待查）。下一步：kill-while-busy 关账轮（待批）收尾 ref 审计。
-2. **同步 update 语义**：离线已确定（r159）；legacy 活体注入已证伪（r171）；非零 update 路径已定位到 `0x82:0x14` RGXKickTA3D5（r190，桥无此 handler）；producer 路径为 harness 直调导出符号 RGXKickTA（r192，psKickTA 构造待续）。验证前不视为已支持。
+1. **真实绘制 CCB**：check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；离屏 fill 的非零 CCB 窗口已在 fabricated major 2 blit 中取得并归属（r157–r161）；r172–r182 的 DDK2 dry-run/TQX bring-up 与 r191 kill-while-busy ref 关账均已完成，但真实绘制 CCB 仍未执行。r196 只在 fabricated UMD 中到达 RGXKickGfx update producer，依赖手动清 render slot。下一步先找出该 slot 的合法初始化路径，再决定 bridge observer 与真实提交步骤；活会话仍 freeze。
+2. **同步 update 语义**：离线已确定（r159）；legacy 活体注入已证伪（r171）；非零 update 路径已定位到 `0x82:0x14`（r190）；r196 fabricated RGXKickGfx 生成 count=1 / flag=2 update 并发出该 ioctl，但依赖手动清 render slot，真实初始化与 bridge handler 均未验证。验证前不视为已支持。
 3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` / `0x81:0x5` 仍属 S4 真提交边界，空 marker 结果不能外推；待取得真实工作包与输入规约后再推进。
 4. 长期：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。

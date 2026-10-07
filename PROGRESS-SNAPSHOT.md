@@ -457,6 +457,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r196 RGXKickGfx update producer（fabricated 离线，无代码改动）**：进入 `SubmissionSetUpdateSyncPrim`，GDB 见 count=1 / flag=2；trace 发出 `0x82:0x14` IN108/OUT4，fake shim 与 RGXKickGfx 均返回 0。依赖手动清 render slot（`+0x24`），合法初始化路径未明；无真实 CCB 执行证据。见 `reports/r196-gfx-update-producer.md` + trace。
+
 - **r195 flag&2 手塑（fabricated 离线，无代码改动）**：连接对象注入 flag=2 sync 条目后 `RGXKickTA → 3`，trace 无 kick ioctl；SHA 对版调用图证实 RGXKickTA 不调用 `SubmissionSetUpdateSyncPrim`，update caller 包括 RGXKickGfx/RGXMultiKickGfx。下步手塑 producer 层输入。见 `reports/r195-takick-flag2.md` + trace。
 
 - **r194 psKickTA 手塑首轮（fabricated 离线，无代码改动）**：`RGXKickTA → 3` 干净退出；4 崩溃逐一定位；元素偏移纠偏；GDB 翻车 3 则已记。下步造 `flag&2`。见 `reports/r194-takick-shaping.md` + trace。
