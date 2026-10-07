@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r233 多 update 条目（批准执行）**：update 数组 2 条目，混合 fire（check=2 + update=2）45.7ms 即过，改探第二槽 0.10ms 即过（update 循环全发布证实）；fence=13/14。门禁更新 + 双门禁反向；probe 对称，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r233-multi-update-live.md`。
+- **r232 translator 混合 DDK2 回归（批准执行）**：`=2` + `translate_kick=1` 下混合工具 8 项全 ok（45.1ms 同构），fence=11/12；translator 与 major 正交证实。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r232-major2-mixed-regression.md`。
 - **r231 多条目混合 kick（批准执行）**：双 sync block 各预置一槽后，混合 fire（check=2 + update=1）44.8ms 即过，写回 probe 0.11ms 即过；dmesg `check=2 update=1 fence=9` → `check=1 update=0 fence=10`。工具双 PMR + 门禁更新；probe 对称，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r231-multi-check-live.md`。
 - **r230 双开组合验证（批准执行）**：`=2` + transfer + tqx_ctx 同轮三行同现（observe/dry-run 预言一致/ready），两开关正交；附带第六个 `+0x40` 轮变值（`03 a6`）。**Freeze 已恢复。**见 `reports/r230-dual-param.md` + `.jsonl`。
 - **r229 observer 全套 DDK2 回归（批准执行）**：`=2` 桥上 ping 全套 22 项全 ok，dmesg 三行与 legacy 逐项一致；dispatch 与 major 正交证实；legacy create 在 `=2` 下同样成功（附带）。拆桥干净，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r229-ddk2-observe-regression.md`。

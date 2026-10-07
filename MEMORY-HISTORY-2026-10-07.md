@@ -306,3 +306,16 @@
 - 遗留：DDK2 param_1 形状 recon（离线）；TQX 真发射；CCB 解读；真实执行 backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r230：双开组合验证，批准执行）
+
+- `=2` + transfer + tqx_ctx 双开同轮三行同现（observe/dry-run 预言一致/ready），两开关正交。UMD 即时退出；拆桥干净，默认 + L3 全绿。附带第六个 `+0x40` 轮变值（`03 a6`）。trace 已入库。详见 `reports/r230-dual-param.md` + `.jsonl`。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r231：多条目混合 kick，批准执行）
+
+- translator 多条件路径活体走通：双 sync block 各预置一槽后，混合 fire（check=2 + update=1）44.8ms 即过，写回 probe 0.11ms 即过；dmesg `check=2 update=1 fence=9` → `check=1 update=0 fence=10`。工具双 PMR + 门禁更新（含反向）；`check-offline` 325 Python OK。详见 `reports/r231-multi-check-live.md`。
+- probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
+---

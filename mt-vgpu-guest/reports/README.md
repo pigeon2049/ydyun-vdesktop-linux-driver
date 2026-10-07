@@ -186,6 +186,8 @@
 | r229 | observer 全套 DDK2 回归：`=2` 下 22 步全过，三行与 legacy 一致；dispatch 与 major 正交证实；会话未动 |
 | r230 | 双开组合验证：`=2` + transfer + tqx_ctx 同轮三行同现（observe/dry-run/ready），两开关正交；附带第六个 `+0x40` 轮变值 |
 | r231 | 多条目混合 kick：2 check + 1 update 同轮 44.8ms 即过，写回 probe 0.11ms 即过；工具双 PMR + 门禁更新；会话未动 |
+| r232 | translator 混合 kick DDK2 回归：`=2` 下 8 步全过（45.1ms 同构），fence=11/12；translator 与 major 正交证实 |
+| r233 | 多 update 条目：check=2 + update=2 同轮 45.7ms 即过，第二槽 probe 0.10ms 即过；update 循环全发布证实 |
 
 ## 关键单篇（本轮最常用）
 
