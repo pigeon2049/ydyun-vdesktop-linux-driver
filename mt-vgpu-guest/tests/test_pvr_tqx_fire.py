@@ -67,6 +67,16 @@ class TqxFirePath(unittest.TestCase):
                              'async work must not reach %s' % token)
         self.assertIn('pvr_translator_bo_read(', self.work)
 
+    def test_work_init_before_any_teardown(self):
+        # r276: teardown cancels on failed-prepare cleanup too, so the
+        # work must be INITed at prepare entry, not only on success.
+        src = code()
+        prep = fn_body(src, 'pvr_translator_prepare_locked')
+        init_at = prep.find('INIT_WORK(&translator.fire_work')
+        acquire_at = prep.find('pvr_session_acquire(')
+        self.assertTrue(0 < init_at < acquire_at,
+                        'work must INIT before anything can fail')
+
     def test_teardown_cancels_first(self):
         teardown = fn_body(self.src, 'pvr_translator_teardown_locked')
         cancel_at = teardown.find('cancel_work_sync(')

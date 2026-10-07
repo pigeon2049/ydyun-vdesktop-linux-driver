@@ -1845,6 +1845,11 @@ static int pvr_translator_prepare_locked(void)
 
 	if (translator.ready)
 		return 0;
+	/* Fire work must be cancellable from the first teardown, including
+	 * failed-prepare cleanup (r276: cancelling a never-INITed work
+	 * warns). INIT is idempotent; failure paths below rely on it.
+	 */
+	INIT_WORK(&translator.fire_work, pvr_translator_fire_work);
 	g = pvr_session_acquire(&owner);
 	if (!g)
 		return -ENODEV;
@@ -2111,7 +2116,6 @@ static int pvr_translator_prepare_locked(void)
 	translator.dev = d;
 	translator.seq = 0;
 	translator.ready = true;
-	INIT_WORK(&translator.fire_work, pvr_translator_fire_work);
 	mutex_unlock(&g->trial_lock);
 	return 0;
 out:
