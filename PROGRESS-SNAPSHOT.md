@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **310 项通过，零 skip**（r218 ping-fullpath 3 项；余同 r217） |
+| Python 测试 | **317 项通过，零 skip**（r220 syncprimset 7 项；余同 r218） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -231,6 +231,7 @@ RGXCreateRenderContext
 | `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182） |
 | `test_pvr_kickta3d5_observe.py` | 7 | KickTA3D5 observe 路由/定界/鉴权/零嵌套读/标量上报/零执行/零填充回 0（含反向；r215，未加载） |
 | `test_pvr_observe_ping.py` | 8 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown（含反向；r217/r218） |
+| `test_pvr_syncprimset.py` | 7 | SyncPrimSet 真写路由/ABI/解析复用/定界/仅 host 写/零执行/零填充回 0（含反向；r220，未加载） |
 | `test_pvr_fn_ids.py` | 2 | 56 分发功能号逐值钉死 + dispatch 零裸标签（r188；r215 加 `RGXKICKTA3D5=0x14`） |
 | `test_pvr_multicore_info.py` | 3 | `0x1:0xc` 回显 caps、单核（r152） |
 | `test_pvr_translator.py` | 6 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随（含反向；r126/r147–r148/r159） |
@@ -459,6 +460,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r220 SyncPrimSet 真写（离线，零硬件触碰）**：值语义链真卡点打通——`0x2:0x2` 从 stub 改真写（wrapper/生成头/活体三重互证 IN16；复用 translator 解析 + 定界写；无 fence/提交/wakeup；`0x2:0xd` 仍越界）。门禁 7 项新 + 改判 + MAPPING（含双重反向）；`check-offline` 317+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r220-syncprimset-write.md`。
 - **r219 TQX bring-up 新会话复验（批准执行）**：`=2` + `translate_tqx_ctx=1`（transfer 干跑保持 off）重载后真实 blit 报 `tqx-ctx: ready`（无 `-22` 回归）；UMD 即时 SIGABRT 无 hanging；probe 1→28→1 对称归零；桥恢复默认 + L3 全绿，dmesg 干净。附带第四个 `+0x40` 轮变值（`60 70`）。**Freeze 已恢复。**见 `reports/r219-tqxbringup-reverify.md` + `.jsonl`。
 - **r218 observer 全路径活体验证（批准执行）**：合法 envelope（真 render context + 真 PMR 窗口，阵列全 NULL）fire 回 0，dmesg 行标量全上报（check=1 update=1，零窗口零统计）；11 步全 teardown，refs 不变，dmesg 零新增。只证明全链不证明数组语义。**无重载，freeze 继续。**见 `reports/r218-observe-fullpath-live.md`。
 - **r217 observer 分发活体验证（批准执行）**：新工具 `pvr_observe_ping` 发零填充 108B `0x82:0x14` 回 `-ENOENT`（路由到达），control `0x82:0x1f` 仍 `-ENOTTY`；fresh file 即关，refs 不变，dmesg 零新增。工具零警告构建 + 5 项门禁（含反向）；`check-offline` 307 Python OK。**会话未动，freeze 继续。**见 `reports/r217-observe-ping-live.md`。

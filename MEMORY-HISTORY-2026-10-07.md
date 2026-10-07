@@ -214,3 +214,10 @@
 - 遗留（r218 已推进：合法 envelope 全路径走通，阵列仍 NULL）：真实数组流量仍待 producer。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r218：observer 全路径活体验证，批准执行）
+
+- observer 全路径首次在活体走通：`pvr_observe_ping` 扩展为 11 步（ping/control/envelope 四建/fire/teardown 五项），11/11 ok exit 0；桥 dmesg 行标量全上报（check=1 update=1，零窗口零统计）。阵列全 NULL（门禁级不解引用），只证明全链不证明数组语义。详见 `reports/r218-observe-fullpath-live.md`。
+- 门禁 5→8 项（含一次无效反向后的精确反向验证）；`check-offline` 310 Python OK。refs 1/0 不变，dmesg 零新增。**无重载，freeze 继续。**
+- 遗留：真实数组流量仍待 producer；真实执行仍待 backend 接线。USB 短页标题日期问题留待对应轮。
+
+---
