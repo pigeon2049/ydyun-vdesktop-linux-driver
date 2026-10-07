@@ -176,3 +176,11 @@
 - 遗留：DDK2 check-only（r149 对应项）仍待复验；真实绘制 CCB 仍待 backend 接线。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r213：DDK2 check-only 新会话复验，批准执行）
+
+- r211 新会话上 DDK2 check-only 复验通过：桥以 `drm_major=2 translate_kick=1` 重载（probe 未碰），`0x82:0x12`/`0x88:0x5`/`0x88:0x4` 全 `ret=0`，dmesg `translated kick: check=1 update=0 tag=1 fence=2`（与 r149 逐字同形）。
+- 首跑沿用 legacy 链形（CCB 传 `b5`）在 CCB create 后用户态 SIGSEGV——正是 r144 定论的 `b5*` 间接缺失；仅改该传参后即绿。桥侧干净回收，无内核异常。trace 249 行已入库 `reports/r213-ddk2checkonly-reverify.jsonl`。详见 `reports/r213-ddk2checkonly-reverify.md`。
+- 拆桥 `unloaded cleanly`，probe ref 25→1；桥恢复默认 + node probe 0 failing，dmesg 零 WARNING/BUG/Oops。**Freeze 已恢复。**
+- 遗留：真实绘制 CCB 仍待 DDK2 render backend 接线；update 语义活体待 `0x82:0x14` handler。USB 短页标题日期问题留待对应轮。
+
+---

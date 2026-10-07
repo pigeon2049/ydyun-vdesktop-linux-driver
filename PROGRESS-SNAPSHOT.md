@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **295 项通过，零 skip**（r189 object_find 3 项；余同 r188） |
+| Python 测试 | **302 项通过，零 skip**（r215 kickta3d5-observe 7 项；余同 r189/r212–r214） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -229,6 +229,8 @@ RGXCreateRenderContext
 | `test_pvr_tdm_shmem.py` | 5 | `0x89` TDM 共享内存桥（r88；离线实现，未加载） |
 | `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
 | `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182） |
+| `test_pvr_kickta3d5_observe.py` | 7 | KickTA3D5 observe 路由/定界/鉴权/零嵌套读/标量上报/零执行/零填充回 0（含反向；r215，未加载） |
+| `test_pvr_fn_ids.py` | 2 | 56 分发功能号逐值钉死 + dispatch 零裸标签（r188；r215 加 `RGXKICKTA3D5=0x14`） |
 | `test_pvr_multicore_info.py` | 3 | `0x1:0xc` 回显 caps、单核（r152） |
 | `test_pvr_translator.py` | 6 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随（含反向；r126/r147–r148/r159） |
 | `test_pvr_ddk2_render2.py` | 5 | DDK2 render 建销（r142；OUT 以活体 12 为准） |
@@ -240,7 +242,6 @@ RGXCreateRenderContext
 | `test_pvr_shim_ccb_resolve.py` | 1 | CCB VA→PMR 归属 + runs 形状 + 越界/反向（r158/r160） |
 | `test_pvr_addr_plan.py` | 5 | scene VA 预设逐值钉死 + 8 文件 include + code 区无裸字面量 + 别名引宏（r186；r188 补 stream/slot） |
 | `test_pvr_kicksync_fn.py` | 2 | `0x88` 功能号逐值钉死 + submit 按名比较（r187；r188 改全名） |
-| `test_pvr_fn_ids.py` | 2 | 55 分发功能号逐值钉死 + dispatch 零裸标签（r188） |
 | `test_pvr_object_find.py` | 3 | handle+kind 统一查找 + 8 函数调 helper + map 单次查找（r189） |
 | C: `pvr_arena_plan_test` / `system_dma_pages_test` | plan/DMA 页 | arena + per-page 绑定覆盖 12 kick ranges；DMA 页解析与线性连续守卫 |
 
@@ -457,6 +458,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r215 `0x82:0x14` observer 离线实现（零硬件触碰）**：STATUS #2 缺口（r190）闭合一半：新增 `pvr_cmd_kickta3d5_observe`（r174 模式：108B 定界 + render 上下文鉴权 + 三重定界 + 标量上报回 0，不读嵌套指针、不执行、无 fence）；分发接 `case MT_PVR_FN_RGXKICKTA3D5`（wire.h 新宏）。门禁 7 项新 + fn 55→56（含反向掐断验证）；`check-offline` 302 Python + 292 C 全绿；`make kernel` W=1 零警告。未加载（在载桥仍旧构建，待批准窗口重载验证）。活体 GFX 方向已止损（无现成生产者）。见 `reports/r215-kickta3d5-observer.md`。
 - **r214 真实绘制第二样本（批准执行）**：新会话真实 `musa_blit_test -device 0 -f -o`（`=2` 桥，零 fabrication）单次 `0x89:0xa`（8201 行 trace，与 r174 次轮同行数）；observe 行 VA/尺寸/res/PMR/39B/首偏移与 r174 全同，39 非零字节 37 跨会话一致、仅 `+0x40` 取第三值 `33 57`（执行级比对；源码核对 observe 回 0 无执行）。UMD 随后用户态 SIGABRT（r172 同例），内核干净；拆桥干净 + 默认恢复 + L3 全绿，dmesg 零 WARNING/BUG/Oops。**Freeze 已恢复。**见 `reports/r214-realblit-sample2.md` + `.jsonl`。
 - **r213 DDK2 check-only 新会话复验（批准执行）**：`=2` + `translate_kick=1` 下六符号全 0，`0x82:0x12`/`0x88:0x5`/`0x88:0x4` 全 `ret=0`，dmesg `translated kick: check=1 update=0 tag=1 fence=2`（与 r149 逐字同形）。首跑复现 r144 `b5*` 间接缺失（CCB create 后用户态 SIGSEGV，桥侧干净回收），修正后即绿。拆桥干净、probe ref 25→1，桥恢复默认 + node probe 0 failing，dmesg 零 WARNING/BUG/Oops。trace 249 行已入库。**Freeze 已恢复。**见 `reports/r213-ddk2checkonly-reverify.md`。
 - **r212 check-only 新会话复验（批准执行）**：r211 新会话上 legacy `translate_kick=1` 首跑全绿（check 值取 r148 实测值 0）：六符号全 0、`0x88:0x4`（84/8）`ret=0`，dmesg `translated kick: check=1 update=0 tag=1 fence=1`（与 r148 同形）。拆桥 `unloaded cleanly`、probe ref 25→1；桥恢复默认 + node probe 0 failing，dmesg 零 WARNING/BUG/Oops。trace 130 行已入库（`reports/r212-checkonly-reverify.jsonl`）。DDK2 check-only 已随 r213 复验通过。**Freeze 已恢复。**见 `reports/r212-checkonly-reverify.md`。

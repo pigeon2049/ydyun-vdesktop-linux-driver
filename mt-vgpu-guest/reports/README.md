@@ -169,6 +169,7 @@
 | r212 | 新会话 legacy check-only 复验通过（`translate_kick=1`，真实 DM2 空 marker，tag=1 fence=1）；拆桥干净、probe ref 回 1，trace 已入库 |
 | r213 | 新会话 DDK2 check-only 复验通过（`=2` + `translate_kick=1`，`0x82:0x12`/`0x88:0x5`/`0x88:0x4` 全 0，fence=2）；首跑复现 r144 `b5*` 间接教训，修正后即绿 |
 | r214 | 新会话第二真实绘制样本：真实 blit 单次 `0x89:0xa`，39B 中 37 与 r174 跨会话一致，仅 `+0x40` 取第三值；observe 回 0 无执行，UMD 134 系其自身路径 |
+| r215 | `0x82:0x14` accept-and-log observer 落桥（离线，零硬件触碰）：108B 定界 + render 上下文鉴权 + 三重定界 + 标量上报；门禁 7 项 + fn 55→56，反向验证通过，未加载 |
 
 ## 关键单篇（本轮最常用）
 
