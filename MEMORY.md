@@ -12,10 +12,9 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r292：同寿命双发全绿，批准执行）
+## 本轮进展（r293：hanging 机制 recon，离线）
 
-- 第三窗口零干预：seq=1/seq=2 背靠背 `fired=1 chunks=21 verified=1`（单发复位成立）；L3 双绿；终态 refs 1/1，窗口零新增 WARN。CCB 第四/五样本 nonzero=40（轮值第 10/11 值）。脚本多轮化（BLITS/WINID）。
-- **Freeze 已恢复。**
-- 遗留：TA/3D 或 update 的 UMD 驱动验证（需离线 recon producer；blit submit3 后 hanging 是前置山）。本地提交仍未 push。
+- submit3 后寂静 = 等完成信号（无 fence/无回写/零像素）；r279 不定论收回；r294 窗口以 wchan/stack/GDB 验 poll-vs-spin。纯文档。
+- 遗留：r294 GDB 窗口（用户已授权自测）。本地提交仍未 push。
 ---
 

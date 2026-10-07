@@ -463,6 +463,9 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r293 hanging recon（离线）**：submit3 后零 syscall 系等完成信号（无 fence/无回写/零像素三重缺失）；r279 不定论收回；r294 以 wchan/stack/GDB 验 poll-vs-spin。见 `reports/r293-hang-recon.md`。
+- **r292 双发全绿（批准执行）**：同 translator 内 `seq=1`/`seq=2` 背靠背 `fired=1 chunks=21 verified=1`，单发复位成立；CCB 第四/五样本 `nonzero=40`（轮值第 10/11 值）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r292-double-fire.md` + 双 `.jsonl`/`.dmesg`。
+
 - **r292 双发全绿（批准执行）**：同 translator 内 `seq=1`/`seq=2` 背靠背 `fired=1 chunks=21 verified=1`，单发复位成立；CCB 第四/五样本 `nonzero=40`（轮值第 10/11 值）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r292-double-fire.md` + 双 `.jsonl`/`.dmesg`。
 
 - **r291 复现全绿（批准执行）**：第二窗口零干预全绿（停→三开→blit→fired→拆→默认→L3→拉回），UMD 矩形二次 `fired=1 chunks=21 verified=1`；CCB 第三样本 `nonzero=40`（轮值第 9 值 `dd 35`）；r290 自重启说已订正（用户手动重开）。窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r291-umdfire-repeat.md` + `.jsonl`/`.dmesg`。
