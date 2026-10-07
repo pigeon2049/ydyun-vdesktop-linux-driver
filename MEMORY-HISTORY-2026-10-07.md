@@ -133,3 +133,13 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
 
 ---
+
+
+## 本次会话进展（r208：PMR 到真实 GPU VM 的后端边界）
+
+- 零硬件触碰。只读确认 `mt_bo_system_borrow()` 能将稳定 `mt_system_memory` 的逐页 GPA 包成设备 session BO；VM 绑定要求 BO 与页表 BO 的 store/ops 一致。现有 PVR PMR `gpu_bo` 是 CPU-only planning facade，不能进入真实 VM。
+- 真实接线仍需 per-file 上传 VM、process/render context、PMR borrowed BO 生命周期、nested sync/PMR 解引用、CCB 资源闭包和 fence 完成。当前 translator 全局共享、context 只是 token；marker/TDM observer 不执行真实 CCB。
+- 未改代码、未跑门禁、未动硬件。设计路线和证据边界见 `reports/r208-ddk2-render-backend-boundary.md`。STATUS 下一步不变。
+- 遗留：真实 CCB 活体验证仍须用户明确批准；执行包格式/资源闭包尚未证实。
+
+---
