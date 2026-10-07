@@ -58,7 +58,7 @@ static ssize_t control_store(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 	device_lock(&pdev->dev);
 	if (!pdev->driver || pdev->driver->driver.owner != owner ||
-	    strcmp(pdev->driver->name, "mt_guest_probe"))
+	    strcmp(pdev->driver->name, MT_GUEST_DRIVER_NAME))
 		goto unlock_device;
 	g = pci_get_drvdata(pdev);
 	if (!g)
@@ -140,12 +140,12 @@ static int __init start(void)
 	if (!enable)
 		return -EPERM;
 	INIT_DELAYED_WORK(&restore_work, restore_worker);
-	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	pdev = mt_guest_find_s3000();
 	if (!pdev)
 		return -ENODEV;
 	device_lock(&pdev->dev);
 	if (!mt_guest_match_s3000(pdev->vendor, pdev->device, pdev->subsystem_vendor, pdev->subsystem_device) ||
-	    !pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe"))
+	    !pdev->driver || strcmp(pdev->driver->name, MT_GUEST_DRIVER_NAME))
 		goto unlock;
 	owner = pdev->driver->driver.owner;
 	if (!try_module_get(owner))

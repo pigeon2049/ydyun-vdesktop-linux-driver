@@ -41,11 +41,11 @@ static int __init start(void)
 		return -EINVAL;
 	snapshot = kvzalloc(SNAPSHOT_BYTES, GFP_KERNEL);
 	if (!snapshot) return -ENOMEM;
-	device = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	device = mt_guest_find_s3000();
 	if (!device) goto free_snapshot;
 	device_lock(&device->dev);
 	if (device->vendor != 0x1ed5 || device->device != 0x0222 ||
-	    !device->driver || strcmp(device->driver->name,"mt_guest_probe")) goto unlock_device;
+	    !device->driver || strcmp(device->driver->name,MT_GUEST_DRIVER_NAME)) goto unlock_device;
 	owner = device->driver->driver.owner;
 	if (!owner || !try_module_get(owner)) goto unlock_device;
 	d = pci_get_drvdata(device);

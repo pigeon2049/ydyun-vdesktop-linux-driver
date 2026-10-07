@@ -19,7 +19,7 @@ MODULE_PARM_DESC(finish, "Publish Guest OFF after verifying all queues are idle"
 
 static int __init cold_disconnect_init(void)
 {
-	struct pci_dev *pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	struct pci_dev *pdev = mt_guest_find_s3000();
 	void __iomem *regs = NULL, *custom = NULL, *fw = NULL;
 	u64 fw_offset, fw_pa;
 	u32 dm, ring, cursor, head, tail;

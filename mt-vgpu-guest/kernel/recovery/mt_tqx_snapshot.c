@@ -6,6 +6,7 @@
 #include <linux/pci.h>
 #include <linux/fs.h>
 #include <linux/vmalloc.h>
+#include "../mt_guest_device.h"
 #include "../mt_guest_state.h"
 
 static bool enable;
@@ -42,12 +43,12 @@ static int __init start(void)
 	int ret = -ENODEV;
 	if (!enable)
 		return -EPERM;
-	device = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	device = mt_guest_find_s3000();
 	if (!device)
 		return -ENODEV;
 	device_lock(&device->dev);
 	if (device->vendor != 0x1ed5 || device->device != 0x0222 ||
-	    !device->driver || strcmp(device->driver->name, "mt_guest_probe"))
+	    !device->driver || strcmp(device->driver->name, MT_GUEST_DRIVER_NAME))
 		goto unlock_device;
 	owner = device->driver->driver.owner;
 	if (!owner || !try_module_get(owner))

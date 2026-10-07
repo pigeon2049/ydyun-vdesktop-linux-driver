@@ -7,6 +7,7 @@
 #include <linux/pci.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
+#include "../mt_guest_device.h"
 
 static bool enable;
 module_param(enable, bool, 0400);
@@ -19,7 +20,7 @@ static int __init recover(void)
 	int ret = -ENODEV;
 	if (!enable)
 		return -EPERM;
-	mtt = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	mtt = mt_guest_find_s3000();
 	qxl = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(2, 0));
 	if (!mtt || !qxl || mtt->vendor != 0x1ed5 || mtt->device != 0x0222 ||
 	    mtt->irq != 10 || qxl->irq != 10 || !qxl->driver ||

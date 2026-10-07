@@ -43,12 +43,12 @@ static int __init start(void)
 	int ret = -ENODEV;
 	if (!enable)
 		return -EPERM;
-	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	pdev = mt_guest_find_s3000();
 	if (!pdev)
 		return -ENODEV;
 	device_lock(&pdev->dev);
 	if (!mt_guest_match_s3000(pdev->vendor, pdev->device, pdev->subsystem_vendor, pdev->subsystem_device) ||
-	    !pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe"))
+	    !pdev->driver || strcmp(pdev->driver->name, MT_GUEST_DRIVER_NAME))
 		goto unlock_device;
 	owner = pdev->driver->driver.owner;
 	if (!try_module_get(owner))

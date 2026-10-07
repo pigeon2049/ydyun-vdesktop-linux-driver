@@ -35,7 +35,7 @@ module_param(source_pte_matches, bool, 0444);
 
 static int __init readback_init(void)
 {
-	struct pci_dev *pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	struct pci_dev *pdev = mt_guest_find_s3000();
 	struct module *owner = NULL;
 	struct mt_guest *g;
 	struct mt_guest_device *d;
@@ -53,7 +53,7 @@ static int __init readback_init(void)
 	if (!pdev)
 		return ret;
 	device_lock(&pdev->dev);
-	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe"))
+	if (!pdev->driver || strcmp(pdev->driver->name, MT_GUEST_DRIVER_NAME))
 		goto unlock_device;
 	owner = pdev->driver->driver.owner;
 	if (!owner || !try_module_get(owner)) {

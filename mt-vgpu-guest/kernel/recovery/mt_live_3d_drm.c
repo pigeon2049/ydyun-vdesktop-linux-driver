@@ -885,12 +885,12 @@ static int __init start(void)
 		ret = -ENOMEM;
 		goto free_workspace;
 	}
-	device = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	device = mt_guest_find_s3000();
 	if (!device)
 		goto free_workspace;
 	device_lock(&device->dev);
 	if (!mt_guest_match_s3000(device->vendor, device->device, device->subsystem_vendor, device->subsystem_device) ||
-	    !device->driver || strcmp(device->driver->name, "mt_guest_probe"))
+	    !device->driver || strcmp(device->driver->name, MT_GUEST_DRIVER_NAME))
 		goto unlock_device;
 	owner = device->driver->driver.owner;
 	if (!owner || !try_module_get(owner))

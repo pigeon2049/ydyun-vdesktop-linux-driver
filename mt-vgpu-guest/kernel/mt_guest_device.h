@@ -39,6 +39,17 @@ static inline bool mt_guest_match_s3000(u16 vendor, u16 device,
 	return vendor == 0x1ed5 && device == 0x0222 &&
 	       subvendor == 0x1ed5 && subdevice == 0x1101;
 }
+
+/* S3000 vGPU slot + bound driver name (r272): the lookup call was
+ * pasted in a dozen recovery files. Compare/name by these; the QXL
+ * pair (slot 2, "qxl") in irq_recover is single-use and stays.
+ */
+#define MT_GUEST_DRIVER_NAME "mt_guest_probe"
+
+static inline struct pci_dev *mt_guest_find_s3000(void)
+{
+	return pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+}
 #include "mt_marker_fence.h"
 
 struct mt_guest_device {

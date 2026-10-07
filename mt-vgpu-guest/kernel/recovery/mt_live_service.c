@@ -10,6 +10,7 @@
 #include <linux/workqueue.h>
 #include <linux/delay.h>
 #include <linux/mm.h>
+#include "../mt_guest_device.h"
 #include "../mt_guest_state.h"
 #include "../mt_rpc_transport.h"
 #include "../mt_guest_announcements.h"
@@ -220,11 +221,11 @@ static int __init start(void)
 	int ret = -ENODEV;
 	if (!enable)
 		return -EPERM;
-	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	pdev = mt_guest_find_s3000();
 	if (!pdev || pdev->vendor != 0x1ed5 || pdev->device != 0x0222 || pdev->irq != 10)
 		goto put_device;
 	device_lock(&pdev->dev);
-	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe"))
+	if (!pdev->driver || strcmp(pdev->driver->name, MT_GUEST_DRIVER_NAME))
 		goto unlock;
 	owner = pdev->driver->driver.owner;
 	if (!try_module_get(owner))

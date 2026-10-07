@@ -650,7 +650,7 @@ static struct mt_guest *pvr_session_acquire(struct module **owner_out)
 	if (!pdev)
 		return NULL;
 	device_lock(&pdev->dev);
-	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe"))
+	if (!pdev->driver || strcmp(pdev->driver->name, MT_GUEST_DRIVER_NAME))
 		goto out;
 	owner = pdev->driver->driver.owner;
 	if (!owner || !try_module_get(owner)) {
@@ -720,7 +720,7 @@ static int pvr_pmr_dma_register(struct mt_pvr_file *file,
 		goto put_session;
 	}
 	device_lock(&pdev->dev);
-	if (!pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe") ||
+	if (!pdev->driver || strcmp(pdev->driver->name, MT_GUEST_DRIVER_NAME) ||
 	    pci_get_drvdata(pdev) != g) {
 		ret = -ENODEV;
 		goto unlock;
@@ -947,7 +947,7 @@ static bool pvr_device_owned_by_main(void)
 	if (!pdev)
 		return false;
 	owned = pdev->driver &&
-		!strcmp(pdev->driver->driver.name, "mt_guest_probe");
+		!strcmp(pdev->driver->driver.name, MT_GUEST_DRIVER_NAME);
 	pci_dev_put(pdev);
 	return owned;
 }

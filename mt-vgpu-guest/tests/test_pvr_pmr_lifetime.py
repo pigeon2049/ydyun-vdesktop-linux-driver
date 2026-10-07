@@ -463,8 +463,9 @@ class SessionHandoff(unittest.TestCase):
         self.assertIn('device_unlock', self.acquire)
         self.assertIn('mutex_lock(&g->trial_lock)', self.acquire)
         self.assertIn('mutex_unlock(&g->trial_lock)', self.acquire)
+        # r272: driver name comes from the shared macro now.
         self.assertRegex(self.acquire,
-                         r'strcmp\(pdev->driver->name,\s*"mt_guest_probe"\)')
+                         r'strcmp\(pdev->driver->name,\s*MT_GUEST_DRIVER_NAME\)')
         self.assertIn('pci_get_drvdata(pdev)', self.acquire)
         self.assertIn('g->trial.pinned', self.acquire)
         self.assertIn('g->trial.connected', self.acquire)

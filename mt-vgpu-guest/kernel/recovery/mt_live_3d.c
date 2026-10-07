@@ -141,12 +141,12 @@ static int __init mt_live_3d_init(void)
 	if (count > 1000)
 		count = 1000;
 
-	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	pdev = mt_guest_find_s3000();
 	if (!pdev)
 		return -ENODEV;
 	device_lock(&pdev->dev);
 	if (!mt_guest_match_s3000(pdev->vendor, pdev->device, pdev->subsystem_vendor, pdev->subsystem_device) ||
-	    !pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe")) {
+	    !pdev->driver || strcmp(pdev->driver->name, MT_GUEST_DRIVER_NAME)) {
 		device_unlock(&pdev->dev);
 		pci_dev_put(pdev);
 		return -ENODEV;

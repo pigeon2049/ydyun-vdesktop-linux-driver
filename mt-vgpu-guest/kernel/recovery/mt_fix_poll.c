@@ -10,7 +10,7 @@ static int __init mt_fix_poll_init(void)
 	struct mt_guest *g;
 	struct mt_guest_device *d;
 
-	pdev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	pdev = mt_guest_find_s3000();
 	if (!pdev)
 		return -ENODEV;
 	device_lock(&pdev->dev);

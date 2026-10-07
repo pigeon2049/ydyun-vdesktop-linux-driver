@@ -153,7 +153,7 @@ static int __init start(void)
 	int ret = -ENODEV;
 	if (!enable)
 		return -EPERM;
-	device = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(14, 0));
+	device = mt_guest_find_s3000();
 	if (!device)
 		return -ENODEV;
 	device_lock(&device->dev);
