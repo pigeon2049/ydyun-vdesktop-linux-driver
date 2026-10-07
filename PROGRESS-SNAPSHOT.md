@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r274 fire 活体失败（批准执行）**：三开 + blit，DM prepare 先倒（-22 重现，slices/fire 未达）；blit 即时 134，无 D 态；refs 自归。拆桥干净，默认 + L3 全绿。见 `reports/r274-fire-blocked.md`。
 - **r273 收敛收官审计（零硬件触碰）**：全仓库残留裁决，生产代码零散落；r269–r273 收敛工作关闭。见 `reports/r273-convergence-audit.md`。
 - **r272 槽位号与驱动名收敛（离线，零硬件触碰）**：20 处 slot + 22 处驱动名合一（单次使用不碰；中途漏 3 文件被残留 grep 抓获）；旧门禁改判；门禁更新（含反向）；`check-offline` 347+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r272-slotname-refactor.md`。
 - **r271 DID/VID 收敛（离线，零硬件触碰）**：17 文件 guard 合一 helper（宽松 5 处保留）；门禁更新（含反向）；`check-offline` 347+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r271-didvid-refactor.md`。
