@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r298：bump 首跑被拒 -95，批准执行）
+## 本轮进展（r299：bump 满足 UMD 越过 submit3，批准执行）
 
-- `=2` + bump（fire 关）窗口：submit3 即拒 `-95`（某 update 柄无 CPU 映射），UMD 即时 134（无 hang）；hang/abort 因果再证。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。r297 离线部分（bump 代码 + 7 门禁 + 373+292）已提交。
+- 同窗口诊断（entry 1 sync=0x0 NULL 填充）→ 双遍跳过修 + 门禁 → 热换复打：`first_sync=0x1029 first_val=1`，UMD 等待即过，止于像素比对 exit=1；缺口收敛为 fire 写目的池。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。
 - **Freeze 已恢复。**
-- 遗留：r299 逐项诊断 + 复验。本地提交仍未 push。
+- 遗留：fire-into-destination（真实绘制像素闭环）。本地提交仍未 push。
 ---
 

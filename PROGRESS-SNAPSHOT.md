@@ -463,6 +463,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r299 越过 submit3（批准执行）**：诊断 `entry 1 sync=0x0`（NULL 填充）→ 双遍跳过修 → 复打 `update=2 first_sync=0x1029 first_val=1`，UMD 等待即过、止于像素比对（exit=1 干净）；剩余缺口 = fire 写 UMD 目的池。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r299-bump-unblocks.md` + `.jsonl`。
+
 - **r298 bump 被拒（批准执行）**：`=2` + bump 窗口首跑 `submit3 bump refused: -95`（某 update 柄无 CPU 可见内存），UMD 即时 abort（hang/abort 因果再证）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r298-bump-refused.md` + `.jsonl`。
 
 - **r296 三元组落定（批准执行）**：`SyncPrimWait` 入口 `rsi=0x174876e800==100000×1000000` 精确成立（100 秒双编码铁证），全进程仅调用一次；恢复经一次重开挡回后二次 10 秒内关账；L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r296-spw-entry.md` + `.txt`/`.jsonl`/`.dmesg`。
