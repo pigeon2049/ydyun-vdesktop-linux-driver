@@ -2,6 +2,16 @@
 
 > 由 `MEMORY.md` 清理周期移入（只保留最新两节），原样保留。
 
+## 本次会话进展（r207：KickTA3D5 wire 固定与执行链盘点）
+
+- 零硬件触碰。加入 hash 对版 5.2 `MUSAKICKGFX5` 的 108/4 wire 结构与偏移静态断言；gate 映射到 `0x82:0x14` UMD size row，未接 dispatch。
+- 执行链盘点：render2 context 只是 handle token；sync handle 可到 PMR；现有 kick translator 只发固定 marker，TDM Submit3 只做观察/dry-run。没有能执行 UMD TA/3D CCB 的完整 backend。
+- 验证：`make check-offline` 全绿（295 Python、1 skip、292 C）；`make kernel` W=1 零警告。
+- 证据：`reports/r207-kickta3d5-wire-foundation.md`。后续需接真实 context、nested sync/PMR arrays 和 TA/3D completion；live 仍待明确批准。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---
+
 ## 本次会话进展（r206：KickGFX5 Host schema 映射）
 
 - 零硬件触碰。对版 5.2 DKMS 包 SHA=`e3f684b1…` 的生成头将 `0x82:0x14` 映射到 `MUSAKICKGFX5 +20`；schema 的 flags/VA/size/submissionID/count 偏移和值逐项匹配 r203 fabricated trace。

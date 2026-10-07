@@ -457,6 +457,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r209 fabricated GFX CCB 捕获能力（零硬件触碰）**：`umd_bridge_shim` 在 shared PMR 模式下按 5.2 schema 解析 `0x82:0x14` submission VA/size；显式设置 `UMD_CCB_DUMP_DIR` 才会将可解析 PMR backing 原始字节以 0600 文件落盘（16 MiB 上限）。合成测试覆盖 offsets/backing/miss/opt-in；size offset 注错可被测试捕获。295 Python（1 skip）+292 C 全绿。既有 r203 UMD 请求解码为 VA `0x8000023000`/`0x4700`，但真实生成 CCB 字节尚未捕获，fake shim 仍不执行。见 `reports/r209-kickgfx-ccb-capture.md`。
 - **r208 DDK2 render backend 边界（零硬件触碰）**：`mt_bo_system_borrow()` 可将 PMR GPU page vector 包成设备 store 的 borrowed BO，但当前 per-file GPU VM/PMR facade 是 CPU-only store，且 borrowed handle 需要稳定 memory descriptor。真实接线还需 per-file 上传 VM、execution process/render context、PMR VA 绑定、嵌套 sync/PMR 验证、CCB 资源闭包与 fence 完成；全局 translator 和 marker/TDM observer 不能代替。仅只读检查，未改码/未跑门禁。见 `reports/r208-ddk2-render-backend-boundary.md`。
 - **r207 `0x82:0x14` wire foundation（零硬件触碰）**：新增 108/4 结构和 flags/VA/size/ID/count 偏移静态断言，gate 对照 5.2 UMD size row；不接 dispatch。context 仅为 token，sync token 可关联 PMR；kick translator 只发固定 marker，TDM observer 不执行 CCB，因此真实 TA/3D backend 尚缺。`check-offline` 全绿，`make kernel` W=1 零警告。见 `reports/r207-kickta3d5-wire-foundation.md`。
 - **r206 `MUSAKICKGFX5` schema 映射（零硬件触碰）**：hash 对版 DKMS 5.2 Host 生成头将 function +20 映射到 `0x82:0x14`；flags/VA/size/submissionID/check-update-PMR counts 与 r203 fabricated trace 的偏移和值吻合。服务 API 声明显示需要解析 update/check/PMR 嵌套数组；包没有 bridge handler 实现体。r207 已盘点 Guest handle 台账与当前执行路径，详见 r207。见 `reports/r206-kickgfx5-schema.md`。
