@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **335 项通过，零 skip**（r265 锁序 2 项；余同 r261） |
+| Python 测试 | **343 项通过，零 skip**（r267 fire 8 项；余同 r265） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -228,7 +228,8 @@ RGXCreateRenderContext
 | `test_live_tqx_dma_source.py` | DMA 源 | TQX DMA-source 路径的 IOVA/GPU-PA 分离 |
 | `test_pvr_tdm_shmem.py` | 5 | `0x89` TDM 共享内存桥（r88；离线实现，未加载） |
 | `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
-| `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182） |
+| `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182；r267 locate 抽取改判） |
+| `test_pvr_tqx_fire.py` | 8 | fire 参数门/接线/slices 就绪/单飞复用/提交不等/ work 无文件/teardown 首 cancel/scratch 预置（含反向；r267，未加载） |
 | `test_pvr_tqx_slices.py` | 8 | TQX slices bring-up 调度/copy prepare/非致命标志/teardown 释放/读镜像/零执行/scratch 预绑/trial_lock 分段（含反向；r261/r263/r265，未加载） |
 | `test_pvr_kickta3d5_observe.py` | 7 | KickTA3D5 observe 路由/定界/鉴权/零嵌套读/标量上报/零执行/零填充回 0（含反向；r215，未加载） |
 | `test_pvr_observe_ping.py` | 11 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown + 非零相预置/重 fire + CCB 相载入/fire + 负向定界双 errno（含反向；r217/r218/r224/r225/r238） |
@@ -244,7 +245,7 @@ RGXCreateRenderContext
 | `test_pvr_shim_drm_major.py` | 3 | shim major 默认 1/opt-in 2/非法值回退（r157） |
 | `test_pvr_shim_shared_backing.py` | 1 | shared backing 别名/隔离 + 提交前 snapshot（r155） |
 | `test_pvr_shim_ccb_resolve.py` | 1 | CCB VA→PMR 归属 + runs 形状 + 越界/反向（r158/r160） |
-| `test_pvr_addr_plan.py` | 5 | scene VA 预设逐值钉死 + 8 文件 include + code 区无裸字面量 + 别名引宏（r186；r188 补 stream/slot） |
+| `test_pvr_addr_plan.py` | 5 | scene VA 预设逐值钉死 + 8 文件 include + code 区无裸字面量 + 别名引宏（r186；r188 补 stream/slot；r267 space 2112 + scratch） |
 | `test_pvr_kicksync_fn.py` | 2 | `0x88` 功能号逐值钉死 + submit 按名比较（r187；r188 改全名） |
 | `test_pvr_object_find.py` | 3 | handle+kind 统一查找 + 8 函数调 helper + map 单次查找（r189） |
 | C: `pvr_arena_plan_test` / `system_dma_pages_test` | plan/DMA 页 | arena + per-page 绑定覆盖 12 kick ranges；DMA 页解析与线性连续守卫 |
@@ -462,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r267 fire 函数离线实现（零硬件触碰）**：scratch 8MB（space 2112）+ locate helper（digest 不变）+ fire/submit + workqueue 回读 + param 门；teardown 首 cancel。门禁 fire 8 项 + 双改判（含反向）；`check-offline` 343+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r267-fire-impl.md`。
 - **r266 slices 重验通过（批准执行）**：锁序修复生效，`tqx slices: ready cores=1` 全现，无死锁无 D 态；blit hanging 系 UMD 行为（可 rmmod，probe 30→1 对称）。拆桥干净，默认 + L3 全绿。见 `reports/r266-slices-verified.md` + `.jsonl`。
 - **r265 锁序修复（离线，零硬件触碰）**：trial_lock 分段放/取，slices 移出嵌套（translator_lock 防重入，走查三调用点）；门禁顺序断言（含反向）；`check-offline` 335+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r265-lockorder-fix.md`。
 - **r264 重启后重建（批准执行）**：cold 0/1 双 clean → 新 trial `20261007T131341Z-3b9ae877`（Guest/FW 2/2 pinned，probe ref 1）→ 默认桥（`card1`/`renderD128`，ref 0）→ L3 全绿；dmesg 干净。在载桥是 r263 含死锁构建（默认参数下休眠）。**Freeze 即刻生效。**见 `reports/r264-session-rebuild.md`。

@@ -569,3 +569,10 @@
 - 遗留：slices 重验（批准执行）；fire 函数。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r266：slices 重验通过，批准执行）
+
+- r265 锁序修复生效：新构建上机 + 真实 blit，`tqx slices: ready cores=1` 全现，无死锁无 D 态；blit hanging 60s 被杀系 UMD 行为（可 rmmod，与 r263 泾渭分明）。拆桥干净（probe 30→1 对称），默认 + L3 全绿。trace 已入库。详见 `reports/r266-slices-verified.md` + `.jsonl`。
+- **Freeze 已恢复。**无代码改动（r265 代码已在盘）。
+- 遗留：fire 函数（离线）；fired/verified 活体。USB 短页标题日期问题留待对应轮。
+
+---
