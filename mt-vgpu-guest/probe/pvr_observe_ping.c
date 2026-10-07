@@ -310,6 +310,31 @@ int main(int argc, char **argv)
 	      !bridge_call(fd, 0x82, 0x14, &gfx_in, sizeof(gfx_in),
 			   &gfx_out, sizeof(gfx_out)) &&
 	      !gfx_out.error);
+	/* Negative bounds (r238): the observer must refuse an over-limit
+	 * window and the setter must refuse a wild index, both without
+	 * touching memory. Each refusal is proved by errno, like the
+	 * node probe's step_expecting idiom. */
+	{
+		int saved_errno;
+
+		gfx_in.submission_size = 2U << 20;
+		memset(&gfx_out, 0, sizeof(gfx_out));
+		errno = 0;
+		check("oversize window refused (-EINVAL)",
+		      bridge_call(fd, 0x82, 0x14, &gfx_in, sizeof(gfx_in),
+				  &gfx_out, sizeof(gfx_out)) == -1 &&
+		      (saved_errno = errno, saved_errno == EINVAL));
+		gfx_in.submission_size = CCB_WINDOW;
+		set_in.sync = pmr_out.pmr;
+		set_in.index = 0xFFFFFFFFU;
+		set_in.value = 0;
+		memset(&set_out, 0, sizeof(set_out));
+		errno = 0;
+		check("wild index refused (-ERANGE)",
+		      bridge_call(fd, 0x2, 0xa, &set_in, sizeof(set_in),
+				  &set_out, sizeof(set_out)) == -1 &&
+		      (saved_errno = errno, saved_errno == ERANGE));
+	}
 	/* Teardown in reverse order; every step must succeed so the fresh
 	 * file leaves zero residue (verified via lsmod after the run).
 	 */

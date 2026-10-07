@@ -80,6 +80,16 @@ class ObservePingTool(unittest.TestCase):
         self.assertIsNotNone(m, 'ccb fire must require ret 0')
         self.assertIn('submission_size = CCB_WINDOW', self.src)
 
+    def test_negative_bounds_refused(self):
+        self.assertIn('oversize window refused (-EINVAL)', self.src)
+        self.assertIn('wild index refused (-ERANGE)', self.src)
+        m = re.search(r'oversize window refused \(-EINVAL\)[\s\S]{0,400}'
+                      r'saved_errno == EINVAL', self.src)
+        self.assertIsNotNone(m, 'oversize must require -EINVAL')
+        m = re.search(r'wild index refused \(-ERANGE\)[\s\S]{0,400}'
+                      r'saved_errno == ERANGE', self.src)
+        self.assertIsNotNone(m, 'wild index must require -ERANGE')
+
 
 if __name__ == '__main__':
     unittest.main()
