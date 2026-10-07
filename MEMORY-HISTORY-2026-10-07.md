@@ -493,3 +493,16 @@
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r254：极小预算失配腿，批准执行）
+
+- wait 100ms 下失配 kick 0.118s 后 UMD 37；预算维度全覆盖（5s/1s/100ms 同构）；无 marker。同窗口续跑 soak。详见 `reports/r254-tinymismatch.md` + `.jsonl`。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r255：短预算 10 轮 soak，批准执行）
+
+- 同窗口（wait 100ms）10/10 通过，0.12ms/轮起；tag/fence 无跳号（至 79/80）；零 WARN。拆桥干净，默认 + L3 全绿。详见 `reports/r255-tinybudget-soak.md`。
+- **Freeze 已恢复。**无代码改动。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
