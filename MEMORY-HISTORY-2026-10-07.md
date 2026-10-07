@@ -2,6 +2,14 @@
 
 > 由 `MEMORY.md` 清理周期移入（只保留最新两节），原样保留。
 
+## 本次会话进展（r199：追踪 GFX submission allocator 首参来源）
+
+- 零硬件触碰；同 SHA UMD 二进制指令核对：RGXKickGfx 从 kick `+0x28` 所指对象的 `+0x200` 取 SubmissionCmdGenerate 首参。render-context 构造器在 context `+0x200` 建 SubmissionBufAlloctor；SubmissionHead 是另一个对象、作为第二参。r198 的空终值原因未动态区分。
+- 证据：`reports/r199-gfx-submission-allocator-origin.md`。下一步 GDB 逐级读取 kick `+0x28`、目标 `+0x200`、kick `+0x2d8` 与真实 render-context `+0x200`，再按验证后的字段复放。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---
+
 ## 本次会话进展（r193：psKickTA 构造）
 
 - 零硬件触碰。psKickTA 无铸造函数；锚点是真实 render 上下文

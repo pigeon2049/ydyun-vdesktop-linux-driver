@@ -457,8 +457,9 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
-- **r200 render-context allocator 动态确认（fabricated 离线）**：默认 shim 下 connect/device/devmemctx/render context 全返 0；真实返回对象 `+0x200` allocator 与 `+0x318` SubmissionHead 均非空，桥 trace 117 行。未执行 GFX kick；kick `+0x28` 输入链仍待复核。见 `reports/r200-renderctx-allocator.md` + trace。
-- **r199 GFX allocator 首参来源（零硬件触碰；静态指令核对）**：`RGXKickGfx` 从 kick `+0x28` 指向对象的 `+0x200` 取 `SubmissionCmdGenerate` 首参；render-context 构造器把 `SubmissionBufAlloctor` 放在 context `+0x200`。`SubmissionHead` 是第二参来源的独立对象。r200 已动态证实正常 render context 创建出非空 allocator；r198 的 kick 输入链仍待 GDB 逐级核对。见 `reports/r199-gfx-submission-allocator-origin.md`。
+- **r201 GFX allocator/update 动态复核（fabricated 离线）**：同 SHA UMD 默认 shim 下，GDB 证实 kick `+0x28` 目标 `+0x200` 与正常 render-context allocator 相同；正确 sync output-slot 下 CheckSync/UpdateSync helper 各有一项，update 项 `flag=2`、handle 非空，trace 发出 `0x82:0x14` IN108/OUT4。shim 返回后在 `PVRSRVFreeUserModeMem(local_e70)` 清理处 `double free or corruption (!prev)` abort；不代表真实桥/执行成功。另一次 L4 recipe 变体在提交前 heap abort，排除为无效输入。下一步用低扰动 GDB 查清 local_e70 分配/释放路径，再复放。见 `reports/r201-gfx-update-producer.md` + trace。
+- **r200 render-context allocator 动态确认（fabricated 离线）**：默认 shim 下 connect/device/devmemctx/render context 全返 0；真实返回对象 `+0x200` allocator 与 `+0x318` SubmissionHead 均非空，桥 trace 117 行。r201 已将其 allocator 与 kick `+0x28` 目标动态对上。见 `reports/r200-renderctx-allocator.md` + trace。
+- **r199 GFX allocator 首参来源（零硬件触碰；静态指令核对）**：`RGXKickGfx` 从 kick `+0x28` 指向对象的 `+0x200` 取 `SubmissionCmdGenerate` 首参；render-context 构造器把 `SubmissionBufAlloctor` 放在 context `+0x200`。`SubmissionHead` 是第二参来源的独立对象。r201 已动态确认该指针链一致。见 `reports/r199-gfx-submission-allocator-origin.md`。
 - **r198 AppHint GFX 重放（fabricated 离线，无代码改动）**：临时 `musa.ini` 将 PerfCountEndCbID 设 0；不手动 poke，context `+0x24` 为 0，RGXKickGfx 越过 PrepareTA 后在 `SubmissionCmdGenerate` 因空首参 SIGSEGV。trace 109 行无 `0x82:0x14`。其首参 allocator 来源由 r199 定位到 kick `+0x28` 指向对象的 `+0x200`；具体空槽原因待动态确认。见 `reports/r198-gfx-apphint-replay.md` + trace。
 
 - **r197 纠正 update 初始化解释（只读语料，无代码改动）**：render-context `+0x20/+0x24` 是 PerfCountStart/EndCbID；update-list count 属于 RGXPrepareTA 另行分配的对象。r198 实测 context `+0x24` 同时参与 PrepareTA 状态表索引，且可由 musa.ini 初始化；update helper 路径仍待核对 SubmissionCmdGenerate allocator 输入链。见 `reports/r197-correct-gfx-update-init.md`。
