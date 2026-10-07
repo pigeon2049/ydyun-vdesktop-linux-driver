@@ -29,7 +29,7 @@ PINNED = {
     'MT_CTX_BO_STRIDE': '0x100000ULL',
     'MT_TRANSLATE_CMD_VA': '0x48000000ULL',
     'MT_TRANSLATE_CMD_BYTES': '32768U',
-    'MT_TRANSLATE_SPACE_PAGES': '32U',
+    'MT_TRANSLATE_SPACE_PAGES': '2112U',
     'MT_TRANSLATE_FENCE_WAIT_MS': '5000U',
     'MT_TRANSLATE_WAIT_SLICE_MS': '5U',
     'MT_TRANSFER_PROTO_W': '1280U',
@@ -37,6 +37,9 @@ PINNED = {
     'MT_TQX_STREAM_SRC_VA': '0x40100000ULL',
     'MT_TQX_STREAM_DST_VA': '0x40200000ULL',
     'MT_TQX_STREAM_SLOT_BYTES': '4096U',
+    # r267: pre-seal scratch surface for live fire (8MB at 0x41000000).
+    'MT_TQX_SCRATCH_VA': '0x41000000ULL',
+    'MT_TQX_SCRATCH_BYTES': '8388608U',
 }
 # Raw scene literals that must not appear as code in consumers.
 # Stream endpoints (0x40100000/0x40200000), slot_va bases and the unrelated

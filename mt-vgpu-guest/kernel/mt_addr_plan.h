@@ -32,10 +32,14 @@
 #define MT_CTX_BO_BASE_VA 0x50000000ULL
 #define MT_CTX_BO_STRIDE 0x100000ULL
 
-/* Translator scene (bridge-owned space): command buffer + space sizing. */
+/* Translator scene (bridge-owned space): command buffer + space sizing.
+ * The scratch surface (r267) holds one full prototype fill so live fire
+ * never binds post-seal: 8MB at 0x41000000, room for the 1280x1024x4
+ * frame plus headroom. Space covers scratch + the original 64 pages.
+ */
 #define MT_TRANSLATE_CMD_VA 0x48000000ULL
 #define MT_TRANSLATE_CMD_BYTES 32768U
-#define MT_TRANSLATE_SPACE_PAGES 32U
+#define MT_TRANSLATE_SPACE_PAGES 2112U
 #define MT_TRANSLATE_FENCE_WAIT_MS 5000U
 #define MT_TRANSLATE_WAIT_SLICE_MS 5U
 
@@ -51,5 +55,7 @@
 #define MT_TQX_STREAM_SRC_VA 0x40100000ULL
 #define MT_TQX_STREAM_DST_VA 0x40200000ULL
 #define MT_TQX_STREAM_SLOT_BYTES 4096U
+#define MT_TQX_SCRATCH_VA 0x41000000ULL
+#define MT_TQX_SCRATCH_BYTES 8388608U
 
 #endif /* MT_ADDR_PLAN_H */

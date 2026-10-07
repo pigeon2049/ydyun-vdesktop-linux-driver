@@ -57,6 +57,7 @@
 #include "../mt_tqx_fill.h"
 #include "../mt_tqx_work.h"
 #include "../mt_tqx_topology.h"
+#include "../mt_tqx_fill_work.h"
 
 /* The driver hard-codes these two numbers, and the vendor declares them the
  * same way in inc/pvr/include/pvr_drm.h:
@@ -127,6 +128,10 @@ MODULE_PARM_DESC(translate_transfer, "dry-run transfer translation: build (never
 static bool translate_tqx_ctx;
 module_param(translate_tqx_ctx, bool, 0400);
 MODULE_PARM_DESC(translate_tqx_ctx, "build the translator TQX context and Bos on first 0x89:0xa (default: off; no submission)");
+
+static bool translate_tqx_fire;
+module_param(translate_tqx_fire, bool, 0400);
+MODULE_PARM_DESC(translate_tqx_fire, "live TQX fill fire for 0x89:0xa (default: observe only; submit, async scratch readback, no UMD pool writeback)");
 
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
@@ -359,6 +364,9 @@ static bool pvr_ready;
 static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
 					const struct mt_pvr_tdm_submit3_in *in,
 					u64 ccb_pmr);
+static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
+				     struct mt_guest_device *d,
+				     u64 ccb_pmr);
 
 /* Declared here because pvr_file_release() below drops the PMRs' list
  * references, which are handed back through this.
@@ -1624,6 +1632,17 @@ struct mt_pvr_translator {
 	 * when slices fail; fire checks this flag.
 	 */
 	bool tqx_slices_ready;
+	/* Live-fire scratch (r267): pre-seal 8MB surface + async
+	 * readback. One fire at a time (fire_pending guards); the work
+	 * touches translator-owned memory only, never file objects.
+	 */
+	struct mt_bo tqx_scratch;
+	struct work_struct fire_work;
+	struct dma_fence *fire_fence;
+	u32 fire_color;
+	u32 fire_pixels;
+	u64 fire_seq;
+	bool fire_pending;
 	u64 seq;
 };
 
@@ -1765,6 +1784,14 @@ static void pvr_translator_teardown_locked(void)
 {
 	struct mt_guest_device *d = translator.dev;
 
+	/* The fire work touches translator Bos; stop it before tearing
+	 * anything down (it takes no translator_lock, so no deadlock).
+	 */
+	cancel_work_sync(&translator.fire_work);
+	if (translator.fire_fence) {
+		dma_fence_put(translator.fire_fence);
+		translator.fire_fence = NULL;
+	}
 	if (d && translator.context.process)
 		WARN_ON(mt_execution_context_destroy(&translator.context));
 	if (d && translator.tqx_context.process) {
@@ -1789,6 +1816,8 @@ static void pvr_translator_teardown_locked(void)
 		WARN_ON(mt_bo_put(&translator.tqx_tmp_dst));
 	if (translator.tqx_tmp_src.refs)
 		WARN_ON(mt_bo_put(&translator.tqx_tmp_src));
+	if (translator.tqx_scratch.refs)
+		WARN_ON(mt_bo_put(&translator.tqx_scratch));
 	{
 		u32 i;
 
@@ -1969,6 +1998,27 @@ static int pvr_translator_prepare_locked(void)
 						  MT_GPU_MAP_DEFAULT);
 		if (ret) {
 			pr_info("mt_pvr_bridge: tqx bring-up: tmp bind: %d\n",
+				ret);
+			goto out;
+		}
+		/* Live-fire scratch (r267): pre-seal surface for fills;
+		 * async readback never touches file objects.
+		 */
+		ret = mt_bo_create(&translator.tqx_scratch, d->buffers.ops,
+				   &d->buffers, MT_TQX_SCRATCH_BYTES,
+				   PAGE_SIZE);
+		if (ret) {
+			pr_info("mt_pvr_bridge: tqx bring-up: scratch alloc: %d\n",
+				ret);
+			goto out;
+		}
+		ret = d->address_spaces.ops->bind(translator.space,
+						  &translator.tqx_scratch,
+						  MT_TQX_SCRATCH_VA, 0,
+						  MT_TQX_SCRATCH_BYTES,
+						  MT_GPU_MAP_DEFAULT);
+		if (ret) {
+			pr_info("mt_pvr_bridge: tqx bring-up: scratch bind: %d\n",
 				ret);
 			goto out;
 		}
@@ -3428,6 +3478,34 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 		pr_info("mt_pvr_bridge: submit3 tqx-ctx: ready\n");
 		mutex_unlock(&translator_lock);
 	}
+	if (translate_tqx_fire) {
+		struct mt_guest_device *d;
+		struct module *owner = NULL;
+		struct mt_guest *g;
+
+		mutex_lock(&translator_lock);
+		if (!translator.ready || !translator.tqx_ready) {
+			mutex_unlock(&translator_lock);
+			pr_info("mt_pvr_bridge: submit3 fire: not ready\n");
+			return -EOPNOTSUPP;
+		}
+		g = pvr_session_acquire(&owner);
+		if (!g || g != translator.guest) {
+			if (owner)
+				module_put(owner);
+			mutex_unlock(&translator_lock);
+			return -ENODEV;
+		}
+		d = container_of(g, struct mt_guest_device, state);
+		ret = pvr_submit3_transfer_fire(file, d, binding->pmr);
+		module_put(owner);
+		mutex_unlock(&translator_lock);
+		if (ret) {
+			pr_info("mt_pvr_bridge: submit3 fire refused: %d\n",
+				ret);
+			return ret;
+		}
+	}
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -3522,26 +3600,26 @@ static int pvr_cmd_kickta3d5_observe(struct mt_pvr_file *file,
  * submission, no fence. Any ambiguity fails loudly with errno instead of
  * guessing. file->lock held; must not take it again.
  */
-static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
-					const struct mt_pvr_tdm_submit3_in *in,
-					u64 ccb_pmr)
+/* Locate the destination pool and build the fill program (r267): shared
+ * by dry-run (digest only) and live fire (submit). Returns the dst PMR,
+ * its binding, the rect, and the built program. Caller logs.
+ */
+static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
+				  u64 ccb_pmr,
+				  struct mt_pvr_pmr **dst_out,
+				  struct mt_pvr_binding **binding_out,
+				  struct mt_transfer_fill_rect *rect_out,
+				  u8 *prog, u32 prog_size,
+				  struct mt_transfer_surface *surf_out)
 {
 	struct mt_pvr_pmr *pmr, *dst = NULL;
 	struct mt_pvr_binding *b, *dst_binding = NULL;
 	struct mt_transfer_surface surf = { 0 };
 	struct mt_transfer_fill_rect rect;
 	struct mt_tqx_fill_input fi;
-	u8 prog[sizeof(struct mt_tqx_fill_image)];
-	u64 phash = 1469598103934665603ULL;
 	u64 best = 0, best_nz = 0;
-	u32 k;
 	int ret;
 
-	/* Destination pool: among parsed PMRs (excluding the submission's
-	 * own CCB PMR), the one with the most nonzero content. Fill-only
-	 * prototype: all-zero pools (unfilled sources, black fills) cannot
-	 * be told apart and fail with -EOPNOTSUPP instead of guessing.
-	 */
 	list_for_each_entry(pmr, &file->pmrs, link) {
 		struct mt_transfer_surface cand;
 		u64 i, nz = 0;
@@ -3568,7 +3646,7 @@ static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
 		surf = cand;
 	}
 	if (!dst) {
-		pr_info("mt_pvr_bridge: submit3 dry-run: no parsed pool\n");
+		pr_info("mt_pvr_bridge: submit3 dst: no parsed pool\n");
 		return -EOPNOTSUPP;
 	}
 	ret = mt_transfer_fill_rect(&rect, 0, MT_TRANSFER_PROTO_W,
@@ -3591,9 +3669,194 @@ static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
 		.rect_width = rect.width, .rect_height = rect.height,
 		.color = { rect.color, 0, 0, 0 },
 	};
-	ret = mt_tqx_fill_build(prog, sizeof(prog), &fi);
+	ret = mt_tqx_fill_build(prog, prog_size, &fi);
 	if (ret)
 		return ret;
+	*dst_out = dst;
+	*binding_out = dst_binding;
+	*rect_out = rect;
+	*surf_out = surf;
+	return 0;
+}
+
+/* Async scratch readback for live fire (r267). Reads translator fields
+ * lock-free: the previous fire completed (fence signaled, checked under
+ * translator_lock at submit) or teardown cancel_work_sync()s this first,
+ * so no concurrent writer exists. Never touches file objects.
+ */
+static void pvr_translator_fire_work(struct work_struct *ws)
+{
+	struct dma_fence *fence = translator.fire_fence;
+	struct mt_guest_device *d = translator.dev;
+	u32 color = translator.fire_color;
+	u32 pixels = translator.fire_pixels;
+	u64 seq = translator.fire_seq;
+	u32 i, bad = 0;
+	u32 first = 0, last = 0;
+	long waited;
+	int ret;
+
+	(void)ws;
+	if (!fence || !d) {
+		pr_info("mt_pvr_bridge: fire work: no fence\n");
+		return;
+	}
+	waited = dma_fence_wait_timeout(fence, false,
+			msecs_to_jiffies(MT_TRANSLATE_FENCE_WAIT_MS));
+	ret = waited > 0 ? dma_fence_get_status(fence) :
+		(waited < 0 ? (int)waited : -ETIMEDOUT);
+	if (ret != 1) {
+		pr_info("mt_pvr_bridge: fire seq=%llu: fence %d\n",
+			(unsigned long long)seq, ret ? ret : -EIO);
+		goto put;
+	}
+	for (i = 0; i < pixels; i++) {
+		u32 v = 0;
+
+		ret = pvr_translator_bo_read(d, &translator.tqx_scratch,
+					     (u64)i * sizeof(u32),
+					     &v, sizeof(v));
+		if (ret)
+			break;
+		if (i == 0)
+			first = v;
+		if (i + 1 == pixels)
+			last = v;
+		if (v != color)
+			bad++;
+	}
+	pr_info("mt_pvr_bridge: fire seq=%llu: verified=%d bad=%u/%u first=%#x last=%#x\n",
+		(unsigned long long)seq, !ret && !bad, bad, pixels,
+		first, last);
+put:
+	dma_fence_put(fence);
+}
+
+/* Live TQX fill fire (r267): submit the dry-run program at the scratch
+ * surface, then verify asynchronously. file->lock + translator_lock held;
+ * trial_lock taken for submit. Never waits here (r147); the work does.
+ */
+static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
+				     struct mt_guest_device *d,
+				     u64 ccb_pmr)
+{
+	static struct mt_tqx_upload_ops upload = {
+		.write = pvr_translator_upload_write,
+		.read = pvr_translator_upload_read,
+	};
+	struct mt_pvr_pmr *dst = NULL;
+	struct mt_pvr_binding *dst_binding = NULL;
+	struct mt_transfer_surface surf = { 0 };
+	struct mt_transfer_fill_rect rect;
+	u8 prog[sizeof(struct mt_tqx_fill_image)];
+	struct mt_tqx_fill_workspace *fill_ws;
+	struct mt_tqx_fill_input fi;
+	struct mt_tqx_work work = { 0 };
+	struct mt_bo *bos[4];
+	struct dma_fence *fence = NULL;
+	u32 cores;
+	u64 bytes;
+	int ret;
+
+	if (!translator.tqx_ready || !translator.tqx_slices_ready)
+		return -EOPNOTSUPP;
+	if (translator.fire_pending) {
+		if (translator.fire_fence &&
+		    !dma_fence_is_signaled(translator.fire_fence))
+			return -EBUSY;
+		if (translator.fire_fence) {
+			dma_fence_put(translator.fire_fence);
+			translator.fire_fence = NULL;
+		}
+	}
+	(void)dst_binding;
+	ret = pvr_submit3_locate_dst(file, ccb_pmr, &dst, &dst_binding,
+				     &rect, prog, sizeof(prog), &surf);
+	if (ret)
+		return ret;
+	bytes = (u64)rect.width * rect.height * MT_TRANSFER_PIXEL_BYTES;
+	if (!bytes || bytes > MT_TQX_SCRATCH_BYTES)
+		return -E2BIG;
+	ret = mt_tqx_topology_from_info(&cores, &d->gem.profile,
+					(void *)d->state.info, PAGE_SIZE);
+	if (ret || cores != d->gem.tqx_cores)
+		return ret ? ret : -EINVAL;
+	fill_ws = kvzalloc(sizeof(*fill_ws), GFP_KERNEL);
+	if (!fill_ws)
+		return -ENOMEM;
+	fi = (struct mt_tqx_fill_input){
+		.destination_va = MT_TQX_SCRATCH_VA,
+		.command_va = MT_TQX_CMD_VA,
+		.element_bytes = MT_TRANSFER_PIXEL_BYTES,
+		.width = rect.width, .height = rect.height,
+		.x = 0, .y = 0, .rect_width = rect.width,
+		.rect_height = rect.height,
+		.color = { rect.color, 0, 0, 0 },
+	};
+	bos[0] = &translator.tqx_cmd;
+	bos[1] = &translator.tqx_scratch;
+	bos[2] = &translator.tqx_dma;
+	bos[3] = &translator.tqx_state;
+	WRITE_ONCE(pvr_translator_upload_dev, d);
+	mutex_lock(d->shared_boot.buffers->lock);
+	ret = mt_tqx_fill_work_prepare(&work, fill_ws, &upload,
+			&d->shared_boot, &d->gem.profile, cores,
+			&translator.tqx_context, bos, &fi, MT_TQX_DMA_VA,
+			MT_TQX_STATE_VA);
+	mutex_unlock(d->shared_boot.buffers->lock);
+	WRITE_ONCE(pvr_translator_upload_dev, NULL);
+	kvfree(fill_ws);
+	if (ret) {
+		if (work.context)
+			WARN_ON(mt_tqx_work_cancel(&work));
+		return ret;
+	}
+	mutex_lock(&d->state.trial_lock);
+	d->markers.ready = true;
+	d->markers.work_ready = true;
+	ret = d->markers.ops->submit_tqx_work(&d->markers, &work, &fence);
+	d->markers.work_ready = false;
+	d->markers.ready = false;
+	mutex_unlock(&d->state.trial_lock);
+	if (ret) {
+		if (work.context)
+			WARN_ON(mt_tqx_work_cancel(&work));
+		return ret;
+	}
+	translator.fire_fence = fence;
+	translator.fire_color = rect.color;
+	translator.fire_pixels = rect.width * rect.height;
+	translator.fire_seq = ++translator.seq;
+	translator.fire_pending = true;
+	INIT_WORK(&translator.fire_work, pvr_translator_fire_work);
+	schedule_work(&translator.fire_work);
+	pr_info("mt_pvr_bridge: fire seq=%llu: submitted pixels=%u color=%#x\n",
+		(unsigned long long)translator.fire_seq,
+		translator.fire_pixels, translator.fire_color);
+	return 0;
+}
+
+static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
+					const struct mt_pvr_tdm_submit3_in *in,
+					u64 ccb_pmr)
+{
+	struct mt_pvr_pmr *dst = NULL;
+	struct mt_pvr_binding *dst_binding = NULL;
+	struct mt_transfer_surface surf = { 0 };
+	struct mt_transfer_fill_rect rect;
+	u8 prog[sizeof(struct mt_tqx_fill_image)];
+	u64 phash = 1469598103934665603ULL;
+	u32 k;
+	int ret;
+
+	ret = pvr_submit3_locate_dst(file, ccb_pmr, &dst, &dst_binding,
+				     &rect, prog, sizeof(prog), &surf);
+	if (ret) {
+		if (ret == -EOPNOTSUPP)
+			pr_info("mt_pvr_bridge: submit3 dry-run: no parsed pool\n");
+		return ret;
+	}
+	(void)dst_binding;
 	for (k = 0; k < sizeof(prog); k++) {
 		phash ^= prog[k];
 		phash *= 1099511628211ULL;

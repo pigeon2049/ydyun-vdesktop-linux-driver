@@ -77,7 +77,9 @@ class TdmSubmit3Observe(unittest.TestCase):
                          r'pvr_submit3_transfer_dry_run')
 
     def test_dry_run_builds_but_never_submits(self):
-        body = fn_body(self.src, 'pvr_submit3_transfer_dry_run')
+        # r267: locate+build live in the shared helper; dry-run only
+        # digests.
+        body = fn_body(self.src, 'pvr_submit3_locate_dst')
         for token in ('mt_transfer_pool_parse', 'mt_transfer_fill_rect',
                       'mt_tqx_fill_build'):
             self.assertIn(token, body)
