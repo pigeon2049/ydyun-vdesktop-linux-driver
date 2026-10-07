@@ -46,3 +46,14 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，和 STATUS/§12 活页有差异；留待快照刷新 pass 一并校正。
 
 ---
+
+---
+
+## 本次会话进展（r198：无 poke AppHint 初始化并追到 SubmissionCmdGenerate）
+
+- 零硬件触碰（fabricated）。同版 UMD 通过临时 `musa.ini` 将 `PerfCountEndCbID=0` 初始化到 render context；无对象内存 poke。GFX 越过 `RGXPrepareTA`，但在 `SubmissionCmdGenerate` 因首参为空 SIGSEGV；109 trace 行无 `0x82:0x14`。不宣称 update helper 已动态复验。
+- 证据：`reports/r198-gfx-apphint-replay.md` + trace。新发现 `+0x24` AppHint 字段同时参与 PrepareTA context 状态表索引；update-list count 的 `+0x24` 属于另一个新分配对象。
+- 下一步按 r199 指令核对结果，GDB 逐级确认 kick 输入和 allocator 对象是否对应；会话保持 freeze。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，和 STATUS/§12 活页有差异；留待快照刷新 pass 一并校正。
+
+---

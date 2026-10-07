@@ -17,3 +17,8 @@ r198 在 `SubmissionCmdGenerate` 入口看到首参为 0；同 SHA UMD 指令显
 以上定位了指针来源及候选初始化者，没有证明 r198 的 kick 输入 `+0x28` 应当等于 render-context 句柄，也没有证明把它补齐后 `RGXKickGfx` 可以走到 update helper。继续使用 AppHint 初始化，不改写 render-context 内存；在 GDB 断点处逐级读取：kick `+0x28`、其指向对象 `+0x200`、kick `+0x2d8`、由 `RGXCreateRenderContext` 返回的对象 `+0x200`。对齐链条后再用合法输入重放并观察 `SubmissionSetUpdateSyncPrim` 与 fabricated bridge trace。全程保持活会话 freeze。
 
 零硬件触碰；本轮无代码改动、无动态重放、未运行测试套件。
+
+
+## 补充（r200）
+
+r200 fabricated 创建实测 render context `+0x200` allocator 与 `+0x318` SubmissionHead 都非空，印证构造器输出；这仍未证明 r198 的 kick 输入 `+0x28` 指向该 context。见 [`r200-renderctx-allocator.md`](r200-renderctx-allocator.md) + trace。
