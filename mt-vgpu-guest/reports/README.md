@@ -251,6 +251,8 @@
 | r297 | submit3 update 回写离线实现（零硬件触碰）：opt-in bump（UMD 自值/两遍/大声失败）；门禁 7 项 + 反向；373+292 全绿，W=1 零警告；未加载 |
 | r298 | bump 首跑被拒 -95（批准执行）：某 update 柄无 CPU 可见内存；hang/abort 因果模型再添一证；L3 双绿，窗口零新增 WARN |
 | r299 | bump 满足 UMD 越过 submit3（批准执行）：sync=0x1029 写 1，UMD 等待即过，止于像素比对（执行缺口）；同窗口热修复；L3 双绿 |
+| r300 | fire-into-destination 离线设计与实现（零硬件触碰）：work 验拷 + handler 等 fire 再 bump（60s 可中断）；门禁 +5；378+292 全绿，W=1 零警告；未加载 |
+| r301 | fire-into-destination 首验（批准执行）：执行落地但像素仍差（候选：错池/stride/错色）；尾块 span 修；L3 双绿，窗口零新增 WARN |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |

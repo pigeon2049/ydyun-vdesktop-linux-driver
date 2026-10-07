@@ -463,6 +463,9 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r301 落池首验（批准执行）**：五开两发——首发尾块 span bug（排序正确拒 bump）；复打 `fired=1 ... todst=1` + bump，UMD 仍像素 FAIL（候选错池/stride/错色，r302 离线判）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r301-dstfire-live.md` + 双 `.jsonl`/双 stdout。
+- **r300 落池设计（离线）**：work 验拷 + handler 等 fire 再 bump；门禁 +5；378+292 全绿，W=1 零警告。见 `reports/r300-dstfire-design.md`。
+
 - **r299 越过 submit3（批准执行）**：诊断 `entry 1 sync=0x0`（NULL 填充）→ 双遍跳过修 → 复打 `update=2 first_sync=0x1029 first_val=1`，UMD 等待即过、止于像素比对（exit=1 干净）；剩余缺口 = fire 写 UMD 目的池。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r299-bump-unblocks.md` + `.jsonl`。
 
 - **r298 bump 被拒（批准执行）**：`=2` + bump 窗口首跑 `submit3 bump refused: -95`（某 update 柄无 CPU 可见内存），UMD 即时 abort（hang/abort 因果再证）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r298-bump-refused.md` + `.jsonl`。
