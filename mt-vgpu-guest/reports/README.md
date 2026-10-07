@@ -228,6 +228,7 @@
 | r274 | fire 活体失败：DM prepare 先倒（-22 重现，slices/fire 未达）；分项打印下轮定位 |
 | r275 | fail_at 定位到 bind_boot_shared（1856 行）+ teardown WARNING 修复（未 INIT work）；待复验 |
 | r276 | WARNING 修复验证：INIT 前移到 prepare 入口，失败路径 teardown 干净（零 WARNING）；bind 细分另案 |
+| r277 | bind 黑盒未打开：细分打印全无新行，-22 仍在 bind_boot_shared 内；新打印行缺失未解 |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |

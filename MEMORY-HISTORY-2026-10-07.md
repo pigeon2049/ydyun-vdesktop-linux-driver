@@ -634,3 +634,10 @@
 - 遗留：bind 内部分项定位；WARNING 复验。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r276：WARNING 修复验证，批准执行）
+
+- WARNING 真条件定位（prepare 失败路径 teardown）+ 修复前移后重验：三开 blit 必失败路径后零 WARNING；fail_at 行号+6 机制自证。门禁 +1；`check-offline` 351 OK；`make kernel` 零警告。拆桥干净，默认 + L3 全绿。详见 `reports/r276-warning-fixed.md`。
+- **Freeze 已恢复。**
+- 遗留：bind 内部分项定位。USB 短页标题日期问题留待对应轮。
+
+---
