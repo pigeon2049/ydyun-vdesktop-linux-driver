@@ -1612,6 +1612,12 @@ struct mt_pvr_translator {
 	bool tqx_ready;
 	struct mt_execution_context tqx_context;
 	struct mt_bo tqx_cmd, tqx_dma, tqx_state;
+	/* Scratch stream Bos for the slices prepare (r263): bound before
+	 * the seal alongside the other TQX Bos (a sealed space refuses
+	 * binds); released at teardown. Their VM bindings die with the
+	 * space.
+	 */
+	struct mt_bo tqx_tmp_src, tqx_tmp_dst;
 	/* Pool slices for the TQX context (r261): filled by a one-shot
 	 * copy prepare during bring-up so a later fill submission finds
 	 * its shader/PDS storage ready. Non-fatal: DM bring-up stays up
@@ -1779,6 +1785,10 @@ static void pvr_translator_teardown_locked(void)
 		WARN_ON(mt_bo_put(&translator.tqx_dma));
 	if (translator.tqx_state.refs)
 		WARN_ON(mt_bo_put(&translator.tqx_state));
+	if (translator.tqx_tmp_dst.refs)
+		WARN_ON(mt_bo_put(&translator.tqx_tmp_dst));
+	if (translator.tqx_tmp_src.refs)
+		WARN_ON(mt_bo_put(&translator.tqx_tmp_src));
 	{
 		u32 i;
 
@@ -1923,6 +1933,45 @@ static int pvr_translator_prepare_locked(void)
 				goto out;
 			}
 		}
+		/* Scratch stream Bos for the slices prepare below (r263):
+		 * must bind before the seal like the rest.
+		 */
+		ret = mt_bo_create(&translator.tqx_tmp_src, d->buffers.ops,
+				   &d->buffers, MT_TQX_STREAM_SLOT_BYTES,
+				   PAGE_SIZE);
+		if (ret) {
+			pr_info("mt_pvr_bridge: tqx bring-up: tmp alloc: %d\n",
+				ret);
+			goto out;
+		}
+		ret = mt_bo_create(&translator.tqx_tmp_dst, d->buffers.ops,
+				   &d->buffers, MT_TQX_STREAM_SLOT_BYTES,
+				   PAGE_SIZE);
+		if (ret) {
+			pr_info("mt_pvr_bridge: tqx bring-up: tmp alloc: %d\n",
+				ret);
+			goto out;
+		}
+		ret = d->address_spaces.ops->bind(translator.space,
+						  &translator.tqx_tmp_src,
+						  MT_TQX_STREAM_SRC_VA, 0,
+						  MT_TQX_STREAM_SLOT_BYTES,
+						  MT_GPU_MAP_DEFAULT);
+		if (ret) {
+			pr_info("mt_pvr_bridge: tqx bring-up: tmp bind: %d\n",
+				ret);
+			goto out;
+		}
+		ret = d->address_spaces.ops->bind(translator.space,
+						  &translator.tqx_tmp_dst,
+						  MT_TQX_STREAM_DST_VA, 0,
+						  MT_TQX_STREAM_SLOT_BYTES,
+						  MT_GPU_MAP_DEFAULT);
+		if (ret) {
+			pr_info("mt_pvr_bridge: tqx bring-up: tmp bind: %d\n",
+				ret);
+			goto out;
+		}
 	}
 	for (off = 0; off < MT_GFX_LINUX_PACKET_BYTES;) {
 		chunk = MT_GFX_LINUX_PACKET_BYTES - off;
@@ -1981,6 +2030,7 @@ static int pvr_translator_prepare_locked(void)
 	 * was the -22: !p->store). Bos are already bound; completing here.
 	 */
 	if (translate_tqx_ctx) {
+		pr_info("mt_pvr_bridge: tqx bring-up: enter ctx block\n");
 		ret = mt_execution_context_create(&translator.tqx_context,
 						  &translator.process, 1, 0);
 		if (ret) {
@@ -1988,7 +2038,9 @@ static int pvr_translator_prepare_locked(void)
 				ret);
 			goto out;
 		}
+		pr_info("mt_pvr_bridge: tqx bring-up: before slices\n");
 		pvr_translator_tqx_slices(d);
+		pr_info("mt_pvr_bridge: tqx bring-up: after slices\n");
 		translator.tqx_ready = true;
 	}
 	translator.owner = owner;
@@ -2111,7 +2163,6 @@ static void pvr_translator_tqx_slices(struct mt_guest_device *d)
 			   .va = {MT_TQX_CMD_VA}},
 		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA,
 	};
-	struct mt_bo tmp_src = { 0 }, tmp_dst = { 0 };
 	struct mt_bo *bos[5];
 	u32 cores;
 	int ret;
@@ -2123,32 +2174,14 @@ static void pvr_translator_tqx_slices(struct mt_guest_device *d)
 			ret, cores);
 		return;
 	}
-	ret = mt_bo_create(&tmp_src, d->buffers.ops, &d->buffers,
-			   MT_TQX_STREAM_SLOT_BYTES, PAGE_SIZE);
-	if (ret)
-		return;
-	ret = mt_bo_create(&tmp_dst, d->buffers.ops, &d->buffers,
-			   MT_TQX_STREAM_SLOT_BYTES, PAGE_SIZE);
-	if (ret)
-		goto put_tmp;
-	ret = d->address_spaces.ops->bind(translator.space, &tmp_src,
-					  MT_TQX_STREAM_SRC_VA, 0,
-					  MT_TQX_STREAM_SLOT_BYTES,
-					  MT_GPU_MAP_DEFAULT);
-	if (ret)
-		goto put_tmp;
-	ret = d->address_spaces.ops->bind(translator.space, &tmp_dst,
-					  MT_TQX_STREAM_DST_VA, 0,
-					  MT_TQX_STREAM_SLOT_BYTES,
-					  MT_GPU_MAP_DEFAULT);
-	if (ret)
-		goto put_tmp;
 	workspace = kvzalloc(sizeof(*workspace), GFP_KERNEL);
-	if (!workspace)
-		goto put_tmp;
+	if (!workspace) {
+		pr_info("mt_pvr_bridge: tqx slices: workspace -ENOMEM\n");
+		return;
+	}
 	bos[0] = &translator.tqx_cmd;
-	bos[1] = &tmp_src;
-	bos[2] = &tmp_dst;
+	bos[1] = &translator.tqx_tmp_src;
+	bos[2] = &translator.tqx_tmp_dst;
 	bos[3] = &translator.tqx_dma;
 	bos[4] = &translator.tqx_state;
 	WRITE_ONCE(pvr_translator_upload_dev, d);
@@ -2167,11 +2200,6 @@ static void pvr_translator_tqx_slices(struct mt_guest_device *d)
 	} else {
 		pr_info("mt_pvr_bridge: tqx slices: prepare %d\n", ret);
 	}
-put_tmp:
-	if (tmp_dst.refs)
-		WARN_ON(mt_bo_put(&tmp_dst));
-	if (tmp_src.refs)
-		WARN_ON(mt_bo_put(&tmp_src));
 }
 
 /* Submit one empty marker tagged with seq. translator_lock and trial_lock

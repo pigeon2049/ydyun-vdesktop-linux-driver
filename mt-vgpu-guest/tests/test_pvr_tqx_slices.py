@@ -67,6 +67,17 @@ class TqxSlicesBringup(unittest.TestCase):
             self.assertNotIn(token, self.body,
                              'slices prepare must not submit or wait')
 
+    def test_scratch_bound_before_seal(self):
+        # r263: binding after the seal is refused; the scratch stream
+        # Bos join the pre-seal TQX bind block, not the slices helper.
+        src = code()
+        self.assertIn('translator.tqx_tmp_src', src)
+        self.assertIn('translator.tqx_tmp_dst', src)
+        self.assertNotIn('mt_bo_create(&tmp_src', self.body)
+        teardown = fn_body(src, 'pvr_translator_teardown_locked')
+        self.assertIn('mt_bo_put(&translator.tqx_tmp_dst)', teardown)
+        self.assertIn('mt_bo_put(&translator.tqx_tmp_src)', teardown)
+
 
 if __name__ == '__main__':
     unittest.main()
