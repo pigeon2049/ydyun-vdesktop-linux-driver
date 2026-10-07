@@ -160,3 +160,11 @@
 - 遗留：USB/画面线短页 `docs/PROGRESS.md` 标题日期仍为 2026-10-03；本轮是 vGPU 任务，留待对应短页刷新轮处理。
 
 ---
+## 本次会话进展（r211：活体会話重建，批准执行）
+
+- 本机重启进 `6.12.111`，旧 r166 会话消失（`00:0e.0` 无绑定、无模块在载）。用户批准真机测试后重建：`cold_disconnect finish=0/1` 均 rings idle、`guest=0 firmware=1`、双 clean rmmod；`fresh-trial.py --run --runtime-context` rc=0，新 trial `20261007T040408Z-f3fb55af`（firmware sha `35d40f75…` 与 r138/r166 一致，Guest/FW `2/2` pinned，ref 1）。
+- `mt_pvr_bridge.ko` 默认参数加载（`card1`/`renderD128`，ref 0）；L3 全绿（node 0 failing/0 mismatch，dma smoke PASS，refs 1→2→1，无 GPU 提交）；dmesg 无新增 WARN/BUG/Oops。`make kernel` + `kernel/recovery` W=1 零警告。
+- **Freeze 即刻生效**：不 rmmod、不 unbind、不提交额外工作。详见 `reports/r211-session-rebuild.md`。
+- 遗留：真实绘制 CCB 活体验证（STATUS 下一步 #1）与 update 语义活体验证（#2）仍待真实 DDK2 render backend 接线；r210 fabricated CCB 仍是离线字节。USB/画面线短页标题日期仍为 2026-10-03，留待对应轮处理。
+
+---

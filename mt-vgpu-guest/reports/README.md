@@ -167,6 +167,7 @@
 | r210 | 恢复 fabricated GFX producer，首次保存 0x4700 UMD 原始 CCB 字节；check/update sync helper 均成功，执行语义仍未验证 |
 | r211 | 真机重启后重建活体会話（新 trial `20261007T040408Z-f3fb55af`，Guest/FW 2/2 pinned）；桥默认加载，L3 全绿，dmesg 干净，freeze 生效 |
 | r212 | 新会话 legacy check-only 复验通过（`translate_kick=1`，真实 DM2 空 marker，tag=1 fence=1）；拆桥干净、probe ref 回 1，trace 已入库 |
+| r213 | 新会话 DDK2 check-only 复验通过（`=2` + `translate_kick=1`，`0x82:0x12`/`0x88:0x5`/`0x88:0x4` 全 0，fence=2）；首跑复现 r144 `b5*` 间接教训，修正后即绿 |
 
 ## 关键单篇（本轮最常用）
 
