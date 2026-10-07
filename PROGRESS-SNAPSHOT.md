@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r241 10 轮混合 soak（批准执行）**：同窗口 10/10 通过，0.10–0.20ms/轮（prepare 常驻复用，快约 300 倍）；tag=3..22、fence=20..39 无跳号；零 WARN。拆桥干净，默认 + L3 全绿。见 `reports/r241-soak-live.md`。
+- **r240 短预算下匹配腿（批准执行）**：`translate_wait_ms=1000` 下预置匹配 36.6ms 即过（预算只限等待）；fence=18/19；同窗口续跑 soak。见 `reports/r240-shortbudget-match.md`。
 - **r239 等待预算参数（批准执行）**：`translate_wait_ms=1000` 下失配 kick 1.008s 后 UMD 37（与 5s 的 5.007s 同构）；预算成比例生效；无 marker。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r239-waitms-live.md`。
 - **r238 定界活体验证（批准执行）**：超窗 2MiB → `-EINVAL`、野 index `0xFFFFFFFF` → `-ERANGE`，24 项全过；安全定界真实生效。工具加负向双测 + 门禁 +1；`check-offline` 327 Python OK。**Freeze 继续。**见 `reports/r238-bounds-live.md`。
 - **r237 多文件并发（批准执行）**：默认桥上双 ping 并行双 PASS；dmesg 6 行齐、各自独立句柄，同 VA 零串扰；per-file 隔离成立。事后 L3 全绿。无代码改动。见 `reports/r237-concurrent-live.md`。
