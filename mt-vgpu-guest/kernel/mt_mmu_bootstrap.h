@@ -157,6 +157,9 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 		for (j = 0; j < ranges[i].size / 4096; j++) {
 			u64 pa = list ? list[j] : ranges[i].pa + j * 4096ULL;
 			if (pa < table_pa + pages * 4096ULL && table_pa < pa + 4096) {
+				pr_info("mt_mmu: build_pages overlap i=%u j=%u pa=%#llx tpa=%#llx pages=%u\n",
+					i, j, (unsigned long long)pa,
+					(unsigned long long)table_pa, pages);
 				ret = -EINVAL;
 				goto out;
 			}

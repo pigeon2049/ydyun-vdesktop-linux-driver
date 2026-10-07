@@ -26,8 +26,10 @@ static inline int mt_process_resources_bind_pools(struct mt_gpu_vm *vm,
 	struct mt_guest_pool_spec specs[MT_GUEST_POOL_COUNT];
 	struct mt_vm_binding bindings[MT_PROCESS_SHARED_COUNT + MT_GUEST_POOL_COUNT];
 	u32 i, count = 0;
-	if (!vm || !bo)
+	if (!vm || !bo) {
+		pr_info("mt_gpu_vm: bind_pools fail args\n");
 		return -EINVAL;
+	}
 	if (!profile || profile->family != 2 || profile->transfer_version != 1)
 		return -EOPNOTSUPP;
 	mt_guest_plan_heaps(&plan);

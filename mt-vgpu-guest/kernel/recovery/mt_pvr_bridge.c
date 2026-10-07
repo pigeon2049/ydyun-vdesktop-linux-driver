@@ -1865,6 +1865,7 @@ static int pvr_translator_prepare_locked(void)
 		translator.space->vm.capacity);
 	ret = d->address_spaces.ops->bind_boot_shared(translator.space,
 						       &d->gem.profile);
+	pr_info("mt_pvr_bridge: bind_boot_shared ret=%d\n", ret);
 	if (ret)
 		{ fail_at = __LINE__; goto out; }
 	ret = mt_bo_create(&translator.command, d->buffers.ops, &d->buffers,

@@ -121,13 +121,19 @@ static inline int mt_boot_bo_bind(struct mt_boot_bo_store *s,
 				mt_bo_system_borrow(&b->bo, s->buffers, s->paging_command) :
 				mt_bo_vram_borrow(&b->bo, s->buffers, i < MT_PROCESS_SHARED_COUNT ?
 					&s->boot->blocks[indices[i]] : &s->pools->blocks[i - MT_PROCESS_SHARED_COUNT]);
-			if (ret) { kfree(b); goto put; }
+			if (ret) {
+				pr_info("mt_boot: borrow slot %u failed: %d\n", i, ret);
+				kfree(b);
+				goto put;
+			}
 			b->slot = &s->slots[i];
 			b->bo.release = mt_boot_bo_release;
 			bo[i] = s->slots[i] = &b->bo;
 		}
 	}
 	ret = mt_process_resources_bind_pools(vm, profile, bo, bo + MT_PROCESS_SHARED_COUNT);
+	if (ret)
+		pr_info("mt_boot: bind_pools failed: %d\n", ret);
 put:
 	for (i = 0; i < MT_BOOT_BO_COUNT; i++)
 		if (bo[i])

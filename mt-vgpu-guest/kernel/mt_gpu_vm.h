@@ -184,8 +184,10 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 {
 	u32 total, pages, i, j;
 	int ret;
-	if (!vm || !vm->tables || !bindings || !count)
+	if (!vm || !vm->tables || !bindings || !count) {
+		pr_info("mt_gpu_vm: bind_many fail args at %d\n", __LINE__);
 		return -EINVAL;
+	}
 	if (vm->sealed || vm->active_uses)
 		return -EBUSY;
 	/* Reject an unrepresentable total before touching any state. */
@@ -200,8 +202,10 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 		struct mt_bo *bo = b->bo;
 		u64 va_end;
 		if (!bo || !bo->refs || bo == vm->tables || !b->bytes ||
-		    ((b->va | b->offset | b->bytes) & 4095) || (b->flags & ~0x1fU))
+		    ((b->va | b->offset | b->bytes) & 4095) || (b->flags & ~0x1fU)) {
+			pr_info("mt_gpu_vm: bind_many fail valid at %d: idx=%u\n", __LINE__, i);
 			return -EINVAL;
+		}
 		if (bo->store != vm->tables->store || bo->ops != vm->tables->ops)
 			return -EXDEV;
 		ret = mt_bo_check_range(bo, b->offset, b->bytes);
@@ -211,13 +215,19 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 			u64 pa = bo->page_pa ? bo->page_pa[(b->offset + j) / 4096] :
 				bo->backing.gpu_pa + b->offset + j;
 			if (pa < vm->tables->backing.gpu_pa + vm->capacity &&
-			    vm->tables->backing.gpu_pa < pa + 4096)
+			    vm->tables->backing.gpu_pa < pa + 4096) {
+				pr_info("mt_gpu_vm: bind_many fail overlap at %d: idx=%u pa=%#llx tpa=%#llx cap=%u\n",
+					__LINE__, i, (unsigned long long)pa,
+					(unsigned long long)vm->tables->backing.gpu_pa, vm->capacity);
 				return -EINVAL;
+			}
 		}
 		/* Same acceptance as the planner's own range preflight, so hoisting
 		 * these checks here cannot change which errno a caller observes. */
-		if (b->va >= (1ULL << MT_GPU_VA_BITS))
+		if (b->va >= (1ULL << MT_GPU_VA_BITS)) {
+			pr_info("mt_gpu_vm: bind_many fail varange at %d: idx=%u\n", __LINE__, i);
 			return -EINVAL;
+		}
 		if (b->bytes > (1ULL << MT_GPU_VA_BITS) - b->va)
 			return -ERANGE;
 		va_end = b->va + b->bytes;
@@ -240,6 +250,12 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 		vm->bindings[vm->count + i] = bindings[i];
 	/* plan() reads the full range array; the tail is the staged batch. */
 	ret = mt_gpu_vm_plan(vm, vm->bindings, total, &pages);
+	if (ret)
+		pr_info("mt_gpu_vm: bind_many plan failed: %d total=%u\n",
+			ret, total);
+	if (ret)
+		pr_info("mt_gpu_vm: bind_many plan failed: %d (total=%u)\n",
+			ret, total);
 	if (ret)
 		return ret;
 	for (i = 0; i < count; i++) {
