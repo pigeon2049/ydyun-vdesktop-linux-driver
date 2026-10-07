@@ -590,3 +590,9 @@
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r269：Guest 地址收敛，零硬件触碰）
+
+- 开工声明零硬件触碰。用户纠正落实：info 解码得 1GiB 配额（纠正 90MB 误读）；BAR2/SEG5 字面量收敛到新宏（堆表字面量保持设计，1G 配额内核未消费）。门禁 2 项（含反向）；`check-offline` 346+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r269-guest-addrs.md`。
+- 遗留：fire 函数（离线）；fired/verified 活体。USB 短页标题日期问题留待对应轮。
+
+---
