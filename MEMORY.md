@@ -11,9 +11,8 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r264：重启后重建，批准执行）
+## 本次会话进展（r265：锁序修复，零硬件触碰）
 
-- r263 死锁重启后按 r211 流程重建：cold 0/1 双 clean；新 trial `20261007T131341Z-3b9ae877`（Guest/FW 2/2 pinned，ref 1）；默认桥（`card1`/`renderD128`，ref 0）；L3 全绿；dmesg 干净。在载桥是 r263 含死锁构建，默认参数下 slices 路径休眠。详见 `reports/r264-session-rebuild.md`。
-- **Freeze 即刻生效。**
-- 遗留：锁序修复（离线）；slices 重验；fire 函数。USB 短页标题日期问题留待对应轮。
+- 开工声明零硬件触碰。r263 死锁修复：bring-up 在 slices 前后分段放/取 trial_lock；translator_lock 防重入（走查三调用点全持）。门禁 +1 顺序断言（含反向）；`check-offline` 335+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r265-lockorder-fix.md`。
+- 遗留：slices 重验（批准执行）；fire 函数。USB 短页标题日期问题留待对应轮。
 ---
