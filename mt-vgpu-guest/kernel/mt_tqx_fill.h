@@ -63,4 +63,39 @@ static inline int mt_tqx_fill_build(void *out, u32 capacity,
 	memcpy(out, &next, sizeof(next));
 	return 0;
 }
+
+/* Scan a generated command window for a 4B TQX destination block (r304):
+ * magic {0x40000005, swizzle 0x2da100} at +0/+4 plus 0xb8000000 at +40
+ * anchors the block (see mt_tqx_destination_build: 4B selects format
+ * 0x168000); the VA rides at +28 (low) with its high bits OR'd into the
+ * format word at +32. VA is 40-bit (MT_GPU_VA_BITS), so the high part
+ * (<=0xff) can never collide with format bits (>=16): extraction is
+ * exact. Byte-exact against mt_tqx_fill_build output, whose layout the
+ * UMD generator reproduces (r157 byte match). Returns 0 with *va_out,
+ * -ENOENT when no anchored block is found, -EINVAL on bad pointers.
+ */
+static inline int mt_ccb_find_dst_va(const void *win, u32 bytes, u64 *va_out)
+{
+	u32 i;
+
+	if (!win || !va_out)
+		return -EINVAL;
+	for (i = 0; i + 76 <= bytes; i += 4) {
+		u32 w0, w1, wlo, wfmt, w40;
+		const u8 *p = (const u8 *)win + i;
+
+		memcpy(&w0, p + 0, sizeof(w0));
+		memcpy(&w1, p + 4, sizeof(w1));
+		if (w0 != 0x40000005U || w1 != 0x2da100U)
+			continue;
+		memcpy(&w40, p + 40, sizeof(w40));
+		if (w40 != 0xb8000000U)
+			continue;
+		memcpy(&wlo, p + 28, sizeof(wlo));
+		memcpy(&wfmt, p + 32, sizeof(wfmt));
+		*va_out = ((u64)(wfmt & ~0x168000U) << 32) | wlo;
+		return 0;
+	}
+	return -ENOENT;
+}
 #endif

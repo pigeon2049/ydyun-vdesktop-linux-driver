@@ -372,7 +372,7 @@ static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
 					u64 ccb_pmr);
 static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 				     struct mt_guest_device *d,
-				     u64 ccb_pmr);
+				     u64 ccb_pmr, u64 force_pmr);
 static void pvr_translator_fire_work(struct work_struct *ws);
 
 /* Declared here because pvr_file_release() below drops the PMRs' list
@@ -3496,6 +3496,7 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 	struct mt_pvr_pmr *pmr = NULL;
 	u64 end, off, i, nonzero = 0, first = 0;
 	u64 hash = 1469598103934665603ULL;
+	u64 ccbdst_pmr = 0;
 	u8 head[64];
 	u32 head_len = 0;
 	bool have_ctx = false;
@@ -3559,6 +3560,38 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 		(unsigned long long)binding->pmr,
 		(unsigned long long)nonzero, (unsigned long long)first,
 		(unsigned long long)hash, head_len, head);
+	/* CCB destination scan (r304): the UMD-named destination VA,
+	 * matched against pool bindings. Deterministic attribution for
+	 * fire; the best-heuristic below stays for dry-run comparability.
+	 */
+	{
+		u64 dst_va = 0;
+		struct mt_pvr_binding *db;
+		u64 dst_pmr = 0;
+
+		if (!mt_ccb_find_dst_va((const u8 *)pmr->host + off,
+					in.ccb_bytes, &dst_va)) {
+			list_for_each_entry(db, &file->bindings, link) {
+				struct mt_pvr_object *res =
+					pvr_reservation_find(file,
+							     db->reservation);
+
+				if (!res || res->arg0 > dst_va)
+					continue;
+				if (dst_va - res->arg0 > res->arg1)
+					continue;
+				dst_pmr = db->pmr;
+				break;
+			}
+		}
+		if (dst_pmr)
+			pr_info("mt_pvr_bridge: submit3 ccbdst: va=%#llx pmr=%#llx\n",
+				(unsigned long long)dst_va,
+				(unsigned long long)dst_pmr);
+		else
+			pr_info("mt_pvr_bridge: submit3 ccbdst: none\n");
+		ccbdst_pmr = dst_pmr;
+	}
 	if (translate_transfer) {
 		ret = pvr_submit3_transfer_dry_run(file, &in, binding->pmr);
 		if (ret) {
@@ -3605,7 +3638,8 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 			return -ENODEV;
 		}
 		d = container_of(g, struct mt_guest_device, state);
-		ret = pvr_submit3_transfer_fire(file, d, binding->pmr);
+		ret = pvr_submit3_transfer_fire(file, d, binding->pmr,
+						ccbdst_pmr);
 		module_put(owner);
 		mutex_unlock(&translator_lock);
 		if (ret) {
@@ -3748,11 +3782,14 @@ static int pvr_cmd_kickta3d5_observe(struct mt_pvr_file *file,
  * guessing. file->lock held; must not take it again.
  */
 /* Locate the destination pool and build the fill program (r267): shared
- * by dry-run (digest only) and live fire (submit). Returns the dst PMR,
- * its binding, the rect, and the built program. Caller logs.
+ * by dry-run (digest only) and live fire (submit). force_pmr selects the
+ * pool deterministically (r304: CCB-derived destination); 0 keeps the
+ * best-heuristic. Returns the dst PMR, its binding, the rect, and the
+ * built program. Caller logs.
  */
 static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 				  u64 ccb_pmr,
+				  u64 force_pmr,
 				  struct mt_pvr_pmr **dst_out,
 				  struct mt_pvr_binding **binding_out,
 				  struct mt_transfer_fill_rect *rect_out,
@@ -3766,6 +3803,23 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 	struct mt_tqx_fill_input fi;
 	u64 best = 0, best_nz = 0;
 	int ret;
+
+	if (force_pmr) {
+		dst = pvr_pmr_find(file, force_pmr);
+		if (!dst || dst->handle == ccb_pmr || !dst->host ||
+		    dst->bytes < (1ULL << 20) ||
+		    mt_transfer_pool_parse(dst->host, dst->bytes, &surf))
+			return -ENODATA;
+		list_for_each_entry(b, &file->bindings, link) {
+			if (b->pmr == dst->handle) {
+				dst_binding = b;
+				break;
+			}
+		}
+		if (!dst_binding)
+			return -ENOENT;
+		goto build;
+	}
 
 	list_for_each_entry(pmr, &file->pmrs, link) {
 		struct mt_transfer_surface cand;
@@ -3799,9 +3853,11 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 		pr_info("mt_pvr_bridge: submit3 dst: no parsed pool\n");
 		return -EOPNOTSUPP;
 	}
-	pr_info("mt_pvr_bridge: submit3 dst: pool=%#llx pixels=%llu color=%#x\n",
-		(unsigned long long)dst->handle, best,
-		surf.color);
+build:
+	pr_info("mt_pvr_bridge: submit3 dst: pool=%#llx pixels=%llu color=%#x forced=%d\n",
+		(unsigned long long)dst->handle,
+		(unsigned long long)surf.pixels,
+		surf.color, force_pmr != 0);
 	ret = mt_transfer_fill_rect(&rect, 0, MT_TRANSFER_PROTO_W,
 				    MT_TRANSFER_PROTO_H, surf.color, surf.pixels);
 	if (ret)
@@ -4029,10 +4085,12 @@ out_free:
  * waits and verifies one chunk at a time. file->lock + translator_lock
  * held; never waits here (r147) and never submits here (submit needs a
  * completed prior fence; pipelining self-blocks, r283) — the work does.
+ * force_pmr (r304: CCB-derived destination, 0 = best-heuristic) selects
+ * the pool deterministically.
  */
 static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 				     struct mt_guest_device *d,
-				     u64 ccb_pmr)
+				     u64 ccb_pmr, u64 force_pmr)
 {
 	struct mt_pvr_pmr *dst = NULL;
 	struct mt_pvr_binding *dst_binding = NULL;
@@ -4050,8 +4108,9 @@ static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 	if (READ_ONCE(translator.fire_running))
 		return -EBUSY;
 	(void)dst_binding;
-	ret = pvr_submit3_locate_dst(file, ccb_pmr, &dst, &dst_binding,
-				     &rect, prog, sizeof(prog), &surf);
+	ret = pvr_submit3_locate_dst(file, ccb_pmr, force_pmr, &dst,
+				     &dst_binding, &rect, prog, sizeof(prog),
+				     &surf);
 	if (ret)
 		return ret;
 	/* Chunked fire (r280): the 256KB scratch cannot hold a full frame
@@ -4112,7 +4171,7 @@ static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
 	u32 k;
 	int ret;
 
-	ret = pvr_submit3_locate_dst(file, ccb_pmr, &dst, &dst_binding,
+	ret = pvr_submit3_locate_dst(file, ccb_pmr, 0, &dst, &dst_binding,
 				     &rect, prog, sizeof(prog), &surf);
 	if (ret) {
 		if (ret == -EOPNOTSUPP)

@@ -144,6 +144,16 @@ class TdmSubmit3Observe(unittest.TestCase):
         self.assertIn('submit3 pool: pmr=', locate)
         self.assertIn('submit3 dst: pool=', locate)
 
+    def test_ccb_derived_destination(self):
+        # r304: the CCB window names the destination VA (anchored
+        # 4B-destination-block scan); fire honors it over the
+        # best-heuristic, dry-run keeps 0 (comparability).
+        self.assertIn('submit3 ccbdst: va=', self.body)
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('force_pmr', locate)
+        self.assertIn('-ENODATA', locate)
+        self.assertIn('ccbdst_pmr', self.body)
+
 
 if __name__ == '__main__':
     unittest.main()

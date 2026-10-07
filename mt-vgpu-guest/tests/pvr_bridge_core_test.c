@@ -507,6 +507,35 @@ static int test_tqx_fill_build_deterministic(void)
 	return 0;
 }
 
+static int test_ccb_find_dst_va_roundtrip(void)
+{
+	/* r304: the CCB destination scan must recover the VA a fill image
+	 * was built with (including nonzero high bits), and refuse a
+	 * zeroed window loudly. Same layout the UMD generator reproduces.
+	 */
+	struct mt_tqx_fill_input fi = {
+		.destination_va = 0x8000a00000ULL, .command_va = 0x48000000ULL,
+		.element_bytes = 4, .width = 1280, .height = 1024,
+		.x = 0, .y = 0, .rect_width = 1280, .rect_height = 1024,
+		.color = { 0xff0000ffU, 0, 0, 0 },
+	};
+	static u8 img[512];
+	u64 va = 0;
+	int i;
+
+	memset(img, 0, sizeof(img));
+	CHECK(mt_tqx_fill_build(img, sizeof(img), &fi) == 0);
+	CHECK(mt_ccb_find_dst_va(img, sizeof(img), &va) == 0);
+	CHECK(va == 0x8000a00000ULL);
+	memset(img, 0, sizeof(img));
+	CHECK(mt_ccb_find_dst_va(img, sizeof(img), &va) != 0);
+	CHECK(mt_ccb_find_dst_va(NULL, sizeof(img), &va) == -EINVAL);
+	for (i = 0; i < 4; i++)
+		img[i] = 0xFF;
+	CHECK(mt_ccb_find_dst_va(img, sizeof(img), &va) != 0);
+	return 0;
+}
+
 int main(void)
 {
 	CHECK(test_wire_offsets() == 0);
@@ -521,6 +550,7 @@ int main(void)
 	CHECK(test_rgx_app_table() == 0);
 	CHECK(test_transfer_fill_parse() == 0);
 	CHECK(test_tqx_fill_build_deterministic() == 0);
+	CHECK(test_ccb_find_dst_va_roundtrip() == 0);
 	printf("pvr_bridge_core_test OK (%d checks)\n", checks);
 	return 0;
 }
