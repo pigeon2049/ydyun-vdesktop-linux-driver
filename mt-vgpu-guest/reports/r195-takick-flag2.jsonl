@@ -1,0 +1,16 @@
+{"seq":1,"tid":4775,"op":"open","path":"/dev/dri/renderD128","fd":5}
+{"seq":2,"tid":4775,"op":"version_probe","fd":5,"ret":0}
+{"seq":3,"tid":4775,"op":"version_claim","fd":5,"name":"mtgpu","ret":0}
+{"seq":4,"tid":4775,"op":"ioctl","fd":5,"req":"0x40046445","init_module":1,"ret":0}
+{"seq":5,"tid":4775,"op":"ioctl","fd":5,"bridge":"0x1:0x0","in_size":16,"out_size":17,"in":"50080080000000000000010020000000","fabricated_zero_out":17,"out_written":"1700600604002300000000000000000000","ret":0}
+{"seq":6,"tid":4775,"op":"ioctl","fd":5,"bridge":"0x1:0x2","in_size":0,"out_size":12,"in":null,"fabricated_zero_out":12,"out_written":"002000000000000000000000","ret":0}
+{"seq":7,"tid":4775,"op":"ioctl","fd":5,"bridge":"0x1:0xf","in_size":0,"out_size":12,"in":null,"fabricated_zero_out":12,"out_written":"001000000000000000000000","ret":0}
+{"seq":8,"tid":4775,"op":"ioctl","fd":5,"bridge":"0x6:0x6","in_size":8,"out_size":28,"in":"0010000000000000","fabricated_zero_out":28,"out_written":"00100000000000000000010000000000011000000000000000000000","ret":0}
+{"seq":9,"tid":4775,"op":"mmap_fabricated","fd":5,"len":65536,"off":"0x1001000","ret":"0x7efe5316b000"}
+{"seq":10,"tid":4775,"op":"ioctl","fd":5,"bridge":"0x86:0x4","in_size":0,"out_size":12,"in":null,"fabricated_zero_out":12,"out_written":"000000000000000000000000","ret":0}
+{"seq":11,"tid":4775,"op":"ioctl","fd":5,"bridge":"0x6:0x6","in_size":8,"out_size":28,"in":"0000000000000000","fabricated_zero_out":28,"out_written":"00100000000000000000010000000000011000000000000000000000","ret":0}
+{"seq":12,"tid":4775,"op":"mmap_fabricated","fd":5,"len":65536,"off":"0x1001000","ret":"0x7efe522f6000"}
+{"seq":13,"tid":4775,"op":"ioctl","fd":5,"bridge":"0x1:0xc","in_size":12,"out_size":16,"in":"000000000000000000000000","fabricated_zero_out":16,"out_written":"00000000000000000000000001000000","ret":0}
+{"seq":14,"tid":4775,"op":"version_probe","fd":5,"ret":0}
+{"seq":15,"tid":4775,"op":"version_claim","fd":5,"name":"mtgpu","ret":0}
+{"seq":16,"tid":4775,"op":"ioctl","fd":5,"bridge":"0x1:0xa","in_size":12,"out_size":4,"in":"00d68452fe7e000027000000","fabricated_zero_out":4,"out_written":"00000000","ret":0}

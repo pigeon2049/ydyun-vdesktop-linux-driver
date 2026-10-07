@@ -149,6 +149,7 @@
 | r192 | TA producer 收敛：harness 可直调导出符号 RGXKickTA（离线 recon；psKickTA 构造待续） |
 | r193 | psKickTA 构造 recon：无铸造函数，以真实 render 上下文为锚手塑（离线；手塑可在 fabricated 下做，r194 已兑现） |
 | r194 | psKickTA 手塑首轮：RGXKickTA 干净返回 3（fabricated 离线；元素偏移纠偏；下步造 flag&2） |
+| r195 | flag&2 手塑仍使 RGXKickTA 返回 3；调用图证实 update producer 是 RGXKickGfx 等入口，下一步转 producer 层（fabricated 离线） |
 
 ## 关键单篇（本轮最常用）
 
