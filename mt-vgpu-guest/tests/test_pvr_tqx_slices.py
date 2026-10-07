@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Gate the TQX pool-slices bring-up complement (r261).
+
+When translate_tqx_ctx builds the flavor-1 context, bring-up must also
+fill its pool slices with a one-shot copy prepare (non-fatal: DM stays
+up on failure; fire checks tqx_slices_ready). Teardown must release
+the slices before destroying the context. The upload path needs a BO
+read mirror of the write path.
+"""
+import re
+import unittest
+from pathlib import Path
+
+SOURCE = Path(__file__).resolve().parents[1] / 'kernel/recovery/mt_pvr_bridge.c'
+
+
+def code():
+    text = SOURCE.read_text()
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+    return re.sub(r'//[^\n]*', '', text)
+
+
+def fn_body(src, name):
+    m = re.search(r'static (?:int|void) %s\([^;]*\)\s*\{(.*?)^}' % re.escape(name),
+                  src, re.S | re.M)
+    assert m, '%s definition not found' % name
+    return m.group(0)
+
+
+class TqxSlicesBringup(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.src = code()
+        cls.body = fn_body(cls.src, 'pvr_translator_tqx_slices')
+
+    def test_slices_filled_after_context(self):
+        prep = fn_body(self.src, 'pvr_translator_prepare_locked')
+        self.assertRegex(prep,
+                         r'mt_execution_context_create\(&translator\.tqx_context[\s\S]*?'
+                         r'pvr_translator_tqx_slices\(d\)',
+                         'slices must follow the flavor-1 context create')
+
+    def test_uses_copy_prepare(self):
+        self.assertIn('mt_tqx_work_prepare_from_pools(', self.body)
+        self.assertIn('mt_tqx_work_cancel(', self.body)
+
+    def test_nonfatal_flag(self):
+        self.assertIn('tqx_slices_ready = true', self.body)
+        self.assertIn('tqx_slices_ready', fn_body(
+            self.src, 'pvr_translator_teardown_locked'))
+
+    def test_teardown_releases_slices(self):
+        teardown = fn_body(self.src, 'pvr_translator_teardown_locked')
+        self.assertIn('mt_tqx_context_pool_slices_release(', teardown)
+        self.assertLess(teardown.index('mt_tqx_context_pool_slices_release('),
+                        teardown.index('mt_execution_context_destroy(&translator.tqx_context)'),
+                        'slices must release before context destroy')
+
+    def test_upload_has_read_mirror(self):
+        read = fn_body(self.src, 'pvr_translator_bo_read')
+        self.assertIn('mt_bo_cpu_begin(', read)
+        self.assertIn('memcpy_fromio(', read)
+
+    def test_no_execution_path(self):
+        for token in ('submit_tqx_work', 'submit_context', 'dma_fence',
+                      'dma_fence_wait'):
+            self.assertNotIn(token, self.body,
+                             'slices prepare must not submit or wait')
+
+
+if __name__ == '__main__':
+    unittest.main()

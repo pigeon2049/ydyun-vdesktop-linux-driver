@@ -55,6 +55,8 @@
 #include "../mt_gfx_packet_template.h"
 #include "../mt_transfer_fill.h"
 #include "../mt_tqx_fill.h"
+#include "../mt_tqx_work.h"
+#include "../mt_tqx_topology.h"
 
 /* The driver hard-codes these two numbers, and the vendor declares them the
  * same way in inc/pvr/include/pvr_drm.h:
@@ -1610,6 +1612,12 @@ struct mt_pvr_translator {
 	bool tqx_ready;
 	struct mt_execution_context tqx_context;
 	struct mt_bo tqx_cmd, tqx_dma, tqx_state;
+	/* Pool slices for the TQX context (r261): filled by a one-shot
+	 * copy prepare during bring-up so a later fill submission finds
+	 * its shader/PDS storage ready. Non-fatal: DM bring-up stays up
+	 * when slices fail; fire checks this flag.
+	 */
+	bool tqx_slices_ready;
 	u64 seq;
 };
 
@@ -1619,6 +1627,7 @@ static struct mt_pvr_translator translator;
 static int pvr_translator_bo_write(struct mt_guest_device *d,
 				   struct mt_bo *bo, u64 off,
 				   const void *src, u64 bytes);
+static void pvr_translator_tqx_slices(struct mt_guest_device *d);
 
 struct mt_pvr_ufo_cond {
 	void *host;
@@ -1752,8 +1761,12 @@ static void pvr_translator_teardown_locked(void)
 
 	if (d && translator.context.process)
 		WARN_ON(mt_execution_context_destroy(&translator.context));
-	if (d && translator.tqx_context.process)
+	if (d && translator.tqx_context.process) {
+		if (translator.tqx_slices_ready)
+			WARN_ON(mt_tqx_context_pool_slices_release(
+						&translator.tqx_context));
 		WARN_ON(mt_execution_context_destroy(&translator.tqx_context));
+	}
 	if (d && translator.process.store)
 		WARN_ON(mt_execution_process_destroy(&translator.process));
 	if (translator.command.refs)
@@ -1975,6 +1988,7 @@ static int pvr_translator_prepare_locked(void)
 				ret);
 			goto out;
 		}
+		pvr_translator_tqx_slices(d);
 		translator.tqx_ready = true;
 	}
 	translator.owner = owner;
@@ -2023,6 +2037,141 @@ static int pvr_translator_bo_write(struct mt_guest_device *d,
 	else
 		memcpy_toio((void __iomem *)mapping + off, src, bytes);
 	return mt_bo_cpu_end(bo);
+}
+
+/* Mirror of the write path for the TQX upload ops' readback: verify what
+ * was written by reading it back through the same CPU mapping.
+ */
+static int pvr_translator_bo_read(struct mt_guest_device *d,
+				  struct mt_bo *bo, u64 off,
+				  void *dst, u64 bytes)
+{
+	struct mt_bo_vram_handle *handle;
+	void *mapping;
+	int ret;
+
+	if (bo->store != &d->buffers || bo->ops != d->buffers.ops)
+		return -EXDEV;
+	ret = mt_bo_check_range(bo, off, bytes);
+	if (ret)
+		return ret;
+	ret = mt_bo_cpu_begin(bo, &mapping);
+	if (ret)
+		return ret;
+	handle = bo->backing.handle;
+	if (handle->system)
+		memcpy(dst, (u8 *)mapping + off, bytes);
+	else
+		memcpy_fromio(dst, (void __iomem *)mapping + off, bytes);
+	return mt_bo_cpu_end(bo);
+}
+
+/* Upload-device for the TQX slice prepare below. Valid only inside
+ * pvr_translator_tqx_slices (translator_lock held, no concurrency).
+ */
+static struct mt_guest_device *pvr_translator_upload_dev;
+
+static int pvr_translator_upload_write(struct mt_bo *bo, u64 off,
+				       const void *src, u64 bytes)
+{
+	struct mt_guest_device *d = READ_ONCE(pvr_translator_upload_dev);
+
+	if (!d)
+		return -ENODEV;
+	return pvr_translator_bo_write(d, bo, off, src, bytes);
+}
+
+static int pvr_translator_upload_read(struct mt_bo *bo, u64 off,
+				      void *dst, u64 bytes)
+{
+	struct mt_guest_device *d = READ_ONCE(pvr_translator_upload_dev);
+
+	if (!d)
+		return -ENODEV;
+	return pvr_translator_bo_read(d, bo, off, dst, bytes);
+}
+
+/* Fill the TQX context's pool slices with a one-shot copy prepare (r261).
+ * Non-fatal: DM bring-up stays up when slices fail; fire checks the flag.
+ * translator_lock held; takes buffers->lock (trial_lock -> buffers.lock;
+ * no reverse path exists, same as live_3d). Temporary stream Bos are put
+ * after prepare; their VM bindings die with the space at teardown.
+ */
+static void pvr_translator_tqx_slices(struct mt_guest_device *d)
+{
+	static const struct mt_tqx_upload_ops upload = {
+		.write = pvr_translator_upload_write,
+		.read = pvr_translator_upload_read,
+	};
+	struct mt_tqx_work work = { 0 };
+	struct mt_tqx_submission_workspace *workspace;
+	struct mt_tqx_submission_input input = {
+		.stream = {.copy = {MT_TQX_STREAM_SRC_VA,
+				    MT_TQX_STREAM_DST_VA, 256},
+			   .va = {MT_TQX_CMD_VA}},
+		.dma_va = MT_TQX_DMA_VA, .state_va = MT_TQX_STATE_VA,
+	};
+	struct mt_bo tmp_src = { 0 }, tmp_dst = { 0 };
+	struct mt_bo *bos[5];
+	u32 cores;
+	int ret;
+
+	ret = mt_tqx_topology_from_info(&cores, &d->gem.profile,
+					(void *)d->state.info, PAGE_SIZE);
+	if (ret || cores != d->gem.tqx_cores) {
+		pr_info("mt_pvr_bridge: tqx slices: topology %d cores=%u\n",
+			ret, cores);
+		return;
+	}
+	ret = mt_bo_create(&tmp_src, d->buffers.ops, &d->buffers,
+			   MT_TQX_STREAM_SLOT_BYTES, PAGE_SIZE);
+	if (ret)
+		return;
+	ret = mt_bo_create(&tmp_dst, d->buffers.ops, &d->buffers,
+			   MT_TQX_STREAM_SLOT_BYTES, PAGE_SIZE);
+	if (ret)
+		goto put_tmp;
+	ret = d->address_spaces.ops->bind(translator.space, &tmp_src,
+					  MT_TQX_STREAM_SRC_VA, 0,
+					  MT_TQX_STREAM_SLOT_BYTES,
+					  MT_GPU_MAP_DEFAULT);
+	if (ret)
+		goto put_tmp;
+	ret = d->address_spaces.ops->bind(translator.space, &tmp_dst,
+					  MT_TQX_STREAM_DST_VA, 0,
+					  MT_TQX_STREAM_SLOT_BYTES,
+					  MT_GPU_MAP_DEFAULT);
+	if (ret)
+		goto put_tmp;
+	workspace = kvzalloc(sizeof(*workspace), GFP_KERNEL);
+	if (!workspace)
+		goto put_tmp;
+	bos[0] = &translator.tqx_cmd;
+	bos[1] = &tmp_src;
+	bos[2] = &tmp_dst;
+	bos[3] = &translator.tqx_dma;
+	bos[4] = &translator.tqx_state;
+	WRITE_ONCE(pvr_translator_upload_dev, d);
+	mutex_lock(d->shared_boot.buffers->lock);
+	ret = mt_tqx_work_prepare_from_pools(&work, &d->shared_boot,
+			workspace, &upload, &d->gem.profile, cores,
+			&translator.tqx_context, bos, &input);
+	mutex_unlock(d->shared_boot.buffers->lock);
+	WRITE_ONCE(pvr_translator_upload_dev, NULL);
+	if (!ret)
+		ret = mt_tqx_work_cancel(&work);
+	kvfree(workspace);
+	if (!ret) {
+		translator.tqx_slices_ready = true;
+		pr_info("mt_pvr_bridge: tqx slices: ready cores=%u\n", cores);
+	} else {
+		pr_info("mt_pvr_bridge: tqx slices: prepare %d\n", ret);
+	}
+put_tmp:
+	if (tmp_dst.refs)
+		WARN_ON(mt_bo_put(&tmp_dst));
+	if (tmp_src.refs)
+		WARN_ON(mt_bo_put(&tmp_src));
 }
 
 /* Submit one empty marker tagged with seq. translator_lock and trial_lock
