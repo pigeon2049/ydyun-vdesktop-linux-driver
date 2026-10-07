@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r251 UMD standalone flake 现状（批准执行）**：render 路径 10/10 崩 + GDB 全过（r167 翻版）；flake 率演进 4/16→11/11→6/6→10/10；node probe 偶发 2 failing（重跑即过）。UMD 链 soak 不可行。见 `reports/r251-umd-flake-status.md`。
+- **r250 observer 在 tqx_ctx 桥下回归（批准执行）**：`=2` + tqx_ctx 下 23 ok + PASS，CCB 行一致；observer × 5 配置正交补完。拆桥干净，默认恢复。见 `reports/r250-tqxctx-observe-regression.md`。
 - **r249 observer 在 transfer 桥下回归（批准执行）**：`=2` + transfer 下 24 步全过（含负向双测），CCB 行一致；开关正交补格。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r249-transfer-observe-regression.md`。
 - **r248 EBUSY 后重试（批准执行）**：循环并发第 2 轮复现一胜一败；败者链单独重跑全过（0.18ms）；拒绝无副作用、可恢复。同窗口续跑 r249。见 `reports/r248-ebusy-retry.md`。
 - **r247 translator 并发冲突（批准执行）**：双混合进程并行一胜一败，败者 submit 环节 `-EBUSY`（59µs 即拒，tag 被消费无行）；全局 markers 状态机不支持并发 submit。附带修 poll 假阳性 + 门禁更新。拆桥干净，默认 + L3 全绿。见 `reports/r247-translator-contention.md`。

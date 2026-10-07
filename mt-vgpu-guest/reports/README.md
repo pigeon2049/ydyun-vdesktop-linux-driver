@@ -204,6 +204,8 @@
 | r247 | translator 并发冲突实锤：双混合并行一胜一败，败者 submit 环节 `-EBUSY`；附带修 poll 假阳性 |
 | r248 | EBUSY 后重试：败者链单独重跑全过（0.18ms）；拒绝无副作用、可恢复 |
 | r249 | observer 在 transfer 桥下回归：`=2` + transfer 下 24 步全过；开关正交补格 |
+| r250 | observer 在 tqx_ctx 桥下回归：`=2` + tqx_ctx 下全过；开关正交矩阵补完 |
+| r251 | UMD standalone flake 现状：render 路径 10/10 崩 + GDB 全过 + probe 偶发 2 failing（重跑即过） |
 
 ## 关键单篇（本轮最常用）
 

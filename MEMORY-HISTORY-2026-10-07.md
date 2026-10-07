@@ -440,3 +440,16 @@
 - 遗留：tag=3/5 归属未全闭合（诚实记录）；TQX 真发射；CCB 解读；真实执行 backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r248：EBUSY 后重试，批准执行）
+
+- 循环并发第 2 轮复现一胜一败（同 r247 形态）；败者链单独重跑全过（0.18ms，translator 常驻）；拒绝无副作用、可恢复。同窗口续跑 r249。详见 `reports/r248-ebusy-retry.md`。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r249：observer 在 transfer 桥下回归，批准执行）
+
+- observer 与 `translate_transfer` 开关正交证实：`=2` + transfer 下 24 步全过，CCB 行一致；拆桥干净，默认 + L3 全绿。无代码改动。详见 `reports/r249-transfer-observe-regression.md`。
+- **Freeze 已恢复。**
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
