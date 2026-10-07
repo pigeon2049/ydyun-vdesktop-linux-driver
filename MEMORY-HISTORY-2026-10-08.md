@@ -134,3 +134,11 @@
 - 遗留：r296 入口抓参；awaited value；TA/3D producer。本地提交仍未 push。
 ---
 
+
+## 本轮进展（r296：入口三元组落定，批准执行）
+
+- GDB dprintf 抓到全进程唯一 `SyncPrimWait` 调用：rdi=栈表项，rsi=100s(ns，精确等式），rdx=100000(ms)——100 秒三方闭环。恢复经一次重开挡回后二次关账；L3 双绿，refs 1/1，零新增 WARN。无代码改动。
+- **Freeze 已恢复。**
+- 遗留：submit3 后桥写同步值满足 UMD（需离线改代码 + 窗口验，STATUS #2 切入点）。本地提交仍未 push。
+---
+

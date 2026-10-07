@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r296：入口三元组落定，批准执行）
+## 本轮进展（r298：bump 首跑被拒 -95，批准执行）
 
-- GDB dprintf 抓到全进程唯一 `SyncPrimWait` 调用：rdi=栈表项，rsi=100s(ns，精确等式），rdx=100000(ms)——100 秒三方闭环。恢复经一次重开挡回后二次关账；L3 双绿，refs 1/1，零新增 WARN。无代码改动。
+- `=2` + bump（fire 关）窗口：submit3 即拒 `-95`（某 update 柄无 CPU 映射），UMD 即时 134（无 hang）；hang/abort 因果再证。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。r297 离线部分（bump 代码 + 7 门禁 + 373+292）已提交。
 - **Freeze 已恢复。**
-- 遗留：submit3 后桥写同步值满足 UMD（需离线改代码 + 窗口验，STATUS #2 切入点）。本地提交仍未 push。
+- 遗留：r299 逐项诊断 + 复验。本地提交仍未 push。
 ---
 
