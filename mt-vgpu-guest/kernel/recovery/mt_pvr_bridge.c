@@ -4075,8 +4075,12 @@ static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 	translator.fire_seq = ++translator.seq;
 	translator.fire_dst_host = (translate_fire_to_dst && dst->host) ?
 		dst->host : NULL;
-	translator.fire_dst_span = (u64)rect.width * rect.height *
-		MT_TRANSFER_PIXEL_BYTES;
+	translator.fire_dst_span = dst->bytes;
+	if (translate_fire_to_dst &&
+	    ((u64)MT_TRANSFER_POOL_HEAD > dst->bytes ||
+	     (u64)rect.width * rect.height * MT_TRANSFER_PIXEL_BYTES >
+	     dst->bytes - MT_TRANSFER_POOL_HEAD))
+		return -ERANGE;
 	translator.fire_to_dst = translate_fire_to_dst;
 	translator.fire_result = -EBUSY;
 	WRITE_ONCE(translator.fire_abort, false);
