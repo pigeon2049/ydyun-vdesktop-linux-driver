@@ -44,12 +44,16 @@ struct drm_version {
 };
 
 static int fails;
+static int last_errno;
 
 static void check(const char *what, int ok)
 {
-	printf("%-34s %s\n", what, ok ? "ok" : "FAIL");
-	if (!ok)
+	printf("%-34s %s", what, ok ? "ok" : "FAIL");
+	if (!ok) {
+		printf(" errno=%d", last_errno);
 		fails++;
+	}
+	putchar('\n');
 }
 
 static int bridge_call(int fd, uint32_t bridge, uint32_t function,
@@ -66,6 +70,17 @@ static int bridge_call(int fd, uint32_t bridge, uint32_t function,
 	};
 
 	return ioctl(fd, PVR_BRIDGE_IOCTL, &cmd);
+}
+
+static int bridge_call_logged(int fd, uint32_t bridge, uint32_t function,
+			      const void *in, uint32_t in_size,
+			      void *out, uint32_t out_size)
+{
+	int ret = bridge_call(fd, bridge, function, in, in_size, out,
+			      out_size);
+
+	last_errno = ret < 0 ? errno : 0;
+	return ret;
 }
 
 static uint64_t now_ns(void)
@@ -193,29 +208,37 @@ int main(int argc, char **argv)
 	kick_in.check_fence_fd = 0xffffffffU;
 	kick_in.timeline_fence_fd = 0xffffffffU;
 	t0 = now_ns();
-	check("mixed fire accepted",
-	      !bridge_call(fd, 0x88, 0x4, &kick_in, sizeof(kick_in),
-			   &kick_out, sizeof(kick_out)) &&
-	      !kick_out.error && kick_out.update_fence_fd >= 0);
-	dt = now_ns() - t0;
-	printf("%-34s %llu ns\n", "mixed fire elapsed",
-	       (unsigned long long)dt);
-	check("mixed fire prompt (check waits hit)",
-	      dt < PROMPT_LIMIT_NS);
-	/* Fence-fd proof (r236): the translator hands the fence fd over
-	 * only after wait_fence succeeds, so poll must report it readable
-	 * at once. A 5s hang here would mean the fence was never
-	 * signaled despite ret 0. */
 	{
-		struct pollfd pfd = {
-			.fd = kick_out.update_fence_fd,
-			.events = POLLIN,
-		};
-		int pr = poll(&pfd, 1, 5000);
+		int fire_ok = !bridge_call_logged(fd, 0x88, 0x4, &kick_in,
+						  sizeof(kick_in), &kick_out,
+						  sizeof(kick_out)) &&
+			      !kick_out.error &&
+			      kick_out.update_fence_fd >= 0;
 
-		check("fence fd pollable at once", pr == 1 && (pfd.revents & (POLLIN | POLLHUP)));
+		check("mixed fire accepted", fire_ok);
+		dt = now_ns() - t0;
+		printf("%-34s %llu ns\n", "mixed fire elapsed",
+		       (unsigned long long)dt);
+		check("mixed fire prompt (check waits hit)",
+		      dt < PROMPT_LIMIT_NS);
+		/* Fence-fd proof (r236): the translator hands the fence fd
+		 * over only after wait_fence succeeds, so poll must report
+		 * it readable at once. A 5s hang here would mean the fence
+		 * was never signaled despite ret 0. Skipped unless the
+		 * fire above succeeded (r247: polling fd 0 after a failed
+		 * fire is a false-positive ok). */
+		if (fire_ok) {
+			struct pollfd pfd = {
+				.fd = kick_out.update_fence_fd,
+				.events = POLLIN,
+			};
+			int pr = poll(&pfd, 1, 5000);
+
+			check("fence fd pollable at once",
+			      pr == 1 && (pfd.revents & (POLLIN | POLLHUP)));
+		}
+		close(kick_out.update_fence_fd);
 	}
-	close(kick_out.update_fence_fd);
 	/* Step 2: check probe for the SECOND update slot+value (r233:
 	 * proves the translator's update loop publishes every entry,
 	 * not just the first). */
@@ -237,7 +260,7 @@ int main(int argc, char **argv)
 	kick_in.timeline_fence_fd = 0xffffffffU;
 	t0 = now_ns();
 	check("check probe for written value accepted",
-	      !bridge_call(fd, 0x88, 0x4, &kick_in, sizeof(kick_in),
+	      !bridge_call_logged(fd, 0x88, 0x4, &kick_in, sizeof(kick_in),
 			   &kick_out, sizeof(kick_out)) &&
 	      !kick_out.error && kick_out.update_fence_fd >= 0);
 	dt = now_ns() - t0;

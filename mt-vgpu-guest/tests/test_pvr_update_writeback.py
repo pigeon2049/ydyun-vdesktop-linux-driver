@@ -32,10 +32,11 @@ class UpdateWritebackTool(unittest.TestCase):
         self.assertIn('UPDATE_VAL2', self.src)
         self.assertIn('check slot 1 preset', self.src)
         self.assertIn('check slot 2 preset', self.src)
-        self.assertRegex(self.src, r'bridge_call\(fd, 0x2, 0xa,')
-        m = re.search(r'mixed fire accepted[\s\S]{0,400}'
+        self.assertRegex(self.src, r'bridge_call_logged\(fd, 0x88, 0x4,')
+        m = re.search(r'int fire_ok = !bridge_call_logged[\s\S]{0,400}'
                       r'!kick_out\.error', self.src)
         self.assertIsNotNone(m, 'mixed fire must require ret 0')
+        self.assertIn('if (fire_ok)', self.src)
 
     def test_check_probe_timed(self):
         self.assertIn('client_check_count = 1;', self.src)
