@@ -96,3 +96,12 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
 
 ---
+
+## 本次会话进展（r204：KickTA3D5 ABI 边界）
+
+- 零硬件触碰。r203 fabricated trace 确认 `0x82:0x14` 为 108/4；SHA 对版 UMD wrapper 传入长度 108。2.7.1 生成结构编译为 96/4，2.3 Guest 无此结构，当前 dispatcher 缺 handler。5.2 Host schema 审计大小匹配但不能证明 Guest 支持。
+- 结论：暂不把 2.7.1 结构直接用于该 UMD 请求，先恢复 108 字节逐字段契约并确认目标 Guest handler 语义。
+- 证据：`reports/r204-kickta3d5-abi-boundary.md`，r203 trace，`reports/legacy-umd-pvr-bridge-abi.json`。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---

@@ -11,9 +11,18 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-07（r205 KickTA3D5 字段偏移）
+最后更新：2026-10-07（r206 KickGFX5 Host schema 映射）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
 
+
+## 本次会话进展（r206：KickGFX5 Host schema 映射）
+
+- 零硬件触碰。对版 5.2 DKMS 包 SHA=`e3f684b1…` 的生成头将 `0x82:0x14` 映射到 `MUSAKICKGFX5 +20`；schema 的 flags/VA/size/submissionID/count 偏移和值逐项匹配 r203 fabricated trace。
+- 12B 偏移差现已由额外 flags 与 submissionID 字段解释；同包 `MTGPUMUSAGFX5KM` 声明给出 sync/PMR 数组与提交参数接口顺序，但没有 handler 实现体；下一步核对 Guest handle 台账和实际 CCB 执行路径。
+- 证据：`reports/r206-kickgfx5-schema.md`、r203 trace、`downloads/mthreads-dkms_5.2.0_amd64.deb`。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---
 
 ## 本次会话进展（r205：KickTA3D5 字段偏移）
 
@@ -23,12 +32,5 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
 
 ---
-
-## 本次会话进展（r204：KickTA3D5 ABI 边界）
-
-- 零硬件触碰。r203 fabricated trace 确认 `0x82:0x14` 为 108/4；SHA 对版 UMD wrapper 传入长度 108。2.7.1 生成结构编译为 96/4，2.3 Guest 无此结构，当前 dispatcher 缺 handler。5.2 Host schema 审计大小匹配但不能证明 Guest 支持。
-- 结论：暂不把 2.7.1 结构直接用于该 UMD 请求，先恢复 108 字节逐字段契约并确认目标 Guest handler 语义。
-- 证据：`reports/r204-kickta3d5-abi-boundary.md`，r203 trace，`reports/legacy-umd-pvr-bridge-abi.json`。
-- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
 
 ---

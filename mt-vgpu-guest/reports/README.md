@@ -160,6 +160,7 @@
 | r203 | 修正两个 GFX 输出缓冲尺寸；watchpoint 定位 0x408 字节复制越界，fabricated `RGXKickGfx` 返回 0 |
 | r204 | `0x82:0x14` UMD 发 108/4；2.7.1 结构为 96/4，Guest handler 契约未闭合，不直接复用 |
 | r205 | wrapper 与 fabricated trace 对齐数组/count 偏移；尾部 12B 结构差仍未解释，不补 handler |
+| r206 | 5.2 `MUSAKICKGFX5` schema 与 fabricated 108B trace 对齐，flags/VA/size/ID/count 偏移闭合；Guest handler 仍缺 |
 
 ## 关键单篇（本轮最常用）
 

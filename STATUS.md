@@ -59,7 +59,7 @@
 
 ## 下一步（vGPU，按序）
 
-1. **真实绘制 CCB**：check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；离屏 fill 的非零 CCB 窗口已在 fabricated major 2 blit 中取得并归属（r157–r161）；r172–r182 的 DDK2 dry-run/TQX bring-up 与 r191 kill-while-busy ref 关账均已完成，但真实绘制 CCB 仍未执行。r201/r203 fabricated 重放动态闭合 GFX allocator 链、生成 flag=2 update 并发出 `0x82:0x14`；r203 修正两个 harness 缓冲尺寸后 `RGXKickGfx` 返回 0，watchpoint 证明此前 abort 是 0x408 字节输出复制越界破坏相邻 chunk。r204/r205 确认 UMD 请求为 108/4、2.7.1 头为 96/4，并对上数组/count 偏移；尾部 `0x48`–`0x5f` 仍未解释。下一步找到 5.2 schema 或目标 Guest handler 的字段定义/读取证据，再实现缺失 bridge。真实 CCB 仍需明确批准，活会话继续 freeze。
+1. **真实绘制 CCB**：check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；离屏 fill 的非零 CCB 窗口已在 fabricated major 2 blit 中取得并归属（r157–r161）；r172–r182 的 DDK2 dry-run/TQX bring-up 与 r191 kill-while-busy ref 关账均已完成，但真实绘制 CCB 仍未执行。r201/r203 fabricated 重放动态闭合 GFX allocator 链、生成 flag=2 update 并发出 `0x82:0x14`；r203 修正两个 harness 缓冲尺寸后 `RGXKickGfx` 返回 0，watchpoint 证明此前 abort 是 0x408 字节输出复制越界破坏相邻 chunk。r204–r206 已用 5.2 Host `MUSAKICKGFX5` schema 和 `MTGPUMUSAGFX5KM` 服务 API 声明解释 108B 请求及 2.7.1 的 12B 差异，并与 r203 trace 对齐字段。下一步核对当前 Guest bridge 的 context/sync handle 台账及实际 CCB 执行路径，再实现完整 handler；不得用 accept-and-log 代替执行。真实 CCB 仍需明确批准，活会话继续 freeze。
 2. **同步 update 语义**：离线已确定（r159）；legacy 活体注入已证伪（r171）；非零 update 路径已定位到 `0x82:0x14`（r190）；r196/r201/r203 fabricated RGXKickGfx trace 发出 `0x82:0x14`，r203 见 count=1、首项 flag=2、非空 sync handle，且在缓冲尺寸修正后干净返回。r201 abort 原因已在 r203 定位为 harness 输出复制越界。fake shim 不执行真实 bridge handler；真实同步语义与 GPU 执行仍未验证。
 3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` / `0x81:0x5` 仍属 S4 真提交边界，空 marker 结果不能外推；待取得真实工作包与输入规约后再推进。
 4. 长期：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。
