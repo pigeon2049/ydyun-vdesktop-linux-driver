@@ -49,16 +49,19 @@ class TqxFirePath(unittest.TestCase):
         self.assertIn('translator.tqx_slices_ready', self.body)
         self.assertIn('-EOPNOTSUPP', self.body)
 
-    def test_single_flight_fence_reuse(self):
-        self.assertIn('translator.fire_pending', self.body)
+    def test_single_flight_running_flag(self):
+        # r290: one fire at a time via fire_running (the work clears it);
+        # the handler never waits and never submits (r147/r283).
+        self.assertIn('translator.fire_running', self.body)
         self.assertIn('-EBUSY', self.body)
-        self.assertIn('dma_fence_is_signaled(', self.body)
+        self.assertIn('schedule_work(&translator.fire_work', self.body)
 
-    def test_submits_without_waiting(self):
-        self.assertIn('submit_tqx_work', self.body)
-        for token in ('dma_fence_wait', 'msleep', 'wait_event'):
+    def test_schedules_without_waiting_or_submitting(self):
+        for token in ('submit_tqx_work', 'dma_fence_wait', 'msleep',
+                      'wait_event'):
             self.assertNotIn(token, self.body,
-                             'fire must not wait under handler locks')
+                             'handler must only locate and schedule, got %s'
+                             % token)
 
     def test_work_touches_no_files(self):
         for token in ('mt_pvr_file', 'file->', 'pvr_pmr_find',
@@ -77,16 +80,19 @@ class TqxFirePath(unittest.TestCase):
         self.assertTrue(0 < init_at < acquire_at,
                         'work must INIT before anything can fail')
 
-    def test_teardown_cancels_first(self):
+    def test_teardown_aborts_then_cancels_first(self):
         teardown = fn_body(self.src, 'pvr_translator_teardown_locked')
+        abort_at = teardown.find('fire_abort')
         cancel_at = teardown.find('cancel_work_sync(')
         destroy_at = teardown.find('mt_execution_context_destroy(')
-        self.assertTrue(0 <= cancel_at < destroy_at,
-                        'teardown must cancel the work first')
+        self.assertTrue(0 <= abort_at < cancel_at < destroy_at,
+                        'teardown must abort then cancel the work first')
 
     def test_scratch_presized(self):
-        self.assertIn('MT_TQX_SCRATCH_VA', self.body)
+        # r290: the handler sizes strips against the scratch; the work
+        # targets the scratch base.
         self.assertIn('MT_TQX_SCRATCH_BYTES', self.body)
+        self.assertIn('MT_TQX_SCRATCH_VA', self.work)
 
     def test_space_fits_table_budget(self):
         # r268: the scratch needs 2048 pages over the original 64;
@@ -98,24 +104,35 @@ class TqxFirePath(unittest.TestCase):
         self.assertGreaterEqual(int(m.group(1)), 64,
                                 'table budget must cover the 2112-page scene')
 
-    def test_chunk_loop_splits_full_frame(self):
-        # r280: 1280x1024x4 = 5MB never fits the 256KB scratch; fire must
-        # split into row strips capped at MT_TQX_FIRE_MAX_CHUNKS.
+    def test_chunk_math_recorded_for_work(self):
+        # r280/r290: 1280x1024x4 = 5MB never fits the 256KB scratch; the
+        # handler records row strips capped at MT_TQX_FIRE_MAX_CHUNKS
+        # for the serialized work.
         self.assertIn('MT_TQX_FIRE_MAX_CHUNKS', self.src)
-        self.assertIn('fire_nfences', self.body)
+        self.assertIn('fire_nchunks', self.body)
         self.assertIn('fire_chunk_h', self.body)
-        self.assertIn('chunks=%u', self.body)
+        self.assertIn('fire_height', self.body)
+        self.assertIn('scheduled chunks=%u', self.body)
         self.assertIn('-E2BIG', self.body)
 
-    def test_work_waits_every_chunk_fence(self):
-        self.assertIn('fire_fences[f]', self.work)
-        self.assertIn('fire_nfences', self.work)
-        self.assertIn('chunks=%u', self.work)
+    def test_work_serializes_chunks(self):
+        # r290: the work prepares, submits, waits and verifies one
+        # chunk at a time (pipelining self-blocks with -EBUSY, r283).
+        self.assertIn('submit_tqx_work', self.work)
+        self.assertIn('dma_fence_wait_timeout', self.work)
+        self.assertIn('chunk %u prepare', self.work)
+        self.assertIn('chunk %u submit', self.work)
+        self.assertIn('chunk %u fence', self.work)
+        self.assertIn('fired=%d chunks=%u verified=%d', self.work)
+        self.assertIn('fire_abort', self.work)
+        self.assertIn('fire_running', self.work)
 
-    def test_teardown_puts_every_chunk_fence(self):
+    def test_teardown_holds_no_fences(self):
+        # r290: each fence is put right after its wait; teardown only
+        # aborts + cancels + clears flags, no fence array remains.
         teardown = fn_body(self.src, 'pvr_translator_teardown_locked')
-        self.assertIn('fire_fences[f]', teardown)
-        self.assertIn('fire_nfences', teardown)
+        self.assertNotIn('fire_fences', teardown)
+        self.assertNotIn('fire_nfences', teardown)
         self.assertNotIn('translator.fire_fence)', teardown,
                          'singular fence field must be gone')
 
