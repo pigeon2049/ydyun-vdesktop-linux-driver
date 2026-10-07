@@ -399,3 +399,16 @@
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r244：legacy 真实 blit，批准执行）
+
+- 默认桥上真实 blit 止于 `0x89:0x0` → -25，UMD 中止未到 submit；trace 8205 行已入库；refs 不变，L3 全绿。详见 `reports/r244-legacyblit-refused.md` + `.jsonl`。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r245：L4 legacy 部分，批准执行）
+
+- rung7 compute 全过 exit 0；rung5/6/8 在 render create 处 standalone 6 连崩，GDB 下全过（r167 翻版，桥无罪）。refs 不变，L3 全绿。详见 `reports/r245-l4legacy-partial.md`。
+- **Freeze 继续。**无代码改动。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---

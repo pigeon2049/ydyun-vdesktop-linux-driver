@@ -200,6 +200,7 @@
 | r243 | 短预算 UMD 全链匹配：`0x2:0xa` 预置 + kick 0.046s 即过（fence=40）；预算不影响命中路径 |
 | r244 | legacy 真实 blit：止于 `0x89:0x0` → -25，UMD 中止未到 submit；trace 入库，会话未动 |
 | r245 | L4 legacy 部分：compute 全过；render 路径 6 连崩 + GDB 全过（r167 翻版，桥无罪） |
+| r246 | DDK2 param_1 三候选证伪（`b14*`/`b5*`/conn 全崩，同 RVA）：合法输入超 harness 能力，工具边界 |
 
 ## 关键单篇（本轮最常用）
 
