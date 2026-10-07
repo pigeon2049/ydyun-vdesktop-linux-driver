@@ -135,6 +135,9 @@ MODULE_PARM_DESC(translate_tqx_fire, "live TQX fill fire for 0x89:0xa (default: 
 static bool translate_submit3_bump;
 module_param(translate_submit3_bump, bool, 0400);
 MODULE_PARM_DESC(translate_submit3_bump, "write submit3 update values into their sync PMRs at observe time (default: off; instant completion, no execution)");
+static bool translate_fire_to_dst;
+module_param(translate_fire_to_dst, bool, 0400);
+MODULE_PARM_DESC(translate_fire_to_dst, "copy each verified fire chunk into the UMD destination pool (default: off; scratch-only otherwise)");
 
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
@@ -1655,6 +1658,15 @@ struct mt_pvr_translator {
 	bool fire_running;
 	bool fire_pending;
 	bool fire_abort;
+	/* Fire-into-destination (r300): UMD pool host recorded at schedule
+	 * (file alive under file->lock); the work copies each verified
+	 * chunk there. Single-threaded UMD blocked in our ioctl cannot
+	 * close mid-flight; teardown cancels the work first.
+	 */
+	void *fire_dst_host;
+	u64 fire_dst_span;
+	bool fire_to_dst;
+	int fire_result;
 	u64 seq;
 };
 
@@ -3603,6 +3615,37 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 		}
 	}
 	if (translate_submit3_bump) {
+		/* Order matters (r300): the UMD proceeds as soon as its
+		 * syncs are bumped, so the bump must wait for a scheduled
+		 * fire to finish landing pixels first. Bounded (60s),
+		 * interruptible slices so a stuck fire cannot wedge the
+		 * ioctl; translator_lock is NOT held here (only file->lock,
+		 * like pvr_translator_wait).
+		 */
+		if (READ_ONCE(translator.fire_running)) {
+			unsigned long deadline =
+				jiffies + msecs_to_jiffies(60000);
+
+			for (;;) {
+				if (!READ_ONCE(translator.fire_running))
+					break;
+				if (time_after_eq(jiffies, deadline)) {
+					pr_info("mt_pvr_bridge: submit3 bump: fire wait timeout\n");
+					return -ETIMEDOUT;
+				}
+				if (msleep_interruptible(
+						MT_TRANSLATE_WAIT_SLICE_MS))
+					return -ERESTARTSYS;
+				if (signal_pending(current))
+					return -ERESTARTSYS;
+			}
+			ret = READ_ONCE(translator.fire_result);
+			if (ret) {
+				pr_info("mt_pvr_bridge: submit3 bump: fire failed: %d\n",
+					ret);
+				return ret;
+			}
+		}
 		ret = pvr_submit3_bump_updates(file, &in);
 		if (ret) {
 			pr_info("mt_pvr_bridge: submit3 bump refused: %d\n",
@@ -3802,10 +3845,14 @@ static void pvr_translator_fire_work(struct work_struct *ws)
 	struct mt_bo *bos[4];
 	struct mt_tqx_fill_workspace *fill_ws;
 	struct dma_fence *fence = NULL;
+	u8 *chunk_buf = NULL;
 	u32 width, height, color, cores, chunk_rows, nchunks;
 	u32 c, pixels = 0, bad = 0;
 	u32 first = 0, last = 0;
 	u64 seq;
+	void *dst_host;
+	u64 dst_span;
+	bool to_dst;
 	long waited;
 	int ret = 0;
 
@@ -3817,12 +3864,16 @@ static void pvr_translator_fire_work(struct work_struct *ws)
 	chunk_rows = translator.fire_chunk_h;
 	nchunks = translator.fire_nchunks;
 	seq = translator.fire_seq;
+	dst_host = translator.fire_dst_host;
+	dst_span = translator.fire_dst_span;
+	to_dst = translator.fire_to_dst;
 	if (!width || !nchunks || nchunks > MT_TQX_FIRE_MAX_CHUNKS)
 		goto out;
 	fill_ws = kvzalloc(sizeof(*fill_ws), GFP_KERNEL);
-	if (!fill_ws) {
+	chunk_buf = kvzalloc(MT_TQX_SCRATCH_BYTES, GFP_KERNEL);
+	if (!fill_ws || !chunk_buf) {
 		ret = -ENOMEM;
-		goto out;
+		goto out_free;
 	}
 	bos[0] = &translator.tqx_cmd;
 	bos[1] = &translator.tqx_scratch;
@@ -3903,23 +3954,13 @@ static void pvr_translator_fire_work(struct work_struct *ws)
 			break;
 		}
 		ret = 0;
+		/* Verify from a single bulk read, then land the verified
+		 * chunk in the UMD pool when requested. */
 		WRITE_ONCE(pvr_translator_upload_dev, translator.dev);
 		mutex_lock(&translator.dev->state.trial_lock);
-		for (k = 0; k < npx; k++) {
-			u32 v = 0;
-
-			ret = pvr_translator_bo_read(translator.dev,
-						     &translator.tqx_scratch,
-				     (u64)k * sizeof(u32),
-				     &v, sizeof(v));
-			if (ret)
-				break;
-			if (!c && !k)
-				first = v;
-			last = v;
-			if (v != color)
-				bad++;
-		}
+		ret = pvr_translator_bo_read(translator.dev,
+					     &translator.tqx_scratch, 0,
+					     chunk_buf, npx * sizeof(u32));
 		mutex_unlock(&translator.dev->state.trial_lock);
 		WRITE_ONCE(pvr_translator_upload_dev, NULL);
 		if (ret) {
@@ -3927,16 +3968,54 @@ static void pvr_translator_fire_work(struct work_struct *ws)
 				(unsigned long long)seq, c, ret);
 			break;
 		}
+		for (k = 0; k < npx; k++) {
+			u32 v = ((u32 *)chunk_buf)[k];
+
+			if (!c && !k)
+				first = v;
+			last = v;
+			if (v != color)
+				bad++;
+		}
+		if (bad) {
+			ret = -EILSEQ;
+			pr_info("mt_pvr_bridge: fire seq=%llu: chunk %u mismatch bad=%u\n",
+				(unsigned long long)seq, c, bad);
+			break;
+		}
+		if (to_dst) {
+			u64 dst_off = (u64)MT_TRANSFER_POOL_HEAD +
+				      (u64)c * chunk_rows * width *
+				      MT_TRANSFER_PIXEL_BYTES;
+
+			if (!dst_host || !dst_span ||
+			    dst_off > dst_span ||
+			    (u64)npx * sizeof(u32) > dst_span - dst_off) {
+				ret = -ERANGE;
+				pr_info("mt_pvr_bridge: fire seq=%llu: chunk %u dst bounds\n",
+					(unsigned long long)seq, c);
+				break;
+			}
+			memcpy((u8 *)dst_host + dst_off, chunk_buf,
+			       (size_t)npx * sizeof(u32));
+		}
 		pixels += npx;
 	}
 	kvfree(fill_ws);
-	pr_info("mt_pvr_bridge: fire seq=%llu: fired=%d chunks=%u verified=%d bad=%u/%u first=%#x last=%#x\n",
+	kvfree(chunk_buf);
+	pr_info("mt_pvr_bridge: fire seq=%llu: fired=%d chunks=%u verified=%d bad=%u/%u first=%#x last=%#x todst=%d\n",
 		(unsigned long long)seq, !ret, nchunks,
 		!ret && !bad && pixels == width * height, bad, pixels,
-		first, last);
+		first, last, to_dst);
 out:
+	WRITE_ONCE(translator.fire_result, ret);
 	WRITE_ONCE(translator.fire_running, false);
 	WRITE_ONCE(translator.fire_pending, false);
+	return;
+out_free:
+	kvfree(fill_ws);
+	kvfree(chunk_buf);
+	goto out;
 }
 
 /* Live TQX fill fire (r267, serialized r290): locate the UMD-derived
@@ -3994,13 +4073,19 @@ static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 	translator.fire_color = rect.color;
 	translator.fire_cores = cores;
 	translator.fire_seq = ++translator.seq;
+	translator.fire_dst_host = (translate_fire_to_dst && dst->host) ?
+		dst->host : NULL;
+	translator.fire_dst_span = (u64)rect.width * rect.height *
+		MT_TRANSFER_PIXEL_BYTES;
+	translator.fire_to_dst = translate_fire_to_dst;
+	translator.fire_result = -EBUSY;
 	WRITE_ONCE(translator.fire_abort, false);
 	WRITE_ONCE(translator.fire_running, true);
 	translator.fire_pending = true;
 	schedule_work(&translator.fire_work);
-	pr_info("mt_pvr_bridge: fire seq=%llu: scheduled chunks=%u %ux%u color=%#x\n",
+	pr_info("mt_pvr_bridge: fire seq=%llu: scheduled chunks=%u %ux%u color=%#x todst=%d\n",
 		(unsigned long long)translator.fire_seq, nchunks,
-		rect.width, rect.height, rect.color);
+		rect.width, rect.height, rect.color, translate_fire_to_dst);
 	return 0;
 }
 

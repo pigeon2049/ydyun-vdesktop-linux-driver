@@ -136,6 +136,34 @@ class TqxFirePath(unittest.TestCase):
         self.assertNotIn('translator.fire_fence)', teardown,
                          'singular fence field must be gone')
 
+    def test_to_dst_param_defaults_off(self):
+        self.assertRegex(self.src,
+                         r'static bool translate_fire_to_dst;')
+        self.assertRegex(self.src,
+                         r'module_param\(translate_fire_to_dst, bool, 0400\)')
+
+    def test_work_lands_verified_chunks_in_dst(self):
+        # r300: bulk-read once, verify from the buffer, then copy the
+        # verified chunk into the UMD pool; bounds-checked, loud.
+        self.assertIn('fire_dst_host', self.work)
+        self.assertIn('MT_TRANSFER_POOL_HEAD', self.work)
+        self.assertIn('-ERANGE', self.work)
+        self.assertIn('todst=%d', self.work)
+
+    def test_work_reports_result(self):
+        self.assertIn('fire_result', self.work)
+
+    def test_observe_waits_for_fire_before_bump(self):
+        # r300: the UMD proceeds on bump, so the bump must wait for a
+        # scheduled fire (bounded, interruptible); a failed fire fails
+        # the submit loudly instead of bumping.
+        observe = fn_body(self.src, 'pvr_cmd_tdm_submit3_observe')
+        self.assertIn('fire_running', observe)
+        self.assertIn('msleep_interruptible', observe)
+        self.assertIn('fire_result', observe)
+        self.assertNotIn('dma_fence_wait', observe,
+                         'no fence waits under handler locks')
+
 
 if __name__ == '__main__':
     unittest.main()
