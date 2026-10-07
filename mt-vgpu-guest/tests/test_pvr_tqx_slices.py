@@ -78,6 +78,20 @@ class TqxSlicesBringup(unittest.TestCase):
         self.assertIn('mt_bo_put(&translator.tqx_tmp_dst)', teardown)
         self.assertIn('mt_bo_put(&translator.tqx_tmp_src)', teardown)
 
+    def test_slices_outside_trial_lock(self):
+        # r265 (r263 deadlock): the slices prepare takes
+        # buffers->lock, which must never nest inside trial_lock.
+        # Bring-up drops trial_lock across the slices call;
+        # translator_lock (held by all prepare callers) serializes.
+        src = code()
+        prep = fn_body(src, 'pvr_translator_prepare_locked')
+        unlock_at = prep.find('mutex_unlock(&g->trial_lock);')
+        slices_at = prep.find('pvr_translator_tqx_slices(d);')
+        relock_at = prep.find('mutex_lock(&g->trial_lock);',
+                              slices_at)
+        self.assertTrue(0 < unlock_at < slices_at < relock_at,
+                        'trial_lock must drop across the slices call')
+
 
 if __name__ == '__main__':
     unittest.main()

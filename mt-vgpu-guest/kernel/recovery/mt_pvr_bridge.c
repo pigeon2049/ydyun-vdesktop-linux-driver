@@ -2028,6 +2028,12 @@ static int pvr_translator_prepare_locked(void)
 	/* TQX flavor (r182): the process exists only here, so the flavor-1
 	 * context could never be created in the pre-seal block above (that
 	 * was the -22: !p->store). Bos are already bound; completing here.
+	 *
+	 * Locking (r265): the slices prepare takes buffers->lock, which
+	 * must never nest inside trial_lock (r263 AB-BA deadlock: the
+	 * holder waits on trial_lock). Drop trial_lock across slices;
+	 * translator_lock (held by all prepare callers) keeps a second
+	 * prepare out. Slices stay non-fatal to DM bring-up.
 	 */
 	if (translate_tqx_ctx) {
 		pr_info("mt_pvr_bridge: tqx bring-up: enter ctx block\n");
@@ -2039,7 +2045,9 @@ static int pvr_translator_prepare_locked(void)
 			goto out;
 		}
 		pr_info("mt_pvr_bridge: tqx bring-up: before slices\n");
+		mutex_unlock(&g->trial_lock);
 		pvr_translator_tqx_slices(d);
+		mutex_lock(&g->trial_lock);
 		pr_info("mt_pvr_bridge: tqx bring-up: after slices\n");
 		translator.tqx_ready = true;
 	}
