@@ -242,3 +242,10 @@
 - 遗留：非零值 kick 活体待下轮批准窗口（重载 + raw set + kick 链）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r221：非零 kick 活体发现，批准执行）
+
+- 活体推翻两个离线假设：① UMD `SetSyncPrim` 实际发 `0x2:0xa`（objdump 实锤 `mov $0xa,%edx`；Ghidra 伪 C 写错 fn id；真身是跳板）——r220 handler 挂错位置，下轮搬到 `0x2:0xa`；② check-only 翻译不等 UFO 值（value=1 vs PMR=0 一次通过，fence=3），源码系 `if (nupdate)` 门控（r174 引入，疑笔误），r212/r213 只证明机械不证明值匹配。详见 `reports/r221-nonzerokick-findings.md` + trace。
+- 拆桥干净（probe 25→1），默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**
+- 遗留：SyncPrimSet 搬移 + `if (nupdate)` 修复各独立成轮；非零 kick 双腿复验待搬移后。USB 短页标题日期问题留待对应轮。
+
+---
