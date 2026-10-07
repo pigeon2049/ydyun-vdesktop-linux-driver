@@ -4207,8 +4207,12 @@ static void pvr_translator_fire_work(struct work_struct *ws)
 			break;
 		}
 		if (to_dst) {
-			u64 dst_off = (u64)MT_TRANSFER_POOL_HEAD +
-				      (u64)c * chunk_rows * width *
+			/* r315: the UMD compare reads dest from pool offset
+			 * 0 against source from +HEAD (live GDB: rcx@+0 vs
+			 * rsi@+3841 over the full 5242880 bytes), so
+			 * destination pixels start at pool base, not HEAD.
+			 */
+			u64 dst_off = (u64)c * chunk_rows * width *
 				      MT_TRANSFER_PIXEL_BYTES;
 
 			if (!dst_host || !dst_span ||

@@ -155,8 +155,11 @@ class TqxFirePath(unittest.TestCase):
     def test_work_lands_verified_chunks_in_dst(self):
         # r300: bulk-read once, verify from the buffer, then copy the
         # verified chunk into the UMD pool; bounds-checked, loud.
+        # r315: destination pixels start at pool base (UMD compares
+        # dest+0 vs source+HEAD over the full surface).
         self.assertIn('fire_dst_host', self.work)
-        self.assertIn('MT_TRANSFER_POOL_HEAD', self.work)
+        self.assertIn('u64 dst_off = (u64)c * chunk_rows', self.work)
+        self.assertNotIn('MT_TRANSFER_POOL_HEAD', self.work)
         self.assertIn('-ERANGE', self.work)
         self.assertIn('todst=%d', self.work)
 
