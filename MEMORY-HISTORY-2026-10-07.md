@@ -80,3 +80,11 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，和 STATUS/§12 活页有差异；留待快照刷新 pass 一并校正。
 
 ---
+
+## 本次会话进展（r202：update-list 生命周期核对）
+
+- 零硬件触碰。`FUN_00178800` 按 count 分配 update-list 并复制条目；r203 动态定位覆盖 update-list chunk header 的输出越界并在扩大 harness 缓冲后消除 abort。
+- 证据：`reports/r202-update-list-lifetime.md`。后续动态复核见 r203。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---
