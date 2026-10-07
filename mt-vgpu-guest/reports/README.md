@@ -176,6 +176,7 @@
 | r219 | TQX bring-up 新会话复验通过（`=2` + `translate_tqx_ctx`，`tqx-ctx: ready`，无 `-22` 回归）；probe 28→1 对称归零；附带第四个 `+0x40` 轮变值 |
 | r220 | SyncPrimSet 由 stub 改真写（离线，零硬件触碰）：wrapper/生成头/活体三重互证 IN16；复用 translator 解析 + 定界写；门禁 7 项 + 改判 + MAPPING，未加载 |
 | r221 | 非零 kick 活体发现：真 setter 是 `0x2:0xa`（Ghidra 伪 C 写错 fn id，objdump 实锤；r220 挂错位置下轮搬）+ translator 跳过 check 等待（`if (nupdate)` 疑笔误）；拆桥干净 |
+| r222 | SyncPrimSet 搬到 `0x2:0xa` + `if (ncheck)` 修复 + 双腿全绿（预置匹配 0.045s 过 / 失配 5.007s 超时）；门禁改判 + 双重复位；值语义闭环 |
 
 ## 关键单篇（本轮最常用）
 

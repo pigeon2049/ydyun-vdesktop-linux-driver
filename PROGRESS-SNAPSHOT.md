@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **317 项通过，零 skip**（r220 syncprimset 7 项；余同 r218） |
+| Python 测试 | **318 项通过，零 skip**（r222 translator-wait 1 项；余同 r220） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -232,10 +232,10 @@ RGXCreateRenderContext
 | `test_pvr_kickta3d5_observe.py` | 7 | KickTA3D5 observe 路由/定界/鉴权/零嵌套读/标量上报/零执行/零填充回 0（含反向；r215，未加载） |
 | `test_pvr_observe_ping.py` | 8 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown（含反向；r217/r218） |
 | `test_pvr_syncprimset.py` | 7 | SyncPrimSet 真写路由/ABI/解析复用/定界/仅 host 写/零执行/零填充回 0（含反向；r220，未加载） |
-| `test_pvr_fn_ids.py` | 2 | 56 分发功能号逐值钉死 + dispatch 零裸标签（r188；r215 加 `RGXKICKTA3D5=0x14`） |
+| `test_pvr_translator.py` | 7 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随/check 等待门控 ncheck（含反向；r126/r147–r148/r159/r222） |
+| `test_pvr_fn_ids.py` | 2 | 57 分发功能号逐值钉死 + dispatch 零裸标签（r188；r215 加 `RGXKICKTA3D5=0x14`；r222 加 `SYNCPRIMCPUSIGNAL=0xa`） |
 | `test_pvr_multicore_info.py` | 3 | `0x1:0xc` 回显 caps、单核（r152） |
-| `test_pvr_translator.py` | 6 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随（含反向；r126/r147–r148/r159） |
-| `test_pvr_ddk2_render2.py` | 5 | DDK2 render 建销（r142；OUT 以活体 12 为准） |
+| `test_pvr_ddk2_render2.py` | 5 | DDK2 render 建销（r142；OUT 以活体 12 为准；r220/r222 改判 SyncPrimSet 路由） |
 | `test_pvr_ddk2_kicksync2.py` | 3 | DDK2 CCB 建销（r143） |
 | `test_pvr_drm_major_gate.py` | 3 | 桥 `drm_major` 参数选路（r134；只读，不加载） |
 | `test_pvr_heap_layout.py` | 2 | 堆几何基础断言 |
@@ -460,6 +460,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r222 非零 kick 双腿闭环（批准执行）**：handler 搬到 `0x2:0xa`（新宏，生成头同名）+ `if (nupdate)`→`if (ncheck)`；门禁改判（syncprimset/render2/fn57/MAPPING）+ translator 新增 wait 门控断言；双重复位验证；`check-offline` 318+292 全绿；`make kernel` 零警告。活体（`translate_kick=1`）：Leg1 预置+匹配 0.045s 即过（fence=4）；Leg2 失配 5.007s 后 UMD 37（等待真实，无 marker）。probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。值语义真闭环。**Freeze 已恢复。**见 `reports/r222-nonzerokick-closed.md` + 双 `.jsonl`。
 - **r221 非零 kick 活体发现（批准执行）**：UMD `SetSyncPrim` 实际发 `0x2:0xa`（objdump 实锤，Ghidra 伪 C 写错 fn id；r220 handler 挂错位置，下轮搬移）+ check-only 翻译不等 UFO 值（value=1 vs PMR=0 一次通过 fence=3；源码系 `if (nupdate)` 门控，r174 引入，疑笔误——r212/r213 只证明机械）。拆桥干净（probe 25→1），默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**见 `reports/r221-nonzerokick-findings.md` + `.jsonl`。
 - **r220 SyncPrimSet 真写（离线，零硬件触碰）**：值语义链真卡点打通——`0x2:0x2` 从 stub 改真写（wrapper/生成头/活体三重互证 IN16；复用 translator 解析 + 定界写；无 fence/提交/wakeup；`0x2:0xd` 仍越界）。门禁 7 项新 + 改判 + MAPPING（含双重反向）；`check-offline` 317+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r220-syncprimset-write.md`。
 - **r219 TQX bring-up 新会话复验（批准执行）**：`=2` + `translate_tqx_ctx=1`（transfer 干跑保持 off）重载后真实 blit 报 `tqx-ctx: ready`（无 `-22` 回归）；UMD 即时 SIGABRT 无 hanging；probe 1→28→1 对称归零；桥恢复默认 + L3 全绿，dmesg 干净。附带第四个 `+0x40` 轮变值（`60 70`）。**Freeze 已恢复。**见 `reports/r219-tqxbringup-reverify.md` + `.jsonl`。
