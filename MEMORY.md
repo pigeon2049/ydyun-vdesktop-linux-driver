@@ -11,9 +11,9 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r275：fail_at 定位 + WARNING 修复，批准执行）
+## 本次会话进展（r276：WARNING 修复验证，批准执行）
 
-- fail_at 一次建功：`failed at line 1856` 直指 bind_boot_shared；附带发现首个内核 WARNING（teardown cancel 未 INIT work），已修（prepare 末 INIT + 前向声明）但未复验。`make kernel` 零警告；`check-offline` 350 OK。拆桥干净，默认 + L3 全绿。详见 `reports/r275-failat-warning.md`。
+- WARNING 真条件定位（prepare 失败路径 teardown）+ 修复前移后重验：三开 blit 必失败路径后零 WARNING；fail_at 行号+6 机制自证。门禁 +1；`check-offline` 351 OK；`make kernel` 零警告。拆桥干净，默认 + L3 全绿。详见 `reports/r276-warning-fixed.md`。
 - **Freeze 已恢复。**
-- 遗留：bind 内部分项定位；WARNING 复验。USB 短页标题日期问题留待对应轮。
+- 遗留：bind 内部分项定位。USB 短页标题日期问题留待对应轮。
 ---

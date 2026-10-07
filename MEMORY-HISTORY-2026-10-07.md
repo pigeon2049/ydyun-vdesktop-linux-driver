@@ -627,3 +627,10 @@
 - 遗留：bring-up 分项打印定位 -22 来源。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r275：fail_at 定位 + WARNING 修复，批准执行）
+
+- fail_at 一次建功：`failed at line 1856` 直指 bind_boot_shared；附带发现首个内核 WARNING（teardown cancel 未 INIT work），已修（prepare 末 INIT + 前向声明）但未复验。`make kernel` 零警告；`check-offline` 350 Python OK。拆桥干净，默认 + L3 全绿。详见 `reports/r275-failat-warning.md`。
+- **Freeze 已恢复。**
+- 遗留：bind 内部分项定位；WARNING 复验。USB 短页标题日期问题留待对应轮。
+
+---

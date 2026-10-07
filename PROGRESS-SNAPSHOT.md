@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r276 WARNING 修复验证（批准执行）**：真条件是 prepare 失败路径 teardown；INIT 前移后失败路径零 WARNING（fail_at 行号+6 自证）；门禁 +1；`check-offline` 351+292 全绿；`make kernel` 零警告。拆桥干净，默认 + L3 全绿。见 `reports/r276-warning-fixed.md`。
 - **r275 fail_at 定位 + WARNING 修复（批准执行）**：`failed at line 1856` 直指 bind_boot_shared；首个内核 WARNING（cancel 未 INIT work）已修未复验；`check-offline` 350+292 全绿；`make kernel` 零警告。拆桥干净，默认 + L3 全绿。见 `reports/r275-failat-warning.md`。
 - **r274 fire 活体失败（批准执行）**：三开 + blit，DM prepare 先倒（-22 重现，slices/fire 未达）；blit 即时 134，无 D 态；refs 自归。拆桥干净，默认 + L3 全绿。见 `reports/r274-fire-blocked.md`。
 - **r273 收敛收官审计（零硬件触碰）**：全仓库残留裁决，生产代码零散落；r269–r273 收敛工作关闭。见 `reports/r273-convergence-audit.md`。
