@@ -11,13 +11,13 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r253：极小预算匹配腿，批准执行）
+## 本次会话进展（r255：短预算 10 轮 soak，批准执行）
 
-- wait 100ms 下预置匹配 45ms 即过（prepare 占大头，命中本身远小于预算）；fence=59/60。拆桥干净，默认 + L3 全绿。失配腿在 100ms 下未跑（外推可信，如实声明）。详见 `reports/r253-tinybudget-match.md`。
+- 同窗口（wait 100ms）10/10 通过，0.12ms/轮起；tag/fence 无跳号（至 79/80）；零 WARN。拆桥干净，默认 + L3 全绿。详见 `reports/r255-tinybudget-soak.md`。
 - **Freeze 已恢复。**无代码改动。
 
-## 本次会话进展（r252：GDB 监督 L4 闭环，批准执行）
+## 本次会话进展（r254：极小预算失配腿，批准执行）
 
-- rung6/rung8 GDB 全过（叠加 r245，新会话 L4 全级成立）；默认桥未重载，refs 不变。详见 `reports/r252-gdb-l4-closed.md`。
+- wait 100ms 下失配 kick 0.118s 后 UMD 37；预算维度全覆盖（5s/1s/100ms 同构）；无 marker。同窗口续跑 soak。详见 `reports/r254-tinymismatch.md` + `.jsonl`。
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 ---

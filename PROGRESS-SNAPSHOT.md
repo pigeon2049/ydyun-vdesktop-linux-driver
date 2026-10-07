@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r255 短预算 10 轮 soak（批准执行）**：同窗口（wait 100ms）10/10 通过，0.12ms/轮；tag/fence 无跳号（至 79/80）；零 WARN。拆桥干净，默认 + L3 全绿。见 `reports/r255-tinybudget-soak.md`。
+- **r254 极小预算失配腿（批准执行）**：wait 100ms 下 0.118s 后 UMD 37；预算维度全覆盖（5s/1s/100ms）；无 marker。同窗口续跑 soak。见 `reports/r254-tinymismatch.md` + `.jsonl`。
 - **r253 极小预算匹配腿（批准执行）**：wait 100ms 下预置匹配 45ms 即过（fence=59/60）；预算下限安全（失配腿在 100ms 下未跑）。拆桥干净，默认 + L3 全绿。见 `reports/r253-tinybudget-match.md`。
 - **r252 GDB 监督 L4 闭环（批准执行）**：rung6/rung8 全过（叠加 r245，新会话 L4 全级成立）；默认桥未重载。见 `reports/r252-gdb-l4-closed.md`。
 - **r251 UMD standalone flake 现状（批准执行）**：render 路径 10/10 崩 + GDB 全过（r167 翻版）；flake 率演进 4/16→11/11→6/6→10/10；node probe 偶发 2 failing（重跑即过）。UMD 链 soak 不可行。见 `reports/r251-umd-flake-status.md`。
