@@ -41,8 +41,7 @@ static int __init mt_live_marker_init(void)
 	if (!pdev)
 		return -ENODEV;
 	device_lock(&pdev->dev);
-	if (pdev->vendor != 0x1ed5 || pdev->device != 0x0222 ||
-	    pdev->subsystem_vendor != 0x1ed5 || pdev->subsystem_device != 0x1101 ||
+	if (!mt_guest_match_s3000(pdev->vendor, pdev->device, pdev->subsystem_vendor, pdev->subsystem_device) ||
 	    !pdev->driver || strcmp(pdev->driver->name, "mt_guest_probe"))
 		goto unlock_device;
 	owner = pdev->driver->driver.owner;

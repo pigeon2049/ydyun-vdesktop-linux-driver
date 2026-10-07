@@ -28,6 +28,17 @@
 #define MT_GUEST_BAR2_BASE 0x800000000ULL
 #define MT_GUEST_BAR2_BYTES 0x400000000ULL
 #define MT_GUEST_SEG5_ADDR 0x43000000ULL
+
+/* S3000 vGPU identity guard (r271): vendor/device/subsystem quads were
+ * pasted in eleven recovery files. Compare by name; the drm_snapshot
+ * loose match (vendor/device only) is a different semantic and stays.
+ */
+static inline bool mt_guest_match_s3000(u16 vendor, u16 device,
+					u16 subvendor, u16 subdevice)
+{
+	return vendor == 0x1ed5 && device == 0x0222 &&
+	       subvendor == 0x1ed5 && subdevice == 0x1101;
+}
 #include "mt_marker_fence.h"
 
 struct mt_guest_device {

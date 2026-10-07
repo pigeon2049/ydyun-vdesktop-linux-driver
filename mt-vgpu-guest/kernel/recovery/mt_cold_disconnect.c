@@ -30,8 +30,7 @@ static int __init cold_disconnect_init(void)
 	if (!pdev)
 		return ret;
 	device_lock(&pdev->dev);
-	if (pdev->driver || pdev->vendor != 0x1ed5 || pdev->device != 0x0222 ||
-	    pdev->subsystem_vendor != 0x1ed5 || pdev->subsystem_device != 0x1101 ||
+	if (pdev->driver || !mt_guest_match_s3000(pdev->vendor, pdev->device, pdev->subsystem_vendor, pdev->subsystem_device) ||
 	    pci_resource_start(pdev, 2) != MT_GUEST_BAR2_BASE ||
 	    pci_resource_len(pdev, 2) != MT_GUEST_BAR2_BYTES ||
 	    pci_resource_len(pdev, 0) != 0x10000 || pci_resource_len(pdev, 1) != 0x10000)

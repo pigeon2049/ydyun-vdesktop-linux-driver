@@ -157,8 +157,7 @@ static int __init start(void)
 	if (!device)
 		return -ENODEV;
 	device_lock(&device->dev);
-	if (device->driver || device->vendor != 0x1ed5 || device->device != 0x0222 ||
-	    device->subsystem_vendor != 0x1ed5 || device->subsystem_device != 0x1101 ||
+	if (device->driver || !mt_guest_match_s3000(device->vendor, device->device, device->subsystem_vendor, device->subsystem_device) ||
 	    pci_resource_len(device, 0) != SZ_64K || pci_resource_len(device, 1) != SZ_64K)
 		goto out;
 	pci_read_config_word(device, PCI_COMMAND, &command);

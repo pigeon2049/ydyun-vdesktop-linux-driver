@@ -406,8 +406,7 @@ static int __init mt_live_tqx_init(void)
 	if (!device)
 		goto free_workspace;
 	device_lock(&device->dev);
-	if (device->vendor != 0x1ed5 || device->device != 0x0222 ||
-	    device->subsystem_vendor != 0x1ed5 || device->subsystem_device != 0x1101 ||
+	if (!mt_guest_match_s3000(device->vendor, device->device, device->subsystem_vendor, device->subsystem_device) ||
 	    !device->driver || strcmp(device->driver->name, "mt_guest_probe"))
 		goto unlock_device;
 	owner = device->driver->driver.owner;

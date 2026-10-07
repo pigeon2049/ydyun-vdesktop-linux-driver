@@ -45,7 +45,42 @@ class GuestAddrs(unittest.TestCase):
                 r'#define\s+%s\s+%s\b' % (name, re.escape(literal)),
                 '%s must keep its value %s' % (name, literal))
 
-    def test_recovery_compares_by_name(self):
+    def test_match_helper_pinned(self):
+        self.assertRegex(
+            self.wire,
+            r'vendor == 0x1ed5 && device == 0x0222 &&\s*'
+            r'subvendor == 0x1ed5 && subdevice == 0x1101',
+            'match helper must keep the S3000 quad')
+
+    def test_guards_call_helper(self):
+        # Seventeen recovery files share the full-quad guard; the loose
+        # matches (drm_snapshot, irq_recover, live_service, the bridge
+        # device lookup, device_profile) are different semantics.
+        guarded = [
+            'kernel/recovery/mt_cold_disconnect.c',
+            'kernel/recovery/mt_retired_disconnect.c',
+            'kernel/recovery/mt_idle_disconnect.c',
+            'kernel/recovery/mt_drain_pending.c',
+            'kernel/recovery/mt_hwr_request.c',
+            'kernel/recovery/mt_master_notify.c',
+            'kernel/recovery/mt_package_probe.c',
+            'kernel/recovery/mt_retained_dump.c',
+            'kernel/recovery/mt_reconnect.c',
+            'kernel/recovery/mt_offline_info.c',
+            'kernel/recovery/mt_live_3d.c',
+            'kernel/recovery/mt_live_copy_bridge.c',
+            'kernel/recovery/mt_live_drm.c',
+            'kernel/recovery/mt_live_tqx.c',
+            'kernel/recovery/mt_live_tqx_repeat.c',
+            'kernel/recovery/mt_live_marker.c',
+            'kernel/recovery/mt_live_3d_drm.c',
+        ]
+        for rel in guarded:
+            text = strip_comments((ROOT / rel).read_text())
+            self.assertIn('mt_guest_match_s3000(', text,
+                          '%s must call the helper' % rel)
+            self.assertNotRegex(text, r'vendor != 0x1ed5',
+                                '%s must not carry a bare quad' % rel)
         # BAR2 base/size live in the three disconnect guards; the
         # segment-5 anchor lives in the offline info layout checks.
         expected = {
