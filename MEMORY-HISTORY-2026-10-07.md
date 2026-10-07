@@ -620,3 +620,10 @@
 - 遗留：fire 函数（离线）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r274：fire 活体失败，批准执行）
+
+- 三开新构建 + 真实 blit，DM prepare 先倒（-22 重现，slices/fire/ready 全无）；blit 即时 134，无 D 态；refs 自归。拆桥干净，默认 + L3 全绿。详见 `reports/r274-fire-blocked.md`。
+- **Freeze 已恢复。**无代码改动（r267/r268 已在盘）。
+- 遗留：bring-up 分项打印定位 -22 来源。USB 短页标题日期问题留待对应轮。
+
+---

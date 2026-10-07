@@ -11,9 +11,9 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r274：fire 活体失败，批准执行）
+## 本次会话进展（r275：fail_at 定位 + WARNING 修复，批准执行）
 
-- 三开新构建 + 真实 blit，DM prepare 先倒（-22 重现，slices/fire/ready 全无）；blit 即时 134，无 D 态；refs 自归。拆桥干净，默认 + L3 全绿。详见 `reports/r274-fire-blocked.md`。
-- **Freeze 已恢复。**无代码改动（r267/r268 已在盘）。
-- 遗留：bring-up 分项打印定位 -22 来源。USB 短页标题日期问题留待对应轮。
+- fail_at 一次建功：`failed at line 1856` 直指 bind_boot_shared；附带发现首个内核 WARNING（teardown cancel 未 INIT work），已修（prepare 末 INIT + 前向声明）但未复验。`make kernel` 零警告；`check-offline` 350 OK。拆桥干净，默认 + L3 全绿。详见 `reports/r275-failat-warning.md`。
+- **Freeze 已恢复。**
+- 遗留：bind 内部分项定位；WARNING 复验。USB 短页标题日期问题留待对应轮。
 ---
