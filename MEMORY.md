@@ -12,19 +12,9 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r317：copy producer 侦察，批准执行）
+## 本轮进展（r318：copy abort RE，离线）
 
-- part 1 收官：118 提交已推；快照刷新（§1/§5/§6/§11 合并 r185–r316，指针 `d8ed054`→`115a67d` 两步推进）已二推。门禁数实测：386 Python + 299 C。
-- part 2 首步：tq-perf 单发（`=2` observe）止于 `TQJobSubmit` 内 abort（101 全零；r162 fabricated 中止点活体复现；core 入库）。copy/TA 均需 producer 级 recon—— transfer-fill 之外无现成 UMD producer。
-- 拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，窗口零新增 WARN。时钟疑似跳变 3h（备忘，不影响 uptime 轴）。
-- **Freeze 已恢复。**
-- 遗留：大项立项（copy/TA 二选一或先还债）。本地提交仍未 push（r317 起）。
----
-
-## 本轮进展（r316：真实绘制 Test PASS，批准执行）
-
-- r314：GDB 断比对循环点名 dest+0 vs source+3841（rcx/rsi/r13d + 映射对照）；r315：落池基址改为 0（门禁改判，386 全绿）；r316：五开窗口 `Test PASS (exit=0)`——真实绘制全链条打通，STATUS #1 落定。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。
-- **Freeze 已恢复。**
-- 遗留：push 积压提交；快照刷新 pass（§12/对应提交指针落后）。本地提交仍未 push。
+- core 验尸 + 反汇编：断言式自杀，setup 深水区，桥全 0 无罪；候选排序（sysmem/小几何/GDB/全反汇编）。纯文档。
+- 遗留：r319 三连发窗口（sysmem/小几何/对照）。本地提交仍未 push。
 ---
 
