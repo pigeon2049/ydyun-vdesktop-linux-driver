@@ -142,6 +142,16 @@ class TqxFirePath(unittest.TestCase):
         self.assertRegex(self.src,
                          r'module_param\(translate_fire_to_dst, bool, 0400\)')
 
+    def test_fire_color_override(self):
+        # r308: nonzero translate_fire_color replaces the pool-parsed
+        # fill colour (colour sweep without rebuilds).
+        self.assertRegex(self.src,
+                         r'static unsigned int translate_fire_color;')
+        self.assertRegex(self.src,
+                         r'module_param\(translate_fire_color, uint, 0400\)')
+        self.assertIn('translate_fire_color ? translate_fire_color',
+                      self.body)
+
     def test_work_lands_verified_chunks_in_dst(self):
         # r300: bulk-read once, verify from the buffer, then copy the
         # verified chunk into the UMD pool; bounds-checked, loud.

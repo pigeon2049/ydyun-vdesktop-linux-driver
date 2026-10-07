@@ -138,6 +138,9 @@ MODULE_PARM_DESC(translate_submit3_bump, "write submit3 update values into their
 static bool translate_fire_to_dst;
 module_param(translate_fire_to_dst, bool, 0400);
 MODULE_PARM_DESC(translate_fire_to_dst, "copy each verified fire chunk into the UMD destination pool (default: off; scratch-only otherwise)");
+static unsigned int translate_fire_color;
+module_param(translate_fire_color, uint, 0400);
+MODULE_PARM_DESC(translate_fire_color, "override the pool-parsed fill color (default: 0 = pool color; r308 color sweep)");
 
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
@@ -4242,7 +4245,8 @@ static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 	translator.fire_chunk_h = chunk_rows;
 	translator.fire_width = rect.width;
 	translator.fire_height = rect.height;
-	translator.fire_color = rect.color;
+	translator.fire_color = translate_fire_color ? translate_fire_color :
+		rect.color;
 	translator.fire_cores = cores;
 	translator.fire_seq = ++translator.seq;
 	translator.fire_dst_host = (translate_fire_to_dst && dst->host) ?
