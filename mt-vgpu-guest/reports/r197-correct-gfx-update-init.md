@@ -36,3 +36,12 @@ RGXKickGfx 时保留构造器生成的 perf callback 默认值，并在调用者
 内按 `param_2[0x1bc]` 与相应条目数组构造输入；用 GDB 观察 prepare 产出的列表
 计数/flag 是否仍为 1 / 2，再核对 bridge trace。仍只用 fabricated bridge，活会话
 保持 freeze。
+
+## 补充更正（r198）
+
+r197 的字段区分仍成立：render-context `+0x24` 是 PerfCountEndCbID，不是新分配
+update-list 的 count 字段。但“不是 update-list count”不等于 kick 无关：r198 的
+GDB/指令证据确认 `RGXPrepareTA` 也把同一 context 字段用作状态表索引。正常
+AppHint 文件可在 context 创建时将其设为 0，不需 harness 直接 poke。PrepareTA
+越过后仍因 `SubmissionCmdGenerate` 首参为空而中止；update helper 尚未到达。详见
+[`r198-gfx-apphint-replay.md`](r198-gfx-apphint-replay.md)。

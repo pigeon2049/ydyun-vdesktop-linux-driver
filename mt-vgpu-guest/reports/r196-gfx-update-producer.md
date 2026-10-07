@@ -47,3 +47,11 @@ r196 将手动清零的 render-context `+0x20/+0x24` 描述为 update slot。按
 真正的 GFX update 列表由 `RGXPrepareTA` 分配并初始化。r196 的 bridge trace 和
 helper 观测仍有效，但“清 slot 是到达 update producer 的必要条件”已撤回。详见
 [`r197-correct-gfx-update-init.md`](r197-correct-gfx-update-init.md)。
+
+## 补充更正（r198）
+
+临时 `musa.ini` AppHint 可以把 `PerfCountEndCbID` 合法初始化为 0，因此不需要
+直接 poke render-context 对象。r198 又实测该字段会影响 RGXPrepareTA 的状态表
+索引；之前把它称作 update-list slot 或称其与 kick 无关都不准确。r196 的 bridge
+trace仍有效，r198 的无 poke 重放尚未到 update helper。见
+[`r198-gfx-apphint-replay.md`](r198-gfx-apphint-replay.md)。

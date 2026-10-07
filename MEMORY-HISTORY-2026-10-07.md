@@ -30,3 +30,11 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184 排序，和 STATUS/§12 活页有差异；留待快照刷新 pass 一并校正。
 
 ---
+
+## 本次会话进展（r196：RGXKickGfx update producer）
+
+- 零硬件触碰（fabricated）。`RGXKickGfx` 到达 `SubmissionSetUpdateSyncPrim`，实测 count=1、首项 flag=2；trace 发出 `0x82:0x14`（IN 108/OUT 4），fake shim 返回 0，函数返回 0。r197 更正：之前手动清零的 render-context `+0x20/+0x24` 是 perf callback AppHint 字段；真实 update-list 初始化在 `RGXPrepareTA`，动态验证待做。
+- 证据：`reports/r196-gfx-update-producer.md` + trace；r197 已更正 poke 字段解释。下一步保留 perf defaults，按 psKickTA 输入条目重放；会话保持 freeze。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，和 STATUS/§12 活页有差异；留待快照刷新 pass 一并校正。
+
+---
