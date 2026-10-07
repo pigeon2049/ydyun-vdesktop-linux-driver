@@ -2,6 +2,13 @@
 
 > 由 `MEMORY.md` 清理周期移入（只保留最新两节），原样保留。
 
+## 本次会话进展（r201：fabricated GFX update producer 动态复核）
+
+- 零硬件触碰。GDB 对上 kick `+0x28` 目标 `+0x200` 与 render-context allocator；修正 `CreateSyncPrim` 输出槽后，CheckSync/UpdateSync 各一项，update `flag=2`、handle 非空，trace 发出 fabricated `0x82:0x14`（IN108/OUT4）。shim 返回后在 `local_e70` update-list 清理处 heap abort；r203 证明根因为 harness 输出复制越界，扩大缓冲后 UMD 可干净返回。
+- 证据：`reports/r201-gfx-update-producer.md` + `r201-gfx-update-producer.jsonl`。后续追踪见 r202/r203。
+
+---
+
 ## 本次会话进展（r200：fabricated render context allocator 实测）
 
 - 零硬件触碰。fabricated 默认 shim 下 connect/device/devmemctx/render 全返 0；返回 context `+0x200` allocator 和 `+0x318` SubmissionHead 均非空，trace 117 行。r201 已将其 allocator 与 GFX kick `+0x28` 目标动态对上。
