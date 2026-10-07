@@ -3921,6 +3921,30 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 			if (((const u8 *)pmr->host)[i])
 				nz++;
 		}
+		{
+			/* Content shape (r310): solid pools have exactly one
+			 * distinct pixel word; patterns have more. A solid
+			 * fill can only reproduce the former -- count it.
+			 */
+			u32 w0 = 0, ndistinct = 0;
+			u64 w;
+
+			for (w = MT_TRANSFER_POOL_HEAD;
+			     w + 4 <= pmr->bytes; w += 4) {
+				u32 v;
+
+				memcpy(&v, (const u8 *)pmr->host + w,
+				       sizeof(v));
+				if (!ndistinct || v != w0) {
+					w0 = v;
+					if (++ndistinct > 1)
+						break;
+				}
+			}
+			pr_info("mt_pvr_bridge: submit3 poolshape: pmr=%#llx distinct=%u first=%#x\n",
+				(unsigned long long)pmr->handle, ndistinct,
+				w0);
+		}
 		pr_info("mt_pvr_bridge: submit3 pool: pmr=%#llx bytes=%llu pixels=%llu nz=%llu color=%#x\n",
 			(unsigned long long)pmr->handle,
 			(unsigned long long)pmr->bytes,

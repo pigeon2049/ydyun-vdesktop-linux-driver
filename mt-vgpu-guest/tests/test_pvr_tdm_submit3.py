@@ -144,6 +144,13 @@ class TdmSubmit3Observe(unittest.TestCase):
         self.assertIn('submit3 pool: pmr=', locate)
         self.assertIn('submit3 dst: pool=', locate)
 
+    def test_pool_shape_logged(self):
+        # r310: per-pool distinct-pixel count tells solid fills (==1,
+        # reproducible) from patterns (>1, not reproducible by fills).
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('submit3 poolshape:', locate)
+        self.assertIn('MT_TRANSFER_POOL_HEAD', locate)
+
     def test_ccb_derived_destination(self):
         # r304: the CCB window names the destination VA (anchored
         # 4B-destination-block scan); fire honors it over the
