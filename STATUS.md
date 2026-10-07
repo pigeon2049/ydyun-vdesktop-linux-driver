@@ -14,7 +14,7 @@
 
 ## vGPU 一句话现状
 
-`mt_guest_probe` 已绑定 `00:0e.0`（trial `20261007T040408Z-f3fb55af`，Guest/FW `2/2` pinned，ref 1），`mt_pvr_bridge` 默认参数在载（`card1`/`renderD128`，ref 0），L3 全绿（node 0 failing/0 mismatch，dma smoke PASS），dmesg 无新增 WARN/BUG/Oops。**会话 freeze 中：不 rmmod、不 unbind、不提交额外工作。**r151 静态修正（`pvr_mmap`、arena 页表、close 泄漏）与 SubmitTransfer3 ABI 描述已随本次构建上机但 handler 仍未接入。r157–r160 的 fabricated CCB 结论（VA `0x8000f44000`/`0x1200`→PMR `0x500e`，39B 全定位）不受影响。r150 Oops 未复现，但根因仍未命名——后续 live 模块一次一个、做完即卸。UMD check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；legacy（r212，tag=1 fence=1）与 DDK2（r213，tag=1 fence=2）均已在新会话复验通过；update 数组语义已离线确定（r159，活体待定），真实绘制第二样本与 TA/CDM 专属提交仍未验证。RGX 像素读回与 20 帧批量是已完成结果，不代表 `mt_live_3d_drm` 当前加载。
+`mt_guest_probe` 已绑定 `00:0e.0`（trial `20261007T040408Z-f3fb55af`，Guest/FW `2/2` pinned，ref 1），`mt_pvr_bridge` 默认参数在载（`card1`/`renderD128`，ref 0），L3 全绿（node 0 failing/0 mismatch，dma smoke PASS），dmesg 无新增 WARN/BUG/Oops。**会话 freeze 中：不 rmmod、不 unbind、不提交额外工作。**r151 静态修正（`pvr_mmap`、arena 页表、close 泄漏）与 SubmitTransfer3 ABI 描述已随本次构建上机但 handler 仍未接入。r157–r160 的 fabricated CCB 结论（VA `0x8000f44000`/`0x1200`→PMR `0x500e`，39B 全定位）不受影响。r150 Oops 未复现，但根因仍未命名——后续 live 模块一次一个、做完即卸。UMD check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；legacy（r212，tag=1 fence=1）与 DDK2（r213，tag=1 fence=2）均已在新会话复验通过；update 数组语义已离线确定（r159，活体待定），真实绘制第二样本已在新会话落定（r214：39B 中 37 与 r174 跨会话一致，仅 `+0x40` 轮变），TA/CDM 专属提交仍未验证。RGX 像素读回与 20 帧批量是已完成结果，不代表 `mt_live_3d_drm` 当前加载。
 细节见 `PROGRESS-SNAPSHOT.md`，逐轮记录见 `MEMORY.md`（只留最新两节），
 证据在 `mt-vgpu-guest/reports/r*.md`（索引见该目录 `reports/README.md`）。
 

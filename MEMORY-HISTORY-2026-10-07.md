@@ -168,3 +168,11 @@
 - 遗留：真实绘制 CCB 活体验证（STATUS 下一步 #1）与 update 语义活体验证（#2）仍待真实 DDK2 render backend 接线；r210 fabricated CCB 仍是离线字节。USB/画面线短页标题日期仍为 2026-10-03，留待对应轮处理。
 
 ---
+## 本次会话进展（r212：check-only 新会话复验，批准执行）
+
+- r211 新会话上 legacy check-only 复验通过：桥以 `translate_kick=1` 重载（probe 未碰），r73 配方首跑全绿（check 值直接用 r148 实测值 0），六符号全 0、`0x88:0x4 ret=0`，dmesg `translated kick: check=1 update=0 tag=1 fence=1`（与 r148 同形）。
+- 拆桥 `unloaded cleanly`，probe ref 25→1；桥恢复默认 + node probe 0 failing，dmesg 零 WARNING/BUG/Oops。trace 130 行已入库 `reports/r212-checkonly-reverify.jsonl`（不再放易失 `/tmp`）。详见 `reports/r212-checkonly-reverify.md`。
+- **Freeze 已恢复**：不 rmmod、不 unbind、不提交额外工作。
+- 遗留：DDK2 check-only（r149 对应项）仍待复验；真实绘制 CCB 仍待 backend 接线。USB 短页标题日期问题留待对应轮。
+
+---
