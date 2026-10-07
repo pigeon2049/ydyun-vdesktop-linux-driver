@@ -206,6 +206,8 @@
 | r249 | observer 在 transfer 桥下回归：`=2` + transfer 下 24 步全过；开关正交补格 |
 | r250 | observer 在 tqx_ctx 桥下回归：`=2` + tqx_ctx 下全过；开关正交矩阵补完 |
 | r251 | UMD standalone flake 现状：render 路径 10/10 崩 + GDB 全过 + probe 偶发 2 failing（重跑即过） |
+| r252 | GDB 监督 L4 闭环：rung6/rung8 全过（叠加 r245，新会话 L4 全级成立） |
+| r253 | 极小预算匹配腿：wait 100ms 下 45ms 即过（fence=59/60）；预算下限安全 |
 
 ## 关键单篇（本轮最常用）
 

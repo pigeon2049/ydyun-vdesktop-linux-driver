@@ -453,3 +453,17 @@
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r250：observer 在 tqx_ctx 桥下回归，批准执行）
+
+- observer 与 `translate_tqx_ctx` 开关正交证实：`=2` + tqx_ctx 下 ping 全套 23 ok + PASS，CCB 行一致；observer × 5 配置正交矩阵补完。拆桥干净，默认恢复。详见 `reports/r250-tqxctx-observe-regression.md`。
+- **Freeze 继续。**无代码改动。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r251：UMD standalone flake 现状，批准执行）
+
+- render 路径 standalone 10/10 崩，GDB 下全过（r167 翻版，桥无罪）；flake 率演进 4/16→11/11→6/6→10/10，疑与 uptime 相关。node probe 首跑偶发 2 failing，重跑两次全绿。UMD 链 soak 不可行。详见 `reports/r251-umd-flake-status.md`。
+- refs 不变，dmesg 干净。**Freeze 继续。**无代码改动。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
