@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r294：hanging 实锤 spin + 有界自杀，批准执行）
+## 本轮进展（r295：参数抓取未遂 + 锚点，批准执行）
 
-- `=2` 纯 observe 窗口照挂；活体 wchan=0/R + GDB 栈 `SyncPrimWait→sched_yield`；约 100s 后 SIGABRT（core 入库）。L3 双绿，refs 1/1，窗口零新增 WARN。无代码改动。
+- GDB 活体两次干净；反汇编得有界等待 + 32B 表形状；fabricated 真 IN 得 handle/offset；入口参未得（r296 重抓）。暂存区入库前丢失（备忘；load-bearing 已提）。L3 双绿，refs 1/1，零新增 WARN。无代码改动。
 - **Freeze 已恢复。**
-- 遗留：SyncPrimWait 三元组抓参（r295 窗口，frame+registers）；TA/3D 仍需 producer。本地提交仍未 push。
+- 遗留：r296 入口抓参；awaited value；TA/3D producer。本地提交仍未 push。
 ---
 
