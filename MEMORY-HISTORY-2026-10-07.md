@@ -257,3 +257,10 @@
 - 遗留：update 非零腿；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r223：update 写回活体验证，批准执行）
+
+- translator 写回语义（r159）活体闭环：新工具 `pvr_update_writeback` 在 `translate_kick=1` 桥上，update-only fire 写 V=1 回 0，check kick 0.11ms 即时通过（时间即读回）；dmesg 双行 fence=5/6。工具零警告构建 + 5 项门禁（含反向）。详见 `reports/r223-update-writeback-live.md`。
+- probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**`check-offline` 323 Python OK。
+- 遗留：UMD 生成的真实 update 数组仍待 producer；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
+---

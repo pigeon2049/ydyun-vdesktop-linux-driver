@@ -179,6 +179,7 @@
 | r222 | SyncPrimSet 搬到 `0x2:0xa` + `if (ncheck)` 修复 + 双腿全绿（预置匹配 0.045s 过 / 失配 5.007s 超时）；门禁改判 + 双重复位；值语义闭环 |
 | r223 | update 写回活体验证：update-only fire 写 V=1，check kick 0.11ms 即时通过（时间即读回）；新工具 + 5 项门禁；会话未动 |
 | r224 | observer 非零窗口活体验证：`0x2:0xa` 预置 5×u32 后 fire，nonzero=20/FNV/head 与离线预言逐项一致；13 步全 teardown，会话未动 |
+| r225 | UMD 生成 CCB 进真桥观察：r210 字节 61 槽载入 0x4700 窗口再 fire，nonzero=107/FNV/head64 与离线预言全命中；22 步全 teardown，会话未动 |
 
 ## 关键单篇（本轮最常用）
 
