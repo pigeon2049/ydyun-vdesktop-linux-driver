@@ -165,6 +165,7 @@
 | r208 | 证实 PMR 页可借入设备 BO store 的基础接口；真实 backend 仍需 per-file VM/context、资源闭包与 CCB/fence 执行链 |
 | r209 | shim 可选捕获 fabricated `0x82:0x14` 原始 CCB；偏移/背衬映射门禁与反向验证通过 |
 | r210 | 恢复 fabricated GFX producer，首次保存 0x4700 UMD 原始 CCB 字节；check/update sync helper 均成功，执行语义仍未验证 |
+| r211 | 真机重启后重建活体会話（新 trial `20261007T040408Z-f3fb55af`，Guest/FW 2/2 pinned）；桥默认加载，L3 全绿，dmesg 干净，freeze 生效 |
 
 ## 关键单篇（本轮最常用）
 

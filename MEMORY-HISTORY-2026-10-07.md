@@ -143,3 +143,12 @@
 - 遗留：真实 CCB 活体验证仍须用户明确批准；执行包格式/资源闭包尚未证实。
 
 ---
+## 本次会话进展（r209：fabricated GFX CCB 捕获能力）
+
+- 零硬件触碰。扩展 `umd_bridge_shim`：`0x82:0x14` 按 5.2 schema 的 submission VA/size 找 shared PMR backing；显式设置 `UMD_CCB_DUMP_DIR` 后才将原始 CCB 落盘，16 MiB 上限、0600、独占创建。`0x89:0xa` 复用同一逻辑。
+- 新增合成门禁覆盖偏移、PMR 解析、raw bytes、不可解析 VA、关闭 shared backing 与关闭 dump 目录。故意把 size offset 84 改成 80 时测试失败（128 vs 256），复原后通过。
+- `make check-offline`：295 Python（1 skip）+292 C 全绿；`git diff --check` 通过。未改内核、未运行 `make kernel`、未操作硬件。
+- r203 现存请求可解出 VA=`0x8000023000`、size=`0x4700`、flags=0、submissionID=1；本轮没有重放 GFX producer，因此真实 UMD CCB backing bytes 尚未捕获。见 `reports/r209-kickgfx-ccb-capture.md`。
+- 遗留：使用可复现的 fabricated GFX producer 配方捕获真实 UMD 生成 CCB，并据其字节结构推进 TA/3D 包映射；捕获/解码仍不等于执行。
+
+---

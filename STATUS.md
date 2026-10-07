@@ -10,15 +10,15 @@
 | 线 | 目录 | 做什么 | 当前结论 |
 |---|---|---|---|
 | 云电脑 USB/画面 | `linux/`、`wayland/`、`docs/` | Debian 云电脑 USB 转发 + KDE Wayland 分辨率 | v0.2.52 可安装（见根 `README.md` 教程）；云端联调待真实会话 |
-| S3000 vGPU Guest | `mt-vgpu-guest/` | 自研内核栈点亮 Moore Threads S3000 vGPU | 新会话已重建并 freeze（r166）：probe 绑定 `00:0e.0`（Guest/FW 2/2 pinned，ref 1），bridge 默认加载（`card1`/`renderD128`，ref 0），L3 全绿，dmesg 无 WARN/Oops；r150 Oops 未复现但根因未命名 |
+| S3000 vGPU Guest | `mt-vgpu-guest/` | 自研内核栈点亮 Moore Threads S3000 vGPU | 新会话已重建并 freeze（r211）：probe 绑定 `00:0e.0`（trial `20261007T040408Z-f3fb55af`，Guest/FW 2/2 pinned，ref 1），bridge 默认加载（`card1`/`renderD128`，ref 0），L3 全绿，dmesg 无 WARN/Oops；r150 Oops 未复现但根因未命名 |
 
 ## vGPU 一句话现状
 
-`mt_guest_probe` 已绑定 `00:0e.0`（trial `20261005T161706Z-cf0d876e`，Guest/FW `2/2` pinned，ref 1），`mt_pvr_bridge` 默认参数在载（`card1`/`renderD128`，ref 0），L3 全绿（node 0 failing/0 mismatch，dma smoke PASS），dmesg 无新增 WARN/BUG/Oops。**会话 freeze 中：不 rmmod、不 unbind、不提交额外工作。**r151 静态修正（`pvr_mmap`、arena 页表、close 泄漏）与 SubmitTransfer3 ABI 描述已随本次构建上机但 handler 仍未接入。r157–r160 的 fabricated CCB 结论（VA `0x8000f44000`/`0x1200`→PMR `0x500e`，39B 全定位）不受影响。r150 Oops 未复现，但根因仍未命名——后续 live 模块一次一个、做完即卸。UMD check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149，需在新会话复验）；update 数组语义已离线确定（r159，活体待定），真实绘制第二样本与 TA/CDM 专属提交仍未验证。RGX 像素读回与 20 帧批量是已完成结果，不代表 `mt_live_3d_drm` 当前加载。
+`mt_guest_probe` 已绑定 `00:0e.0`（trial `20261007T040408Z-f3fb55af`，Guest/FW `2/2` pinned，ref 1），`mt_pvr_bridge` 默认参数在载（`card1`/`renderD128`，ref 0），L3 全绿（node 0 failing/0 mismatch，dma smoke PASS），dmesg 无新增 WARN/BUG/Oops。**会话 freeze 中：不 rmmod、不 unbind、不提交额外工作。**r151 静态修正（`pvr_mmap`、arena 页表、close 泄漏）与 SubmitTransfer3 ABI 描述已随本次构建上机但 handler 仍未接入。r157–r160 的 fabricated CCB 结论（VA `0x8000f44000`/`0x1200`→PMR `0x500e`，39B 全定位）不受影响。r150 Oops 未复现，但根因仍未命名——后续 live 模块一次一个、做完即卸。UMD check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149，需在新会话复验）；update 数组语义已离线确定（r159，活体待定），真实绘制第二样本与 TA/CDM 专属提交仍未验证。RGX 像素读回与 20 帧批量是已完成结果，不代表 `mt_live_3d_drm` 当前加载。
 细节见 `PROGRESS-SNAPSHOT.md`，逐轮记录见 `MEMORY.md`（只留最新两节），
 证据在 `mt-vgpu-guest/reports/r*.md`（索引见该目录 `reports/README.md`）。
 
-## 活会话红线（先读这段；r166 起新会话 freeze 中）
+## 活会话红线（先读这段；r211 起新会话 freeze 中）
 
 - 当前 `mt_guest_probe` 绑定 `00:0e.0`（Guest/FW `2/2` pinned，ref 1），
   `mt_pvr_bridge` 默认参数在载（ref 0）：**不 rmmod、不 unbind、不提交额外工作**。
