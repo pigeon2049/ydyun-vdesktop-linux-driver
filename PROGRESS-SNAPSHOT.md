@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r287 上限边界全绿（批准执行）**：4096×1024（16 行/块恰 64 块）`fired=1 chunks=64 verified=1 bad=0/4194304`；拆模块干净，窗口零新增 WARN。**bridge 未碰，freeze 继续。**见 `reports/r287-capedge-live.md` + `.dmesg`。
 - **r286 legacy 基线（无重载）**：当前构建+会话下真实 blit 止于 `0x89:0x0` → -25（101 调用仅此一非零，与 r244 同形）；refs 不变，窗口零新增 WARN。**freeze 继续。**见 `reports/r286-legacy-baseline.md` + `.jsonl`。
 - **r285 soak 全绿（批准执行）**：5 轮装/打/卸轮轮 `fired=Y verified=Y chunks=21`，ref 全对称；窗口零新增 WARN；无代码改动。**bridge 未碰，freeze 继续。**见 `reports/r285-soak-live.md` + `.dmesg`。
 - **r284 大矩形通用性（批准执行）**：1920×1080/`0xff00ff00` 下 `fired=1 chunks=32 verified=1 bad=0/2073600`，与离线预言逐项一致；拆模块干净，窗口零新增 WARN。**bridge 未碰，freeze 继续。**见 `reports/r284-bigrect-live.md` + `.dmesg`。

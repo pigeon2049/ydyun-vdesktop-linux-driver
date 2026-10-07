@@ -1,0 +1,6 @@
+[四 10月  8 01:16:50 2026] [r287] capedge-live-start
+[四 10月  8 01:16:50 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:16:50 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:16:50 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:16:50 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:17:01 2026] mt_live_tqx_fire: fired=1 chunks=64 verified=1 bad=0/4194304 first=0xff000000 last=0xff000000 result=0
