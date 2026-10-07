@@ -1709,13 +1709,16 @@ static int pvr_translator_wait(struct mt_pvr_ufo_cond *conds, u32 n)
 	}
 }
 
-/* 0x2:0x2 SYNC:SyncPrimSet (r220): write one u32 into a sync PMR.
- * IN = { sync handle, dword index, value } per the hash-verified 5.2.0
- * UMD wrapper. Handle resolution mirrors pvr_translator_resolve (raw
- * PMR handle, or a SYNC-kind object following its backing PMR link);
- * anything else has no CPU-visible memory and is refused. The write
- * lands in PMR host memory that translator waiters poll, so a value
- * preset here is visible to a later kick with no wakeup needed.
+/* 0x2:0xa SYNC:SyncPrimCpuSignal (r222): write one u32 into a sync PMR.
+ * IN = { sync handle, dword index, value }: identical 16-byte packing to
+ * the 0x2:0x2 clearer wrapper, per the hash-verified 5.2.0 UMD setter path
+ * (objdump: function 0xa) and the generated header
+ * MTGPU_BRIDGE_IN_SYNCPRIMCPUSIGNAL. Handle resolution mirrors
+ * pvr_translator_resolve (raw PMR handle, or a SYNC-kind object following
+ * its backing PMR link); anything else has no CPU-visible memory and is
+ * refused. The write lands in PMR host memory that translator waiters
+ * poll, so a value preset here is visible to a later kick with no
+ * wakeup needed.
  */
 static int pvr_cmd_syncprim_set(struct mt_pvr_file *file,
 				struct mt_pvr_cmd *cmd)
@@ -2141,7 +2144,7 @@ static int pvr_translate_kick(struct mt_pvr_file *file,
 		 * completes; record it in the condition slot now. */
 		uconds[i].expected = uvals[i];
 	}
-	if (nupdate)
+	if (ncheck)
 		ret = pvr_translator_wait(conds, ncheck);
 	if (ret)
 		goto free;
@@ -3483,11 +3486,12 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_cmd_sync_block(file, cmd);
 		case MT_PVR_FN_FREESYNCPRIMITIVEBLOCK:			/* FreeSyncPrimitiveBlock */
 			return pvr_stub_ok(cmd);
-		case MT_PVR_FN_SYNCPRIMSET:			/* SyncPrimSet (real write, r220) */
-			return pvr_cmd_syncprim_set(file, cmd);
+		case MT_PVR_FN_SYNCPRIMSET:			/* SyncPrimSet (free-path clearer wrapper; stubbed) */
 		case MT_PVR_FN_SYNCALLOCEVENT:			/* SyncAllocEvent */
 		case MT_PVR_FN_SYNCFREEEVENT:			/* SyncFreeEvent (DDK2 destroy tail, r144) */
 			return pvr_stub_ok(cmd);
+		case MT_PVR_FN_SYNCPRIMCPUSIGNAL:			/* SyncPrimCpuSignal (real write, r222) */
+			return pvr_cmd_syncprim_set(file, cmd);
 		default:
 			return -ENOTTY;
 		}

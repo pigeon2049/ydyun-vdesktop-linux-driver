@@ -39,14 +39,18 @@ class SyncPrimSetWrite(unittest.TestCase):
         cls.body = fn_body(cls.src, 'pvr_cmd_syncprim_set')
 
     def test_syncprimset_routed(self):
+        # r222 re-judges the r220 contract: live r221 proved the real
+        # setter is 0x2:0xa (objdump ground truth), so the write handler
+        # moves there; 0x2:0x2 is only the free-path clearer wrapper
+        # and stays stubbed.
         self.assertRegex(self.dispatch,
-                         r'case MT_PVR_FN_SYNCPRIMSET:[\s\S]*?pvr_cmd_syncprim_set',
-                         '0x2:0x2 must reach the write handler, not stub_ok')
+                         r'case MT_PVR_FN_SYNCPRIMCPUSIGNAL:[\s\S]*?pvr_cmd_syncprim_set',
+                         '0x2:0xa must reach the write handler')
         m = re.search(r'case MT_PVR_FN_SYNCPRIMSET:(.*?)case \w',
                       self.dispatch, re.S)
         self.assertIsNotNone(m)
-        self.assertNotIn('pvr_stub_ok', m.group(1),
-                         'stub_ok must no longer serve 0x2:0x2')
+        self.assertNotIn('pvr_cmd_syncprim_set', m.group(1),
+                         '0x2:0x2 must stay stubbed')
 
     def test_wire_layout_matches_wrapper(self):
         self.assertIn('mt_pvr_syncprimset_in', self.body)

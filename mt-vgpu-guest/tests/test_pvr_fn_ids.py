@@ -32,6 +32,7 @@ PINNED = {
     'MT_PVR_FN_ALLOCSYNCPRIMITIVEBLOCK': '0x0U',
     'MT_PVR_FN_FREESYNCPRIMITIVEBLOCK': '0x1U',
     'MT_PVR_FN_SYNCPRIMSET': '0x2U',
+    'MT_PVR_FN_SYNCPRIMCPUSIGNAL': '0xaU',
     'MT_PVR_FN_SYNCALLOCEVENT': '0x7U',
     'MT_PVR_FN_SYNCFREEEVENT': '0x8U',
     'MT_PVR_FN_PMRMAKELOCALIMPORTHANDLE': '0x3U',
@@ -91,7 +92,7 @@ class FnIds(unittest.TestCase):
         cls.dispatch = text[start:nxt]
 
     def test_wire_pins_every_dispatched_id(self):
-        self.assertEqual(len(PINNED), 56)
+        self.assertEqual(len(PINNED), 57)
         for name, literal in PINNED.items():
             self.assertRegex(
                 self.wire,

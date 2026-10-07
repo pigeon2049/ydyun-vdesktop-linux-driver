@@ -410,6 +410,7 @@ struct MT_PVR_PACKED mt_pvr_kicksyncctx2_create_out {
 #define MT_PVR_FN_ALLOCSYNCPRIMITIVEBLOCK 0x0U
 #define MT_PVR_FN_FREESYNCPRIMITIVEBLOCK 0x1U
 #define MT_PVR_FN_SYNCPRIMSET 0x2U
+#define MT_PVR_FN_SYNCPRIMCPUSIGNAL 0xaU
 #define MT_PVR_FN_SYNCALLOCEVENT 0x7U
 #define MT_PVR_FN_SYNCFREEEVENT 0x8U
 #define MT_PVR_FN_PMRMAKELOCALIMPORTHANDLE 0x3U
@@ -765,11 +766,10 @@ struct MT_PVR_PACKED mt_pvr_sync_block_out {
 /* 0x2:0x2 SYNC:SyncPrimSet -- 16-byte IN, 4-byte OUT (r220).
  * Wire layout from the hash-verified 5.2.0 UMD wrapper FUN_00139220:
  * IN = { u64 sync, u32 dword_index, u32 value } backed by a 16-byte stack
- * slot, OUT = single u32 error. The public SyncPrimSet(psSync, value)
- * derives index as (ufo_byte_offset >> 2); the DDK2 CpuSignal path uses
- * a different function (0x2:0xd, still refused) and is out of scope.
- * The bridge writes one u32 into the resolved PMR; concurrent translator
- * waiters poll PMR memory, so no wakeup is needed or added.
+ * slot, OUT = single u32 error. Live r221 proved this wrapper is only
+ * the free-path clearer (always value 0); the real setter is 0x2:0xa
+ * below, whose generated-header layout is identical. This command stays
+ * stubbed; the write handler serves 0x2:0xa.
  */
 struct MT_PVR_PACKED mt_pvr_syncprimset_in {
 	u64 sync;

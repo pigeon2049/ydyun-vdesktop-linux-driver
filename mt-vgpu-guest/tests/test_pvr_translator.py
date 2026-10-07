@@ -64,6 +64,17 @@ class TranslatorGate(unittest.TestCase):
         self.assertRegex(body, r'obj->arg0 = pmr->handle',
                          'SYNC object must record its PMR for UFO follow')
 
+    def test_check_wait_gated_on_ncheck(self):
+        # r222: gating the check-condition wait on nupdate skipped UFO
+        # value verification for every check-only kick (r212/r213 proved
+        # dispatch+marker+fence mechanics only). The wait consumes the
+        # CHECK conds, so it must run whenever checks exist.
+        src = code()
+        body = fn_body(src, 'pvr_translate_kick')
+        self.assertRegex(
+            body,
+            r'if \(ncheck\)\s*ret = pvr_translator_wait\(conds, ncheck\)')
+
     def test_resolve_follows_sync_objects(self):
         src = code()
         body = fn_body(src, 'pvr_translator_resolve')

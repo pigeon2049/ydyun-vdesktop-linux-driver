@@ -54,12 +54,12 @@ MAPPING = {
     "mt_pvr_reserve_out": (0x6, 0x15),
     "mt_pvr_sync_block_in": (0x2, 0x0),
     "mt_pvr_sync_block_out": (0x2, 0x0),
-    # 0x2:0x2 SYNCPRIMSET (r220): generated 5.2 header
-    # MTGPU_BRIDGE_IN_SYNCPRIMSET {hSyncHandle@0, ui32Index@8,
-    # ui32Value@12} agrees with the UMD wrapper slot packing and the
-    # live 16/4 sizes; the bridge now writes instead of stubbing.
-    "mt_pvr_syncprimset_in": (0x2, 0x2),
-    "mt_pvr_syncprimset_out": (0x2, 0x2),
+    # 0x2:0xa SYNCPRIMCPUSIGNAL (r222): the live r221 setter (objdump);
+    # same 16-byte {handle,index,value} packing the r220 comment
+    # attributes to the 0x2:0x2 clearer wrapper, confirmed against the
+    # generated header MTGPU_BRIDGE_IN_SYNCPRIMCPUSIGNAL (16/4).
+    "mt_pvr_syncprimset_in": (0x2, 0xa),
+    "mt_pvr_syncprimset_out": (0x2, 0xa),
     "mt_pvr_ctx_create_in": (0x6, 0xF),
     "mt_pvr_ctx_create_out": (0x6, 0xF),
     # 0x86:0x4 reuses mt_pvr_handle_out. 0x86:0x5 appeared in the S2 real-UMD
