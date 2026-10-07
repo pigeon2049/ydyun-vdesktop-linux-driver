@@ -3434,14 +3434,22 @@ static int pvr_submit3_bump_updates(struct mt_pvr_file *file,
 		goto free;
 	}
 	for (i = 0; i < n; i++) {
+		if (!handles[i])
+			continue;
 		ret = pvr_translator_resolve(file, handles[i], offsets[i],
 					     &conds[i]);
-		if (ret)
+		if (ret) {
+			pr_info("mt_pvr_bridge: submit3 bump: entry %u sync=%#x off=%u: %d\n",
+				i, handles[i], offsets[i], ret);
 			goto free;
+		}
 	}
-	for (i = 0; i < n; i++)
+	for (i = 0; i < n; i++) {
+		if (!handles[i])
+			continue;
 		memcpy((u8 *)conds[i].host + conds[i].offset,
 		       &values[i], sizeof(u32));
+	}
 	pr_info("mt_pvr_bridge: submit3 bump: update=%u first_sync=%#x first_off=%u first_val=%u\n",
 		n, handles[0], offsets[0], values[0]);
 free:

@@ -59,6 +59,12 @@ class Submit3Bump(unittest.TestCase):
     def test_uses_umd_values_verbatim(self):
         self.assertIn('values[i]', self.body)
 
+    def test_null_handles_skipped(self):
+        # r299: the UMD leaves padding entries with sync=0x0; a NULL
+        # handle can never resolve, so skip (both passes) instead of
+        # refusing the whole submit.
+        self.assertGreaterEqual(self.body.count('if (!handles[i])'), 2)
+
     def test_frees_everything(self):
         self.assertEqual(self.body.count('kcalloc'), 4)
         self.assertGreaterEqual(self.body.count('kfree'), 4)
