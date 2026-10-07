@@ -192,3 +192,11 @@
 - 遗留：真实绘制执行仍待 backend 接线；update 语义活体待 `0x82:0x14` handler。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r215：`0x82:0x14` observer 离线实现，零硬件触碰）
+
+- 开工声明零硬件触碰。STATUS #2 的 concrete 缺口（r190）闭合一半：新增 `pvr_cmd_kickta3d5_observe`（r174 模式：108B 定界 + render 上下文鉴权 + VA→reservation→PMR 三重定界 + 非零/FNV/head 统计 + 标量上报回 0，不读嵌套指针、不执行、无 fence）；分发接 `case MT_PVR_FN_RGXKICKTA3D5`（wire.h 新宏，r188 惯例）。
+- 门禁 7 项新 + `fn_ids` 55→56，反向掐断验证通过；`check-offline` 302 Python + 292 C 全绿；`make kernel` W=1 零警告。未加载模块（在载桥仍旧构建，observer 待批准窗口重载验证）。详见 `reports/r215-kickta3d5-observer.md`。
+- 活体 GFX kick 方向止损：无现成生产者脚本，翻炒 GDB 手塑链风险收益不成正比；真实 3D producer 仍 open（r190）。
+- 遗留：真实执行仍待 backend 接线；update 活体待重载窗口。USB 短页标题日期问题留待对应轮。
+
+---
