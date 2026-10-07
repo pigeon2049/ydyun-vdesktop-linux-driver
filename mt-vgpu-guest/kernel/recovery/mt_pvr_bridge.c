@@ -3944,6 +3944,33 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 			pr_info("mt_pvr_bridge: submit3 poolshape: pmr=%#llx distinct=%u first=%#x\n",
 				(unsigned long long)pmr->handle, ndistinct,
 				w0);
+			/* Autorect bounds (r312): first/last nonzero word for
+			 * deriving a fill rect from a reference pattern.
+			 */
+			if (ndistinct > 1) {
+				u64 fw = 0, lw = 0;
+				u32 fv = 0;
+				u64 w2;
+
+				for (w2 = MT_TRANSFER_POOL_HEAD;
+				     w2 + 4 <= pmr->bytes; w2 += 4) {
+					u32 v;
+
+					memcpy(&v, (const u8 *)pmr->host + w2,
+					       sizeof(v));
+					if (!v)
+						continue;
+					if (!fw)
+						fw = w2;
+					lw = w2;
+					if (!fv)
+						fv = v;
+				}
+				pr_info("mt_pvr_bridge: submit3 poolbox: pmr=%#llx first=%llu last=%llu val=%#x\n",
+					(unsigned long long)pmr->handle,
+					(unsigned long long)fw,
+					(unsigned long long)lw, fv);
+			}
 		}
 		pr_info("mt_pvr_bridge: submit3 pool: pmr=%#llx bytes=%llu pixels=%llu nz=%llu color=%#x\n",
 			(unsigned long long)pmr->handle,

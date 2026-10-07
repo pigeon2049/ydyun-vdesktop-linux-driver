@@ -151,6 +151,12 @@ class TdmSubmit3Observe(unittest.TestCase):
         self.assertIn('submit3 poolshape:', locate)
         self.assertIn('MT_TRANSFER_POOL_HEAD', locate)
 
+    def test_pool_bounds_logged(self):
+        # r312: first/last nonzero word offsets + value for deriving
+        # a fill rect from a reference pattern.
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('submit3 poolbox:', locate)
+
     def test_ccb_derived_destination(self):
         # r304: the CCB window names the destination VA (anchored
         # 4B-destination-block scan); fire honors it over the
