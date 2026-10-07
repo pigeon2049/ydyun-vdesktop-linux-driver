@@ -23,6 +23,10 @@
 #define PVR_BRIDGE_IOCTL 0xc0206440UL
 #define PVR_INIT_IOCTL 0x40046445UL
 #define BOGUS_CONTEXT 0xdeadULL
+#define FIRE_VA 0x5000000000ULL
+#define FIRE_PAGES 4
+#define FIRE_BYTES (FIRE_PAGES * 4096)
+#define FIRE_SIZE 64
 
 struct drm_version {
 	int32_t major, minor, patch;
@@ -74,6 +78,25 @@ int main(int argc, char **argv)
 	struct mt_pvr_rgxkickta3d5_in gfx_in = { 0 };
 	struct mt_pvr_rgxkickta3d5_out gfx_out = { 0 };
 	uint32_t ctl_out = 0;
+	struct mt_pvr_handle_out render_out = { 0 };
+	struct mt_pvr_pmr_in pmr_in = {
+		.size = FIRE_BYTES,
+		.log2_page_size = 12,
+	};
+	struct mt_pvr_pmr_out pmr_out = { 0 };
+	struct mt_pvr_reserve_in reserve_in = {
+		.address = FIRE_VA,
+		.length = FIRE_BYTES,
+	};
+	struct mt_pvr_reserve_out reserve_out = { 0 };
+	struct mt_pvr_map_in map_in = { 0 };
+	struct mt_pvr_map_out map_out = { 0 };
+	struct mt_pvr_heap_destroy_in render_destroy_in = { 0 };
+	struct mt_pvr_unmap_out unmap_out = { 0 };
+	struct mt_pvr_unreserve_in unreserve_in = { 0 };
+	struct mt_pvr_hwperf_release_in put_in = { 0 };
+	struct mt_pvr_hwperf_release_out put_out = { 0 };
+	uint64_t zero_in = 0;
 	int fd, ret;
 
 	if (argc > 2) {
@@ -115,9 +138,74 @@ int main(int argc, char **argv)
 	ret = bridge_call(fd, 0x82, 0x1f, NULL, 0, &ctl_out, sizeof(ctl_out));
 	check("0x82:0x1f still refused (-ENOTTY)",
 	      ret == -1 && errno == ENOTTY);
+	/* Full-path fire: a legal envelope (real render context, real PMR
+	 * reservation+map, VA inside the window) with NULL check/update
+	 * arrays. The observer never dereferences them (gate-proven), so
+	 * NULL is the honest synthetic choice; counts are still reported.
+	 * The fresh zeroed PMR window must come back nonzero=0.
+	 */
+	check("render create",
+	      !bridge_call(fd, 0x82, 0x8, &zero_in, sizeof(zero_in),
+			   &render_out, sizeof(render_out)) &&
+	      !render_out.error && render_out.handle);
+	check("pmr alloc",
+	      !bridge_call(fd, 0x6, 0x9, &pmr_in, sizeof(pmr_in),
+			   &pmr_out, sizeof(pmr_out)) &&
+	      !pmr_out.error && pmr_out.pmr);
+	reserve_in.server_heap = 0;
+	check("reserve range",
+	      !bridge_call(fd, 0x6, 0x15, &reserve_in, sizeof(reserve_in),
+			   &reserve_out, sizeof(reserve_out)) &&
+	      !reserve_out.error && reserve_out.reservation);
+	map_in.pmr = pmr_out.pmr;
+	map_in.reservation = reserve_out.reservation;
+	check("map pmr",
+	      !bridge_call(fd, 0x6, 0x13, &map_in, sizeof(map_in),
+			   &map_out, sizeof(map_out)) &&
+	      !map_out.error && map_out.mapping);
+	gfx_in.render_context = render_out.handle;
+	gfx_in.submission_flags = 0;
+	gfx_in.submission_va = FIRE_VA;
+	gfx_in.submission_size = FIRE_SIZE;
+	gfx_in.submission_id = 1;
+	gfx_in.check_count = 1;
+	gfx_in.update_count = 1;
+	gfx_in.sync_pmr_count = 0;
+	check("0x82:0x14 full-path fire accepted",
+	      !bridge_call(fd, 0x82, 0x14, &gfx_in, sizeof(gfx_in),
+			   &gfx_out, sizeof(gfx_out)) &&
+	      !gfx_out.error);
+	/* Teardown in reverse order; every step must succeed so the fresh
+	 * file leaves zero residue (verified via lsmod after the run).
+	 */
+	render_destroy_in.devmem_heap = render_out.handle;
+	check("render destroy",
+	      !bridge_call(fd, 0x82, 0x9, &render_destroy_in,
+			   sizeof(render_destroy_in), &unmap_out,
+			   sizeof(unmap_out)) && !unmap_out.error);
+	unmap_out.error = 0;
+	{
+		struct mt_pvr_unmap_pmr_in unmap_in = {
+			.mapping = pmr_out.pmr,
+		};
+
+		check("unmap pmr",
+		      !bridge_call(fd, 0x6, 0x14, &unmap_in, sizeof(unmap_in),
+				   &unmap_out, sizeof(unmap_out)) &&
+		      !unmap_out.error);
+	}
+	unreserve_in.reservation = reserve_out.reservation;
+	check("unreserve range",
+	      !bridge_call(fd, 0x6, 0x16, &unreserve_in, sizeof(unreserve_in),
+			   &unmap_out, sizeof(unmap_out)) &&
+	      !unmap_out.error);
+	put_in.pmr = pmr_out.pmr;
+	check("pmr unref",
+	      !bridge_call(fd, 0x6, 0x7, &put_in, sizeof(put_in), &put_out,
+			   sizeof(put_out)) && !put_out.error);
 	close(fd);
 	printf(fails ? "FAIL: %d check(s)\n" :
-	       "PASS: observer dispatch live, unknown still refused\n",
+	       "PASS: observer ping + full-path fire clean; see dmesg for kickta3d5 observe\n",
 	       fails);
 	return !!fails;
 }

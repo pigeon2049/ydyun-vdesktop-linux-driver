@@ -43,6 +43,27 @@ class ObservePingTool(unittest.TestCase):
         self.assertNotEqual(int(m.group(1), 16), 0,
                             'bogus handle must not be 0 (may alias)')
 
+    def test_full_path_builds_legal_envelope(self):
+        for frag in ('bridge_call(fd, 0x82, 0x8,',
+                     'bridge_call(fd, 0x6, 0x9,',
+                     'bridge_call(fd, 0x6, 0x15,',
+                     'bridge_call(fd, 0x6, 0x13,'):
+            self.assertIn(frag, self.src,
+                          'full-path fire needs %s' % frag.strip())
+
+    def test_full_path_expects_accept(self):
+        m = re.search(r'0x82:0x14 full-path fire accepted[\s\S]{0,300}'
+                      r'!gfx_out\.error', self.src)
+        self.assertIsNotNone(m, 'full-path fire must require ret 0')
+
+    def test_full_path_tears_everything_down(self):
+        for frag in ('bridge_call(fd, 0x82, 0x9,',
+                     'bridge_call(fd, 0x6, 0x14,',
+                     'bridge_call(fd, 0x6, 0x16,',
+                     'bridge_call(fd, 0x6, 0x7,'):
+            self.assertIn(frag, self.src,
+                          'teardown needs %s' % frag.strip())
+
 
 if __name__ == '__main__':
     unittest.main()
