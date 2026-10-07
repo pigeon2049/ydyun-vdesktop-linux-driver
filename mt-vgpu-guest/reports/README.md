@@ -233,6 +233,7 @@
 | r279 | 64 页绕行验证（批准执行）：slices ready + tqx-ctx ready 全现（Chrome 已关；dmesg 标记沿用 r278）；blit hanging 系 UMD 行为 |
 | r280 | fire 分块循环离线实现（零硬件触碰）：全帧切 21 块/21 fence/验尾块；门禁 3 项 + 反向验证；未加载 |
 | r281 | 分块 fire 活体被持有挡回（批准执行，未触硬件）：renderD128 被会话桌面自身持有，rmmod 被拒即停，refs 不变 |
+| r282 | fire 独立模块离线实现（零硬件触碰）：自有 render 节点 + 自有 bring-up/分块 fire，直连 probe 会话，不碰 bridge；门禁 9 项 + 反向验证；未加载 |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |
