@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r243 短预算 UMD 全链匹配（批准执行）**：wait 1s 下 `0x2:0xa` 预置 + kick 0.046s 即过（fence=40）；预算不影响 UMD 命中路径。拆桥干净，默认 + L3 全绿。见 `reports/r243-shortbudget-umdmatch.md` + `.jsonl`。
+- **r242 DDK2 短预算失配（批准执行）**：`=2` + wait 1s 下 1.008s 后 UMD 37；major×预算双正交；无 marker。同窗口续跑 r243。见 `reports/r242-ddk2short-mismatch.md` + `.jsonl`。
 - **r241 10 轮混合 soak（批准执行）**：同窗口 10/10 通过，0.10–0.20ms/轮（prepare 常驻复用，快约 300 倍）；tag=3..22、fence=20..39 无跳号；零 WARN。拆桥干净，默认 + L3 全绿。见 `reports/r241-soak-live.md`。
 - **r240 短预算下匹配腿（批准执行）**：`translate_wait_ms=1000` 下预置匹配 36.6ms 即过（预算只限等待）；fence=18/19；同窗口续跑 soak。见 `reports/r240-shortbudget-match.md`。
 - **r239 等待预算参数（批准执行）**：`translate_wait_ms=1000` 下失配 kick 1.008s 后 UMD 37（与 5s 的 5.007s 同构）；预算成比例生效；无 marker。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r239-waitms-live.md`。
