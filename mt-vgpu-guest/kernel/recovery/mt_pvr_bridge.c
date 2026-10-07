@@ -132,6 +132,9 @@ MODULE_PARM_DESC(translate_tqx_ctx, "build the translator TQX context and Bos on
 static bool translate_tqx_fire;
 module_param(translate_tqx_fire, bool, 0400);
 MODULE_PARM_DESC(translate_tqx_fire, "live TQX fill fire for 0x89:0xa (default: observe only; submit, async scratch readback, no UMD pool writeback)");
+static bool translate_submit3_bump;
+module_param(translate_submit3_bump, bool, 0400);
+MODULE_PARM_DESC(translate_submit3_bump, "write submit3 update values into their sync PMRs at observe time (default: off; instant completion, no execution)");
 
 #define DRM_IOCTL_PVR_BRIDGE _IOWR('d', 0x40, struct mt_pvr_cmd)
 #define DRM_IOCTL_PVR_INIT _IOW('d', 0x45, struct mt_pvr_init_data)
@@ -3387,6 +3390,68 @@ static int pvr_cmd_tdm_context2_destroy(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* SubmitTransfer3 update writeback (r297): apply the UMD's own update
+ * values into their sync PMRs at observe time (instant completion, no
+ * execution). Mirrors the translator kick writeback (resolve verbatim
+ * byte offsets via pvr_translator_resolve, then memcpy) and the 0x2:0xa
+ * true-write: file->lock held, plain CPU writes, loud failures (a
+ * half-written update set would hang the UMD waiter with a success
+ * return, so resolve ALL before writing ANY). Offsets follow the only
+ * live-proven convention (translator kick path, r212/r227: verbatim
+ * bytes); the live window arbitrates, dword-scaling is the documented
+ * fallback. Gated by translate_submit3_bump (default off).
+ */
+#define MT_PVR_SUBMIT3_UPDATE_MAX 32U
+
+static int pvr_submit3_bump_updates(struct mt_pvr_file *file,
+				    const struct mt_pvr_tdm_submit3_in *in)
+{
+	u32 n = in->update_count;
+	u32 *handles = NULL, *offsets = NULL, *values = NULL;
+	struct mt_pvr_ufo_cond *conds = NULL;
+	u32 i;
+	int ret = 0;
+
+	if (!n)
+		return 0;
+	if (n > MT_PVR_SUBMIT3_UPDATE_MAX)
+		return -E2BIG;
+	handles = kcalloc(n, sizeof(*handles), GFP_KERNEL);
+	offsets = kcalloc(n, sizeof(*offsets), GFP_KERNEL);
+	values = kcalloc(n, sizeof(*values), GFP_KERNEL);
+	conds = kcalloc(n, sizeof(*conds), GFP_KERNEL);
+	if (!handles || !offsets || !values || !conds) {
+		ret = -ENOMEM;
+		goto free;
+	}
+	if (copy_from_user(handles, u64_to_user_ptr(in->update_handles),
+			   (size_t)n * sizeof(*handles)) ||
+	    copy_from_user(offsets, u64_to_user_ptr(in->update_offsets),
+			   (size_t)n * sizeof(*offsets)) ||
+	    copy_from_user(values, u64_to_user_ptr(in->update_values),
+			   (size_t)n * sizeof(*values))) {
+		ret = -EFAULT;
+		goto free;
+	}
+	for (i = 0; i < n; i++) {
+		ret = pvr_translator_resolve(file, handles[i], offsets[i],
+					     &conds[i]);
+		if (ret)
+			goto free;
+	}
+	for (i = 0; i < n; i++)
+		memcpy((u8 *)conds[i].host + conds[i].offset,
+		       &values[i], sizeof(u32));
+	pr_info("mt_pvr_bridge: submit3 bump: update=%u first_sync=%#x first_off=%u first_val=%u\n",
+		n, handles[0], offsets[0], values[0]);
+free:
+	kfree(handles);
+	kfree(offsets);
+	kfree(values);
+	kfree(conds);
+	return ret;
+}
+
 /* 0x89:0xa RGXTDMSubmitTransfer3 accept-and-log (r174).
  *
  * Accepts the submission (OUT error 0) and reports the CCB window it names,
@@ -3525,6 +3590,14 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 		mutex_unlock(&translator_lock);
 		if (ret) {
 			pr_info("mt_pvr_bridge: submit3 fire refused: %d\n",
+				ret);
+			return ret;
+		}
+	}
+	if (translate_submit3_bump) {
+		ret = pvr_submit3_bump_updates(file, &in);
+		if (ret) {
+			pr_info("mt_pvr_bridge: submit3 bump refused: %d\n",
 				ret);
 			return ret;
 		}
