@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r281 分块 fire 活体被挡回（批准执行，未触硬件）**：`renderD128` 被会话桌面自身（PID 60651）持有，bridge ref 1，`rmmod` 被拒即停；refs 不变，本轮窗口零新增 WARN。r280 待 holder 释放后重跑。见 `reports/r281-chunkfire-blocked.md`。
 - **r280 fire 分块循环（离线，零硬件触碰）**：收尾盘内半成品（struct 数组化而 submit/teardown 仍单 fence），全帧切 21 块/21 fence/验尾块；门禁 +3（含反向）；`check-offline` 354+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r280-fire-chunks-offline.md`。
 - **r279 64 页绕行验证（批准执行）**：Chrome 关闭后重载验证通过，slices ready + tqx-ctx ready 全现；blit hanging 系 UMD 行为（可 rmmod，对称归零）。拆桥干净，默认 + L3 全绿；本轮窗口零 WARN。见 `reports/r279-space64-live.md` + `.jsonl`。
 - **r278 space 缩小绕行（离线，零硬件触碰）**：space 2112→64 页（旧上限内）+ scratch 8MB→256KB；门禁改判；`make kernel` 零警告；`check-offline` 全绿。Chrome 被动持有挡 rmmod（后用户关闭）。见 `reports/r278-space-shrink.md`。
