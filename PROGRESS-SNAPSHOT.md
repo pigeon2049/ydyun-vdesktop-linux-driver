@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r231 多条目混合 kick（批准执行）**：双 sync block 各预置一槽后，混合 fire（check=2 + update=1）44.8ms 即过，写回 probe 0.11ms 即过；dmesg `check=2 update=1 fence=9` → `check=1 update=0 fence=10`。工具双 PMR + 门禁更新；probe 对称，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r231-multi-check-live.md`。
+- **r230 双开组合验证（批准执行）**：`=2` + transfer + tqx_ctx 同轮三行同现（observe/dry-run 预言一致/ready），两开关正交；附带第六个 `+0x40` 轮变值（`03 a6`）。**Freeze 已恢复。**见 `reports/r230-dual-param.md` + `.jsonl`。
 - **r229 observer 全套 DDK2 回归（批准执行）**：`=2` 桥上 ping 全套 22 项全 ok，dmesg 三行与 legacy 逐项一致；dispatch 与 major 正交证实；legacy create 在 `=2` 下同样成功（附带）。拆桥干净，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r229-ddk2-observe-regression.md`。
 - **r228 DDK2 `SetSyncPrim` 侦察（批准执行）**：`=2` 桥上该导出在 UMD 内 SIGSEGV（RVA `0xa0b38`，DDK2 分支把 connect 派生的 param_1 当 device 上下文解 `[0]` → 野读），`0x2:0xd` 从未发出；非桥缺口，合法形状待离线 recon。拆桥干净，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r228-ddk2set-segv.md` + `.jsonl`。
 - **r227 混合 kick 活体验证（批准执行）**：预置 V7 后混合 fire（check+update）44.8ms 即过（与 r222 Leg1 同构），update 写回 probe 0.11ms 即过；dmesg `check=1 update=1 fence=7` → `check=1 update=0 fence=8`。工具升级三相 + 门禁更新；probe 对称，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r227-mixed-kick-live.md`。
