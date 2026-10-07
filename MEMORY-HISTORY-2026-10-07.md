@@ -207,3 +207,10 @@
 - 遗留：真实 GFX producer 仍 open；真实执行仍待 backend 接线。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r217：observer 分发活体验证，批准执行）
+
+- r215 observer 分发在活体证明到达：新工具 `pvr_observe_ping` 发零填充 108B `0x82:0x14`（bogus context）回 `-ENOENT` 而非 `-ENOTTY`；control `0x82:0x1f` 仍 `-ENOTTY`。fresh file 即开即关，refs 1/0 不变，dmesg 零新增。工具零警告构建 + 5 项门禁（含反向）。`check-offline` 307 Python OK。详见 `reports/r217-observe-ping-live.md`。
+- **会话未动，无需重载，freeze 继续。**
+- 遗留（r218 已推进：合法 envelope 全路径走通，阵列仍 NULL）：真实数组流量仍待 producer。USB 短页标题日期问题留待对应轮。
+
+---

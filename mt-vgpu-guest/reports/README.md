@@ -173,6 +173,7 @@
 | r216 | r215 新构建上机 + L3 复绿：单桥重载（probe 未碰），node/smoke 全绿，refs 1/0，dmesg 干净；observer 已在载但尚无真实流量 |
 | r217 | observer 分发活体验证：raw ping `0x82:0x14` 回 `-ENOENT`（路由到达），control `0x82:0x1f` 仍 `-ENOTTY`；新 ping 工具 + 5 项门禁，会话未动 |
 | r218 | observer 全路径活体验证：合法 envelope（真 context + 真 PMR 窗口，阵列全 NULL）fire 回 0，dmesg 行标量全上报；11 步全 teardown，会话未动 |
+| r219 | TQX bring-up 新会话复验通过（`=2` + `translate_tqx_ctx`，`tqx-ctx: ready`，无 `-22` 回归）；probe 28→1 对称归零；附带第四个 `+0x40` 轮变值 |
 
 ## 关键单篇（本轮最常用）
 

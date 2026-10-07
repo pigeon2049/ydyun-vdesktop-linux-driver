@@ -191,7 +191,7 @@ RGXCreateRenderContext
 1. **ref 审计收尾**：defaults 差分 Δ0 已证 maps 无罪（r184）；
    kill-while-busy 关账轮（故意挂起再杀 + 四点采样）待可重载窗口
    （需批准）；释放语义在归因确认前不动。
-2. **TQX 真发射**：bring-up 已通、无提交（r182）；submit+fence+
+2. **TQX 真发射**：bring-up 已通、无提交（r182，r219 在新会话+新构建上复验通过、`tqx-ctx: ready`，对称归零）；submit+fence+
    落位+像素回读排在 ref 归因之后。
 3. **同步 update 语义**：布局/可见性/完成条件已由核对过的 UMD 离线确定
    （r159：`flag&2` 条目、sync-block 句柄+相对偏移、先写回后交 fd）；
@@ -459,6 +459,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r219 TQX bring-up 新会话复验（批准执行）**：`=2` + `translate_tqx_ctx=1`（transfer 干跑保持 off）重载后真实 blit 报 `tqx-ctx: ready`（无 `-22` 回归）；UMD 即时 SIGABRT 无 hanging；probe 1→28→1 对称归零；桥恢复默认 + L3 全绿，dmesg 干净。附带第四个 `+0x40` 轮变值（`60 70`）。**Freeze 已恢复。**见 `reports/r219-tqxbringup-reverify.md` + `.jsonl`。
 - **r218 observer 全路径活体验证（批准执行）**：合法 envelope（真 render context + 真 PMR 窗口，阵列全 NULL）fire 回 0，dmesg 行标量全上报（check=1 update=1，零窗口零统计）；11 步全 teardown，refs 不变，dmesg 零新增。只证明全链不证明数组语义。**无重载，freeze 继续。**见 `reports/r218-observe-fullpath-live.md`。
 - **r217 observer 分发活体验证（批准执行）**：新工具 `pvr_observe_ping` 发零填充 108B `0x82:0x14` 回 `-ENOENT`（路由到达），control `0x82:0x1f` 仍 `-ENOTTY`；fresh file 即关，refs 不变，dmesg 零新增。工具零警告构建 + 5 项门禁（含反向）；`check-offline` 307 Python OK。**会话未动，freeze 继续。**见 `reports/r217-observe-ping-live.md`。
 - **r216 r215 新构建上机 + L3（批准执行）**：单桥重载（probe 未碰，装盘前验 strings + vermagic），节点仍 `renderD128`；node/smoke 全绿，refs 1/0，dmesg 零 WARNING/BUG/Oops。observer 已在载但尚无真实流量（parked，不是 proven）。**Freeze 已恢复。**见 `reports/r216-newbuild-reload.md`。
