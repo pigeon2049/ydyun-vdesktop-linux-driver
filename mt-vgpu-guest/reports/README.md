@@ -198,6 +198,8 @@
 | r241 | 10 轮混合 soak：10/10 通过，0.1ms/轮（prepare 常驻复用，快 300 倍）；tag/fence 无跳号 |
 | r242 | DDK2 短预算失配：`=2` + wait 1s 下 1.008s 后 37；major×预算双正交 |
 | r243 | 短预算 UMD 全链匹配：`0x2:0xa` 预置 + kick 0.046s 即过（fence=40）；预算不影响命中路径 |
+| r244 | legacy 真实 blit：止于 `0x89:0x0` → -25，UMD 中止未到 submit；trace 入库，会话未动 |
+| r245 | L4 legacy 部分：compute 全过；render 路径 6 连崩 + GDB 全过（r167 翻版，桥无罪） |
 
 ## 关键单篇（本轮最常用）
 

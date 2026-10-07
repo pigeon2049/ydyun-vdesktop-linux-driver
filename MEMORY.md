@@ -11,13 +11,13 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r243：短预算 UMD 全链匹配，批准执行）
+## 本次会话进展（r245：L4 legacy 部分，批准执行）
 
-- 短预算下 UMD 全链非零匹配 0.046s 即过（`0x2:0xa` 预置 + kick 全 0，fence=40）；预算不影响命中路径。拆桥干净，默认 + L3 全绿。详见 `reports/r243-shortbudget-umdmatch.md` + `.jsonl`。
-- **Freeze 已恢复。**无代码改动。
+- rung7 compute 全过 exit 0；rung5/6/8 在 render create 处 standalone 6 连崩，GDB 下全过（r167 翻版，桥无罪）。refs 不变，L3 全绿。详见 `reports/r245-l4legacy-partial.md`。
+- **Freeze 继续。**无代码改动。
 
-## 本次会话进展（r242：DDK2 短预算失配，批准执行）
+## 本次会话进展（r244：legacy 真实 blit，批准执行）
 
-- `=2` + wait 1s 下 DDK2 失配 1.008s 后 UMD 37；major×预算双正交；无 marker。同窗口换参数续跑 r243。详见 `reports/r242-ddk2short-mismatch.md` + `.jsonl`。
+- 默认桥上真实 blit 止于 `0x89:0x0` → -25，UMD 中止未到 submit；trace 8205 行已入库；refs 不变，L3 全绿。详见 `reports/r244-legacyblit-refused.md` + `.jsonl`。
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 ---
