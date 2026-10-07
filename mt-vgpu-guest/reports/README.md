@@ -201,6 +201,7 @@
 | r244 | legacy 真实 blit：止于 `0x89:0x0` → -25，UMD 中止未到 submit；trace 入库，会话未动 |
 | r245 | L4 legacy 部分：compute 全过；render 路径 6 连崩 + GDB 全过（r167 翻版，桥无罪） |
 | r246 | DDK2 param_1 三候选证伪（`b14*`/`b5*`/conn 全崩，同 RVA）：合法输入超 harness 能力，工具边界 |
+| r247 | translator 并发冲突实锤：双混合并行一胜一败，败者 submit 环节 `-EBUSY`；附带修 poll 假阳性 |
 
 ## 关键单篇（本轮最常用）
 
