@@ -180,6 +180,7 @@
 | r223 | update 写回活体验证：update-only fire 写 V=1，check kick 0.11ms 即时通过（时间即读回）；新工具 + 5 项门禁；会话未动 |
 | r224 | observer 非零窗口活体验证：`0x2:0xa` 预置 5×u32 后 fire，nonzero=20/FNV/head 与离线预言逐项一致；13 步全 teardown，会话未动 |
 | r225 | UMD 生成 CCB 进真桥观察：r210 字节 61 槽载入 0x4700 窗口再 fire，nonzero=107/FNV/head64 与离线预言全命中；22 步全 teardown，会话未动 |
+| r226 | transfer dry-run 新会话复验通过（`=2` + `translate_transfer`，digest `fnv=0xd893618ca42d3711` 与 r181 预言逐位一致）；附带第五个 `+0x40` 轮变值 |
 
 ## 关键单篇（本轮最常用）
 

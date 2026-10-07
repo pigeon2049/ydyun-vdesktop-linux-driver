@@ -264,3 +264,10 @@
 - 遗留：UMD 生成的真实 update 数组仍待 producer；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r224：observer 非零窗口活体验证，批准执行）
+
+- observer 非零路径活体走通：零窗口 fire 后以 `0x2:0xa` 预置 5×u32 再 fire，桥报 nonzero=20/FNV/head 与开工前离线预言逐项一致。13 项全 ok；refs 不变（默认桥，无需重载），dmesg 干净。门禁 +1（含一次无效反向后的有效反向）。`check-offline` 324 Python OK。详见 `reports/r224-observe-nonzero-live.md`。
+- **Freeze 继续。**
+- 遗留：CCB 内容解读（离线）；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
+---
