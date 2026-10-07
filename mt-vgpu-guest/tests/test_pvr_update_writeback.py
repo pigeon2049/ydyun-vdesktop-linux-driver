@@ -43,6 +43,11 @@ class UpdateWritebackTool(unittest.TestCase):
                       r'dt < PROMPT_LIMIT_NS', self.src)
         self.assertIsNotNone(m, 'check probe must require prompt return')
 
+    def test_fence_fd_polled(self):
+        self.assertIn('#include <sys/poll.h>', self.src)
+        self.assertIn('fence fd pollable at once', self.src)
+        self.assertRegex(self.src, r'poll\(&pfd, 1, 5000\)')
+
     def test_tears_context_down(self):
         self.assertRegex(self.src, r'bridge_call\(fd, 0x88, 0x1,')
 

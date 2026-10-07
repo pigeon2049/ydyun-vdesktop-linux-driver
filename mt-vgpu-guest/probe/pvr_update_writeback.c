@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/poll.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -201,6 +202,19 @@ int main(int argc, char **argv)
 	       (unsigned long long)dt);
 	check("mixed fire prompt (check waits hit)",
 	      dt < PROMPT_LIMIT_NS);
+	/* Fence-fd proof (r236): the translator hands the fence fd over
+	 * only after wait_fence succeeds, so poll must report it readable
+	 * at once. A 5s hang here would mean the fence was never
+	 * signaled despite ret 0. */
+	{
+		struct pollfd pfd = {
+			.fd = kick_out.update_fence_fd,
+			.events = POLLIN,
+		};
+		int pr = poll(&pfd, 1, 5000);
+
+		check("fence fd pollable at once", pr == 1 && (pfd.revents & (POLLIN | POLLHUP)));
+	}
 	close(kick_out.update_fence_fd);
 	/* Step 2: check probe for the SECOND update slot+value (r233:
 	 * proves the translator's update loop publishes every entry,
