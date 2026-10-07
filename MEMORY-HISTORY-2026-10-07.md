@@ -345,3 +345,17 @@
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r236：fence fd poll，批准执行）
+
+- translator fence 语义活体证实：混合 fire 回 0 后 poll 即时就绪；fence=16/17。工具加 poll 断言 + 门禁 +1（含一次弱反向后的强反向）；`check-offline` 326 Python OK。详见 `reports/r236-fence-poll-live.md`。
+- 活体跑在 `=2`+translate_kick 在载桥（未重载）；R_H 后默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r237：多文件并发，批准执行）
+
+- 桥 per-file 隔离活体证实：默认桥上双 ping 并行双 PASS；dmesg 6 行齐、各自独立句柄，同 VA 零串扰。事后 refs 1/0，L3 全绿。首跑两次路径弯路（如实记录）。详见 `reports/r237-concurrent-live.md`。
+- **Freeze 继续。**无代码改动。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---

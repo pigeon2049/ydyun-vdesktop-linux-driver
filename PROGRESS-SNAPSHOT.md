@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **326 项通过，零 skip**（r236 fence-poll 1 项；余同 r233） |
+| Python 测试 | **327 项通过，零 skip**（r238 负向定界 1 项；余同 r236） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -230,7 +230,7 @@ RGXCreateRenderContext
 | `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
 | `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182） |
 | `test_pvr_kickta3d5_observe.py` | 7 | KickTA3D5 observe 路由/定界/鉴权/零嵌套读/标量上报/零执行/零填充回 0（含反向；r215，未加载） |
-| `test_pvr_observe_ping.py` | 10 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown + 非零相预置/重 fire + CCB 相载入/fire（含反向；r217/r218/r224/r225） |
+| `test_pvr_observe_ping.py` | 11 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown + 非零相预置/重 fire + CCB 相载入/fire + 负向定界双 errno（含反向；r217/r218/r224/r225/r238） |
 | `test_pvr_syncprimset.py` | 7 | SyncPrimSet 真写路由/ABI/解析复用/定界/仅 host 写/零执行/零填充回 0（含反向；r220，未加载） |
 | `test_pvr_translator.py` | 7 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随/check 等待门控 ncheck（含反向；r126/r147–r148/r159/r222） |
 | `test_pvr_update_writeback.py` | 6 | 写回探针工具源码门禁：update 接线/回 0 期望/check 接线/4s 计时断言/teardown/双 PMR/双 update/fence poll（含反向；r223/r227/r231/r233/r236） |
@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r239 等待预算参数（批准执行）**：`translate_wait_ms=1000` 下失配 kick 1.008s 后 UMD 37（与 5s 的 5.007s 同构）；预算成比例生效；无 marker。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r239-waitms-live.md`。
+- **r238 定界活体验证（批准执行）**：超窗 2MiB → `-EINVAL`、野 index `0xFFFFFFFF` → `-ERANGE`，24 项全过；安全定界真实生效。工具加负向双测 + 门禁 +1；`check-offline` 327 Python OK。**Freeze 继续。**见 `reports/r238-bounds-live.md`。
 - **r237 多文件并发（批准执行）**：默认桥上双 ping 并行双 PASS；dmesg 6 行齐、各自独立句柄，同 VA 零串扰；per-file 隔离成立。事后 L3 全绿。无代码改动。见 `reports/r237-concurrent-live.md`。
 - **r236 fence fd poll（批准执行）**：混合 fire 回 0 后 poll 即时就绪（fence 已 signaled）；fence=16/17。工具加 poll 断言 + 门禁 +1；`check-offline` 326 Python OK。见 `reports/r236-fence-poll-live.md`。
 - **r235 observer 在 translator 桥下回归（批准执行）**：同窗口（`=2` + `translate_kick=1`，未重载）22 步全过，CCB 行一致；开关正交证实。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r235-ck-observe-regression.md`。

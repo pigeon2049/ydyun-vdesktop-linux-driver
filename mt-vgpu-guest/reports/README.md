@@ -192,6 +192,8 @@
 | r235 | observer 在 translator 桥下回归：同窗口 22 步全过，CCB 行一致；开关正交证实 |
 | r236 | fence fd poll 验证：混合 fire 回 0 后 poll 即时就绪（已 signaled）；新断言 + 门禁；会话未动 |
 | r237 | 多文件并发验证：双 ping 并行双 PASS，dmesg 6 行齐、各自独立句柄；per-file 隔离成立 |
+| r238 | 定界活体验证：超窗 `-EINVAL` + 野 index `-ERANGE`，24 项全过；安全定界真实生效 |
+| r239 | 等待预算参数验证：`translate_wait_ms=1000` 下 1.008s 超时；预算成比例生效 |
 
 ## 关键单篇（本轮最常用）
 
