@@ -278,3 +278,10 @@
 - 遗留：CCB 内容解读（离线）；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r226：transfer dry-run 新会话复验，批准执行）
+
+- dry-run 在新会话+新构建上复验通过：`=2` + `translate_transfer=1`（tqx_ctx 保持 off）重载，真实 blit 后 `pool=0x1032/color=0xff0000ff/1280x1024/fnv=0xd893618ca42d3711` 与 r181 预言逐位一致。UMD 即时 SIGABRT 无 hanging；拆桥干净，默认恢复 + L3 全绿，dmesg 干净。附带第五个 `+0x40` 轮变值（`2a 9a`）。trace 已入库。详见 `reports/r226-dryrun-reverify.md`。
+- **Freeze 已恢复。**
+- 遗留：TQX 真发射（离线实现先行）；CCB 内容解读（离线）；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
+---
