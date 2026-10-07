@@ -11,21 +11,20 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-07（r223 update 写回活体验证，批准执行）
+最后更新：2026-10-07（r224 observer 非零窗口活体验证，批准执行）
 仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+
+## 本次会话进展（r224：observer 非零窗口活体验证，批准执行）
+
+- observer 非零路径活体走通：零窗口 fire 后以 `0x2:0xa` 预置 5×u32 再 fire，桥报 nonzero=20/FNV/head 与开工前离线预言逐项一致。13 项全 ok；refs 不变（默认桥，无需重载），dmesg 干净。门禁 +1（含一次无效反向后的有效反向）。`check-offline` 324 Python OK。详见 `reports/r224-observe-nonzero-live.md`。
+- **Freeze 继续。**
+- 遗留：UMD 真实 CCB 进 observer；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
 
 ## 本次会话进展（r223：update 写回活体验证，批准执行）
 
 - translator 写回语义（r159）活体闭环：新工具 `pvr_update_writeback` 在 `translate_kick=1` 桥上，update-only fire 写 V=1 回 0，check kick 0.11ms 即时通过（时间即读回）；dmesg 双行 fence=5/6。工具零警告构建 + 5 项门禁（含反向）。详见 `reports/r223-update-writeback-live.md`。
 - probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**`check-offline` 323 Python OK。
 - 遗留：UMD 生成的真实 update 数组仍待 producer；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
-
-
-## 本次会话进展（r222：非零 kick 双腿闭环，批准执行）
-
-- r221 两处证伪本轮闭环：handler 搬到 `0x2:0xa`（新宏，生成头同名）+ `if (nupdate)`→`if (ncheck)`；门禁改判（syncprimset/render2/fn57/MAPPING）+ translator 新增 wait 门控断言；双重复位验证；`check-offline` 318+292 全绿；`make kernel` 零警告。
-- 活体（`translate_kick=1`）：Leg1 预置+匹配 0.045s 即过（`SetSyncPrim→0`，fence=4）；Leg2 失配 5.007s 后 UMD 37（等待真实，无 marker）。probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。双 trace 已入库。详见 `reports/r222-nonzerokick-closed.md`。
-- **Freeze 已恢复。**值语义至此真闭环（r212 机械 → r221 证伪 → r222 双腿）。
-- 遗留：update 非零腿；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
 
 ---

@@ -249,3 +249,11 @@
 - 遗留：SyncPrimSet 搬移 + `if (nupdate)` 修复各独立成轮；非零 kick 双腿复验待搬移后。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r222：非零 kick 双腿闭环，批准执行）
+
+- r221 两处证伪本轮闭环：handler 搬到 `0x2:0xa`（新宏，生成头同名）+ `if (nupdate)`→`if (ncheck)`；门禁改判（syncprimset/render2/fn57/MAPPING）+ translator 新增 wait 门控断言；双重复位验证；`check-offline` 318+292 全绿；`make kernel` 零警告。
+- 活体（`translate_kick=1`）：Leg1 预置+匹配 0.045s 即过（`SetSyncPrim→0`，fence=4）；Leg2 失配 5.007s 后 UMD 37（等待真实，无 marker）。probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。双 trace 已入库。详见 `reports/r222-nonzerokick-closed.md`。
+- **Freeze 已恢复。**值语义至此真闭环（r212 机械 → r221 证伪 → r222 双腿）。
+- 遗留：update 非零腿；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
+---
