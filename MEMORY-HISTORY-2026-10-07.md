@@ -105,3 +105,12 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
 
 ---
+
+## 本次会话进展（r205：KickTA3D5 字段偏移）
+
+- 零硬件触碰。SHA 匹配 UMD wrapper 栈布局与 r203 seq 123 fabricated 请求互证数组指针及三个 count 的偏移和值：check=1、update=1、sync PMR=0。
+- 尾部 `0x48`–`0x5f` 有未定语义参数槽；与 2.7.1 `0x48` 起 VA/size/count 的布局不同，12 字节差异属于结构偏移问题，handler 仍不可安全补齐。
+- 证据：`reports/r205-kickta3d5-field-offsets.md` + r203 trace。下一步查找 5.2 生成头或目标 Guest handler 对尾部字段的定义/读取路径。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---
