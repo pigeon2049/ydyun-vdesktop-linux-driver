@@ -78,6 +78,16 @@ class TqxFirePath(unittest.TestCase):
         self.assertIn('MT_TQX_SCRATCH_VA', self.body)
         self.assertIn('MT_TQX_SCRATCH_BYTES', self.body)
 
+    def test_space_fits_table_budget(self):
+        # r268: the scratch needs 2048 pages over the original 64;
+        # vm_vram_create refuses anything over MT_BOOT_MAX_TABLE_PAGES.
+        table = Path(__file__).resolve().parents[1] / 'kernel' / 'mt_mmu_bootstrap.h'
+        text = table.read_text()
+        m = re.search(r'#define\s+MT_BOOT_MAX_TABLE_PAGES\s+(\d+)U', text)
+        self.assertIsNotNone(m)
+        self.assertGreaterEqual(int(m.group(1)), 2112,
+                                'table budget must cover the 2112-page scene')
+
 
 if __name__ == '__main__':
     unittest.main()

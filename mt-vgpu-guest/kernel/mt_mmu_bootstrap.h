@@ -21,7 +21,11 @@
 #define MT_BOOT_PD_ENTRIES 512U
 #define MT_BOOT_PT_ENTRIES 512U
 #define MT_BOOT_PT_SPAN (MT_BOOT_PT_ENTRIES * 4096ULL)
-#define MT_BOOT_MAX_TABLE_PAGES 64U
+/* Table-page budget (r268): 64U covered the original 32-page translator
+ * scene; the 8MB live-fire scratch needs 2048 more (2112 total). Small
+ * scenes are unaffected; the cap still bounds runaway VM sizes.
+ */
+#define MT_BOOT_MAX_TABLE_PAGES 2112U
 #define MT_BOOT_MAX_MAPPED_BYTES 0x4000000U
 #define MT_MMU_DUMMY_BYTES 0x3000U
 
@@ -76,21 +80,32 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 		const struct mt_mmu_range *ranges, const u64 *const *page_lists,
 		u32 count, u32 *used_pages)
 {
-	u32 keys[MT_BOOT_MAX_TABLE_PAGES] = {0};
+	/* Heap, not stack: the table budget (r268: 2112 pages) no longer
+	 * fits a kernel frame (8KB > 2KB limit). kvzalloc matches the
+	 * old zeroed-array semantics.
+	 */
+	u32 *keys = kvzalloc(sizeof(*keys) * MT_BOOT_MAX_TABLE_PAGES,
+			     GFP_KERNEL);
 	u32 pages = 1, i, j, k, page, keys_to_add[2];
 	u64 va, end, total = 0, flags, value;
 	u32 pc_value;
 	u8 *bytes = out;
-	int pd, pt;
+	int pd, pt, ret = 0;
+	if (!keys)
+		return -ENOMEM;
 	if (!out || !used_pages || !ranges || !count ||
 	    capacity < 4096 || (capacity & 4095) || (table_pa & 4095) ||
-	    table_pa >= (1ULL << MT_GPU_VA_BITS))
-		return -EINVAL;
+	    table_pa >= (1ULL << MT_GPU_VA_BITS)) {
+		ret = -EINVAL;
+		goto out;
+	}
 	/* A caller-supplied budget smaller than the compile-time ceiling may hold
 	 * fewer mappings. Exhaustion past this point is reported by the page loop
 	 * below as -ENOSPC, which is the real hardware-adjacent limit. */
-	if (count > mt_boot_max_ranges(capacity / 4096))
-		return -EINVAL;
+	if (count > mt_boot_max_ranges(capacity / 4096)) {
+		ret = -EINVAL;
+		goto out;
+	}
 	/* Preflight the entire plan before changing a byte of output. */
 	for (i = 0; i < count; i++) {
 		const struct mt_mmu_range *r = &ranges[i];
@@ -98,18 +113,26 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 		if (!r->size || ((r->va | r->pa | r->size) & 4095) ||
 		    r->va >= (1ULL << MT_GPU_VA_BITS) || r->pa >= (1ULL << MT_GPU_VA_BITS) ||
 		    r->size > (1ULL << MT_GPU_VA_BITS) - r->va ||
-		    (!list && r->size > (1ULL << MT_GPU_VA_BITS) - r->pa) || (r->flags & ~0x1fU))
-			return -EINVAL;
+		    (!list && r->size > (1ULL << MT_GPU_VA_BITS) - r->pa) || (r->flags & ~0x1fU)) {
+			ret = -EINVAL;
+			goto out;
+		}
 		if (list)
 			for (j = 0; j < r->size / 4096; j++)
-				if ((list[j] & 4095) || list[j] >= (1ULL << MT_GPU_VA_BITS))
-					return -ERANGE;
+				if ((list[j] & 4095) || list[j] >= (1ULL << MT_GPU_VA_BITS)) {
+					ret = -ERANGE;
+					goto out;
+				}
 		total += r->size;
-		if (total > MT_BOOT_MAX_MAPPED_BYTES)
-			return -E2BIG;
+		if (total > MT_BOOT_MAX_MAPPED_BYTES) {
+			ret = -E2BIG;
+			goto out;
+		}
 		for (j = 0; j < i; j++)
-			if (r->va < ranges[j].va + ranges[j].size && ranges[j].va < r->va + r->size)
-				return -EEXIST;
+			if (r->va < ranges[j].va + ranges[j].size && ranges[j].va < r->va + r->size) {
+				ret = -EEXIST;
+				goto out;
+			}
 		end = r->va + r->size;
 		for (va = r->va & ~0x1fffffULL; va < end; va += 0x200000) {
 			keys_to_add[0] = mt_boot_pd_key(va);
@@ -117,20 +140,26 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 			for (k = 0; k < 2; k++) {
 				if (mt_boot_find_page(keys, pages, keys_to_add[k]) >= 0)
 					continue;
-				if (pages >= MT_BOOT_MAX_TABLE_PAGES || pages >= capacity / 4096)
-					return -ENOSPC;
+				if (pages >= MT_BOOT_MAX_TABLE_PAGES || pages >= capacity / 4096) {
+					ret = -ENOSPC;
+					goto out;
+				}
 				keys[pages++] = keys_to_add[k];
 			}
 		}
 	}
-	if (pages * 4096ULL > (1ULL << MT_GPU_VA_BITS) - table_pa)
-		return -ERANGE;
+	if (pages * 4096ULL > (1ULL << MT_GPU_VA_BITS) - table_pa) {
+		ret = -ERANGE;
+		goto out;
+	}
 	for (i = 0; i < count; i++) {
 		const u64 *list = page_lists ? page_lists[i] : NULL;
 		for (j = 0; j < ranges[i].size / 4096; j++) {
 			u64 pa = list ? list[j] : ranges[i].pa + j * 4096ULL;
-			if (pa < table_pa + pages * 4096ULL && table_pa < pa + 4096)
-				return -EINVAL;
+			if (pa < table_pa + pages * 4096ULL && table_pa < pa + 4096) {
+				ret = -EINVAL;
+				goto out;
+			}
 		}
 	}
 	memset(bytes, 0, pages * 4096);
@@ -157,7 +186,9 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 		}
 	}
 	*used_pages = pages;
-	return 0;
+out:
+	kvfree(keys);
+	return ret;
 }
 
 /* Existing contiguous bootstrap callers keep their original interface. */
