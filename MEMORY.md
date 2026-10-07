@@ -9,11 +9,12 @@
 > 2026-10-05 起归档于 [`MEMORY-HISTORY-2026-10-05.md`](MEMORY-HISTORY-2026-10-05.md)。
 > 2026-10-06 起归档于 [`MEMORY-HISTORY-2026-10-06.md`](MEMORY-HISTORY-2026-10-06.md)。
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
+> 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r277：bind 黑盒未打开，批准执行）
+## 本次会话进展（r279：64 页绕行验证，批准执行）
 
-- bind_boot_shared 内部细分未果：bind_many/bind_pools/build_pages/borrow/plan 逐处打印后活体全无新行；fail_at 仍报调用行；新打印行系统性缺失未解。拆桥干净，默认 + L3 全绿；暂存区未建（笔误，下轮注意）。详见 `reports/r277-bind-blackbox.md`。
-- **Freeze 已恢复。**诊断打印是否保留待定。
-- 遗留：换手段定位或 scratch 分块绕行。USB 短页标题日期问题留待对应轮。
+- Chrome 关闭后重载验证：`=2` + tqx_ctx 下 slices ready + tqx-ctx ready 全现（bind 在 64 页下通过，2112 黑盒绕过）；blit hanging 60s 被杀系 UMD 行为（无 D 态，可 rmmod，对称归零）。拆桥干净，默认 + L3 全绿；本轮窗口零 WARN。trace 已入库。详见 `reports/r279-space64-live.md` + `.jsonl`。
+- **Freeze 已恢复。**无代码改动（r278 离线部分已在盘）。
+- 遗留：fire 分块循环（离线）；分块 fired/verified 活体。USB 短页标题日期问题留待对应轮。
 ---

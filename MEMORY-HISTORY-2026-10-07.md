@@ -641,3 +641,16 @@
 - 遗留：bind 内部分项定位。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r277：bind 黑盒未打开，批准执行）
+
+- bind_boot_shared 内部细分未果：bind_many/bind_pools/build_pages/borrow/plan 逐处打印后活体全无新行；fail_at 仍报调用行；新打印行系统性缺失未解。拆桥干净，默认 + L3 全绿；暂存区未建（笔误，下轮注意）。详见 `reports/r277-bind-blackbox.md`。
+- **Freeze 已恢复。**诊断打印是否保留待定。
+- 遗留：换手段定位或 scratch 分块绕行。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r278：space 缩小绕行，离线+批准执行）
+
+- 离线：space 2112→64 页（旧上限内），scratch 8MB→256KB；门禁改判；`make kernel` 零警告；`check-offline` 全绿。Chrome 被动持有 renderD128（ref 1，r120 先例），rmmod 会拒，未重载。后用户关闭 Chrome。
+- 遗留：上机验证 64 页 prepare。
+
+---

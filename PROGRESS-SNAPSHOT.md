@@ -461,7 +461,10 @@ as-built 机制（`da3df8b`，r45–r63）：
 3. 对象存储已满：需空存储的实验（含再次的 `live_3d`）会被 `-EBUSY` 拒绝；
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
-## 12. 运行态（2026-10-07 更新；本节是活页）
+## 12. 运行态（2026-10-08 更新；本节是活页）
+
+- **r279 64 页绕行验证（批准执行）**：Chrome 关闭后重载验证通过，slices ready + tqx-ctx ready 全现；blit hanging 系 UMD 行为（可 rmmod，对称归零）。拆桥干净，默认 + L3 全绿；本轮窗口零 WARN。见 `reports/r279-space64-live.md` + `.jsonl`。
+- **r278 space 缩小绕行（离线，零硬件触碰）**：space 2112→64 页（旧上限内）+ scratch 8MB→256KB；门禁改判；`make kernel` 零警告；`check-offline` 全绿。Chrome 被动持有挡 rmmod（后用户关闭）。见 `reports/r278-space-shrink.md`。
 
 - **r277 bind 黑盒未打开（批准执行）**：bind 细分打印全无新行，-22 仍在 bind_boot_shared 内；新打印行缺失未解。拆桥干净，默认 + L3 全绿。见 `reports/r277-bind-blackbox.md`。
 - **r276 WARNING 修复验证（批准执行）**：真条件是 prepare 失败路径 teardown；INIT 前移后失败路径零 WARNING（fail_at 行号+6 自证）；门禁 +1；`check-offline` 351+292 全绿；`make kernel` 零警告。拆桥干净，默认 + L3 全绿。见 `reports/r276-warning-fixed.md`。
