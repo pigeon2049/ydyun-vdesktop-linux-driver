@@ -457,9 +457,10 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
-- **r198 AppHint GFX 重放（fabricated 离线，无代码改动）**：临时 `musa.ini` 将 PerfCountEndCbID 设 0；不手动 poke，context `+0x24` 为 0，RGXKickGfx 越过 PrepareTA 后在 `SubmissionCmdGenerate` 因空首参 SIGSEGV。trace 109 行无 `0x82:0x14`。需追 submission-context 合法来源。见 `reports/r198-gfx-apphint-replay.md` + trace。
+- **r199 GFX allocator 首参来源（零硬件触碰；静态指令核对）**：`RGXKickGfx` 从 kick `+0x28` 指向对象的 `+0x200` 取 `SubmissionCmdGenerate` 首参；render-context 构造器把 `SubmissionBufAlloctor` 放在 context `+0x200`。`SubmissionHead` 是第二参来源的独立对象。r198 的具体空槽原因未区分；下步 GDB 逐级核对输入指针和 allocator。见 `reports/r199-gfx-submission-allocator-origin.md`。
+- **r198 AppHint GFX 重放（fabricated 离线，无代码改动）**：临时 `musa.ini` 将 PerfCountEndCbID 设 0；不手动 poke，context `+0x24` 为 0，RGXKickGfx 越过 PrepareTA 后在 `SubmissionCmdGenerate` 因空首参 SIGSEGV。trace 109 行无 `0x82:0x14`。其首参 allocator 来源由 r199 定位到 kick `+0x28` 指向对象的 `+0x200`；具体空槽原因待动态确认。见 `reports/r198-gfx-apphint-replay.md` + trace。
 
-- **r197 纠正 update 初始化解释（只读语料，无代码改动）**：render-context `+0x20/+0x24` 是 PerfCountStart/EndCbID；update-list count 属于 RGXPrepareTA 另行分配的对象。r198 实测 context `+0x24` 同时参与 PrepareTA 状态表索引，且可由 musa.ini 初始化；update helper 路径仍待构造合法 submission context。见 `reports/r197-correct-gfx-update-init.md`。
+- **r197 纠正 update 初始化解释（只读语料，无代码改动）**：render-context `+0x20/+0x24` 是 PerfCountStart/EndCbID；update-list count 属于 RGXPrepareTA 另行分配的对象。r198 实测 context `+0x24` 同时参与 PrepareTA 状态表索引，且可由 musa.ini 初始化；update helper 路径仍待核对 SubmissionCmdGenerate allocator 输入链。见 `reports/r197-correct-gfx-update-init.md`。
 
 - **r196 RGXKickGfx update producer（fabricated 离线，无代码改动）**：进入 `SubmissionSetUpdateSyncPrim`，GDB 见 count=1 / flag=2；trace 发出 `0x82:0x14` IN108/OUT4，fake shim 与 RGXKickGfx 均返回 0。r197/r198 更正：手动 poke 覆盖 PerfCountStart/EndCbID；`+0x24` 同时作 context 状态表索引，不是 update-list count。r198 AppHint 重放越过 PrepareTA 后仍在 SubmissionCmdGenerate 崩溃；无真实 CCB 执行证据。见 `reports/r196-gfx-update-producer.md` + trace。
 

@@ -38,3 +38,11 @@
 - 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，和 STATUS/§12 活页有差异；留待快照刷新 pass 一并校正。
 
 ---
+
+## 本次会话进展（r197：纠正 RGXKickGfx update 初始化解释）
+
+- 零硬件触碰；离线 UMD SHA 与语料一致。r196 写零的 render-context `+0x20/+0x24` 是 PerfCountStart/EndCbID；r198 另证 `+0x24` 同时作为 PrepareTA 状态表索引。update list 是 RGXPrepareTA 单独分配并将新对象 `+0x24` 计数置零，再从调用者 psKickTA 复制条目。临时 musa.ini 已无 poke 越过 PrepareTA，但卡在空 submission context；动态 update helper 验证待做。
+- 证据：`reports/r197-correct-gfx-update-init.md` + `reports/r198-gfx-apphint-replay.md`。下一步追 RGXKickGfx 的 SubmissionCmdGenerate 首参来源。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，和 STATUS/§12 活页有差异；留待快照刷新 pass 一并校正。
+
+---

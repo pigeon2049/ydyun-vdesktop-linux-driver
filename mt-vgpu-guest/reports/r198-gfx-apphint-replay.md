@@ -30,3 +30,8 @@
 查明 `RGXKickGfx` 传给 `SubmissionCmdGenerate` 的 submission context 来源为何为 null。优先沿 `RGXCreateRenderContextCCB` 创建的 SubmissionHead/region 与 psKickTA 输入之间对照，再用 fabricated GDB 逐项补齐真实 producer 输入；保持 AppHint 配置路径，不直接改写 context 内存。完成 helper 观测前不宣称 update producer 已动态复验；活会话保持 freeze。
 
 完整 trace：`r198-gfx-apphint-gdb.jsonl`。
+
+
+## 补充更正（r199）
+
+r198 将 `SubmissionCmdGenerate` 的空首参笼统记为缺少 submission context。r199 按同 SHA UMD 指令定位：首参来自 `psKickTA+0x28` 所指对象的 `+0x200`，其预期对象与 allocator 的动态身份尚待 GDB 逐级确认；`SubmissionHead` 是单独传入的第二参。见 [`r199-gfx-submission-allocator-origin.md`](r199-gfx-submission-allocator-origin.md)。

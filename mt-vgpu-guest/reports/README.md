@@ -153,6 +153,7 @@
 | r196 | fabricated RGXKickGfx 生成 1 项 flag&2 update 并发出 `0x82:0x14`；render slot 依赖手动 poke，真实 CCB 与桥接仍未验证 |
 | r197 | 纠正 r196 字段：render-context `+0x20/+0x24` 是 PerfCount callback IDs；RGXPrepareTA 分配并初始化 update list；后证 `+0x24` 还作状态表索引 |
 | r198 | 临时 musa.ini 合法设置 PerfCountEndCbID 后无 poke 越过 PrepareTA；SubmissionCmdGenerate 空首参崩溃，trace 无 `0x82:0x14` |
+| r199 | 二进制指令定位 SubmissionCmdGenerate 首参为 `psKickTA+0x28` 指针目标 `+0x200` allocator；动态确认待做 |
 
 ## 关键单篇（本轮最常用）
 
