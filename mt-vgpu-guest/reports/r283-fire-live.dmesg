@@ -1,0 +1,30 @@
+[四 10月  8 00:59:01 2026] [r283] firemod-live-start
+[四 10月  8 00:59:01 2026] mt_live_tqx_fire: preparation failed=-16 no submission
+[四 10月  8 01:00:46 2026] mt_live_tqx_fire: busy: published=1 evres=0 pinned=1 connected=1 running=1 markers=0/0/0 completed=0 cbsubmit=1 ops=1 submit=1 addr_objs=0 buf_objs=0
+[四 10月  8 01:00:46 2026] mt_live_tqx_fire: preparation failed=-16 no submission
+[四 10月  8 01:01:59 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:01:59 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:01:59 2026] debugfs: Directory '0000:00:0e.0' with parent 'dri' already present!
+[四 10月  8 01:01:59 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:01:59 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:02:10 2026] mt_live_tqx_fire: fired=0 chunks=21 verified=0 bad=0/0 first=0x0 last=0x0 result=-16
+[四 10月  8 01:03:04 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:03:04 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:03:04 2026] debugfs: Directory '0000:00:0e.0' with parent 'dri' already present!
+[四 10月  8 01:03:04 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:03:04 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:03:11 2026] mt_live_tqx_fire: run: chunk 1 prepare: -16
+[四 10月  8 01:03:11 2026] mt_live_tqx_fire: fired=0 chunks=21 verified=0 bad=0/0 first=0x0 last=0x0 result=-16
+[四 10月  8 01:05:27 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:05:27 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:05:27 2026] debugfs: Directory '0000:00:0e.0' with parent 'dri' already present!
+[四 10月  8 01:05:27 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:05:27 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:05:32 2026] mt_live_tqx_fire: run: chunk 0 readback: -19
+[四 10月  8 01:05:32 2026] mt_live_tqx_fire: fired=0 chunks=21 verified=0 bad=0/0 first=0x0 last=0x0 result=-19
+[四 10月  8 01:06:07 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:06:07 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:06:07 2026] debugfs: Directory '0000:00:0e.0' with parent 'dri' already present!
+[四 10月  8 01:06:07 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:06:07 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:06:14 2026] mt_live_tqx_fire: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff result=0
