@@ -52,9 +52,10 @@ int main(void)
     uint8_t map_in[32] = {0};
     uint8_t map_out[12] = {0};
     uint8_t submit_in[108] = {0};
+    uint8_t gfx_in[108] = {0};
     uint32_t submit_out = 0;
     uint64_t pmr = 0, res = 0, addr = 0x8000a00000ULL, len = 0x2000;
-    uint64_t heap = 2, ccb_va;
+    uint64_t heap = 2, ccb_va, gfx_va;
     uint32_t ccb_bytes = 0x100;
     uint8_t *base;
     size_t i;
@@ -91,6 +92,19 @@ int main(void)
     memcpy(submit_in + 88, &ccb_va, 8);
     if (bridge(fd, 0x89, 0xa, submit_in, sizeof(submit_in),
                &submit_out, sizeof(submit_out))) return 18;
+    /* 5.2 MUSAKICKGFX5 submission_va@76 and submission_size@84. */
+    for (i = 0; i < 0x100; i++)
+        base[0x300 + i] = (uint8_t)(((i * 7) % 251) + 1);
+    gfx_va = addr + 0x300;
+    memcpy(gfx_in + 76, &gfx_va, 8);
+    memcpy(gfx_in + 84, &ccb_bytes, 4);
+    if (bridge(fd, 0x82, 0x14, gfx_in, sizeof(gfx_in),
+               &submit_out, sizeof(submit_out))) return 19;
+    /* Unresolvable GFX submission VA must never dump unrelated bytes. */
+    gfx_va = 0x7000000000ULL;
+    memcpy(gfx_in + 76, &gfx_va, 8);
+    if (bridge(fd, 0x82, 0x14, gfx_in, sizeof(gfx_in),
+               &submit_out, sizeof(submit_out))) return 20;
     munmap(base, 0x2000);
     close(fd);
     return 0;
@@ -107,6 +121,8 @@ class FabricatedCcbResolve(unittest.TestCase):
         cls.client_c = cls.work / 'client.c'
         cls.client = cls.work / 'client'
         cls.trace = cls.work / 'trace.jsonl'
+        cls.dumps = cls.work / 'dumps'
+        cls.dumps.mkdir()
         cls.client_c.write_text(CLIENT)
         subprocess.run(['cc', '-std=gnu11', '-Wall', '-Wextra', '-Werror',
                         '-shared', '-fPIC', str(SHIM), '-o', str(cls.shim),
@@ -126,6 +142,7 @@ class FabricatedCcbResolve(unittest.TestCase):
             'UMD_SHARED_BACKING': '1',
             'UMD_SHARED_SNAPSHOT': '1',
             'UMD_TRACE': str(self.trace),
+            'UMD_CCB_DUMP_DIR': str(self.dumps),
         })
         result = subprocess.run([str(self.client)], env=env,
                                 capture_output=True, text=True)
@@ -137,8 +154,8 @@ class FabricatedCcbResolve(unittest.TestCase):
         self.assertTrue(tids, 'trace records must carry tid (r168)')
         self.assertTrue(all(isinstance(t, int) and t > 0 for t in tids))
         resolves = [row for row in rows if row.get('op') == 'ccb_resolve']
-        self.assertEqual(len(resolves), 2)
-        ok, miss = resolves
+        self.assertEqual(len(resolves), 4)
+        ok, miss, gfx, gfx_miss = resolves
         self.assertEqual(ok.get('resolved'), 1)
         self.assertEqual(ok.get('ccb_va'), '0x8000a00100')
         self.assertEqual(ok.get('ccb_bytes'), 0x100)
@@ -149,13 +166,28 @@ class FabricatedCcbResolve(unittest.TestCase):
                            'b': ''.join('%02x' % ((i % 255) + 1)
                                         for i in range(64))}])
         self.assertEqual(miss.get('resolved'), 0)
+        self.assertEqual(gfx.get('submit'), '0x82:0x14')
+        self.assertEqual(gfx.get('ccb_va'), '0x8000a00300')
+        self.assertEqual(gfx.get('ccb_bytes'), 0x100)
+        self.assertEqual(gfx.get('resolved'), 1)
+        self.assertEqual(gfx.get('dumped'), 1)
+        dump_path = self.dumps / gfx['dump']
+        expected = bytes(((i * 7) % 251) + 1 for i in range(0x100))
+        self.assertEqual(dump_path.read_bytes(), expected)
+        self.assertEqual(dump_path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(len(list(self.dumps.glob('ccb-*.bin'))), 2,
+                         'only the two resolvable CCB ranges may be dumped')
+        self.assertEqual(gfx_miss.get('submit'), '0x82:0x14')
+        self.assertEqual(gfx_miss.get('resolved'), 0)
 
         # Reverse check: without shared backing no resolve record exists.
         trace2 = self.work / 'trace2.jsonl'
+        dumps_before = set(self.dumps.iterdir())
         env2 = os.environ.copy()
         env2.update({
             'LD_PRELOAD': str(self.shim),
             'UMD_TRACE': str(trace2),
+            'UMD_CCB_DUMP_DIR': str(self.dumps),
         })
         env2.pop('UMD_SHARED_BACKING', None)
         env2.pop('UMD_SHARED_SNAPSHOT', None)
@@ -165,6 +197,28 @@ class FabricatedCcbResolve(unittest.TestCase):
         rows2 = [json.loads(line) for line in trace2.read_text().splitlines()]
         self.assertFalse(any(row.get('op') == 'ccb_resolve' for row in rows2),
                          'resolve must be gated on shared backing')
+        self.assertEqual(set(self.dumps.iterdir()), dumps_before,
+                         'CCB dumps must be gated on shared backing')
+
+        # A resolved replay without the explicit dump directory logs metadata
+        # but must not write any raw CCB file.
+        trace3 = self.work / 'trace3.jsonl'
+        env3 = os.environ.copy()
+        env3.update({
+            'LD_PRELOAD': str(self.shim),
+            'UMD_SHARED_BACKING': '1',
+            'UMD_TRACE': str(trace3),
+        })
+        env3.pop('UMD_CCB_DUMP_DIR', None)
+        result = subprocess.run([str(self.client)], env=env3,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0)
+        rows3 = [json.loads(line) for line in trace3.read_text().splitlines()]
+        resolves3 = [row for row in rows3 if row.get('op') == 'ccb_resolve']
+        self.assertTrue(any(row.get('resolved') == 1 for row in resolves3))
+        self.assertTrue(all(row.get('dumped') == 0 for row in resolves3
+                            if row.get('resolved') == 1))
+        self.assertEqual(set(self.dumps.iterdir()), dumps_before)
 
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@
  */
 #define _GNU_SOURCE
 #include <dlfcn.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
@@ -975,26 +976,83 @@ static void log_hex(const char *tag, const void *ptr, uint32_t size)
 		fprintf(logf, ",\"%s_truncated\":%u", tag, size);
 }
 
-/* Optional pre-submit observation of bytes in the shared fabricated PMRs.
- * This reports occupied-byte counts and the first nonzero window, not a claim
- * that the bytes are a valid CCB. */
-static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
-			    uint32_t in_size)
+/* Optional exact CCB byte capture for offline fabricated replays. The file
+ * dump is separately opt-in and bounded; the JSON trace remains a summary.
+ * Neither observation claims that the bytes are valid or were executed. */
+static int dump_ccb_bytes(const uint8_t *bytes, uint32_t size,
+			  uint32_t bridge_id, uint32_t func_id,
+			  char *name, size_t name_cap)
+{
+	const char *dir = getenv("UMD_CCB_DUMP_DIR");
+	static unsigned long dump_seq;
+	char path[PATH_MAX];
+	int fd, n;
+	uint32_t off = 0;
+
+	if (!dir || !*dir || !bytes || !size || size > (16U << 20) ||
+	    !name || !name_cap)
+		return 0;
+	n = snprintf(name, name_cap, "ccb-%lu-%02x-%02x.bin", ++dump_seq,
+		     bridge_id, func_id);
+	if (n < 0 || (size_t)n >= name_cap)
+		return 0;
+	n = snprintf(path, sizeof(path), "%s/%s", dir, name);
+	if (n < 0 || (size_t)n >= sizeof(path))
+		return 0;
+	fd = open(path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+	if (fd < 0)
+		return 0;
+	while (off < size) {
+		ssize_t wrote = write(fd, bytes + off, size - off);
+		if (wrote < 0 && errno == EINTR)
+			continue;
+		if (wrote <= 0) {
+			close(fd);
+			unlink(path);
+			return 0;
+		}
+		off += (uint32_t)wrote;
+	}
+	if (close(fd)) {
+		unlink(path);
+		return 0;
+	}
+	return 1;
+}
+
+static int ccb_fields(uint32_t bridge_id, uint32_t func_id,
+		      uint32_t *va_off, uint32_t *bytes_off)
+{
+	if (bridge_id == 0x89 && func_id == 0xa) {
+		*va_off = 88;
+		*bytes_off = 104;
+		return 1;
+	}
+	if (bridge_id == 0x82 && func_id == 0x14) {
+		/* 5.2 MUSAKICKGFX5: submission_va@76, submission_size@84. */
+		*va_off = 76;
+		*bytes_off = 84;
+		return 1;
+	}
+	return 0;
+}
+
+static void log_ccb_resolve(uint32_t bridge_id, uint32_t submit_func_id,
+			    const void *in_ptr, uint32_t in_size)
 {
 	const uint8_t *in = in_ptr;
 	uint64_t ccb_va = 0;
-	uint32_t ccb_bytes = 0;
+	uint32_t ccb_bytes = 0, va_off, bytes_off;
 	unsigned i, m;
 	uint64_t res_handle = 0, res_addr = 0, res_len = 0, pmr = 0;
 	int found = 0;
 
-	if (!in || in_size < 108 || submit_func_id != 0xa)
+	if (!in || in_size < 108 ||
+	    !ccb_fields(bridge_id, submit_func_id, &va_off, &bytes_off))
 		return;
 	ensure_log();
-	/* Offsets per mt_pvr_wire.h SubmitTransfer3 ABI (r151): ccb_data@88,
-	 * ccb_bytes@104. */
-	memcpy(&ccb_va, in + 88, 8);
-	memcpy(&ccb_bytes, in + 104, 4);
+	memcpy(&ccb_va, in + va_off, 8);
+	memcpy(&ccb_bytes, in + bytes_off, 4);
 	pthread_mutex_lock(&shared_pmr_lock);
 	for (i = 0; i < va_reservation_count; i++) {
 		uint64_t start = va_reservations[i].addr;
@@ -1029,6 +1087,8 @@ static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
 		size_t base_len = 0;
 		size_t j, first = 0, nonzero = 0;
 		int have_base = 0;
+		char dump_name[96] = {0};
+		int dumped = 0;
 
 		for (m = 0; m < shared_pmr_map_count; m++) {
 			if ((shared_pmr_maps[m].off >> 12) == pmr) {
@@ -1039,7 +1099,8 @@ static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
 				break;
 			}
 		}
-		if (have_base && base && backing_offset + ccb_bytes <= base_len) {
+		if (have_base && base && backing_offset <= base_len &&
+		    ccb_bytes <= base_len - backing_offset) {
 			first = ccb_bytes;
 			for (j = 0; j < ccb_bytes; j++) {
 				if (!base[backing_offset + j])
@@ -1051,15 +1112,19 @@ static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
 		} else {
 			have_base = 0;
 		}
+		if (have_base)
+			dumped = dump_ccb_bytes(base + backing_offset, ccb_bytes,
+						bridge_id, submit_func_id,
+						dump_name, sizeof(dump_name));
 		fprintf(logf,
 			"{\"seq\":%lu,\"tid\":%ld,\"op\":\"ccb_resolve\","
-			"\"submit\":\"0x89:0x%x\","
+			"\"submit\":\"0x%x:0x%x\","
 			"\"ccb_va\":\"0x%llx\",\"ccb_bytes\":%u,"
 			"\"reservation\":\"0x%llx\",\"res_addr\":\"0x%llx\","
 			"\"res_len\":%llu,\"pmr\":\"0x%llx\","
 			"\"backing_off\":\"0x%llx\",\"backing_offset\":%zu,"
 			"\"resolved\":%d",
-			++seq, umd_tid(), submit_func_id,
+			++seq, umd_tid(), bridge_id, submit_func_id,
 			(unsigned long long)ccb_va, ccb_bytes,
 			(unsigned long long)res_handle,
 			(unsigned long long)res_addr,
@@ -1076,8 +1141,11 @@ static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
 			}
 			fprintf(logf, ",\"nonzero_bytes\":%zu,"
 				"\"first_nonzero\":\"0x%zx\","
-				"\"fnv1a64\":\"0x%llx\"", nonzero, first,
-				(unsigned long long)hash);
+				"\"fnv1a64\":\"0x%llx\",\"dumped\":%d",
+				nonzero, first,
+				(unsigned long long)hash, dumped);
+			if (dumped)
+				fprintf(logf, ",\"dump\":\"%s\"", dump_name);
 			if (ccb_bytes) {
 				size_t sample_len = ccb_bytes;
 				size_t sample_off =
@@ -1135,10 +1203,10 @@ static void log_ccb_resolve(uint32_t submit_func_id, const void *in_ptr,
 	} else if (logf && !umd_trace_would_exceed(512)) {
 		fprintf(logf,
 			"{\"seq\":%lu,\"tid\":%ld,\"op\":\"ccb_resolve\","
-			"\"submit\":\"0x89:0x%x\","
+			"\"submit\":\"0x%x:0x%x\","
 			"\"ccb_va\":\"0x%llx\",\"ccb_bytes\":%u,"
 			"\"resolved\":0}\n",
-			++seq, umd_tid(), submit_func_id,
+			++seq, umd_tid(), bridge_id, submit_func_id,
 			(unsigned long long)ccb_va, ccb_bytes);
 	}
 	pthread_mutex_unlock(&shared_pmr_lock);
@@ -1413,12 +1481,17 @@ int ioctl(int fd, unsigned long req, ...)
 			return 0;
 		}
 		memcpy(&cmd, arg, sizeof(cmd));
-		if (cmd.bridge_id == 0x89 &&
-		    (cmd.bridge_func_id == 0x4 || cmd.bridge_func_id == 0xa) &&
-		    umd_shared_backing_enabled()) {
-			log_shared_pmr_snapshot(cmd.bridge_func_id);
-			if (cmd.bridge_func_id == 0xa)
-				log_ccb_resolve(cmd.bridge_func_id,
+		if (umd_shared_backing_enabled()) {
+			if (cmd.bridge_id == 0x89 &&
+			    (cmd.bridge_func_id == 0x4 || cmd.bridge_func_id == 0xa)) {
+				log_shared_pmr_snapshot(cmd.bridge_func_id);
+				if (cmd.bridge_func_id == 0xa)
+					log_ccb_resolve(cmd.bridge_id, cmd.bridge_func_id,
+							(const void *)(uintptr_t)cmd.in_ptr,
+							cmd.in_size);
+			}
+			if (cmd.bridge_id == 0x82 && cmd.bridge_func_id == 0x14)
+				log_ccb_resolve(cmd.bridge_id, cmd.bridge_func_id,
 						(const void *)(uintptr_t)cmd.in_ptr,
 						cmd.in_size);
 		}
