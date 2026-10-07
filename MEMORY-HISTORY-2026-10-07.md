@@ -221,3 +221,17 @@
 - 遗留：真实数组流量仍待 producer；真实执行仍待 backend 接线。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r219：TQX bring-up 新会话复验，批准执行）
+
+- TQX bring-up 在新会话+新构建上复验通过：`=2` + `translate_tqx_ctx=1`（`translate_transfer` 保持 off）重载，真实 blit 后 `submit3 tqx-ctx: ready`（无 `-22` 回归）；UMD 即时 SIGABRT，无 hanging。probe 1→28→1 对称归零；桥恢复默认 + L3 全绿，dmesg 干净。附带第四个 `+0x40` 轮变值（`60 70`）。trace 已入库。详见 `reports/r219-tqxbringup-reverify.md`。
+- **Freeze 已恢复。**
+- 遗留：TQX 真发射仍未验证；真实数组流量仍待 producer；真实执行仍待 backend 接线。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r219：TQX bring-up 新会话复验，批准执行）
+
+- TQX bring-up 在新会话+新构建上复验通过：`=2` + `translate_tqx_ctx=1`（`translate_transfer` 保持 off）重载，真实 blit 后 `submit3 tqx-ctx: ready`（无 `-22` 回归）；UMD 即时 SIGABRT，无 hanging。probe 1→28→1 对称归零；桥恢复默认 + L3 全绿，dmesg 干净。附带第四个 `+0x40` 轮变值（`60 70`）。trace 已入库。详见 `reports/r219-tqxbringup-reverify.md`。
+- **Freeze 已恢复。**
+- 遗留：TQX 真发射仍未验证；真实数组流量仍待 producer；真实执行仍待 backend 接线。USB 短页标题日期问题留待对应轮。
+
+---

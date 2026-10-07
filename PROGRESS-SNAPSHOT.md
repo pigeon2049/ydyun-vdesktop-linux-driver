@@ -460,6 +460,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r221 非零 kick 活体发现（批准执行）**：UMD `SetSyncPrim` 实际发 `0x2:0xa`（objdump 实锤，Ghidra 伪 C 写错 fn id；r220 handler 挂错位置，下轮搬移）+ check-only 翻译不等 UFO 值（value=1 vs PMR=0 一次通过 fence=3；源码系 `if (nupdate)` 门控，r174 引入，疑笔误——r212/r213 只证明机械）。拆桥干净（probe 25→1），默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**见 `reports/r221-nonzerokick-findings.md` + `.jsonl`。
 - **r220 SyncPrimSet 真写（离线，零硬件触碰）**：值语义链真卡点打通——`0x2:0x2` 从 stub 改真写（wrapper/生成头/活体三重互证 IN16；复用 translator 解析 + 定界写；无 fence/提交/wakeup；`0x2:0xd` 仍越界）。门禁 7 项新 + 改判 + MAPPING（含双重反向）；`check-offline` 317+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r220-syncprimset-write.md`。
 - **r219 TQX bring-up 新会话复验（批准执行）**：`=2` + `translate_tqx_ctx=1`（transfer 干跑保持 off）重载后真实 blit 报 `tqx-ctx: ready`（无 `-22` 回归）；UMD 即时 SIGABRT 无 hanging；probe 1→28→1 对称归零；桥恢复默认 + L3 全绿，dmesg 干净。附带第四个 `+0x40` 轮变值（`60 70`）。**Freeze 已恢复。**见 `reports/r219-tqxbringup-reverify.md` + `.jsonl`。
 - **r218 observer 全路径活体验证（批准执行）**：合法 envelope（真 render context + 真 PMR 窗口，阵列全 NULL）fire 回 0，dmesg 行标量全上报（check=1 update=1，零窗口零统计）；11 步全 teardown，refs 不变，dmesg 零新增。只证明全链不证明数组语义。**无重载，freeze 继续。**见 `reports/r218-observe-fullpath-live.md`。
