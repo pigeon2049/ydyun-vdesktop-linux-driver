@@ -308,6 +308,40 @@ struct MT_PVR_PACKED mt_pvr_render2_create_out {
 	u32 error;
 };
 
+/* 0x82:0x14 RGXKICKTA3D5 / 5.2 MUSA:MUSAKICKGFX5 -- 108-byte IN, 4-byte OUT.
+ * Wire layout follows the hash-verified 5.2.0 Host generated header
+ * reference/kmd-5.2.0-server-generated/common_musagfx_bridge.h and the UMD
+ * wrapper callsite. The 2.7.1 Native header is 12 bytes shorter: it omits
+ * ui32SubmissionFlags and ui64SubmissionId, so it is not this wire layout.
+ *
+ * This type only describes the packet. The bridge does not dispatch this
+ * command yet: the pointer fields name nested userspace arrays, and the real
+ * Guest handler must validate/copy them, resolve every handle, and submit the
+ * CCB before returning success.
+ */
+struct MT_PVR_PACKED mt_pvr_rgxkickta3d5_in {
+	u64 render_context;
+	u64 check_sync_prim_blocks;
+	u64 check_sync_offsets;
+	u64 check_values;
+	u64 update_sync_prim_blocks;
+	u64 update_sync_offsets;
+	u64 update_values;
+	u64 sync_pmr_flags;
+	u64 sync_pmrs;
+	u32 submission_flags;
+	u64 submission_va;
+	u32 submission_size;
+	u64 submission_id;
+	u32 check_count;
+	u32 update_count;
+	u32 sync_pmr_count;
+};
+
+struct MT_PVR_PACKED mt_pvr_rgxkickta3d5_out {
+	u32 error;
+};
+
 /* 0x88:0x0 RGXCreateKickSyncContext -- 16-byte IN, 12-byte OUT.
  * 0x88:0x1 RGXDestroyKickSyncContext -- 8-byte IN, 4-byte OUT.
  *
@@ -740,6 +774,22 @@ static_assert(sizeof(struct mt_pvr_zs_destroy_in) == 8, "0x82:0x3 in");
 static_assert(sizeof(struct mt_pvr_zs_destroy_out) == 4, "0x82:0x3 out");
 static_assert(sizeof(struct mt_pvr_render2_create_in) == 12, "0x82:0x12 in");
 static_assert(sizeof(struct mt_pvr_render2_create_out) == 12, "0x82:0x12 out");
+static_assert(sizeof(struct mt_pvr_rgxkickta3d5_in) == 108, "0x82:0x14 in");
+static_assert(sizeof(struct mt_pvr_rgxkickta3d5_out) == 4, "0x82:0x14 out");
+static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, submission_flags) == 72,
+	      "0x82:0x14 submission flags offset");
+static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, submission_va) == 76,
+	      "0x82:0x14 submission VA offset");
+static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, submission_size) == 84,
+	      "0x82:0x14 submission size offset");
+static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, submission_id) == 88,
+	      "0x82:0x14 submission ID offset");
+static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, check_count) == 96,
+	      "0x82:0x14 check count offset");
+static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, update_count) == 100,
+	      "0x82:0x14 update count offset");
+static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, sync_pmr_count) == 104,
+	      "0x82:0x14 PMR count offset");
 static_assert(sizeof(struct mt_pvr_compute_create_in) == 60, "0x81:0x0 in");
 static_assert(sizeof(struct mt_pvr_compute_create_out) == 12, "0x81:0x0 out");
 static_assert(sizeof(struct mt_pvr_compute_destroy_in) == 8, "0x81:0x1 in");
