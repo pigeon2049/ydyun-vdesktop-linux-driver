@@ -461,6 +461,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r260 ck 下 legacy blit（批准执行）**：同样止于 `0x89:0x0` → -25（ck 不干扰 `0x89` 路径）；trace 落硬盘暂存区后已清空。拆桥干净，默认 + L3 全绿。见 `reports/r260-ck-blit.md`。
 - **r259 r210 配方可复现性审计（零硬件触碰）**：无完整 harness 命令归档，缺 UMD 对象指针来源，不可直接复现；最小 GFX 命令 GDB 下返回 3（r194 复现成功）。暂存区已清空。见 `reports/r259-gfx-repro-audit.md`。
 - **r258 硬盘暂存区流程验证（批准执行）**：AGENTS.md §5 改判落地；`/tmp/opencode/umda/` 4.2M 清零；新流程 ping/rung8 全过（trace 落硬盘）；暂存区已清空。见 `reports/r258-disk-traces.md`。
 - **r257 RGXKickGfx 签名恢复（零硬件触碰）**：6 参数用途 + 调用链（objdump 实锤：rdi=render ctx，rsi=kickA，rdx=b24，rcx=kickB，r8=b25，r9=栈参）；harness 重建第一步；附 /tmp 用途调查。见 `reports/r257-kickgfx-signature.md`。
