@@ -12,6 +12,7 @@
 #include <linux/io.h>
 #include <linux/fs.h>
 #include <linux/vmalloc.h>
+#include "../mt_guest_device.h"
 
 static bool enable;
 module_param(enable, bool, 0400);
@@ -69,14 +70,14 @@ static int snapshot_retained(void __iomem *regs, void __iomem *custom)
 		{ 0x1ae000000ULL, 0x39e00000, 3 },
 		{ 0x769fef000ULL, 0x4000000, 4 },
 		{ 0, 0xc800000, 8 }, { 0, 0x5000000, 0x10 },
-		{ 0x43000000, 0x200000, 0x20 },
+		{ MT_GUEST_SEG5_ADDR, 0x200000, 0x20 },
 	};
 	static const u64 ready_expected[6][3] = {
 		{ 0x605000000ULL, 0x5000000, 1 },
 		{ 0x13a000000ULL, 0x39e00000, 3 },
 		{ 0x771fef000ULL, 0x4000000, 4 },
 		{ 0, 0xc800000, 8 }, { 0, 0x5000000, 0x10 },
-		{ 0x43000000, 0x200000, 0x20 },
+		{ MT_GUEST_SEG5_ADDR, 0x200000, 0x20 },
 	};
 	const u64 (*segments)[3] = inspect_ready ? ready_expected : expected;
 	u32 guest_state = inspect_ready ? 2 : 0;
@@ -89,7 +90,7 @@ static int snapshot_retained(void __iomem *regs, void __iomem *custom)
 	    le32_to_cpup((__le32 *)(info + 4)) != 2 ||
 	    le32_to_cpup((__le32 *)(info + 8)) != (inspect_ready ? 4 : 6) ||
 	    le64_to_cpup((__le64 *)(info + 0x10)) != 0x3d1 ||
-	    le64_to_cpup((__le64 *)(info + 0x20)) != 0x43000000 ||
+	    le64_to_cpup((__le64 *)(info + 0x20)) != MT_GUEST_SEG5_ADDR ||
 	    le32_to_cpup((__le32 *)(info + 0xc50)) != 6 ||
 	    le32_to_cpup((__le32 *)(info + 0xc98)) != 0x200000)
 		return -EPROTO;

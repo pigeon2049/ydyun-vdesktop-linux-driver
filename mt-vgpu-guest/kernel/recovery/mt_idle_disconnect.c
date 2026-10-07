@@ -7,6 +7,7 @@
 #include <linux/pci.h>
 #include <linux/io.h>
 #include <linux/vmalloc.h>
+#include "../mt_guest_device.h"
 #include <crypto/sha2.h>
 
 static bool finish;
@@ -36,8 +37,8 @@ static int __init idle_disconnect_init(void)
 	device_lock(&pdev->dev);
 	if (pdev->driver || pdev->vendor != 0x1ed5 || pdev->device != 0x0222 ||
 	    pdev->subsystem_vendor != 0x1ed5 || pdev->subsystem_device != 0x1101 ||
-	    pci_resource_start(pdev, 2) != 0x800000000ULL ||
-	    pci_resource_len(pdev, 2) != 0x400000000ULL ||
+	    pci_resource_start(pdev, 2) != MT_GUEST_BAR2_BASE ||
+	    pci_resource_len(pdev, 2) != MT_GUEST_BAR2_BYTES ||
 	    pci_resource_len(pdev, 0) != 0x10000 || pci_resource_len(pdev, 1) != 0x10000)
 		goto out;
 	ret = -EBUSY;

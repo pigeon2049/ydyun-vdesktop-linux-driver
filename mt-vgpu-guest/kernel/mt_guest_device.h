@@ -18,6 +18,16 @@
 #include "mt_bo_vram.h"
 #include "mt_vm_vram.h"
 #include "mt_gem.h"
+
+/* Guest-visible PCI window + firmware segment anchor (r269): BAR2 is the
+ * 16G prefetchable window (lspci: 0x800000000-0xbffffffff); info segment 5
+ * lives at 0x43000000 (decode-device-info.py, version-2 info). Named once;
+ * the recovery checks below compare by name. Neither is the 1GiB
+ * vm_memory_size_bytes quota itself, which the kernel never consumes.
+ */
+#define MT_GUEST_BAR2_BASE 0x800000000ULL
+#define MT_GUEST_BAR2_BYTES 0x400000000ULL
+#define MT_GUEST_SEG5_ADDR 0x43000000ULL
 #include "mt_marker_fence.h"
 
 struct mt_guest_device {
