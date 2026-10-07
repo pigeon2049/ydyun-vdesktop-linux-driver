@@ -12,11 +12,11 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r290：UMD 驱动 fire 首绿，批准执行）
+## 本轮进展（r291：UMD 驱动 fire 复现全绿 + r290 订正，批准执行）
 
-- 桥 fire 串行移植（离线）：handler 定位+调度，work 逐块执行；门禁改判 13 项 + 反向 + 366+292 全绿 + W=1 零警告。停桌面窗口 + 三开 + 真实 blit：UMD 矩形 1280×1024 `fired=1 chunks=21 verified=1 bad=0/1310720`，STATUS #1 真实绘制打通。
-- 恢复曲折：脚本 grep 缺 `-a` 误判 TIMEOUT；桌面 2 分钟自重启致 rmmod 被拒；手动补恢复关账（probe 31→1，L3 全绿，桌面拉回）。窗口零新增 WARN。脚本两 bug 已修。
-- 教训：停桌面窗口可靠上限约 90 秒；CCB nonzero=40（+1 未命名）。**Freeze 已恢复。**
-- 遗留：TA/3D CCB 与 update 的 UMD 驱动验证（下个 90 秒窗口）。本地提交仍未 push。
+- 第二窗口零干预全绿：UMD 矩形二次 `fired=1 chunks=21 verified=1`；L3 双绿；终态 refs 1/1，窗口零新增 WARN。CCB 第三样本 nonzero=40（轮值第 9 值 `dd 35`，+1 仍未命名）。
+- r290 订正（用户指正）：两次“重启”均为手动重开，无自重启证据；90 秒定律作废，约束为用户容忍度。脚本时限收紧（60/60）+ LC_ALL/unset 修已验证生效（本轮 trace 零污染、fired 一次命中）。
+- **Freeze 已恢复。**
+- 遗留：TA/3D CCB 或 update 的 UMD 驱动验证（需离线 recon producer）。本地提交仍未 push。
 ---
 

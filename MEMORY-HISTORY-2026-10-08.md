@@ -85,3 +85,12 @@
 - 遗留：holder 窗口（UMD 驱动 fire 唯一剩余路径）。本地提交仍未 push。
 ---
 
+
+## 本轮进展（r290：UMD 驱动 fire 首绿，批准执行）
+
+- 桥 fire 串行移植（离线）：handler 定位+调度，work 逐块执行；门禁改判 13 项 + 反向 + 366+292 全绿 + W=1 零警告。停桌面窗口 + 三开 + 真实 blit：UMD 矩形 1280×1024 `fired=1 chunks=21 verified=1 bad=0/1310720`，STATUS #1 真实绘制打通。
+- 恢复曲折：脚本 grep 缺 `-a` 误判 TIMEOUT；用户手动重开桌面致 rmmod 被拒（r291 订正：非自重启）；手动补恢复关账（probe 31→1，L3 全绿，桌面拉回）。窗口零新增 WARN。脚本两 bug 已修。
+- 教训：窗口约束是用户容忍度（90 秒定律作废）；CCB nonzero=40（+1 未命名）。**Freeze 已恢复。**
+- 遗留：TA/3D CCB 与 update 的 UMD 驱动验证（用户协调窗口）。本地提交仍未 push。
+---
+

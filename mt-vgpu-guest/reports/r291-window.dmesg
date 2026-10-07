@@ -1,0 +1,26 @@
+[Thu Oct  8 01:46:12 2026] mt_pvr_bridge: unloaded cleanly
+[Thu Oct  8 01:46:12 2026] [drm] Initialized pvr 2.1.0 for 0000:00:0e.0 on minor 1
+[Thu Oct  8 01:46:12 2026] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[Thu Oct  8 01:46:13 2026] [r290] window-fire-start
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: DMA domains: dma_iova=0x16da00000 gpu_pa=0x896da00000 pages=1
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00000000 bytes=4096 pages=1 pa=0x896da00000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000000000 bytes=4096 pages=1 pa=0x8aa0fec000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000000000 bytes=4096 pages=1 pa=0x8a3e5a2000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000010000 bytes=8192 pages=2 pa=0x899695f000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00010000 bytes=131072 pages=32 pa=0x8ad1c83000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a12000 bytes=131072 pages=32 pa=0x8a400c1000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xf000000000 bytes=131072 pages=32 pa=0x8aa2974000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a32000 bytes=65791 pages=17 pa=0x89cebf9000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000012000 bytes=174079 pages=43 pa=0x8a2d113000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00030000 bytes=39935 pages=10 pa=0x8a056a8000
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: submit3 observe: va=0x8000f44000 bytes=4608 res=0x1035 pmr=0x1034 nonzero=40 first=0x10 fnv=0x2e8456c977ece9ae head=58 40 f4 80 67 78 10 01 dd 35 01 02 20 10 03 90 10 01 20 01 08 01 d0 07 20 a3 80 12 a1 80 10 a1 80 01 10 03 03 01 0c 08
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: translator space tables gpu_pa=0x78300d000 capacity=262144
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: bind_boot_shared ret=0
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: tqx bring-up: enter ctx block
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: tqx bring-up: before slices
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: tqx slices: ready cores=1
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: tqx bring-up: after slices
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: submit3 tqx-ctx: ready
+[Thu Oct  8 01:46:13 2026] mt_pvr_bridge: fire seq=1: scheduled chunks=21 1280x1024 color=0xff0000ff
+[Thu Oct  8 01:46:14 2026] mt_pvr_bridge: fire seq=1: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff
+[Thu Oct  8 01:47:13 2026] mt_pvr_bridge: arena close: high_water=192/512 pages fallbacks=4
