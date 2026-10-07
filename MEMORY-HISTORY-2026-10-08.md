@@ -94,3 +94,12 @@
 - 遗留：TA/3D CCB 与 update 的 UMD 驱动验证（用户协调窗口）。本地提交仍未 push。
 ---
 
+
+## 本轮进展（r291：UMD 驱动 fire 复现全绿 + r290 订正，批准执行）
+
+- 第二窗口零干预全绿：UMD 矩形二次 `fired=1 chunks=21 verified=1`；L3 双绿；终态 refs 1/1，窗口零新增 WARN。CCB 第三样本 nonzero=40（轮值第 9 值 `dd 35`，+1 仍未命名）。
+- r290 订正（用户指正）：两次“重启”均为手动重开，无自重启证据；90 秒定律作废，约束为用户容忍度。脚本时限收紧（60/60）+ LC_ALL/unset 修已验证生效（本轮 trace 零污染、fired 一次命中）。
+- **Freeze 已恢复。**
+- 遗留：TA/3D CCB 或 update 的 UMD 驱动验证（需离线 recon producer）。本地提交仍未 push。
+---
+

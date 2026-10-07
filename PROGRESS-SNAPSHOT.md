@@ -463,6 +463,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r292 双发全绿（批准执行）**：同 translator 内 `seq=1`/`seq=2` 背靠背 `fired=1 chunks=21 verified=1`，单发复位成立；CCB 第四/五样本 `nonzero=40`（轮值第 10/11 值）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r292-double-fire.md` + 双 `.jsonl`/`.dmesg`。
+
 - **r291 复现全绿（批准执行）**：第二窗口零干预全绿（停→三开→blit→fired→拆→默认→L3→拉回），UMD 矩形二次 `fired=1 chunks=21 verified=1`；CCB 第三样本 `nonzero=40`（轮值第 9 值 `dd 35`）；r290 自重启说已订正（用户手动重开）。窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r291-umdfire-repeat.md` + `.jsonl`/`.dmesg`。
 
 - **r290 UMD 驱动 fire 首绿（批准执行）**：停桌面窗口 + 三开重载 + 真实 blit，UMD 矩形（1280×1024）`fired=1 chunks=21 verified=1 bad=0/1310720`；恢复曲折（用户手动重开桌面致 rmmod 被拒，r291 已订正非自重启，手动补恢复关账，probe 31→1）；L3 全绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r290-umdriven-fire-live.md` + `.jsonl`/`.dmesg`。

@@ -1,0 +1,38 @@
+[Thu Oct  8 01:51:25 2026] [fire-window] umd-fire-start
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: DMA domains: dma_iova=0x1211fe000 gpu_pa=0x89211fe000 pages=1
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00000000 bytes=4096 pages=1 pa=0x89211fe000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000000000 bytes=4096 pages=1 pa=0x89459fd000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000000000 bytes=4096 pages=1 pa=0x8948473000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000010000 bytes=8192 pages=2 pa=0x8a0571e000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00010000 bytes=131072 pages=32 pa=0x89200a1000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a12000 bytes=131072 pages=32 pa=0x8a40358000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xf000000000 bytes=131072 pages=32 pa=0x8a0fc18000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a32000 bytes=65791 pages=17 pa=0x8a0ff1c000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000012000 bytes=174079 pages=43 pa=0x8aa293e000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00030000 bytes=39935 pages=10 pa=0x8a1c0a5000
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: submit3 observe: va=0x8000f44000 bytes=4608 res=0x1035 pmr=0x1034 nonzero=40 first=0x10 fnv=0x8d7811db5e619654 head=58 40 f4 80 67 78 10 01 fb 39 01 02 20 10 03 90 10 01 20 01 08 01 d0 07 20 a3 80 12 a1 80 10 a1 80 01 10 03 03 01 0c 08
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: translator space tables gpu_pa=0x78300d000 capacity=262144
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: bind_boot_shared ret=0
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: tqx bring-up: enter ctx block
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: tqx bring-up: before slices
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: tqx slices: ready cores=1
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: tqx bring-up: after slices
+[Thu Oct  8 01:51:25 2026] mt_pvr_bridge: submit3 tqx-ctx: ready
+[Thu Oct  8 01:51:26 2026] mt_pvr_bridge: fire seq=1: scheduled chunks=21 1280x1024 color=0xff0000ff
+[Thu Oct  8 01:51:27 2026] mt_pvr_bridge: fire seq=1: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: arena close: high_water=192/512 pages fallbacks=4
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00000000 bytes=4096 pages=1 pa=0x89212f3000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000000000 bytes=4096 pages=1 pa=0x896218e000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000000000 bytes=4096 pages=1 pa=0x8a2d29b000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000010000 bytes=8192 pages=2 pa=0x895463e000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00010000 bytes=131072 pages=32 pa=0x8a23879000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a12000 bytes=131072 pages=32 pa=0x8ac9ce8000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xf000000000 bytes=131072 pages=32 pa=0x8992fea000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a32000 bytes=65791 pages=17 pa=0x8a403bf000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000012000 bytes=174079 pages=43 pa=0x894e6b6000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00030000 bytes=39935 pages=10 pa=0x8af6109000
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: submit3 observe: va=0x8000f44000 bytes=4608 res=0x1035 pmr=0x1034 nonzero=40 first=0x10 fnv=0x6ca0814b5164f36a head=58 40 f4 80 67 78 10 01 64 3a 01 02 20 10 03 90 10 01 20 01 08 01 d0 07 20 a3 80 12 a1 80 10 a1 80 01 10 03 03 01 0c 08
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: submit3 tqx-ctx: ready
+[Thu Oct  8 01:52:25 2026] mt_pvr_bridge: fire seq=2: scheduled chunks=21 1280x1024 color=0xff0000ff
+[Thu Oct  8 01:52:27 2026] mt_pvr_bridge: fire seq=2: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff
+[Thu Oct  8 01:53:25 2026] mt_pvr_bridge: arena close: high_water=192/512 pages fallbacks=4
