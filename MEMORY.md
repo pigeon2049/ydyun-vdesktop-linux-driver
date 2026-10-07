@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r313：图案几何落定，批准执行）
+## 本轮进展（r316：真实绘制 Test PASS，批准执行）
 
-- poolbox：源池 solid 全覆盖（first=3841=HEAD，last+4=池尾-TAIL）；颜色/归属/执行皆对；只差比对输入点名（r314 GDB）。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
+- r314：GDB 断比对循环点名 dest+0 vs source+3841（rcx/rsi/r13d + 映射对照）；r315：落池基址改为 0（门禁改判，386 全绿）；r316：五开窗口 `Test PASS (exit=0)`——真实绘制全链条打通，STATUS #1 落定。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。
 - **Freeze 已恢复。**
-- 遗留：r314 GDB 断比对循环。本地提交仍未 push。
+- 遗留：push 积压提交；快照刷新 pass（§12/对应提交指针落后）。本地提交仍未 push。
 ---
 

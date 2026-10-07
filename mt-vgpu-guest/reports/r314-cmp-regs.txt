@@ -1,0 +1,115 @@
+Breakpoint 1 at 0x555555558624
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Breakpoint 1, 0x0000555555558624 in ?? ()
+rcx            0x7ffff6be2000      140737333043200
+rsi            0x7ffff613af01      140737321873153
+r13            0x500000            5242880
+eax            0x0                 0
+process 116583
+Mapped address spaces:
+
+Start Addr         End Addr           Size               Offset             Perms File 
+0x0000555555554000 0x0000555555557000 0x3000             0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x0000555555557000 0x000055555555a000 0x3000             0x3000             r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x000055555555a000 0x0000555555561000 0x7000             0x6000             r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x0000555555561000 0x0000555555562000 0x1000             0xc000             r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x0000555555562000 0x0000555555563000 0x1000             0xd000             rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/local/bin/musa_blit_test 
+0x0000555555563000 0x00005555555c4000 0x61000            0x0                rw-p  [heap] 
+0x00007ffff5739000 0x00007ffff613a000 0xa01000           0x1034000          rw-s  /dev/dri/renderD128 
+0x00007ffff613a000 0x00007ffff663b000 0x501000           0x1032000          rw-s  /dev/dri/renderD128 
+0x00007ffff663b000 0x00007ffff6645000 0xa000             0x1030000          rw-s  /dev/dri/renderD128 
+0x00007ffff6645000 0x00007ffff6670000 0x2b000            0x102e000          rw-s  /dev/dri/renderD128 
+0x00007ffff6670000 0x00007ffff6681000 0x11000            0x102c000          rw-s  /dev/dri/renderD128 
+0x00007ffff6681000 0x00007ffff66a1000 0x20000            0x1027000          rw-s  /dev/dri/renderD128 
+0x00007ffff66a1000 0x00007ffff66c1000 0x20000            0x1025000          rw-s  /dev/dri/renderD128 
+0x00007ffff66c1000 0x00007ffff66e1000 0x20000            0x1023000          rw-s  /dev/dri/renderD128 
+0x00007ffff66e1000 0x00007ffff6be2000 0x501000           0x101b000          rw-s  /dev/dri/renderD128 
+0x00007ffff6be2000 0x00007ffff70e3000 0x501000           0x1019000          rw-s  /dev/dri/renderD128 
+0x00007ffff70e3000 0x00007ffff70e6000 0x3000             0x0                rw-p   
+0x00007ffff70e6000 0x00007ffff70eb000 0x5000             0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff70eb000 0x00007ffff70fe000 0x13000            0x5000             r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff70fe000 0x00007ffff710b000 0xd000             0x18000            r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff710b000 0x00007ffff710c000 0x1000             0x25000            r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff710c000 0x00007ffff710d000 0x1000             0x26000            rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/librogue2d_api_MUSA.so.1.0.0 
+0x00007ffff710d000 0x00007ffff710e000 0x1000             0x0                r--p  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff710e000 0x00007ffff710f000 0x1000             0x1000             r-xp  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff710f000 0x00007ffff7110000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff7110000 0x00007ffff7111000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff7111000 0x00007ffff7112000 0x1000             0x3000             rw-p  /usr/lib/x86_64-linux-gnu/libpthread.so.0 
+0x00007ffff7112000 0x00007ffff7113000 0x1000             0x0                r--p  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7113000 0x00007ffff7114000 0x1000             0x1000             r-xp  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7114000 0x00007ffff7115000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7115000 0x00007ffff7116000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7116000 0x00007ffff7117000 0x1000             0x3000             rw-p  /usr/lib/x86_64-linux-gnu/librt.so.1 
+0x00007ffff7117000 0x00007ffff7118000 0x1000             0x0                r--p  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff7118000 0x00007ffff7119000 0x1000             0x1000             r-xp  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff7119000 0x00007ffff711a000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff711a000 0x00007ffff711b000 0x1000             0x2000             r--p  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff711b000 0x00007ffff711c000 0x1000             0x3000             rw-p  /usr/lib/x86_64-linux-gnu/libdl.so.2 
+0x00007ffff711c000 0x00007ffff712d000 0x11000            0x0                r--p  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff712d000 0x00007ffff71aa000 0x7d000            0x11000            r-xp  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff71aa000 0x00007ffff720a000 0x60000            0x8e000            r--p  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff720a000 0x00007ffff720b000 0x1000             0xed000            r--p  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff720b000 0x00007ffff720c000 0x1000             0xee000            rw-p  /usr/lib/x86_64-linux-gnu/libm.so.6 
+0x00007ffff720c000 0x00007ffff7234000 0x28000            0x0                r--p  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff7234000 0x00007ffff7397000 0x163000           0x28000            r-xp  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff7397000 0x00007ffff73ed000 0x56000            0x18b000           r--p  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff73ed000 0x00007ffff73f1000 0x4000             0x1e0000           r--p  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff73f1000 0x00007ffff73f3000 0x2000             0x1e4000           rw-p  /usr/lib/x86_64-linux-gnu/libc.so.6 
+0x00007ffff73f3000 0x00007ffff7400000 0xd000             0x0                rw-p   
+0x00007ffff7400000 0x00007ffff742c000 0x2c000            0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff742c000 0x00007ffff780a000 0x3de000           0x2c000            r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff780a000 0x00007ffff7f3d000 0x733000           0x40a000           r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff7f3d000 0x00007ffff7f57000 0x1a000            0xb3d000           r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff7f57000 0x00007ffff7f64000 0xd000             0xb57000           rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so.1.0.0 
+0x00007ffff7f64000 0x00007ffff7f65000 0x1000             0x0                rw-p   
+0x00007ffff7f67000 0x00007ffff7f6b000 0x4000             0x0                rw-p   
+0x00007ffff7f71000 0x00007ffff7f72000 0x1000             0x102a000          r--s  /dev/dri/renderD128 
+0x00007ffff7f72000 0x00007ffff7f74000 0x2000             0x1020000          r--s  /dev/dri/renderD128 
+0x00007ffff7f74000 0x00007ffff7f75000 0x1000             0x101f000          r--s  /dev/dri/renderD128 
+0x00007ffff7f75000 0x00007ffff7f85000 0x10000            0x1001000          r--s  /dev/dri/renderD128 
+0x00007ffff7f85000 0x00007ffff7f89000 0x4000             0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7f89000 0x00007ffff7f9f000 0x16000            0x4000             r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7f9f000 0x00007ffff7fad000 0xe000             0x1a000            r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7fad000 0x00007ffff7fae000 0x1000             0x27000            r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7fae000 0x00007ffff7faf000 0x1000             0x28000            rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsutu_display_MUSA.so.1.0.0 
+0x00007ffff7faf000 0x00007ffff7fb0000 0x1000             0x0                r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/probe/umd_bridge_shim.so 
+0x00007ffff7fb0000 0x00007ffff7fb5000 0x5000             0x1000             r-xp  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/probe/umd_bridge_shim.so 
+0x00007ffff7fb5000 0x00007ffff7fb7000 0x2000             0x6000             r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/probe/umd_bridge_shim.so 
+0x00007ffff7fb7000 0x00007ffff7fb8000 0x1000             0x7000             r--p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/probe/umd_bridge_shim.so 
+0x00007ffff7fb8000 0x00007ffff7fb9000 0x1000             0x8000             rw-p  /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/probe/umd_bridge_shim.so 
+0x00007ffff7fb9000 0x00007ffff7fc1000 0x8000             0x0                rw-p   
+0x00007ffff7fc1000 0x00007ffff7fc5000 0x4000             0x0                r--p  [vvar] 
+0x00007ffff7fc5000 0x00007ffff7fc7000 0x2000             0x0                r-xp  [vdso] 
+0x00007ffff7fc7000 0x00007ffff7fc8000 0x1000             0x0                r--p  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7fc8000 0x00007ffff7ff0000 0x28000            0x1000             r-xp  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7ff0000 0x00007ffff7ffb000 0xb000             0x29000            r--p  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7ffb000 0x00007ffff7ffd000 0x2000             0x34000            r--p  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7ffd000 0x00007ffff7ffe000 0x1000             0x36000            rw-p  /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 
+0x00007ffff7ffe000 0x00007ffff7fff000 0x1000             0x0                rw-p   
+0x00007ffffffde000 0x00007ffffffff000 0x21000            0x0                rw-p  [stack] 
+[Inferior 1 (process 116583) detached]
+Call PVRSRVConnectionCreateDevice with a valid argument:
+Connecting to pvr device ID: 0 (128)
+ OK
+------------------- RGX Blit test -------------------
+----------------------- Start -----------------------
+Using display type: Offscreen
+Looking up General heap handle
+ OK
+Create transfer context for RGX
+ OK
+Submit transfer command
+ OK
+Wait for blit to complete
+ OK
+
+ *** Output does not match source ***
+ *** Test FAIL ***
+
+Disconnect from services:
+ OK
+------------------- RGX Blit test -------------------
+------------------------ End ------------------------

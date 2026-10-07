@@ -463,6 +463,10 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r316 Test PASS（批准执行）**：五开 + `+0` 落池，UMD `Output matches source / Test PASS (exit=0)`——真实绘制全链条打通，STATUS #1 落定。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r316-test-pass.md` + `.jsonl`/stdout。
+- **r315 池基修正（离线）**：落池基址 HEAD→0（比对点名直接结论）+ 门禁改判；386 全绿，W=1 零警告。见 `reports/r315-zerobase.md`。
+- **r314 点名（批准执行）**：比对 `dest+0` vs `source+3841` 全 5MB（rcx/rsi/r13d 活体）；L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r314-compare-addrs.md` + `.txt`/`.jsonl`。
+
 - **r313 几何落定（批准执行）**：源池 solid 全覆盖实锤（`first=3841 last=5246717` 恰为像素体）；颜色/归属/执行皆对，比对输入只差点名（r314 GDB 断比对循环读双方地址 + 字节数）。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r313-pattern-geometry.md` + `.jsonl`/stdout。
 
 - **r312 图案边界（离线）**：首/末非零字偏移 + 值打印（autorect 已回滚，读数先行）；门禁全绿。未加载。
