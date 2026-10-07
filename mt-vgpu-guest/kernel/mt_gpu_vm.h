@@ -105,16 +105,20 @@ static inline int mt_gpu_vm_grow(struct mt_gpu_vm *vm, u32 need)
 	return 0;
 }
 
+/* Image and scratch must not overlap (r276): the old gap check
+ * (distance >= capacity) misfired on large VMs whose two adjacent
+ * allocations sit closer than one full capacity apart.
+ */
 static inline int mt_gpu_vm_init(struct mt_gpu_vm *vm, struct mt_bo *tables,
 		void *image, void *scratch, u32 capacity)
 {
-	unsigned long a = (unsigned long)image, b = (unsigned long)scratch;
 	u32 max_ranges;
 	int ret;
+	unsigned long a = (unsigned long)image, b = (unsigned long)scratch;
 	if (!vm || vm->tables || !tables || !tables->refs || tables->page_pa || !image || !scratch ||
 	    capacity < 4096 || capacity > MT_BOOT_MAX_TABLE_PAGES * 4096 ||
 	    (capacity & 4095) || capacity > tables->backing.bytes ||
-	    (a > b ? a - b : b - a) < capacity ||
+	    (a < b + capacity && b < a + capacity) ||
 	    tables->backing.gpu_pa > (1ULL << MT_GPU_VA_BITS) - capacity)
 		return -EINVAL;
 	if (tables->cpu_users || tables->gpu_users)

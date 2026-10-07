@@ -367,6 +367,7 @@ static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
 static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 				     struct mt_guest_device *d,
 				     u64 ccb_pmr);
+static void pvr_translator_fire_work(struct work_struct *ws);
 
 /* Declared here because pvr_file_release() below drops the PMRs' list
  * references, which are handed back through this.
@@ -1840,6 +1841,7 @@ static int pvr_translator_prepare_locked(void)
 	struct mt_guest_device *d;
 	u32 off, chunk;
 	int ret;
+	int fail_at = 0;
 
 	if (translator.ready)
 		return 0;
@@ -1852,31 +1854,34 @@ static int pvr_translator_prepare_locked(void)
 					    MT_TRANSLATE_SPACE_PAGES,
 					    &translator.space);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
+	pr_info("mt_pvr_bridge: translator space tables gpu_pa=%#llx capacity=%u\n",
+		(unsigned long long)translator.space->tables.backing.gpu_pa,
+		translator.space->vm.capacity);
 	ret = d->address_spaces.ops->bind_boot_shared(translator.space,
 						       &d->gem.profile);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	ret = mt_bo_create(&translator.command, d->buffers.ops, &d->buffers,
 			   MT_TRANSLATE_CMD_BYTES, PAGE_SIZE);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	ret = d->address_spaces.ops->bind(translator.space, &translator.command,
 					  MT_TRANSLATE_CMD_VA, 0,
 					  MT_TRANSLATE_CMD_BYTES,
 					  MT_GPU_MAP_DEFAULT);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	ret = mt_bo_create(&translator.rt, d->buffers.ops, &d->buffers,
 			   MT_TRANSLATE_RT_BYTES, PAGE_SIZE);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	ret = d->address_spaces.ops->bind(translator.space, &translator.rt,
 					  MT_TRANSLATE_RT_VA, 0,
 					  MT_TRANSLATE_RT_BYTES,
 					  MT_GPU_MAP_DEFAULT);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	/* Context switch (CSW) state, mirroring live_3d_drm's prepare: the raw
 	 * template's CSW pointer names VAs valid only in another space, so the
 	 * firmware would fault following it. Build the CSW for this space's
@@ -1897,31 +1902,31 @@ static int pvr_translator_prepare_locked(void)
 					   d->buffers.ops, &d->buffers,
 					   alloc_size, PAGE_SIZE);
 			if (ret)
-				goto out;
+				{ fail_at = __LINE__; goto out; }
 			ret = pvr_translator_bo_write(d,
 						      &translator.ctx_bos[i], 0,
 						      mt_gfx_bo_init_metas[i].data,
 						      bytes);
 			if (ret)
-				goto out;
+				{ fail_at = __LINE__; goto out; }
 			ret = d->address_spaces.ops->bind(translator.space,
 							  &translator.ctx_bos[i],
 							  bva, 0, alloc_size,
 							  MT_GPU_MAP_DEFAULT);
 			if (ret)
-				goto out;
+				{ fail_at = __LINE__; goto out; }
 		}
 		ret = mt_gfx_context_build_csw(csw, sizeof(csw), &csw_addrs);
 		if (ret)
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		ret = pvr_translator_bo_write(d, &translator.command, 0x10,
 					      &csw_va, 8);
 		if (ret)
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		ret = pvr_translator_bo_write(d, &translator.command, 0x58,
 					      csw, sizeof(csw));
 		if (ret)
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 	}
 	/* TQX flavor (r182, opt-in): flavor-1 context under the same process
 	 * plus command/DMA/state Bos at live_3d's VAs, bound before the seal
@@ -1950,7 +1955,7 @@ static int pvr_translator_prepare_locked(void)
 			if (ret) {
 				pr_info("mt_pvr_bridge: tqx bring-up: alloc %u: %d\n",
 					k, ret);
-				goto out;
+				{ fail_at = __LINE__; goto out; }
 			}
 			ret = d->address_spaces.ops->bind(translator.space,
 							  tqx_bo[k], tqx_va[k],
@@ -1959,7 +1964,7 @@ static int pvr_translator_prepare_locked(void)
 			if (ret) {
 				pr_info("mt_pvr_bridge: tqx bring-up: bind %u: %d\n",
 					k, ret);
-				goto out;
+				{ fail_at = __LINE__; goto out; }
 			}
 		}
 		/* Scratch stream Bos for the slices prepare below (r263):
@@ -1971,7 +1976,7 @@ static int pvr_translator_prepare_locked(void)
 		if (ret) {
 			pr_info("mt_pvr_bridge: tqx bring-up: tmp alloc: %d\n",
 				ret);
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		}
 		ret = mt_bo_create(&translator.tqx_tmp_dst, d->buffers.ops,
 				   &d->buffers, MT_TQX_STREAM_SLOT_BYTES,
@@ -1979,7 +1984,7 @@ static int pvr_translator_prepare_locked(void)
 		if (ret) {
 			pr_info("mt_pvr_bridge: tqx bring-up: tmp alloc: %d\n",
 				ret);
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		}
 		ret = d->address_spaces.ops->bind(translator.space,
 						  &translator.tqx_tmp_src,
@@ -1989,7 +1994,7 @@ static int pvr_translator_prepare_locked(void)
 		if (ret) {
 			pr_info("mt_pvr_bridge: tqx bring-up: tmp bind: %d\n",
 				ret);
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		}
 		ret = d->address_spaces.ops->bind(translator.space,
 						  &translator.tqx_tmp_dst,
@@ -1999,7 +2004,7 @@ static int pvr_translator_prepare_locked(void)
 		if (ret) {
 			pr_info("mt_pvr_bridge: tqx bring-up: tmp bind: %d\n",
 				ret);
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		}
 		/* Live-fire scratch (r267): pre-seal surface for fills;
 		 * async readback never touches file objects.
@@ -2010,7 +2015,7 @@ static int pvr_translator_prepare_locked(void)
 		if (ret) {
 			pr_info("mt_pvr_bridge: tqx bring-up: scratch alloc: %d\n",
 				ret);
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		}
 		ret = d->address_spaces.ops->bind(translator.space,
 						  &translator.tqx_scratch,
@@ -2020,7 +2025,7 @@ static int pvr_translator_prepare_locked(void)
 		if (ret) {
 			pr_info("mt_pvr_bridge: tqx bring-up: scratch bind: %d\n",
 				ret);
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		}
 	}
 	for (off = 0; off < MT_GFX_LINUX_PACKET_BYTES;) {
@@ -2031,7 +2036,7 @@ static int pvr_translator_prepare_locked(void)
 						  mt_gfx_linux_packet_template + off,
 						  chunk);
 		if (ret)
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		off += chunk;
 	}
 	{
@@ -2043,38 +2048,38 @@ static int pvr_translator_prepare_locked(void)
 					      MT_TRANSLATE_RT_OFF_VA,
 					      &va, 8);
 		if (ret)
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		ret = pvr_translator_bo_write(d, &translator.command,
 					      MT_TRANSLATE_RT_OFF_STRIDE,
 					      &stride, 8);
 		if (ret)
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		ret = pvr_translator_bo_write(d, &translator.command,
 					      MT_TRANSLATE_RT_OFF_EXTENT,
 					      &extent, 8);
 		if (ret)
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		ret = pvr_translator_bo_write(d, &translator.command,
 					      MT_TRANSLATE_RT_OFF_DIRECT,
 					      &va, 8);
 		if (ret)
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 	}
 	ret = d->address_spaces.ops->upload(translator.space);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	ret = d->address_spaces.ops->seal(translator.space);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	ret = mt_execution_process_create(&d->execution, &translator.process,
 					  &translator.space->vm,
 					  task_tgid_nr(current));
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	ret = mt_execution_context_create(&translator.context,
 					  &translator.process, 5, 0);
 	if (ret)
-		goto out;
+		{ fail_at = __LINE__; goto out; }
 	/* TQX flavor (r182): the process exists only here, so the flavor-1
 	 * context could never be created in the pre-seal block above (that
 	 * was the -22: !p->store). Bos are already bound; completing here.
@@ -2092,7 +2097,7 @@ static int pvr_translator_prepare_locked(void)
 		if (ret) {
 			pr_info("mt_pvr_bridge: tqx bring-up: context: %d\n",
 				ret);
-			goto out;
+			{ fail_at = __LINE__; goto out; }
 		}
 		pr_info("mt_pvr_bridge: tqx bring-up: before slices\n");
 		mutex_unlock(&g->trial_lock);
@@ -2106,9 +2111,13 @@ static int pvr_translator_prepare_locked(void)
 	translator.dev = d;
 	translator.seq = 0;
 	translator.ready = true;
+	INIT_WORK(&translator.fire_work, pvr_translator_fire_work);
 	mutex_unlock(&g->trial_lock);
 	return 0;
 out:
+	if (ret)
+		pr_info("mt_pvr_bridge: translator prepare failed at line %d: %d\n",
+			fail_at, ret);
 	pvr_translator_teardown_locked();
 	mutex_unlock(&g->trial_lock);
 	module_put(owner);
@@ -3828,7 +3837,6 @@ static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 	translator.fire_pixels = rect.width * rect.height;
 	translator.fire_seq = ++translator.seq;
 	translator.fire_pending = true;
-	INIT_WORK(&translator.fire_work, pvr_translator_fire_work);
 	schedule_work(&translator.fire_work);
 	pr_info("mt_pvr_bridge: fire seq=%llu: submitted pixels=%u color=%#x\n",
 		(unsigned long long)translator.fire_seq,

@@ -92,6 +92,15 @@ class TqxSlicesBringup(unittest.TestCase):
         self.assertTrue(0 < unlock_at < slices_at < relock_at,
                         'trial_lock must drop across the slices call')
 
+    def test_fail_line_reported(self):
+        # r275: every prepare failure reports its source line; silent
+        # goto-out chains hid the -22 origin (r274).
+        src = code()
+        prep = fn_body(src, 'pvr_translator_prepare_locked')
+        self.assertIn('fail_at = __LINE__', prep)
+        self.assertRegex(prep, r'failed at line %d')
+        self.assertIn('fail_at, ret', prep)
+
 
 if __name__ == '__main__':
     unittest.main()
