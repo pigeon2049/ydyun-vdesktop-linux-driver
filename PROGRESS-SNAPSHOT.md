@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **327 项通过，零 skip**（r238 负向定界 1 项；余同 r236） |
+| Python 测试 | **333 项通过，零 skip**（r261 tqx-slices 6 项；余同 r238） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -229,6 +229,7 @@ RGXCreateRenderContext
 | `test_pvr_tdm_shmem.py` | 5 | `0x89` TDM 共享内存桥（r88；离线实现，未加载） |
 | `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
 | `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182） |
+| `test_pvr_tqx_slices.py` | 6 | TQX slices bring-up 调度/copy prepare/非致命标志/teardown 释放/读镜像/零执行（含反向；r261，未加载） |
 | `test_pvr_kickta3d5_observe.py` | 7 | KickTA3D5 observe 路由/定界/鉴权/零嵌套读/标量上报/零执行/零填充回 0（含反向；r215，未加载） |
 | `test_pvr_observe_ping.py` | 11 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown + 非零相预置/重 fire + CCB 相载入/fire + 负向定界双 errno（含反向；r217/r218/r224/r225/r238） |
 | `test_pvr_syncprimset.py` | 7 | SyncPrimSet 真写路由/ABI/解析复用/定界/仅 host 写/零执行/零填充回 0（含反向；r220，未加载） |
@@ -461,6 +462,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r261 bring-up 补 pool slices（离线，零硬件触碰）**：copy prepare 填 slices（非致命）+ 读镜像 + 先释放后销毁；门禁 6 项（含反向）；`check-offline` 333+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r261-tqx-slices.md`。
 - **r260 ck 下 legacy blit（批准执行）**：同样止于 `0x89:0x0` → -25（ck 不干扰 `0x89` 路径）；trace 落硬盘暂存区后已清空。拆桥干净，默认 + L3 全绿。见 `reports/r260-ck-blit.md`。
 - **r259 r210 配方可复现性审计（零硬件触碰）**：无完整 harness 命令归档，缺 UMD 对象指针来源，不可直接复现；最小 GFX 命令 GDB 下返回 3（r194 复现成功）。暂存区已清空。见 `reports/r259-gfx-repro-audit.md`。
 - **r258 硬盘暂存区流程验证（批准执行）**：AGENTS.md §5 改判落地；`/tmp/opencode/umda/` 4.2M 清零；新流程 ping/rung8 全过（trace 落硬盘）；暂存区已清空。见 `reports/r258-disk-traces.md`。

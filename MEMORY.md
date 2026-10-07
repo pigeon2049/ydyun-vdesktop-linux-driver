@@ -11,9 +11,8 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r260：ck 下 legacy blit，批准执行）
+## 本次会话进展（r261：bring-up 补 pool slices，零硬件触碰）
 
-- ck（默认 major）下真实 blit 与 r244 同形：止于 `0x89:0x0` → -25，UMD 中止；ck 不干扰 `0x89` 路径。trace 落硬盘暂存区后已清空（与 r244 入库版同构）。拆桥干净，默认 + L3 全绿。详见 `reports/r260-ck-blit.md`。
-- **Freeze 已恢复。**无代码改动。
-- 遗留：GFX 重建；slices；TQX 真发射；CCB 解读；backend。USB 短页标题日期问题留待对应轮。
+- 开工声明零硬件触碰。TQX 真发射第一步离线落地：bring-up 调 copy prepare 填 slices（非致命）+ 读镜像 + teardown 先释放后销毁；门禁 6 项（含反向）；`check-offline` 333+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r261-tqx-slices.md`。
+- 修 3 个编译错如实记录。遗留：slices 活体；fire 函数；fired/verified。
 ---

@@ -528,3 +528,10 @@
 - 遗留：完整重建（多轮）；真桥重放；TQX 真发射；CCB 解读；backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r260：ck 下 legacy blit，批准执行）
+
+- ck（默认 major）下真实 blit 与 r244 同形：止于 `0x89:0x0` → -25，UMD 中止；ck 不干扰 `0x89` 路径。trace 落硬盘暂存区后已清空（与 r244 入库版同构）。拆桥干净，默认 + L3 全绿。详见 `reports/r260-ck-blit.md`。
+- **Freeze 已恢复。**无代码改动。
+- 遗留：GFX 重建；slices；TQX 真发射；CCB 解读；backend。USB 短页标题日期问题留待对应轮。
+
+---
