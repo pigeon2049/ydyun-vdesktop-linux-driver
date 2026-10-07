@@ -290,23 +290,26 @@ static void release_all(void)
 			WARN_ON(mt_bo_put(bos[i]));
 }
 
-/* Fire the configured rect in scratch-sized strips (r280 chunk math).
- * Root-only param write; single-shot. Submits take trial_lock one at a
- * time; all fence waits happen after unlock with the 5s fence budget;
- * a failed chunk stops the loop without piling more work (redline: timeout
- * means stop). Only the last chunk's content is verified (earlier chunks
- * are overwritten at the reused scratch base; their fences prove they ran).
+/* Fire the configured rect in scratch-sized strips (r280 chunk math,
+ * r283 serialized flow). Root-only param write; single-shot. Each chunk
+ * goes prepare -> submit -> bounded wait -> verify before the next chunk
+ * is prepared: pool slices stay loaned to a submitted job until its fence
+ * completes, so preparing all chunks first self-blocks with -EBUSY.
+ * trial_lock is taken only for submit and readback; waits stay outside.
+ * A failed chunk stops the loop without piling more work (redline:
+ * timeout means stop). Every chunk's content is verified (each lands at
+ * the reused scratch base before the next overwrites it).
  */
 static int run_set(const char *value, const struct kernel_param *param)
 {
-	struct dma_fence *fences[MT_FIRE_MAX_CHUNKS] = { NULL };
+	struct dma_fence *fence = NULL;
 	struct mt_tqx_fill_input fi;
 	struct mt_bo *bos[4];
 	u64 row_bytes;
 	u32 rows_per_chunk = 0, nchunks = 0, c, pixels = 0;
 	bool run;
 	long waited;
-	u32 i, mismatch = 0;
+	u32 mismatch = 0;
 	u32 w0 = 0, wN = 0;
 	int ret;
 
@@ -337,13 +340,10 @@ static int run_set(const char *value, const struct kernel_param *param)
 		goto done;
 	}
 	mutex_lock(&d->state.trial_lock);
-	if (d->markers.total || d->markers.ready || d->markers.work_ready) {
-		ret = -EBUSY;
-		goto unlock;
-	}
 	ret = d->markers.can_submit(&d->state);
+	mutex_unlock(&d->state.trial_lock);
 	if (ret)
-		goto unlock;
+		goto done;
 	bos[0] = &cmd_bo;
 	bos[1] = &scratch;
 	bos[2] = &dma_bo;
@@ -351,8 +351,9 @@ static int run_set(const char *value, const struct kernel_param *param)
 	for (c = 0; c < nchunks; c++) {
 		struct mt_tqx_work work = { 0 };
 		u32 rows = min(rows_per_chunk, height - c * rows_per_chunk);
+		u32 npx = width * rows;
+		u32 k;
 
-		memset(&work, 0, sizeof(work));
 		fi = (struct mt_tqx_fill_input){
 			.destination_va = MT_TQX_SCRATCH_VA,
 			.command_va = MT_TQX_CMD_VA,
@@ -362,10 +363,10 @@ static int run_set(const char *value, const struct kernel_param *param)
 			.rect_height = rows,
 			.color = { color, 0, 0, 0 },
 		};
-		/* buffers->lock without trial_lock (r265); the upload path
-		 * uses the module-local device pointer, never file objects.
+		/* Prepare takes buffers->lock, never under trial_lock
+		 * (r265); the upload path uses the module-local device
+		 * pointer, never file objects.
 		 */
-		mutex_unlock(&d->state.trial_lock);
 		WRITE_ONCE(upload_dev, d);
 		mutex_lock(d->shared_boot.buffers->lock);
 		ret = mt_tqx_fill_work_prepare(&work, fill_ws, &upload,
@@ -374,8 +375,21 @@ static int run_set(const char *value, const struct kernel_param *param)
 				MT_TQX_DMA_VA, MT_TQX_STATE_VA);
 		mutex_unlock(d->shared_boot.buffers->lock);
 		WRITE_ONCE(upload_dev, NULL);
-		mutex_lock(&d->state.trial_lock);
 		if (ret) {
+			pr_info("mt_live_tqx_fire: run: chunk %u prepare: %d\n",
+				c, ret);
+			if (work.context)
+				WARN_ON(mt_tqx_work_cancel(&work));
+			break;
+		}
+		mutex_lock(&d->state.trial_lock);
+		if (d->markers.total || d->markers.ready ||
+		    d->markers.work_ready) {
+			ret = -EBUSY;
+			pr_info("mt_live_tqx_fire: run: chunk %u markers busy total=%u ready=%u work_ready=%u\n",
+				c, d->markers.total, d->markers.ready,
+				d->markers.work_ready);
+			mutex_unlock(&d->state.trial_lock);
 			if (work.context)
 				WARN_ON(mt_tqx_work_cancel(&work));
 			break;
@@ -383,59 +397,60 @@ static int run_set(const char *value, const struct kernel_param *param)
 		d->markers.ready = true;
 		d->markers.work_ready = true;
 		ret = d->markers.ops->submit_tqx_work(&d->markers, &work,
-						      &fences[c]);
+						      &fence);
 		d->markers.work_ready = false;
 		d->markers.ready = false;
+		mutex_unlock(&d->state.trial_lock);
 		if (ret) {
+			pr_info("mt_live_tqx_fire: run: chunk %u submit: %d\n",
+				c, ret);
 			if (work.context)
 				WARN_ON(mt_tqx_work_cancel(&work));
 			break;
 		}
-		if (c == nchunks - 1)
-			pixels = width * rows;
-	}
-unlock:
-	mutex_unlock(&d->state.trial_lock);
-	if (ret)
-		goto put;
-	for (c = 0; c < nchunks; c++) {
-		waited = dma_fence_wait_timeout(fences[c], false,
+		/* Bounded wait outside all locks; a miss stops the loop. */
+		waited = dma_fence_wait_timeout(fence, false,
 				msecs_to_jiffies(MT_TRANSLATE_FENCE_WAIT_MS));
-		ret = waited > 0 ? dma_fence_get_status(fences[c]) :
+		ret = waited > 0 ? dma_fence_get_status(fence) :
 			(waited < 0 ? (int)waited : -ETIMEDOUT);
-		if (ret != 1)
+		dma_fence_put(fence);
+		fence = NULL;
+		if (ret != 1) {
+			pr_info("mt_live_tqx_fire: run: chunk %u fence: %d\n",
+				c, ret ? ret : -EIO);
+			ret = ret ? ret : -EIO;
 			break;
+		}
 		ret = 0;
-	}
-	if (!ret && pixels) {
-		u32 v;
-
+		/* This chunk sits alone at the scratch base: verify now,
+		 * before the next chunk overwrites it. */
+		WRITE_ONCE(upload_dev, d);
 		mutex_lock(&d->state.trial_lock);
-		for (i = 0; i < pixels; i++) {
+		for (k = 0; k < npx; k++) {
+			u32 v;
+
 			ret = fire_bo_read(&scratch,
-					    (u64)i * sizeof(u32),
+					    (u64)k * sizeof(u32),
 					    &v, sizeof(v));
 			if (ret)
 				break;
-			if (i == 0)
+			if (!c && !k)
 				w0 = v;
 			wN = v;
 			if (v != color) {
 				if (!mismatch)
-					mismatch = i;
+					mismatch = pixels + k;
 				bad++;
 			}
 		}
 		mutex_unlock(&d->state.trial_lock);
-		if (!ret && bad)
-			ret = -EILSEQ;
-	}
-put:
-	for (c = 0; c < nchunks; c++) {
-		if (fences[c]) {
-			dma_fence_put(fences[c]);
-			fences[c] = NULL;
+		WRITE_ONCE(upload_dev, NULL);
+		if (ret) {
+			pr_info("mt_live_tqx_fire: run: chunk %u readback: %d\n",
+				c, ret);
+			break;
 		}
+		pixels += npx;
 	}
 done:
 	chunks = nchunks;
@@ -444,7 +459,7 @@ done:
 	last = wN;
 	if (!ret) {
 		WRITE_ONCE(fired, true);
-		WRITE_ONCE(verified, !bad && pixels);
+		WRITE_ONCE(verified, !bad && pixels == width * height);
 	}
 	result = ret;
 	pr_info("mt_live_tqx_fire: fired=%d chunks=%u verified=%d bad=%u/%u first=%#x last=%#x result=%d\n",
@@ -487,16 +502,33 @@ static int __init mt_live_tqx_fire_init(void)
 		goto put_owner;
 	mutex_lock(&d->state.trial_lock);
 	ret = -EBUSY;
+	/* NOTE (r283): no `!completed` gate. mt_live_tqx demands a prior
+	 * completion, but neither live_3d_drm nor the bridge translator
+	 * does -- and on a fresh session completed==0 until the first job
+	 * finishes (chicken-and-egg). Unproven completion path is covered
+	 * instead by the bounded 5s fence budget + fail-fast in run_set.
+	 */
 	if (!d->runtime.published || d->runtime.event_result ||
 	    !d->state.trial.pinned || !d->state.trial.connected ||
 	    !d->service.running ||
 	    d->markers.lock != &d->state.trial_lock ||
 	    d->markers.opaque != &d->state ||
 	    d->markers.total || d->markers.ready || d->markers.work_ready ||
-	    !d->markers.completed || !d->markers.can_submit ||
+	    !d->markers.can_submit ||
 	    !d->markers.ops || !d->markers.ops->submit_tqx_work ||
-	    d->address_spaces.objects || d->buffers.objects)
+	    d->address_spaces.objects || d->buffers.objects) {
+		pr_info("mt_live_tqx_fire: busy: published=%u evres=%d pinned=%u connected=%u running=%u markers=%u/%u/%u completed=%llu cbsubmit=%u ops=%u submit=%u addr_objs=%u buf_objs=%u\n",
+			d->runtime.published, d->runtime.event_result,
+			d->state.trial.pinned, d->state.trial.connected,
+			d->service.running, d->markers.total,
+			d->markers.ready, d->markers.work_ready,
+			d->markers.completed, !!d->markers.can_submit,
+			!!d->markers.ops,
+			!!(d->markers.ops &&
+			   d->markers.ops->submit_tqx_work),
+			d->address_spaces.objects, d->buffers.objects);
 		goto unlock_session;
+	}
 	ret = d->markers.can_submit(&d->state);
 	if (!ret)
 		ret = prepare();

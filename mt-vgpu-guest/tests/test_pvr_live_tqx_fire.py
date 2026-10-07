@@ -62,24 +62,32 @@ class LiveTqxFireModule(unittest.TestCase):
 
     def test_chunk_loop_with_cap(self):
         self.assertIn('MT_FIRE_MAX_CHUNKS', self.src)
-        self.assertIn('fences[c]', self.run_body)
+        self.assertIn('chunk %u submit', self.run_body)
+        self.assertIn('chunk %u fence', self.run_body)
         self.assertIn('chunks=%u', self.run_body)
         self.assertIn('-E2BIG', self.run_body)
+
+    def test_serialized_chunks(self):
+        # r283: pool slices stay loaned until fence completion, so each
+        # chunk must wait + verify before the next prepare (pipelining
+        # all prepares self-blocks with -EBUSY).
+        self.assertIn('dma_fence_wait_timeout', self.run_body)
+        self.assertIn('fire_bo_read', self.run_body)
 
     def test_single_shot(self):
         self.assertIn('attempted', self.run_body)
         self.assertIn('-EBUSY', self.run_body)
 
     def test_waits_outside_trial_lock(self):
-        # The wait loop runs after the submit path unlocks; the later
-        # verify block re-locks legitimately (waits already done).
-        self.assertIn('dma_fence_wait_timeout', self.run_body)
-        wait_at = self.run_body.find('for (c = 0; c < nchunks; c++) {',
-                                      self.run_body.find('goto put;'))
-        verify_at = self.run_body.find('if (!ret && pixels)')
-        wait_region = self.run_body[wait_at:verify_at]
-        self.assertIn('dma_fence_wait_timeout', wait_region)
-        self.assertNotIn('mutex_lock', wait_region,
+        # Each chunk's wait must run unlocked: the nearest mutex op
+        # before the wait call is an unlock, with no relock in between.
+        idx = self.run_body.find('dma_fence_wait_timeout')
+        self.assertGreater(idx, 0)
+        window = self.run_body[max(0, idx - 400):idx]
+        unlock_at = window.rfind('mutex_unlock(&d->state.trial_lock);')
+        self.assertGreaterEqual(unlock_at, 0)
+        self.assertNotIn('mutex_lock',
+                         window[unlock_at:],
                          'fence waits must stay outside trial_lock')
 
     def test_teardown_symmetry(self):
@@ -94,6 +102,22 @@ class LiveTqxFireModule(unittest.TestCase):
     def test_fail_line_reported(self):
         self.assertIn('fail_at = __LINE__', self.prep)
         self.assertIn('failed at line %d', self.src)
+
+    def test_busy_gate_reports_conditions(self):
+        # r283: the exclusivity gate refused silently (-EBUSY with no
+        # line); every refusal must name the failing conditions (r275).
+        self.assertIn('mt_live_tqx_fire: busy:', self.src)
+        self.assertIn('addr_objs=%u', self.src)
+
+    def test_no_prior_completion_gate(self):
+        # r283: `completed` is a lifetime counter, 0 on a fresh session
+        # until the first job finishes -- gating on it deadlocks first
+        # fire (neither live_3d_drm nor the bridge requires it; the 5s
+        # fence budget + fail-fast covers an unproven completion path).
+        init_m = re.search(r'mt_live_tqx_fire_init\(void\)\s*\{(.*?)^}',
+                             self.src, re.S | re.M)
+        self.assertIsNotNone(init_m, 'init definition not found')
+        self.assertNotIn('!d->markers.completed', init_m.group(0))
 
 
 if __name__ == '__main__':
