@@ -245,6 +245,7 @@
 | r291 | UMD 驱动 fire 复现全绿（批准执行）：第二窗口零干预全绿（L3 双绿）；CCB 第三样本 nonzero=40（轮值第 9 值）；r290 自重启订正；脚本时限收紧 |
 | r292 | 同 translator 内连续两次 UMD fire（批准执行）：seq=1/seq=2 背靠背全绿，单发复位成立；CCB 第四/五样本；窗口零新增 WARN |
 | r293 | submit3 后 hanging 机制 recon（离线）：桥无 fence/无回写/零像素，UMD 等永远不来的完成信号；r279 不定论收回；r294 GDB 窗口设计 |
+| r294 | hanging 实锤 SyncPrimWait 用户态 spin（批准执行）：R + wchan 0 + 活体栈 + 约 100s 有界自杀 SIGABRT；=2 纯 observe 照挂；L3 双绿，窗口零新增 WARN |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |

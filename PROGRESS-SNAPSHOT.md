@@ -463,6 +463,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r294 spin 实锤（批准执行）**：hang 中 `R + wchan 0` + GDB 活体栈 `SyncPrimWait→sched_yield`，约 100s 后 `sutu_fail_if_errorI` 自杀 SIGABRT（core 已入库）；`=2` 纯 observe 照挂（hang 不需 tqx_ctx）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r294-syncprimwait-live.md` + 双 `.jsonl`/`.bin`。
+
 - **r293 hanging recon（离线）**：submit3 后零 syscall 系等完成信号（无 fence/无回写/零像素三重缺失）；r279 不定论收回；r294 以 wchan/stack/GDB 验 poll-vs-spin。见 `reports/r293-hang-recon.md`。
 - **r292 双发全绿（批准执行）**：同 translator 内 `seq=1`/`seq=2` 背靠背 `fired=1 chunks=21 verified=1`，单发复位成立；CCB 第四/五样本 `nonzero=40`（轮值第 10/11 值）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r292-double-fire.md` + 双 `.jsonl`/`.dmesg`。
 

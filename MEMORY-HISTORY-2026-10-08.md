@@ -111,3 +111,10 @@
 - 遗留：TA/3D 或 update 的 UMD 驱动验证（需离线 recon producer；blit submit3 后 hanging 是前置山）。本地提交仍未 push。
 ---
 
+
+## 本轮进展（r293：hanging 机制 recon，离线）
+
+- submit3 后寂静 = 等完成信号（无 fence/无回写/零像素）；r279 不定论收回；r294 窗口以 wchan/stack/GDB 验 poll-vs-spin。纯文档。
+- 遗留：r294 GDB 窗口（用户已授权自测）。本地提交仍未 push。
+---
+
