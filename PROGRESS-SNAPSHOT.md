@@ -463,6 +463,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r296 三元组落定（批准执行）**：`SyncPrimWait` 入口 `rsi=0x174876e800==100000×1000000` 精确成立（100 秒双编码铁证），全进程仅调用一次；恢复经一次重开挡回后二次 10 秒内关账；L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r296-spw-entry.md` + `.txt`/`.jsonl`/`.dmesg`。
+
 - **r295 参数未遂（批准执行）**：反汇编钉死 `SyncPrimWait` 有界等待 + 32B 同步表形状；fabricated 真 IN 得 `0x6005/0x6009` 复位；入口参未得（r296 以修正 batch 重抓）；暂存区丢文件备忘（gdb-args 幸存已入库）；L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r295-arggrab-partial.md` + `.txt`。
 
 - **r294 spin 实锤（批准执行）**：hang 中 `R + wchan 0` + GDB 活体栈 `SyncPrimWait→sched_yield`，约 100s 后 `sutu_fail_if_errorI` 自杀 SIGABRT（core 已入库）；`=2` 纯 observe 照挂（hang 不需 tqx_ctx）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r294-syncprimwait-live.md` + 双 `.jsonl`/`.bin`。

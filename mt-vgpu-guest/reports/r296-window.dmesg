@@ -1,0 +1,33 @@
+[Thu Oct  8 02:24:49 2026] [r296] entry-grab-start
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: DMA domains: dma_iova=0x185089000 gpu_pa=0x8985089000 pages=1
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00000000 bytes=4096 pages=1 pa=0x8985089000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000000000 bytes=4096 pages=1 pa=0x8acd6f5000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000000000 bytes=4096 pages=1 pa=0x8903afb000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000010000 bytes=8192 pages=2 pa=0x89ceb0d000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00010000 bytes=131072 pages=32 pa=0x89e5186000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a12000 bytes=131072 pages=32 pa=0x8a04970000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xf000000000 bytes=131072 pages=32 pa=0x8a0fe87000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a32000 bytes=65791 pages=17 pa=0x8a2f181000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000012000 bytes=174079 pages=43 pa=0x8a94b7d000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00030000 bytes=39935 pages=10 pa=0x8a238fd000
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: submit3 observe: va=0x8000f44000 bytes=4608 res=0x1035 pmr=0x1034 nonzero=40 first=0x10 fnv=0x97372d9efc8647bc head=58 40 f4 80 67 78 10 01 0a 4e 01 02 20 10 03 90 10 01 20 01 08 01 d0 07 20 a3 80 12 a1 80 10 a1 80 01 10 03 03 01 0c 08
+[Thu Oct  8 02:24:58 2026] mt_pvr_bridge: arena close: high_water=192/512 pages fallbacks=4
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00000000 bytes=4096 pages=1 pa=0x890939f000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000000000 bytes=4096 pages=1 pa=0x8a2d213000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000000000 bytes=4096 pages=1 pa=0x8a0fffb000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000010000 bytes=8192 pages=2 pa=0x8996a9e000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00010000 bytes=131072 pages=32 pa=0x89e515f000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a12000 bytes=131072 pages=32 pa=0x8b02fc2000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xf000000000 bytes=131072 pages=32 pa=0x89ceba5000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x8000a32000 bytes=65791 pages=17 pa=0x8992f6e000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xe000012000 bytes=174079 pages=43 pa=0x8a0fd83000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0xda00030000 bytes=39935 pages=10 pa=0x8a23440000
+[Thu Oct  8 02:26:44 2026] mt_pvr_bridge: submit3 observe: va=0x8000f44000 bytes=4608 res=0x1035 pmr=0x1034 nonzero=40 first=0x10 fnv=0x8ce9d443a9faadac head=58 40 f4 80 67 78 10 01 da 4e 01 02 20 10 03 90 10 01 20 01 08 01 d0 07 20 a3 80 12 a1 80 10 a1 80 01 10 03 03 01 0c 08
+[Thu Oct  8 02:28:23 2026] mt_pvr_bridge: arena close: high_water=192/512 pages fallbacks=4
+[Thu Oct  8 02:36:43 2026] mt_pvr_bridge: unloaded cleanly
+[Thu Oct  8 02:36:44 2026] [drm] Initialized pvr 0.1.0 for 0000:00:0e.0 on minor 1
+[Thu Oct  8 02:36:44 2026] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[Thu Oct  8 02:36:44 2026] mt_pvr_bridge: arena close: high_water=33/512 pages fallbacks=0
+[Thu Oct  8 02:36:44 2026] mt_pvr_bridge: DMA domains: dma_iova=0x20495a000 gpu_pa=0x8a0495a000 pages=4
+[Thu Oct  8 02:36:44 2026] mt_pvr_bridge: CPU-only PVR VM plan root=0xfffffe0000 va=0x5000000000 bytes=16384 pages=4 pa=0x8a0495a000
+[Thu Oct  8 02:36:44 2026] mt_pvr_bridge: arena close: high_water=4/512 pages fallbacks=0

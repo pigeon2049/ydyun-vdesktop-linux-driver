@@ -126,3 +126,11 @@
 - 遗留：SyncPrimWait 三元组抓参（r295 窗口，frame+registers）；TA/3D 仍需 producer。本地提交仍未 push。
 ---
 
+
+## 本轮进展（r295：参数抓取未遂 + 锚点，批准执行）
+
+- GDB 活体两次干净；反汇编得有界等待 + 32B 表形状；fabricated 真 IN 得 handle/offset；入口参未得（r296 重抓）。暂存区入库前丢失（备忘；load-bearing 已提）。L3 双绿，refs 1/1，零新增 WARN。无代码改动。
+- **Freeze 已恢复。**
+- 遗留：r296 入口抓参；awaited value；TA/3D producer。本地提交仍未 push。
+---
+

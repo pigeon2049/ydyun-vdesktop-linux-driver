@@ -246,7 +246,8 @@
 | r292 | 同 translator 内连续两次 UMD fire（批准执行）：seq=1/seq=2 背靠背全绿，单发复位成立；CCB 第四/五样本；窗口零新增 WARN |
 | r293 | submit3 后 hanging 机制 recon（离线）：桥无 fence/无回写/零像素，UMD 等永远不来的完成信号；r279 不定论收回；r294 GDB 窗口设计 |
 | r294 | hanging 实锤 SyncPrimWait 用户态 spin（批准执行）：R + wchan 0 + 活体栈 + 约 100s 有界自杀 SIGABRT；=2 纯 observe 照挂；L3 双绿，窗口零新增 WARN |
-| r295 | spin 参数抓取未遂 + 同步输入锚点（批准执行）：反汇编钉死等待形状/32B 表；fabricated 真 IN 得 handle/offset；暂存区入库前丢失（备忘）；L3 双绿 |
+| r295 | spin 参数抓取未遂 + 同步输入锚点（批准执行）：反汇编钉死等待形状/32B 表；fabricated 真 IN 得 handle/offset；暂存区丢文件备忘（gdb-args 幸存）；L3 双绿 |
+| r296 | SyncPrimWait 入口三元组落定（批准执行）：rsi==100000×1000000 精确成立，100 秒双编码铁证，全进程仅调用一次；L3 双绿，窗口零新增 WARN |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |
