@@ -535,3 +535,10 @@
 - 遗留：GFX 重建；slices；TQX 真发射；CCB 解读；backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r261：bring-up 补 pool slices，零硬件触碰）
+
+- 开工声明零硬件触碰。TQX 真发射第一步离线落地：bring-up 调 copy prepare 填 slices（非致命）+ 读镜像 + teardown 先释放后销毁；门禁 6 项（含反向）；`check-offline` 333+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r261-tqx-slices.md`。
+- 修 3 个编译错如实记录。遗留：slices 活体；fire 函数；fired/verified。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---

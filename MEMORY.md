@@ -11,8 +11,9 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r261：bring-up 补 pool slices，零硬件触碰）
+## 本次会话进展（r262：slices 活体未达预期，批准执行）
 
-- 开工声明零硬件触碰。TQX 真发射第一步离线落地：bring-up 调 copy prepare 填 slices（非致命）+ 读镜像 + teardown 先释放后销毁；门禁 6 项（含反向）；`check-offline` 333+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r261-tqx-slices.md`。
-- 修 3 个编译错如实记录。遗留：slices 活体；fire 函数；fired/verified。
+- 新构建（build-id 一致、调用存在）上机 + 真实 blit 后 `tqx-ctx: ready` 正常，但 slices 三种打印全无；已排除在载≠盘内/调用点错/dmesg 丢；调用未到达待查（下轮加打印验证）。其余路径正常。拆桥干净，默认 + L3 全绿。详见 `reports/r262-slices-noop.md`。
+- **Freeze 已恢复。**教训：活体前先确认调用点可达的最小信号。
+- 遗留：调用点打印验证；fire 函数；fired/verified。USB 短页标题日期问题留待对应轮。
 ---
