@@ -172,6 +172,7 @@
 | r215 | `0x82:0x14` accept-and-log observer 落桥（离线，零硬件触碰）：108B 定界 + render 上下文鉴权 + 三重定界 + 标量上报；门禁 7 项 + fn 55→56，反向验证通过，未加载 |
 | r216 | r215 新构建上机 + L3 复绿：单桥重载（probe 未碰），node/smoke 全绿，refs 1/0，dmesg 干净；observer 已在载但尚无真实流量 |
 | r217 | observer 分发活体验证：raw ping `0x82:0x14` 回 `-ENOENT`（路由到达），control `0x82:0x1f` 仍 `-ENOTTY`；新 ping 工具 + 5 项门禁，会话未动 |
+| r218 | observer 全路径活体验证：合法 envelope（真 context + 真 PMR 窗口，阵列全 NULL）fire 回 0，dmesg 行标量全上报；11 步全 teardown，会话未动 |
 
 ## 关键单篇（本轮最常用）
 

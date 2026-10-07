@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **307 项通过，零 skip**（r217 observe-ping 5 项；余同 r215） |
+| Python 测试 | **310 项通过，零 skip**（r218 ping-fullpath 3 项；余同 r217） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -230,7 +230,7 @@ RGXCreateRenderContext
 | `test_pvr_tdm_context2.py` | 4 | TransferContext2 建销与 token（r150） |
 | `test_pvr_tdm_submit3.py` | 13 | SubmitTransfer3 observe/dry-run/digest/TQX 拆分门禁（r174/r181/r182） |
 | `test_pvr_kickta3d5_observe.py` | 7 | KickTA3D5 observe 路由/定界/鉴权/零嵌套读/标量上报/零执行/零填充回 0（含反向；r215，未加载） |
-| `test_pvr_observe_ping.py` | 5 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄（含反向；r217） |
+| `test_pvr_observe_ping.py` | 8 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown（含反向；r217/r218） |
 | `test_pvr_fn_ids.py` | 2 | 56 分发功能号逐值钉死 + dispatch 零裸标签（r188；r215 加 `RGXKICKTA3D5=0x14`） |
 | `test_pvr_multicore_info.py` | 3 | `0x1:0xc` 回显 caps、单核（r152） |
 | `test_pvr_translator.py` | 6 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随（含反向；r126/r147–r148/r159） |
@@ -459,6 +459,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r218 observer 全路径活体验证（批准执行）**：合法 envelope（真 render context + 真 PMR 窗口，阵列全 NULL）fire 回 0，dmesg 行标量全上报（check=1 update=1，零窗口零统计）；11 步全 teardown，refs 不变，dmesg 零新增。只证明全链不证明数组语义。**无重载，freeze 继续。**见 `reports/r218-observe-fullpath-live.md`。
 - **r217 observer 分发活体验证（批准执行）**：新工具 `pvr_observe_ping` 发零填充 108B `0x82:0x14` 回 `-ENOENT`（路由到达），control `0x82:0x1f` 仍 `-ENOTTY`；fresh file 即关，refs 不变，dmesg 零新增。工具零警告构建 + 5 项门禁（含反向）；`check-offline` 307 Python OK。**会话未动，freeze 继续。**见 `reports/r217-observe-ping-live.md`。
 - **r216 r215 新构建上机 + L3（批准执行）**：单桥重载（probe 未碰，装盘前验 strings + vermagic），节点仍 `renderD128`；node/smoke 全绿，refs 1/0，dmesg 零 WARNING/BUG/Oops。observer 已在载但尚无真实流量（parked，不是 proven）。**Freeze 已恢复。**见 `reports/r216-newbuild-reload.md`。
 - **r215 `0x82:0x14` observer 离线实现（零硬件触碰）**：STATUS #2 缺口（r190）闭合一半：新增 `pvr_cmd_kickta3d5_observe`（r174 模式：108B 定界 + render 上下文鉴权 + 三重定界 + 标量上报回 0，不读嵌套指针、不执行、无 fence）；分发接 `case MT_PVR_FN_RGXKICKTA3D5`（wire.h 新宏）。门禁 7 项新 + fn 55→56（含反向掐断验证）；`check-offline` 302 Python + 292 C 全绿；`make kernel` W=1 零警告。未加载（在载桥仍旧构建，待批准窗口重载验证）。活体 GFX 方向已止损（无现成生产者）。见 `reports/r215-kickta3d5-observer.md`。

@@ -200,3 +200,10 @@
 - 遗留：真实执行仍待 backend 接线；update 活体待重载窗口。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r216：新构建上机 + L3，批准执行）
+
+- 积压的 6 个本地提交已 push（`104fdeb..fff3769`）。r215 新构建（含 `0x82:0x14` observer）上机：装盘前验 strings + vermagic；单桥重载（probe 未碰），节点仍 `renderD128`；L3 全绿（node + smoke，refs 平衡），终态 ref 1/0，dmesg 零 WARNING/BUG/Oops。详见 `reports/r216-newbuild-reload.md`。
+- observer 已在载但尚无真实流量（parked，不是 proven）；路由活体 ping 需新工具代码，留待下轮。**Freeze 已恢复。**
+- 遗留：真实 GFX producer 仍 open；真实执行仍待 backend 接线。USB 短页标题日期问题留待对应轮。
+
+---
