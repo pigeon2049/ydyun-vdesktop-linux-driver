@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **344 项通过，零 skip**（r268 上限断言 1 项；余同 r267） |
+| Python 测试 | **346 项通过，零 skip**（r269 guest-addrs 2 项；余同 r268） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r269 Guest 地址收敛（离线，零硬件触碰）**：1GiB 配额纠正（info 解码；纠正 90MB 误读）+ BAR2/SEG5 字面量收宏（堆表保持设计）；门禁 2 项（含反向）；`check-offline` 346+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r269-guest-addrs.md`。
 - **r268 space 上限修复（离线，零硬件触碰）**：64→2112 页 + keys 栈改堆（goto-out 重构）；fire 活体失败根因（-EINVAL 即 -22）；门禁上限断言（含反向）；`check-offline` 344+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r268-table-budget.md`。
 - **r267 fire 函数离线实现（零硬件触碰）**：scratch 8MB（space 2112）+ locate helper（digest 不变）+ fire/submit + workqueue 回读 + param 门；teardown 首 cancel。门禁 fire 8 项 + 双改判（含反向）；`check-offline` 343+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r267-fire-impl.md`。
 - **r266 slices 重验通过（批准执行）**：锁序修复生效，`tqx slices: ready cores=1` 全现，无死锁无 D 态；blit hanging 系 UMD 行为（可 rmmod，probe 30→1 对称）。拆桥干净，默认 + L3 全绿。见 `reports/r266-slices-verified.md` + `.jsonl`。

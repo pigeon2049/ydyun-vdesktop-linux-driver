@@ -11,8 +11,8 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r268：space 上限修复，零硬件触碰）
+## 本次会话进展（r269：Guest 地址收敛，零硬件触碰）
 
-- 开工声明零硬件触碰。r267 活体失败根因离线定位：space 64 页上限拒 2112（-EINVAL 即 -22）；改上限 2112 + keys 栈改堆（goto-out 重构 9 return）；fire 门禁加断言（含反向）；`check-offline` 344+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r268-table-budget.md`。
-- 遗留：fired/verified 重试（批准执行）。
+- 开工声明零硬件触碰。用户纠正落实：info 解码得 1GiB 配额（纠正 90MB 误读）；BAR2/SEG5 字面量收敛到新宏（堆表字面量保持设计，1G 配额内核未消费）。门禁 2 项（含反向）；`check-offline` 346+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r269-guest-addrs.md`。
+- 遗留：fire 函数（离线）；fired/verified 活体。USB 短页标题日期问题留待对应轮。
 ---

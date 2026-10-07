@@ -583,3 +583,10 @@
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r268：space 上限修复，零硬件触碰）
+
+- 开工声明零硬件触碰。r267 活体失败根因离线定位：space 64 页上限拒 2112（-EINVAL 即 -22）；改上限 2112 + keys 栈改堆（goto-out 重构 9 return）；fire 门禁加断言（含反向）；`check-offline` 344+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r268-table-budget.md`。
+- 遗留：fired/verified 重试（批准执行）。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---

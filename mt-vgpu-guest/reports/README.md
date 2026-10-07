@@ -220,6 +220,7 @@
 | r266 | slices 重验通过：锁序修复生效，`tqx slices: ready cores=1`；blit hanging 系 UMD 行为（可 rmmod，对称归零） |
 | r267 | fire 函数离线实现（零硬件触碰）：scratch 8MB + locate helper + fire/submit + workqueue 回读；门禁 8 项；未加载 |
 | r268 | space 上限修复（离线，零硬件触碰）：64→2112 页 + keys 栈改堆；fire 活体失败根因；门禁；未加载 |
+| r269 | Guest 地址收敛（离线，零硬件触碰）：1G 配额纠正（info 解码）+ BAR2/SEG5 字面量收宏；门禁 2 项；未加载 |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |
