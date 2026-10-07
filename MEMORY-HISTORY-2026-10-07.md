@@ -332,3 +332,16 @@
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r234：DDK2 check 双腿，批准执行）
+
+- `if (ncheck)` 在 DDK2 下同样真实：零值 0.046s 过 / 失配 5.005s 后 UMD 37；dmesg 仅匹配腿落 translated 行（fence=15）。双 trace 已入库。详见 `reports/r234-ddk2check-legs.md` + 双 `.jsonl`。
+- probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---
+## 本次会话进展（r235：observer 在 translator 桥下回归，批准执行）
+
+- observer 与 `translate_kick` 开关正交证实：同窗口 22 步全过，CCB 行一致；拆桥干净，默认 + L3 全绿。无代码改动。详见 `reports/r235-ck-observe-regression.md`。
+- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+
+---

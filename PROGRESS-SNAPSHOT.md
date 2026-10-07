@@ -206,7 +206,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **325 项通过，零 skip**（r225 observe-ping CCB 相 1 项；余同 r224） |
+| Python 测试 | **326 项通过，零 skip**（r236 fence-poll 1 项；余同 r233） |
 | C RAM 模型测试 | **292 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -233,7 +233,7 @@ RGXCreateRenderContext
 | `test_pvr_observe_ping.py` | 10 | ping 工具源码门禁：`0x82:0x14`/ENOENT 期望 + `0x82:0x1f`/ENOTTY control + wire 结构体 + 非零句柄 + 全路径 envelope/fire/teardown + 非零相预置/重 fire + CCB 相载入/fire（含反向；r217/r218/r224/r225） |
 | `test_pvr_syncprimset.py` | 7 | SyncPrimSet 真写路由/ABI/解析复用/定界/仅 host 写/零执行/零填充回 0（含反向；r220，未加载） |
 | `test_pvr_translator.py` | 7 | translator 默认关闭/check-only 路由/update fence 后写回/期望值记录/sync-block 跟随/check 等待门控 ncheck（含反向；r126/r147–r148/r159/r222） |
-| `test_pvr_update_writeback.py` | 5 | 写回探针工具源码门禁：update 接线/回 0 期望/check 接线/4s 计时断言/teardown（含反向；r223） |
+| `test_pvr_update_writeback.py` | 6 | 写回探针工具源码门禁：update 接线/回 0 期望/check 接线/4s 计时断言/teardown/双 PMR/双 update/fence poll（含反向；r223/r227/r231/r233/r236） |
 | `test_pvr_fn_ids.py` | 2 | 57 分发功能号逐值钉死 + dispatch 零裸标签（r188；r215 加 `RGXKICKTA3D5=0x14`；r222 加 `SYNCPRIMCPUSIGNAL=0xa`） |
 | `test_pvr_multicore_info.py` | 3 | `0x1:0xc` 回显 caps、单核（r152） |
 | `test_pvr_ddk2_render2.py` | 5 | DDK2 render 建销（r142；OUT 以活体 12 为准；r220/r222 改判 SyncPrimSet 路由） |
@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r237 多文件并发（批准执行）**：默认桥上双 ping 并行双 PASS；dmesg 6 行齐、各自独立句柄，同 VA 零串扰；per-file 隔离成立。事后 L3 全绿。无代码改动。见 `reports/r237-concurrent-live.md`。
+- **r236 fence fd poll（批准执行）**：混合 fire 回 0 后 poll 即时就绪（fence 已 signaled）；fence=16/17。工具加 poll 断言 + 门禁 +1；`check-offline` 326 Python OK。见 `reports/r236-fence-poll-live.md`。
 - **r235 observer 在 translator 桥下回归（批准执行）**：同窗口（`=2` + `translate_kick=1`，未重载）22 步全过，CCB 行一致；开关正交证实。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r235-ck-observe-regression.md`。
 - **r234 DDK2 check 双腿（批准执行）**：`=2` + `translate_kick=1` 下零值 0.046s 过 / 失配 5.005s 后 UMD 37；`if (ncheck)` 在 DDK2 下同样真实；fence=15。双 trace 入库。**Freeze 已恢复。**见 `reports/r234-ddk2check-legs.md` + 双 `.jsonl`。
 - **r233 多 update 条目（批准执行）**：update 数组 2 条目，混合 fire（check=2 + update=2）45.7ms 即过，改探第二槽 0.10ms 即过（update 循环全发布证实）；fence=13/14。门禁更新 + 双门禁反向；probe 对称，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r233-multi-update-live.md`。

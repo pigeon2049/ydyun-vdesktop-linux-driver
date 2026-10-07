@@ -11,16 +11,14 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-最后更新：2026-10-07（r234 DDK2 双腿 + r235 开关回归，批准执行）
-仓库：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
+## 本次会话进展（r237：多文件并发，批准执行）
 
-## 本次会话进展（r235：observer 在 translator 桥下回归，批准执行）
+- 桥 per-file 隔离活体证实：默认桥上双 ping 并行双 PASS；dmesg 6 行齐、各自独立句柄，同 VA 零串扰。事后 refs 1/0，L3 全绿。首跑两次路径弯路（如实记录）。详见 `reports/r237-concurrent-live.md`。
+- **Freeze 继续。**无代码改动。
 
-- observer 与 `translate_kick` 开关正交证实：同窗口 22 步全过，CCB 行一致；拆桥干净，默认 + L3 全绿。无代码改动。详见 `reports/r235-ck-observe-regression.md`。
+## 本次会话进展（r236：fence fd poll，批准执行）
 
-## 本次会话进展（r234：DDK2 check 双腿，批准执行）
-
-- `if (ncheck)` 在 DDK2 下同样真实：零值 0.046s 过 / 失配 5.005s 后 UMD 37；dmesg 仅匹配腿落 translated 行（fence=15）。双 trace 已入库。详见 `reports/r234-ddk2check-legs.md` + 双 `.jsonl`。
-- probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**
+- translator fence 语义活体证实：混合 fire 回 0 后 poll 即时就绪；fence=16/17。工具加 poll 断言 + 门禁 +1（含一次弱反向后的强反向）；`check-offline` 326 Python OK。详见 `reports/r236-fence-poll-live.md`。
+- 活体跑在 `=2`+translate_kick 在载桥（未重载）；R_H 后默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**
 - 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
 ---

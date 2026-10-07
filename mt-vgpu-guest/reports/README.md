@@ -190,6 +190,8 @@
 | r233 | 多 update 条目：check=2 + update=2 同轮 45.7ms 即过，第二槽 probe 0.10ms 即过；update 循环全发布证实 |
 | r234 | DDK2 check 双腿：零值 0.046s 过 / 失配 5.005s 超时；`if (ncheck)` 在 DDK2 下同样真实；双 trace 入库 |
 | r235 | observer 在 translator 桥下回归：同窗口 22 步全过，CCB 行一致；开关正交证实 |
+| r236 | fence fd poll 验证：混合 fire 回 0 后 poll 即时就绪（已 signaled）；新断言 + 门禁；会话未动 |
+| r237 | 多文件并发验证：双 ping 并行双 PASS，dmesg 6 行齐、各自独立句柄；per-file 隔离成立 |
 
 ## 关键单篇（本轮最常用）
 
