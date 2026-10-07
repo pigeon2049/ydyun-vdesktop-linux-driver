@@ -158,3 +158,12 @@
 - 遗留：fire-into-destination（真实绘制像素闭环）。本地提交仍未 push。
 ---
 
+
+## 本轮进展（r301：落池首验像素仍差 + r300 设计，批准执行）
+
+- r300 离线：fire-into-destination（work 验拷 + handler 等 fire 再 bump，60s 可中断）；门禁 +5；378+292 全绿，W=1 零警告。
+- r301 活体：五开两发；首发尾块 span 修；复打执行落地（todst=1 全验）但 UMD 像素 FAIL（候选错池/stride/错色 → r302 离线判）。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。
+- **Freeze 已恢复。**
+- 遗留：r302 池归属/stride/真色判定。本地提交仍未 push。
+---
+
