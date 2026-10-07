@@ -6,7 +6,7 @@ OUT := ../build/probe
 .PHONY: all clean
 all: $(OUT)/mt-status $(OUT)/umd_bridge_shim.so $(OUT)/umd_connect_harness \
 	     $(OUT)/pvr_node_probe $(OUT)/pvr_dma_smoke $(OUT)/pvr_cover_probe \
-	     $(OUT)/pvr_kick_probe $(OUT)/pvr_observe_ping $(OUT)/umd_busid_trace.so
+	     $(OUT)/pvr_kick_probe $(OUT)/pvr_observe_ping $(OUT)/pvr_update_writeback $(OUT)/umd_busid_trace.so
 
 $(OUT)/mt-status: mt-status.c
 	mkdir -p $(OUT)
@@ -40,6 +40,10 @@ $(OUT)/pvr_observe_ping: pvr_observe_ping.c
 	mkdir -p $(OUT)
 	$(CC) $(CFLAGS) -I ../kernel $< -o $@
 
+$(OUT)/pvr_update_writeback: pvr_update_writeback.c
+	mkdir -p $(OUT)
+	$(CC) $(CFLAGS) -I ../kernel $< -o $@
+
 $(OUT)/umd_busid_trace.so: umd_busid_trace.c
 	mkdir -p $(OUT)
 	$(CC) $(CFLAGS) -shared -fPIC $< -o $@ -ldl
@@ -47,4 +51,4 @@ $(OUT)/umd_busid_trace.so: umd_busid_trace.c
 clean:
 	rm -f $(OUT)/mt-status $(OUT)/umd_bridge_shim.so $(OUT)/umd_connect_harness \
 	      $(OUT)/pvr_node_probe $(OUT)/pvr_dma_smoke $(OUT)/pvr_cover_probe \
-	      $(OUT)/pvr_kick_probe $(OUT)/pvr_observe_ping $(OUT)/umd_busid_trace.so
+	      $(OUT)/pvr_kick_probe $(OUT)/pvr_observe_ping $(OUT)/pvr_update_writeback $(OUT)/umd_busid_trace.so
