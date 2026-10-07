@@ -156,6 +156,7 @@
 | r199 | 二进制指令定位 SubmissionCmdGenerate 首参为 `psKickTA+0x28` 指针目标 `+0x200` allocator；动态确认待做 |
 | r200 | fabricated 创建实测 render context `+0x200` allocator 与 `+0x318` SubmissionHead 均非空；GFX 输入链待查 |
 | r201 | GFX allocator 链动态闭合；update helper 生成一项 flag=2 并发出 fabricated `0x82:0x14`，清理阶段 abort 待查 |
+| r202 | 排除 region descriptor 重复释放解释；r201 崩溃 free 槽属于 RGXPrepareTA update-list，heap 损坏写入者待查 |
 
 ## 关键单篇（本轮最常用）
 

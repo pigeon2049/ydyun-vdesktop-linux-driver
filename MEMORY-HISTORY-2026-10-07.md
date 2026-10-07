@@ -2,6 +2,14 @@
 
 > 由 `MEMORY.md` 清理周期移入（只保留最新两节），原样保留。
 
+## 本次会话进展（r200：fabricated render context allocator 实测）
+
+- 零硬件触碰。fabricated 默认 shim 下 connect/device/devmemctx/render 全返 0；返回 context `+0x200` allocator 和 `+0x318` SubmissionHead 均非空，trace 117 行。r201 已将其 allocator 与 GFX kick `+0x28` 目标动态对上。
+- 证据：`reports/r200-renderctx-allocator.md` + `reports/r200-renderctx-allocator.jsonl`。后续查清 r201 清理 abort。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---
+
 ## 本次会话进展（r199：追踪 GFX submission allocator 首参来源）
 
 - 零硬件触碰；同 SHA UMD 二进制指令核对：RGXKickGfx 从 kick `+0x28` 所指对象的 `+0x200` 取 SubmissionCmdGenerate 首参。render-context 构造器在 context `+0x200` 建 SubmissionBufAlloctor；SubmissionHead 是另一个对象、作为第二参。r198 的空终值原因未动态区分。
