@@ -461,6 +461,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r227 混合 kick 活体验证（批准执行）**：预置 V7 后混合 fire（check+update）44.8ms 即过（与 r222 Leg1 同构），update 写回 probe 0.11ms 即过；dmesg `check=1 update=1 fence=7` → `check=1 update=0 fence=8`。工具升级三相 + 门禁更新；probe 对称，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r227-mixed-kick-live.md`。
 - **r226 transfer dry-run 新会话复验（批准执行）**：`=2` + `translate_transfer=1`（tqx_ctx 保持 off）重载后真实 blit 报 `pool=0x1032/color=0xff0000ff/1280x1024/fnv=0xd893618ca42d3711`，与 r181 离线预言逐位一致。UMD 即时 SIGABRT 无 hanging；拆桥干净，桥恢复默认 + L3 全绿，dmesg 干净。附带第五个 `+0x40` 轮变值（`2a 9a`）。**Freeze 已恢复。**见 `reports/r226-dryrun-reverify.md` + `.jsonl`。
 - **r225 UMD 生成 CCB 进真桥观察（批准执行）**：r210 字节 61 槽载入 0x4700 窗口再 fire，nonzero=107/FNV/head64 与离线预言全命中；22 步全 teardown，refs 不变。**Freeze 继续。**见 `reports/r225-ccb-observe-live.md`。
 - **r224 observer 非零窗口活体验证（批准执行）**：零窗口 fire 后以 `0x2:0xa` 预置 5×u32 再 fire，桥报 nonzero=20/FNV/head 与离线预言逐项一致；13 步全 teardown，refs 不变。**Freeze 继续。**见 `reports/r224-observe-nonzero-live.md`。

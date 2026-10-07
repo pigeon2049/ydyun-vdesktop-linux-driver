@@ -271,3 +271,10 @@
 - 遗留：CCB 内容解读（离线）；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r225：UMD 生成 CCB 进真桥观察，批准执行）
+
+- fabricated UMD 链与真桥 observer 闭环：CCB 相从 r210 bin 逐槽载入 61 非零槽到 0x4700 窗口，以 UMD 自身 VA/size/ID/counts fire；桥报 nonzero=107/FNV/head 与离线预言逐项一致（head64 另行逐字节比对全等）。22 项全 ok；refs 不变（默认桥，无需重载），dmesg 干净。门禁 +1（含有效反向）。`check-offline` 325 Python OK。详见 `reports/r225-ccb-observe-live.md`。
+- **Freeze 继续。**
+- 遗留：CCB 内容解读（离线）；TQX 真发射；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
+---
