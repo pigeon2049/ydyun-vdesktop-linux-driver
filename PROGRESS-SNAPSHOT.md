@@ -2,7 +2,7 @@
 
 **快照时间**：2026-10-08
 **仓库**：`/opt/ydyun-vdesktop-linux-driver`（分支 main）
-**对应提交**：`1c7026c`（内容基线：最后一次改动本文件快照内容的提交；
+**对应提交**：`d8ed054`（内容基线：最后一次改动本文件快照内容的提交；
 纯文档整理提交若未动本文件，不推进该指针，避免 amend 死循环）
 **新 agent 入口**：先读仓库根 [`STATUS.md`](STATUS.md)，再读本文件对应章节。
 **硬件**：Moore Threads S3000，PCI `1ed5:0222`，Debian 13，kernel `6.12.111+deb13-amd64`；Guest 配额 1GiB（`vm_memory_size_bytes`，r270；BAR2 窗口 16G、固件启动池 90MB 均非配额）
