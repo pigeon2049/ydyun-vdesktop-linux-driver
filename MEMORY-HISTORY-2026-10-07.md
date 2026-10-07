@@ -563,3 +563,9 @@
 - 遗留：重启重建；锁序修复；fire 函数暂缓。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r265：锁序修复，零硬件触碰）
+
+- 开工声明零硬件触碰。r263 死锁修复：bring-up 在 slices 前后分段放/取 trial_lock；translator_lock 防重入（走查三调用点全持）。门禁 +1 顺序断言（含反向）；`check-offline` 335+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r265-lockorder-fix.md`。
+- 遗留：slices 重验（批准执行）；fire 函数。USB 短页标题日期问题留待对应轮。
+
+---

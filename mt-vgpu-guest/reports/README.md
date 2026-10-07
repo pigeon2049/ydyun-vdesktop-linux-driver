@@ -217,6 +217,7 @@
 | r263 | slices 死锁待重启：调用可达证实后第二轮卡死 buffers->lock（D 态，rmmod 被拒）；r67 预案，待重启 |
 | r264 | 重启后会话重建（r211 流程复用）：新 trial `20261007T131341Z-3b9ae877`（2/2 pinned）；默认桥 + L3 全绿，freeze 生效 |
 | r265 | 锁序修复（离线，零硬件触碰）：trial_lock 分段放/取，slices 移出嵌套；门禁顺序断言；未加载 |
+| r266 | slices 重验通过：锁序修复生效，`tqx slices: ready cores=1`；blit hanging 系 UMD 行为（可 rmmod，对称归零） |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |

@@ -462,6 +462,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r266 slices 重验通过（批准执行）**：锁序修复生效，`tqx slices: ready cores=1` 全现，无死锁无 D 态；blit hanging 系 UMD 行为（可 rmmod，probe 30→1 对称）。拆桥干净，默认 + L3 全绿。见 `reports/r266-slices-verified.md` + `.jsonl`。
 - **r265 锁序修复（离线，零硬件触碰）**：trial_lock 分段放/取，slices 移出嵌套（translator_lock 防重入，走查三调用点）；门禁顺序断言（含反向）；`check-offline` 335+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r265-lockorder-fix.md`。
 - **r264 重启后重建（批准执行）**：cold 0/1 双 clean → 新 trial `20261007T131341Z-3b9ae877`（Guest/FW 2/2 pinned，probe ref 1）→ 默认桥（`card1`/`renderD128`，ref 0）→ L3 全绿；dmesg 干净。在载桥是 r263 含死锁构建（默认参数下休眠）。**Freeze 即刻生效。**见 `reports/r264-session-rebuild.md`。
 - **r263 后重启（恢复中）**：机器已重启，无模块，`/dev/dri` 仅 `card0`；死锁随重启清除。r263 代码在树内未加载，会话待重建。见 `reports/r263-slices-deadlock.md`。
