@@ -602,3 +602,9 @@
 - 遗留：DID/VID 字面量收敛；fire 函数。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r271：DID/VID 收敛，零硬件触碰）
+
+- 开工声明零硬件触碰。r270 横向第二项落地：17 文件四字段 guard 合一 helper；宽松 5 处保留（语义不同）；irq 初次误判已 revert。门禁更新 + 反向；`check-offline` 347+292 全绿；`make kernel` 零警告。未加载，会话未碰。详见 `reports/r271-didvid-refactor.md`。
+- 遗留：fire 函数（离线）。USB 短页标题日期问题留待对应轮。
+
+---

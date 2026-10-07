@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r272 槽位号与驱动名收敛（离线，零硬件触碰）**：20 处 slot + 22 处驱动名合一（单次使用不碰；中途漏 3 文件被残留 grep 抓获）；旧门禁改判；门禁更新（含反向）；`check-offline` 347+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r272-slotname-refactor.md`。
 - **r271 DID/VID 收敛（离线，零硬件触碰）**：17 文件 guard 合一 helper（宽松 5 处保留）；门禁更新（含反向）；`check-offline` 347+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r271-didvid-refactor.md`。
 - **r270 误读反思（零硬件触碰）**：三层概念混淆 + 画像零入库是根因；横向排查（显示/编解码/mpc/Host版全漏）；画像已入库 + AGENTS 检查单。见 `reports/r270-quota-lesson.md`。
 - **硬件画像（r270；trial `20261007T131341Z-3b9ae877`，`decode-device-info.py` 解 `info_raw`，版式源 `mtkm64.sys`）**：`vm_memory_size_bytes=1073741824`（**1GiB** Guest 配额；此前 90MB 误读系固件启动池，16G 系 PCI 窗口）；`bar2_actual=1124073472`；6 段（80M@`0x782000000` + 926M@`0x8c000000` + 64M@`0x77dfef000` + 200M + 80M + 2M@`0x43000000`）；version=2/osid=1/flags=`0x3d1`；显示 `2560x1600`、编解码 3/5 实例、mpc=1；connection 另有 `host_version=0x105000500070002`、`render_ready=0`。会话重建必须重解并 diff，变化即告警（r270 教训）。
