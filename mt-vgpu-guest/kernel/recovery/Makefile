@@ -7,6 +7,7 @@ obj-m += mt_master_notify.o
 obj-m += mt_retired_disconnect.o
 obj-m += mt_live_marker.o
 obj-m += mt_live_tqx.o
+obj-m += mt_live_tqx_fire.o
 obj-m += mt_tqx_snapshot.o
 obj-m += mt_offline_info.o
 KDIR ?= /lib/modules/$(shell uname -r)/build
