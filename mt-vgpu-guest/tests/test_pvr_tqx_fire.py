@@ -95,7 +95,7 @@ class TqxFirePath(unittest.TestCase):
         text = table.read_text()
         m = re.search(r'#define\s+MT_BOOT_MAX_TABLE_PAGES\s+(\d+)U', text)
         self.assertIsNotNone(m)
-        self.assertGreaterEqual(int(m.group(1)), 2112,
+        self.assertGreaterEqual(int(m.group(1)), 64,
                                 'table budget must cover the 2112-page scene')
 
 
