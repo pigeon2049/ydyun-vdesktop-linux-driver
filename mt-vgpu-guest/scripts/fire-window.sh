@@ -8,7 +8,8 @@ export LC_ALL=C
 set -u
 REPO=/opt/ydyun-vdesktop-linux-driver
 GUEST=$REPO/mt-vgpu-guest
-TR=$GUEST/build/traces/r290
+: "${WINID:=r290}"
+TR=$GUEST/build/traces/$WINID
 mkdir -p "$TR"
 KO=$GUEST/kernel/recovery/mt_pvr_bridge.ko
 ROOTFS=$GUEST/build/legacy-umd-pvr-connect-candidate/rootfs
@@ -84,34 +85,36 @@ BRIDGE_RELOADED=1
 sleep 1
 NODE=$(ls /dev/dri/renderD* | head -1)
 say "node=$NODE"
-sudo -n sh -c 'echo "[r290] window-fire-start" > /dev/kmsg'
+sudo -n sh -c 'echo "[fire-window] umd-fire-start" > /dev/kmsg'
 
-# 3. real DDK2 blit (60s hard cap: submit3 lands in seconds, the rest
-# is post-submit hang; r290 fired 1s after schedule)
+# 3-4. real DDK2 blit(s) + fire verdicts (60s hard caps: submit3 lands
+# in seconds, the rest is post-submit hang; r290 fired 1s after
+# schedule). BLITS>1 re-fires in the SAME translator lifetime to prove
+# the single-flight reset (fire seq=N back to back, r292).
 STAGE=blit
+: "${BLITS:=1}"
+for ROUND in $(seq 1 "$BLITS"); do
 export UMD_SHIM_PASSTHROUGH=1 LD_PRELOAD=$GUEST/build/probe/umd_bridge_shim.so
-export UMD_TRACE=$TR/window-blit.jsonl
+export UMD_TRACE=$TR/window-blit-$ROUND.jsonl
 export LD_LIBRARY_PATH=$ROOTFS/usr/lib/x86_64-linux-gnu
+DMESG_MARK=$(sudo -n dmesg 2>/dev/null | wc -l)
 timeout -s KILL 60 $ROOTFS/usr/local/bin/musa_blit_test -device 0 -f -o
-say "blit exit=$? trace_lines=$(wc -l < "$UMD_TRACE" 2>/dev/null)"
-# Unset the shim env immediately: later children (the 150-iteration fire
-# poll below) would otherwise inherit LD_PRELOAD and append their own
-# records into the blit trace (r290 lesson: 741 junk lines).
+say "round $ROUND blit exit=$? trace_lines=$(wc -l < "$UMD_TRACE" 2>/dev/null)"
+# Unset the shim env immediately: later children (the fire poll below)
+# would otherwise inherit LD_PRELOAD and append their own records into
+# the blit trace (r290 lesson: 741 junk lines).
 unset UMD_SHIM_PASSTHROUGH LD_PRELOAD UMD_TRACE
 export LD_LIBRARY_PATH=
-
-# 4. wait for the async fire verdict (deadline 60s; r290 fired 1s
-# after schedule, so anything slower is itself a finding)
-STAGE=fired
 FIRE_LINE=""
 for i in $(seq 1 60); do
-	FIRE_LINE=$(sudo -n dmesg 2>/dev/null | grep -a -E 'mt_pvr_bridge: fire seq=[0-9]+: fired=' | tail -1)
+	FIRE_LINE=$(sudo -n dmesg 2>/dev/null | tail -n +$DMESG_MARK \
+		| grep -a -E "mt_pvr_bridge: fire seq=$ROUND: fired=" | tail -1)
 	[ -n "$FIRE_LINE" ] && break
 	sleep 1
 done
-say "fire verdict: ${FIRE_LINE:-TIMEOUT-no-fired-line}"
+say "round $ROUND fire verdict: ${FIRE_LINE:-TIMEOUT-no-fired-line}"
+done
 sudo -n dmesg --ctime > "$TR/dmesg-window.txt" 2>/dev/null
-# NOTE: $UMD_TRACE already equals $TR/window-blit.jsonl; no copy needed.
 
 # 5. restore default + L3
 STAGE=restore
