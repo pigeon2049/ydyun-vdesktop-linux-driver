@@ -23,12 +23,15 @@ class UpdateWritebackTool(unittest.TestCase):
         self.assertRegex(self.src,
                          r'kick_in\.client_update_count = 1;')
         self.assertIn('kick_in.update_ufo_block', self.src)
-        self.assertIn('PROOF_VAL', self.src)
+        self.assertIn('UPDATE_VAL', self.src)
 
-    def test_update_fire_accepted(self):
-        m = re.search(r'update-only fire accepted[\s\S]{0,300}'
+    def test_mixed_fire_wired(self):
+        self.assertIn('client_check_count = 1;', self.src)
+        self.assertIn('check slot preset', self.src)
+        self.assertRegex(self.src, r'bridge_call\(fd, 0x2, 0xa,')
+        m = re.search(r'mixed fire accepted[\s\S]{0,400}'
                       r'!kick_out\.error', self.src)
-        self.assertIsNotNone(m, 'update fire must require ret 0')
+        self.assertIsNotNone(m, 'mixed fire must require ret 0')
 
     def test_check_probe_timed(self):
         self.assertIn('client_check_count = 1;', self.src)

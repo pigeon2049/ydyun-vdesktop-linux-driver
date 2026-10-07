@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0
 #define _GNU_SOURCE
-/* Live update-writeback proof for the kick translator (r223).
- * Step 1 (update-only fire): a raw 0x88:0x4 with check_count=0 and one
- * update entry {PMR, off 0, VAL} must return 0; the translator writes
- * VAL back to PMR host memory after the marker completes (r159 order:
- * fence first, then writeback, then the fd).
+/* Live mixed-kick proof for the kick translator (r223/r227).
+ * Step 0 (r227): preset the check slot with the 0x2:0xa write path.
+ * Step 1 (mixed fire, r227): a raw 0x88:0x4 with one check entry for
+ * the preset slot+value AND one update entry must translate promptly:
+ * the check wait hits, the marker submits, and the update value is
+ * written back after completion (r159 order).
  * Step 2 (check probe): a raw 0x88:0x4 with one check entry for the
- * same {PMR, off 0, VAL} must translate PROMPTLY (<4s). If the
- * writeback never landed, the 5s UFO budget expires first (UMD 37).
- * Timing is the readback: no PMR mmap needed.
- * Everything lives in one fresh file, torn down at exit (context
- * destroy; PMR/objects die with the file like the other probes).
+ * update slot+value must translate PROMPTLY (<4s). Timing is the
+ * readback: no PMR mmap needed.
  */
 #include <errno.h>
 #include <fcntl.h>
@@ -28,6 +26,8 @@
 #define PVR_BRIDGE_IOCTL 0xc0206440UL
 #define PVR_INIT_IOCTL 0x40046445UL
 #define PROOF_VAL 1U
+#define CHECK_VAL 7U
+#define UPDATE_VAL 9U
 #define PROMPT_LIMIT_NS 4000000000ULL
 
 struct drm_version {
@@ -95,12 +95,14 @@ int main(int argc, char **argv)
 	struct mt_pvr_kicksync_destroy_out ksd_out = { 0 };
 	struct mt_pvr_kicksync3_in kick_in = { 0 };
 	struct mt_pvr_kicksync3_out kick_out = { 0 };
-	uint32_t uoff[1] = { 0 };
-	uint32_t uval[1] = { PROOF_VAL };
+	uint32_t uoff[1] = { 4 };
+	uint32_t uval[1] = { UPDATE_VAL };
 	uint64_t uufo[1];
 	uint32_t coff[1] = { 0 };
-	uint32_t cval[1] = { PROOF_VAL };
+	uint32_t cval[1] = { CHECK_VAL };
 	uint64_t cufo[1];
+	struct mt_pvr_syncprimset_in set_in = { 0 };
+	struct mt_pvr_syncprimset_out set_out = { 0 };
 	uint64_t t0, dt;
 	int fd;
 
@@ -145,30 +147,52 @@ int main(int argc, char **argv)
 		close(fd);
 		return 1;
 	}
-	/* Step 1: update-only fire. The bridge must accept and, after the
-	 * marker, publish PROOF_VAL into the PMR. */
+	/* Step 0: preset the check slot with the 0x2:0xa write path, so
+	 * the mixed fire below exercises a real check wait (r227).
+	 * A fresh PMR reads zero, which would also pass and prove
+	 * nothing about waiting. */
+	set_in.sync = sync_out.sync_pmr;
+	set_in.index = 0;
+	set_in.value = CHECK_VAL;
+	check("check slot preset",
+	      !bridge_call(fd, 0x2, 0xa, &set_in, sizeof(set_in),
+			   &set_out, sizeof(set_out)) && !set_out.error);
+	/* Step 1: mixed fire (check + update in one kick). The bridge
+	 * must wait for the preset check value, submit the marker,
+	 * then publish UPDATE_VAL into the update slot. */
 	uufo[0] = sync_out.sync_pmr;
-	kick_in.kicksync_context = ks_out.kicksync_context;
-	kick_in.update_devvar_offset = (u64)(uintptr_t)uoff;
-	kick_in.update_value = (u64)(uintptr_t)uval;
-	kick_in.update_ufo_block = (u64)(uintptr_t)uufo;
-	kick_in.client_update_count = 1;
-	kick_in.update_fence_name = (u64)(uintptr_t)"pvr-update-fire";
-	kick_in.check_fence_fd = 0xffffffffU;
-	kick_in.timeline_fence_fd = 0xffffffffU;
-	check("update-only fire accepted",
-	      !bridge_call(fd, 0x88, 0x4, &kick_in, sizeof(kick_in),
-			   &kick_out, sizeof(kick_out)) &&
-	      !kick_out.error && kick_out.update_fence_fd >= 0);
-	close(kick_out.update_fence_fd);
-	/* Step 2: check probe for the same slot+value. Prompt translation
-	 * proves the writeback landed; a 5s stall + 37 proves it did not. */
-	memset(&kick_in, 0, sizeof(kick_in));
-	memset(&kick_out, 0, sizeof(kick_out));
 	cufo[0] = sync_out.sync_pmr;
 	kick_in.kicksync_context = ks_out.kicksync_context;
 	kick_in.check_devvar_offset = (u64)(uintptr_t)coff;
 	kick_in.check_value = (u64)(uintptr_t)cval;
+	kick_in.check_ufo_block = (u64)(uintptr_t)cufo;
+	kick_in.client_check_count = 1;
+	kick_in.update_devvar_offset = (u64)(uintptr_t)uoff;
+	kick_in.update_value = (u64)(uintptr_t)uval;
+	kick_in.update_ufo_block = (u64)(uintptr_t)uufo;
+	kick_in.client_update_count = 1;
+	kick_in.update_fence_name = (u64)(uintptr_t)"pvr-mixed-fire";
+	kick_in.check_fence_fd = 0xffffffffU;
+	kick_in.timeline_fence_fd = 0xffffffffU;
+	t0 = now_ns();
+	check("mixed fire accepted",
+	      !bridge_call(fd, 0x88, 0x4, &kick_in, sizeof(kick_in),
+			   &kick_out, sizeof(kick_out)) &&
+	      !kick_out.error && kick_out.update_fence_fd >= 0);
+	dt = now_ns() - t0;
+	printf("%-34s %llu ns\n", "mixed fire elapsed",
+	       (unsigned long long)dt);
+	check("mixed fire prompt (check wait hit)",
+	      dt < PROMPT_LIMIT_NS);
+	close(kick_out.update_fence_fd);
+	/* Step 2: check probe for the update slot+value. Prompt
+	 * translation proves the writeback landed. */
+	memset(&kick_in, 0, sizeof(kick_in));
+	memset(&kick_out, 0, sizeof(kick_out));
+	cufo[0] = sync_out.sync_pmr;
+	kick_in.kicksync_context = ks_out.kicksync_context;
+	kick_in.check_devvar_offset = (u64)(uintptr_t)uoff;
+	kick_in.check_value = (u64)(uintptr_t)uval;
 	kick_in.check_ufo_block = (u64)(uintptr_t)cufo;
 	kick_in.client_check_count = 1;
 	kick_in.update_fence_name = (u64)(uintptr_t)"pvr-update-probe";
@@ -191,7 +215,7 @@ int main(int argc, char **argv)
 			   sizeof(ksd_out)) && !ksd_out.error);
 	close(fd);
 	printf(fails ? "FAIL: %d check(s)\n" :
-	       "PASS: update writeback landed and verified by timing\n",
+	       "PASS: mixed kick + writeback verified by timing\n",
 	       fails);
 	return !!fails;
 }
