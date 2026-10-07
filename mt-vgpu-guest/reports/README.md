@@ -270,6 +270,7 @@
 | r316 | 真实绘制像素闭环 Test PASS（批准执行）：UMD 全链条打通（执行/落池/同步/比对）；STATUS #1 落定；L3 双绿，窗口零新增 WARN |
 | r317 | copy producer 侦察（批准执行）：tq-perf 止于 TQJobSubmit 内 abort（101 调用全 0，r162 复现）；core 已入库；L3 双绿，窗口零新增 WARN |
 | r318 | copy abort 根因 RE（离线）：断言式自杀（ud2+abort），setup 深水区；bridge 全 0 无罪；候选按验证成本排序；无代码改动 |
+| r319 | tq-perf 三连发矩阵（批准执行）：sysmem/小几何/对照全同形 abort（与配置无关）；反汇编定位 abort 桩；L3 双绿，窗口零新增 WARN |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |

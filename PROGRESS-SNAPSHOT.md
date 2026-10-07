@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r319 三发全同（批准执行）**：sysmem/小几何/对照三发同形 abort（134/8200 行/101 全零/末 map）——abort 与配置无关；abort 桩已定位（file `0x2c8c0`，`TQ_BlitInit→…→ReleaseCPUMapping` 后）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r319-tqperf-matrix.md` + 三 `.jsonl`/stdout。
+
 - **r318 copy RE（离线）**：abort 系断言式自杀（setup 深水区），bridge 全 0 无罪；候选按验证成本排序（sysmem/小几何/GDB/全反汇编）；无代码改动。见 `reports/r318-copy-abort-re.md`。
 
 - **r317 copy 侦察（批准执行）**：tq-perf 单发止于 `TQJobSubmit` 内 abort（101 调用全零；r162 复现；core 入库）；copy/TA 均需 producer 级 recon，非单窗口工程。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r317-tqperf-recon.md` + `.jsonl`/`.bin`。

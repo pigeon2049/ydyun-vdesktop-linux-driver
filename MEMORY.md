@@ -12,9 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r318：copy abort RE，离线）
+## 本轮进展（r319：tq-perf 三连发矩阵，批准执行）
 
-- core 验尸 + 反汇编：断言式自杀，setup 深水区，桥全 0 无罪；候选排序（sysmem/小几何/GDB/全反汇编）。纯文档。
-- 遗留：r319 三连发窗口（sysmem/小几何/对照）。本地提交仍未 push。
+- sysmem/小几何/对照三发同形 abort（134/8200/101 全零/末 map），abort 与配置无关；反汇编定位 abort 桩与调用链。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
+- **Freeze 已恢复。**
+- 遗留：r320 GDB 断 abort 桩读参。已推送（本轮起恢复 push）。
 ---
 
