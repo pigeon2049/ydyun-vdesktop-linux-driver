@@ -462,6 +462,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r264 重启后重建（批准执行）**：cold 0/1 双 clean → 新 trial `20261007T131341Z-3b9ae877`（Guest/FW 2/2 pinned，probe ref 1）→ 默认桥（`card1`/`renderD128`，ref 0）→ L3 全绿；dmesg 干净。在载桥是 r263 含死锁构建（默认参数下休眠）。**Freeze 即刻生效。**见 `reports/r264-session-rebuild.md`。
 - **r263 后重启（恢复中）**：机器已重启，无模块，`/dev/dri` 仅 `card0`；死锁随重启清除。r263 代码在树内未加载，会话待重建。见 `reports/r263-slices-deadlock.md`。
 - **r263 slices 死锁待重启（批准执行）**：调用可达证实后第二轮卡死 buffers->lock（D 态 blit，进程栈 + sysrq 双实锤；trial_lock→buffers.lock AB-BA）；rmmod 被拒，待重启。见 `reports/r263-slices-deadlock.md`。
 - **r262 slices 活体未达预期（批准执行）**：新构建上机 + blit 后 `tqx-ctx: ready` 正常，但 slices 零执行零打印（已排除在载≠盘内/调用点错/dmesg 丢；调用未到达待查）。其余正常，拆桥干净，默认 + L3 全绿。见 `reports/r262-slices-noop.md`。
@@ -576,6 +577,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 - **r169 字节级无罪（批准执行；freeze 继续）**：10 组桥 OUT 全量对比，18 处差异全为调用方指针回显；另否 argv[0]/重试（rung5 standalone 0/20，GDB 5/5）；遮罩机制未解释。会话健康（probe 1/bridge 0）。见 `reports/r169-byte-exoneration.md` + 失败 trace。
 - **r168 tid 猎杀（批准执行；freeze 继续）**：shim 25 处加 `tid`（门禁断言+反向验证）；失败/通过轮均为单 tid，交错假设证伪，桥前缀 65/65 一致；ASLR/SMP/perturb 全排除，GDB 4/4 过，发布者未命名。会话健康（probe 1/bridge 0）。见 `reports/r168-tid-hunt.md`。
 - **r167 L4 部分通过（批准执行；freeze 继续）**：手跑阶梯（桥零重载）rung1–3 全绿；rung4 先 2 崩后 4 过；rung5 standalone 11/11 SIGSEGV、GDB 2/2 过——core 验尸为 `RGXCreateRenderContextCCB+1525` 取 `r12+8==NULL`，trace 全 ret=0、内核零错误、probe ref 稳 1，桥无罪。rung6–8 被阻。见 `reports/r167-l4-partial-segv.md` + trace + 验尸笔录。
+- **旧会话记录（r211，批准执行；已于 r263 死锁重启后被 r264 取代）**：`mt_guest_probe` 曾绑定 `00:0e.0`（trial `20261007T040408Z-f3fb55af`，Guest/FW `2/2` pinned，ref 1），`mt_pvr_bridge` 默认参数在载（`card1`/`renderD128`，ref 0）；L3 全绿。见 `reports/r211-session-rebuild.md`。
 - **旧会话记录（r166，批准执行；已于重启后被 r211 取代）**：`mt_guest_probe` 曾绑定 `00:0e.0`（trial `20261005T161706Z-cf0d876e`，Guest/FW `2/2` pinned，ref 1），`mt_pvr_bridge` 默认参数在载（`card1`/`renderD128`，ref 0）；L3 全绿（node 0 failing/0 mismatch，dma smoke PASS refs 平衡）；dmesg 无新增 WARN/BUG/Oops。见 `reports/r166-session-rebuild.md`。
 
 - **r165（复核全绿；零硬件触碰，无代码改动）**：门禁重跑 269+272 全绿；blit 重放复现 r158/r160（同 VA/PMR，39B/27 runs）；SHA、无模块、r157–r164 文件逐项存在；订正 STATUS 现状两处过期（CCB 归属、update 语义）。见 `reports/r165-verification.md`。
