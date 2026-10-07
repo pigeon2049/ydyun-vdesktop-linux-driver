@@ -461,6 +461,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r235 observer 在 translator 桥下回归（批准执行）**：同窗口（`=2` + `translate_kick=1`，未重载）22 步全过，CCB 行一致；开关正交证实。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r235-ck-observe-regression.md`。
+- **r234 DDK2 check 双腿（批准执行）**：`=2` + `translate_kick=1` 下零值 0.046s 过 / 失配 5.005s 后 UMD 37；`if (ncheck)` 在 DDK2 下同样真实；fence=15。双 trace 入库。**Freeze 已恢复。**见 `reports/r234-ddk2check-legs.md` + 双 `.jsonl`。
 - **r233 多 update 条目（批准执行）**：update 数组 2 条目，混合 fire（check=2 + update=2）45.7ms 即过，改探第二槽 0.10ms 即过（update 循环全发布证实）；fence=13/14。门禁更新 + 双门禁反向；probe 对称，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r233-multi-update-live.md`。
 - **r232 translator 混合 DDK2 回归（批准执行）**：`=2` + `translate_kick=1` 下混合工具 8 项全 ok（45.1ms 同构），fence=11/12；translator 与 major 正交证实。拆桥干净，默认 + L3 全绿。无代码改动。见 `reports/r232-major2-mixed-regression.md`。
 - **r231 多条目混合 kick（批准执行）**：双 sync block 各预置一槽后，混合 fire（check=2 + update=1）44.8ms 即过，写回 probe 0.11ms 即过；dmesg `check=2 update=1 fence=9` → `check=1 update=0 fence=10`。工具双 PMR + 门禁更新；probe 对称，默认 + L3 全绿。**Freeze 已恢复。**见 `reports/r231-multi-check-live.md`。

@@ -188,6 +188,8 @@
 | r231 | 多条目混合 kick：2 check + 1 update 同轮 44.8ms 即过，写回 probe 0.11ms 即过；工具双 PMR + 门禁更新；会话未动 |
 | r232 | translator 混合 kick DDK2 回归：`=2` 下 8 步全过（45.1ms 同构），fence=11/12；translator 与 major 正交证实 |
 | r233 | 多 update 条目：check=2 + update=2 同轮 45.7ms 即过，第二槽 probe 0.10ms 即过；update 循环全发布证实 |
+| r234 | DDK2 check 双腿：零值 0.046s 过 / 失配 5.005s 超时；`if (ncheck)` 在 DDK2 下同样真实；双 trace 入库 |
+| r235 | observer 在 translator 桥下回归：同窗口 22 步全过，CCB 行一致；开关正交证实 |
 
 ## 关键单篇（本轮最常用）
 
