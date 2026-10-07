@@ -1,0 +1,6 @@
+[四 10月  8 01:20:25 2026] [r289] e2big-live-start
+[四 10月  8 01:20:25 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:20:25 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:20:25 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:20:25 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:20:31 2026] mt_live_tqx_fire: fired=0 chunks=128 verified=0 bad=0/0 first=0x0 last=0x0 result=-7

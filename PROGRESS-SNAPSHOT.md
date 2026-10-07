@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r289 超限拒绝（批准执行）**：3840×2160（128 块）`run` 即 `-E2BIG`（`fired=0`，零提交零像素触碰）；拆模块干净，窗口零新增 WARN。模块正反分支活体全覆盖。**bridge 未碰，freeze 继续。**见 `reports/r289-e2big-live.md` + `.dmesg`。
 - **r288 合并决策（离线）**：fire 保持独立（正式工具）+ 桥侧留 UMD 路径；桥 r280 fire 记流水线自阻塞 defect（合流前须串行移植）；holder 解锁程序明确（stop service，需用户协调窗口）。无代码改动。见 `reports/r288-merge-decision.md`。
 - **r287 上限边界全绿（批准执行）**：4096×1024（16 行/块恰 64 块）`fired=1 chunks=64 verified=1 bad=0/4194304`；拆模块干净，窗口零新增 WARN。**bridge 未碰，freeze 继续。**见 `reports/r287-capedge-live.md` + `.dmesg`。
 - **r286 legacy 基线（无重载）**：当前构建+会话下真实 blit 止于 `0x89:0x0` → -25（101 调用仅此一非零，与 r244 同形）；refs 不变，窗口零新增 WARN。**freeze 继续。**见 `reports/r286-legacy-baseline.md` + `.jsonl`。
