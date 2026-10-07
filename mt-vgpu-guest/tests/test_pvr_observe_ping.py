@@ -64,6 +64,13 @@ class ObservePingTool(unittest.TestCase):
             self.assertIn(frag, self.src,
                           'teardown needs %s' % frag.strip())
 
+    def test_nonzero_phase_plants_then_refires(self):
+        self.assertRegex(self.src, r'bridge_call\(fd, 0x2, 0xa,')
+        self.assertIn('0x82:0x14 nonzero-window fire accepted', self.src)
+        m = re.search(r'nonzero-window fire accepted[\s\S]{0,300}'
+                      r'!gfx_out\.error', self.src)
+        self.assertIsNotNone(m, 'nonzero fire must require ret 0')
+
 
 if __name__ == '__main__':
     unittest.main()

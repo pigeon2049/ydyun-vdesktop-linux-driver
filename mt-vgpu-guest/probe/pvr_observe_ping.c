@@ -96,6 +96,8 @@ int main(int argc, char **argv)
 	struct mt_pvr_unreserve_in unreserve_in = { 0 };
 	struct mt_pvr_hwperf_release_in put_in = { 0 };
 	struct mt_pvr_hwperf_release_out put_out = { 0 };
+	struct mt_pvr_syncprimset_in set_in = { 0 };
+	struct mt_pvr_syncprimset_out set_out = { 0 };
 	uint64_t zero_in = 0;
 	int fd, ret;
 
@@ -175,6 +177,38 @@ int main(int argc, char **argv)
 	      !bridge_call(fd, 0x82, 0x14, &gfx_in, sizeof(gfx_in),
 			   &gfx_out, sizeof(gfx_out)) &&
 	      !gfx_out.error);
+	/* Nonzero phase (r224): plant five nonzero u32s into the same
+	 * window with the 0x2:0xa write path, then fire again. The
+	 * observer must report nonzero=20/first=0 plus the FNV over the
+	 * planted bytes (predicted offline: 0xb5e3eda7f6a52a47).
+	 */
+	{
+		static const uint32_t vals[5] = {
+			0x11111111U, 0x22222222U, 0x33333333U,
+			0x44444444U, 0x55555555U,
+		};
+		int i, preset_ok = 1;
+
+		set_in.sync = pmr_out.pmr;
+		for (i = 0; i < 5; i++) {
+			set_in.index = (uint32_t)i;
+			set_in.value = vals[i];
+			memset(&set_out, 0, sizeof(set_out));
+			if (bridge_call(fd, 0x2, 0xa, &set_in,
+					sizeof(set_in), &set_out,
+					sizeof(set_out)) ||
+			    set_out.error) {
+				preset_ok = 0;
+				break;
+			}
+		}
+		check("0x2:0xa presets planted", preset_ok);
+	}
+	memset(&gfx_out, 0, sizeof(gfx_out));
+	check("0x82:0x14 nonzero-window fire accepted",
+	      !bridge_call(fd, 0x82, 0x14, &gfx_in, sizeof(gfx_in),
+			   &gfx_out, sizeof(gfx_out)) &&
+	      !gfx_out.error);
 	/* Teardown in reverse order; every step must succeed so the fresh
 	 * file leaves zero residue (verified via lsmod after the run).
 	 */
@@ -205,7 +239,7 @@ int main(int argc, char **argv)
 			   sizeof(put_out)) && !put_out.error);
 	close(fd);
 	printf(fails ? "FAIL: %d check(s)\n" :
-	       "PASS: observer ping + full-path fire clean; see dmesg for kickta3d5 observe\n",
+	       "PASS: observer ping + fires clean; see dmesg for kickta3d5 observe\n",
 	       fails);
 	return !!fails;
 }
