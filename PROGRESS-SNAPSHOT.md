@@ -457,7 +457,9 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
-- **r196 RGXKickGfx update producer（fabricated 离线，无代码改动）**：进入 `SubmissionSetUpdateSyncPrim`，GDB 见 count=1 / flag=2；trace 发出 `0x82:0x14` IN108/OUT4，fake shim 与 RGXKickGfx 均返回 0。依赖手动清 render slot（`+0x24`），合法初始化路径未明；无真实 CCB 执行证据。见 `reports/r196-gfx-update-producer.md` + trace。
+- **r197 纠正 update 初始化解释（只读语料，无代码改动）**：r196 手动清零的 render-context `+0x20/+0x24` 按同 SHA UMD 语料是 PerfCountStart/EndCbID；`RGXPrepareTA` 在 feature>=2 路径分配 update list、初始化列表计数并复制调用者条目。静态路径待 fabricated 输入重放；r196 trace 的 producer/bridge 观察有效，但 poke 必要性撤回。见 `reports/r197-correct-gfx-update-init.md`。
+
+- **r196 RGXKickGfx update producer（fabricated 离线，无代码改动）**：进入 `SubmissionSetUpdateSyncPrim`，GDB 见 count=1 / flag=2；trace 发出 `0x82:0x14` IN108/OUT4，fake shim 与 RGXKickGfx 均返回 0。r197 更正：手动 poke 覆盖的是 PerfCountStart/EndCbID，不是 update-list slot；必要性待重放验证。无真实 CCB 执行证据。见 `reports/r196-gfx-update-producer.md` + trace。
 
 - **r195 flag&2 手塑（fabricated 离线，无代码改动）**：连接对象注入 flag=2 sync 条目后 `RGXKickTA → 3`，trace 无 kick ioctl；SHA 对版调用图证实 RGXKickTA 不调用 `SubmissionSetUpdateSyncPrim`，update caller 包括 RGXKickGfx/RGXMultiKickGfx。下步手塑 producer 层输入。见 `reports/r195-takick-flag2.md` + trace。
 

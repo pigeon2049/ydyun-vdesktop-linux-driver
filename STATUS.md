@@ -59,7 +59,7 @@
 
 ## 下一步（vGPU，按序）
 
-1. **真实绘制 CCB**：check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；离屏 fill 的非零 CCB 窗口已在 fabricated major 2 blit 中取得并归属（r157–r161）；r172–r182 的 DDK2 dry-run/TQX bring-up 与 r191 kill-while-busy ref 关账均已完成，但真实绘制 CCB 仍未执行。r196 只在 fabricated UMD 中到达 RGXKickGfx update producer，依赖手动清 render slot。下一步先找出该 slot 的合法初始化路径，再决定 bridge observer 与真实提交步骤；活会话仍 freeze。
-2. **同步 update 语义**：离线已确定（r159）；legacy 活体注入已证伪（r171）；非零 update 路径已定位到 `0x82:0x14`（r190）；r196 fabricated RGXKickGfx 生成 count=1 / flag=2 update 并发出该 ioctl，但依赖手动清 render slot，真实初始化与 bridge handler 均未验证。验证前不视为已支持。
+1. **真实绘制 CCB**：check-only kick 曾在旧会话经真实 DM2 空 marker 完成（r148–r149）；离屏 fill 的非零 CCB 窗口已在 fabricated major 2 blit 中取得并归属（r157–r161）；r172–r182 的 DDK2 dry-run/TQX bring-up 与 r191 kill-while-busy ref 关账均已完成，但真实绘制 CCB 仍未执行。r196 fabricated UMD 到达 RGXKickGfx update producer 的 trace 有效；r197 纠正：当时手动清零的是 render-context PerfCountStart/EndCbID，不是 update slot。SHA 对版语料显示 RGXPrepareTA 会分配并初始化 update list，但输入数组仍待 fabricated 重放验证。下一步保留 perf 默认值、构造 psKickTA update 项并观察 list/bridge trace；活会话仍 freeze。
+2. **同步 update 语义**：离线已确定（r159）；legacy 活体注入已证伪（r171）；非零 update 路径已定位到 `0x82:0x14`（r190）；r196 fabricated RGXKickGfx 生成 count=1 / flag=2 update 并发出该 ioctl；r197 更正其 poke 字段为 perf callback IDs，并定位到 RGXPrepareTA 内部 update-list 初始化路径（静态语料，动态输入重放待验证）。bridge handler 与真实执行仍未验证。验证前不视为已支持。
 3. **DDK2 TA/CDM 专属提交**：`0x82:0xC` / `0x81:0x5` 仍属 S4 真提交边界，空 marker 结果不能外推；待取得真实工作包与输入规约后再推进。
 4. 长期：快照 §7 的门禁可复现（`build/` 产物入 git）与 in-tree 构建外移。

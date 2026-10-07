@@ -34,9 +34,16 @@ update helper 的 producer。所有对象、地址及 bridge 响应均为 fabric
 内容不能单独用于推断真实 wire 字段语义。本轮没有真实 bridge handler、GPU
 执行、CCB 完成或像素读回证据，不得据此标记为已支持。
 
-## 下一步
+## 后续（由 r197 更正）
 
-先追出合法 producer 流程如何初始化 render-context slot，移除 harness 手动
-poke 后重放并确认 update 仍可生成；随后再评估对 `0x82:0x14` 做只记录的
-bridge observer。活会话仍 freeze，任何 live observer 或 GPU 工作都另行按
-授权与红线处理。
+r197 更正了手动 poke 的字段身份和 update-list 初始化路径。下一步保留 render
+context perf callback defaults，在调用者 `psKickTA` 中按该版 UMD 的输入结构构造
+update 项，再用 GDB 和 fabricated bridge 验证 producer 输出；活会话仍 freeze。
+
+## 更正（r197）
+
+r196 将手动清零的 render-context `+0x20/+0x24` 描述为 update slot。按同 SHA
+语料复核，这两个位置是 `PerfCountStartCbID` / `PerfCountEndCbID` AppHint 字段；
+真正的 GFX update 列表由 `RGXPrepareTA` 分配并初始化。r196 的 bridge trace 和
+helper 观测仍有效，但“清 slot 是到达 update producer 的必要条件”已撤回。详见
+[`r197-correct-gfx-update-init.md`](r197-correct-gfx-update-init.md)。

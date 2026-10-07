@@ -151,6 +151,7 @@
 | r194 | psKickTA 手塑首轮：RGXKickTA 干净返回 3（fabricated 离线；元素偏移纠偏；下步造 flag&2） |
 | r195 | flag&2 手塑仍使 RGXKickTA 返回 3；调用图证实 update producer 是 RGXKickGfx 等入口，下一步转 producer 层（fabricated 离线） |
 | r196 | fabricated RGXKickGfx 生成 1 项 flag&2 update 并发出 `0x82:0x14`；render slot 依赖手动 poke，真实 CCB 与桥接仍未验证 |
+| r197 | 纠正 r196 slot 解释：render-context `+0x20/+0x24` 是 perf callback IDs；RGXPrepareTA 分配并初始化 update list（语料路径待 fabricated 重放） |
 
 ## 关键单篇（本轮最常用）
 

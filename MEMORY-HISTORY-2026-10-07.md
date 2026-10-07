@@ -12,8 +12,6 @@
 
 ---
 
----
-
 ## 本次会话进展（r194：psKickTA 手塑首轮）
 
 - 零硬件触碰（fabricated）。harness 手塑 psKickTA 调通
@@ -22,5 +20,13 @@
  下步造 `flag&2` 条目看 3 是否翻提交。GDB 翻车 3 则已记。
 - 证据：`reports/r194-takick-shaping.md` + `r194-takick-return3.jsonl`。
  候选下一步：手塑回合 2（离线）/ 活体 observer（待批）。
+
+---
+
+## 本次会话进展（r195：flag&2 手塑改走 producer 层）
+
+- 零硬件触碰（fabricated）。连接对象写入 flag=2 sync 条目后 `RGXKickTA → 3`，trace 无 kick ioctl。SHA 对版调用图表明 `RGXKickTA` 不调用 `SubmissionSetUpdateSyncPrim`；RGXKickGfx 等才走该 helper。r194 选错测试入口，下一步转 producer 层。
+- 证据：`reports/r195-takick-flag2.md` + `r195-takick-flag2.jsonl`。会话仍 freeze；未跑 live observer。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184 排序，和 STATUS/§12 活页有差异；留待快照刷新 pass 一并校正。
 
 ---
