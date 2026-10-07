@@ -27,6 +27,10 @@
 #define FIRE_PAGES 4
 #define FIRE_BYTES (FIRE_PAGES * 4096)
 #define FIRE_SIZE 64
+#define CCB_PAGES 8
+#define CCB_BYTES (CCB_PAGES * 4096)
+#define CCB_WINDOW 0x4700
+#define CCB_BYTES_PATH "reports/r210-gfx-ccb-capture.bin"
 
 struct drm_version {
 	int32_t major, minor, patch;
@@ -66,6 +70,7 @@ static int bridge_call(int fd, uint32_t bridge, uint32_t function,
 int main(int argc, char **argv)
 {
 	const char *node = argc > 1 ? argv[1] : "/dev/dri/renderD128";
+	const char *ccb_path = argc > 2 ? argv[2] : CCB_BYTES_PATH;
 	char name[64] = { 0 };
 	struct drm_version version = { 0 };
 	uint32_t init_module = 1;
@@ -101,8 +106,8 @@ int main(int argc, char **argv)
 	uint64_t zero_in = 0;
 	int fd, ret;
 
-	if (argc > 2) {
-		fprintf(stderr, "usage: %s [render-node]\n", argv[0]);
+	if (argc > 3) {
+		fprintf(stderr, "usage: %s [render-node [ccb-bytes-file]]\n", argv[0]);
 		return 2;
 	}
 	fd = open(node, O_RDWR);
@@ -206,6 +211,102 @@ int main(int argc, char **argv)
 	}
 	memset(&gfx_out, 0, sizeof(gfx_out));
 	check("0x82:0x14 nonzero-window fire accepted",
+	      !bridge_call(fd, 0x82, 0x14, &gfx_in, sizeof(gfx_in),
+			   &gfx_out, sizeof(gfx_out)) &&
+	      !gfx_out.error);
+	/* CCB phase (r225): retire the 4-page window, build a fresh
+	 * 8-page PMR on the same VA, plant the UMD-generated CCB bytes
+	 * (r210 capture) slot by slot with the 0x2:0xa write path, and
+	 * fire the observer with the UMD's own VA/size/ID/counts.
+	 * Sync arrays stay NULL (documented): envelope + bytes are real.
+	 */
+	{
+		struct mt_pvr_unmap_pmr_in retire_in = {
+			.mapping = pmr_out.pmr,
+		};
+
+		check("retire small-window unmap",
+		      !bridge_call(fd, 0x6, 0x14, &retire_in,
+				   sizeof(retire_in), &unmap_out,
+				   sizeof(unmap_out)) && !unmap_out.error);
+	}
+	unreserve_in.reservation = reserve_out.reservation;
+	check("retire small-window unreserve",
+	      !bridge_call(fd, 0x6, 0x16, &unreserve_in, sizeof(unreserve_in),
+			   &unmap_out, sizeof(unmap_out)) &&
+	      !unmap_out.error);
+	put_in.pmr = pmr_out.pmr;
+	check("retire small-window unref",
+	      !bridge_call(fd, 0x6, 0x7, &put_in, sizeof(put_in), &put_out,
+			   sizeof(put_out)) && !put_out.error);
+	pmr_in.size = CCB_BYTES;
+	reserve_in.address = FIRE_VA;
+	reserve_in.length = CCB_BYTES;
+	reserve_in.server_heap = 0;
+	memset(&pmr_out, 0, sizeof(pmr_out));
+	memset(&reserve_out, 0, sizeof(reserve_out));
+	memset(&map_out, 0, sizeof(map_out));
+	check("ccb pmr alloc",
+	      !bridge_call(fd, 0x6, 0x9, &pmr_in, sizeof(pmr_in),
+			   &pmr_out, sizeof(pmr_out)) &&
+	      !pmr_out.error && pmr_out.pmr);
+	check("ccb reserve range",
+	      !bridge_call(fd, 0x6, 0x15, &reserve_in, sizeof(reserve_in),
+			   &reserve_out, sizeof(reserve_out)) &&
+	      !reserve_out.error && reserve_out.reservation);
+	map_in.pmr = pmr_out.pmr;
+	map_in.reservation = reserve_out.reservation;
+	check("ccb map pmr",
+	      !bridge_call(fd, 0x6, 0x13, &map_in, sizeof(map_in),
+			   &map_out, sizeof(map_out)) &&
+	      !map_out.error && map_out.mapping);
+	{
+		static uint8_t img[CCB_WINDOW];
+		FILE *f = fopen(ccb_path, "rb");
+		size_t n = 0;
+		int planted = 0;
+		uint32_t i;
+
+		if (f) {
+			n = fread(img, 1, sizeof(img), f);
+			if (n == sizeof(img) && fgetc(f) == EOF) {
+				set_in.sync = pmr_out.pmr;
+				for (i = 0; i < CCB_WINDOW / 4; i++) {
+					uint32_t v;
+
+					memcpy(&v, img + i * 4, 4);
+					if (!v)
+						continue;
+					set_in.index = i;
+					set_in.value = v;
+					memset(&set_out, 0, sizeof(set_out));
+					if (bridge_call(fd, 0x2, 0xa,
+							&set_in,
+							sizeof(set_in),
+							&set_out,
+							sizeof(set_out)) ||
+					    set_out.error)
+						break;
+					planted++;
+				}
+			}
+			fclose(f);
+		}
+		check("ccb bytes planted from file",
+		      n == sizeof(img) && planted > 0);
+		printf("%-34s %d slots\n", "ccb slots planted", planted);
+	}
+	memset(&gfx_in, 0, sizeof(gfx_in));
+	memset(&gfx_out, 0, sizeof(gfx_out));
+	gfx_in.render_context = render_out.handle;
+	gfx_in.submission_flags = 0;
+	gfx_in.submission_va = FIRE_VA;
+	gfx_in.submission_size = CCB_WINDOW;
+	gfx_in.submission_id = 1;
+	gfx_in.check_count = 1;
+	gfx_in.update_count = 1;
+	gfx_in.sync_pmr_count = 0;
+	check("0x82:0x14 ccb-window fire accepted",
 	      !bridge_call(fd, 0x82, 0x14, &gfx_in, sizeof(gfx_in),
 			   &gfx_out, sizeof(gfx_out)) &&
 	      !gfx_out.error);

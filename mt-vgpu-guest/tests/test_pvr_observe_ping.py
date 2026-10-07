@@ -71,6 +71,15 @@ class ObservePingTool(unittest.TestCase):
                       r'!gfx_out\.error', self.src)
         self.assertIsNotNone(m, 'nonzero fire must require ret 0')
 
+    def test_ccb_phase_loads_file_then_fires(self):
+        self.assertIn('CCB_BYTES_PATH', self.src)
+        self.assertRegex(self.src, r'fread\(img, 1, sizeof\(img\), f\)')
+        self.assertIn('0x82:0x14 ccb-window fire accepted', self.src)
+        m = re.search(r'ccb-window fire accepted[\s\S]{0,300}'
+                      r'!gfx_out\.error', self.src)
+        self.assertIsNotNone(m, 'ccb fire must require ret 0')
+        self.assertIn('submission_size = CCB_WINDOW', self.src)
+
 
 if __name__ == '__main__':
     unittest.main()
