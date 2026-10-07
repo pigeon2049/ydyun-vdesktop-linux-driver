@@ -1,0 +1,26 @@
+[四 10月  8 01:11:17 2026] [r285] soak-live-start
+[四 10月  8 01:11:24 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:11:24 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:11:24 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:11:24 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:11:25 2026] mt_live_tqx_fire: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff result=0
+[四 10月  8 01:11:26 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:11:26 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:11:26 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:11:26 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:11:27 2026] mt_live_tqx_fire: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff result=0
+[四 10月  8 01:11:27 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:11:27 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:11:27 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:11:27 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:11:28 2026] mt_live_tqx_fire: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff result=0
+[四 10月  8 01:11:29 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:11:29 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:11:29 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:11:29 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:11:30 2026] mt_live_tqx_fire: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff result=0
+[四 10月  8 01:11:30 2026] mt_live_tqx_fire: slices: ready cores=1
+[四 10月  8 01:11:30 2026] mt_live_tqx_fire: prepared=1 cores=1 pages=16
+[四 10月  8 01:11:30 2026] [drm] Initialized mtlivefire 0.1.0 for 0000:00:0e.0 on minor 2
+[四 10月  8 01:11:30 2026] mt_live_tqx_fire: prepared on own render node
+[四 10月  8 01:11:31 2026] mt_live_tqx_fire: fired=1 chunks=21 verified=1 bad=0/1310720 first=0xff0000ff last=0xff0000ff result=0

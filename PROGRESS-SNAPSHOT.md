@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r285 soak 全绿（批准执行）**：5 轮装/打/卸轮轮 `fired=Y verified=Y chunks=21`，ref 全对称；窗口零新增 WARN；无代码改动。**bridge 未碰，freeze 继续。**见 `reports/r285-soak-live.md` + `.dmesg`。
 - **r284 大矩形通用性（批准执行）**：1920×1080/`0xff00ff00` 下 `fired=1 chunks=32 verified=1 bad=0/2073600`，与离线预言逐项一致；拆模块干净，窗口零新增 WARN。**bridge 未碰，freeze 继续。**见 `reports/r284-bigrect-live.md` + `.dmesg`。
 - **r283 独立模块真发射全绿（批准执行）**：自有节点 bring-up（`prepared=1` + `slices: ready`）后 21 块 fill fence 全 signal、1310720 像素逐块验过（`fired=1 chunks=21 verified=1 bad=0`）；活体三处反馈（completed 门删除/串行流/verify 设 upload_dev）已修并钉入门禁；拆模块干净，窗口零新增 WARN。**Freeze 已恢复（bridge 未碰）。**见 `reports/r283-fire-live-verified.md` + `.dmesg`。
 - **r282 fire 独立模块（离线，零硬件触碰）**：新模块 `mt_live_tqx_fire` 自有 render 节点 + 自有 bring-up/分块 fire（21 块/21 fence/验尾块），直连 probe 会话，不碰 bridge；门禁 9 项（含反向）；`check-offline` 363+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r282-fire-module-offline.md`。

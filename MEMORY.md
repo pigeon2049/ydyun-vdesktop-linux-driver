@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r284：大矩形分块通用性活体，批准执行）
+## 本轮进展（r285：fire 模块 soak 全绿，批准执行）
 
-- 换参（1920×1080/`0xff00ff00`）重载 fire 模块：`fired=1 chunks=32 verified=1 bad=0/2073600`，与离线预言（34 行/块、32 块）逐项一致；颜色参数真实落地。拆模块干净，refs 回 1/1，窗口零新增 WARN。无代码改动。
+- 5 轮装/打/卸：轮轮 `fired=Y verified=Y chunks=21 result=0`，probe/bridge ref 轮轮 1→1，节点现即消；窗口零新增 WARN。无代码改动。
 - **bridge 未碰，freeze 继续。**
-- 遗留：soak 重复性或合并策略 recon。本地提交仍未 push。
+- 遗留：合并策略 recon。本地提交仍未 push。
 ---
 
