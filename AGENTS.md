@@ -11,7 +11,7 @@
 4. 要接上轮工作时再读 `MEMORY.md`（只留最新两节，短）。
 
 NEVER 为“了解背景”打开以下文件（token 黑洞，内容已过期或被取代）：
-`MEMORY-HISTORY-*.md`、`mt-vgpu-guest/HISTORY-2026-09.md`、
+`memory/MEMORY-HISTORY-*.md`、`mt-vgpu-guest/HISTORY-2026-09.md`、
 `docs/PROGRESS-HISTORY.md`、`docs/MTT-VGPU-2026-09-22.md`、
 `mt-vgpu-guest/PROTOCOL-NOTES.md`、`FIRMWARE-NOTES.md`。
 只有追溯某个具体历史结论的出处时，才按 `reports/README.md` 索引打开单篇报告。
@@ -46,7 +46,7 @@ NEVER 回改归档文件（`*HISTORY*`、`*2026-09-22*` 只读）。
 
 - 触发条件（任一即清理）：节数 > 2，或全文 > 150 行。
 - 清理动作：只保留最新的 2 节，其余原样移入
-  `MEMORY-HISTORY-<当天日期>.md`（已存在则追加到同一文件，不新建）；
+  `memory/MEMORY-HISTORY-<当天日期>.md`（已存在则追加到同一文件，不新建）；
   同步更新 MEMORY 头部的归档指向行与“最后更新”行。
 - 快照刷新 pass（每 4–6 轮或 §12 与头冲突时）：把 MEMORY 沉淀的结论
   合入 `PROGRESS-SNAPSHOT.md` 对应章节，并把本轮提交哈希填进头部

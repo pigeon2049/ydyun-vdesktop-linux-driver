@@ -33,7 +33,7 @@
 | 文件 | 内容 | 时效 |
 |---|---|---|
 | `../PROGRESS-SNAPSHOT.md` | **权威快照**：真机阶梯、修掉的缺陷、门禁现状、下一步 | 活跃 |
-| `../MEMORY.md` | 最新两节过程记录（旧文在 `MEMORY-HISTORY-2026-10-01.md`） | 活跃 |
+| `../MEMORY.md` | 最新两节过程记录（旧文在 `../memory/MEMORY-HISTORY-2026-10-01.md`） | 活跃 |
 | `../mt-vgpu-guest/README.md` | 该目录入口：当前状态、运行态红线、门禁命令 | 活跃 |
 | `../mt-vgpu-guest/reports/README.md` | r 系列证据索引（先查索引再开报告） | 活跃 |
 | `MTT-VGPU.md` | stub；全文在 `MTT-VGPU-2026-09-22.md`（只读） | **归档** |

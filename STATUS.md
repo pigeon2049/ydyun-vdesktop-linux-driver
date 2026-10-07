@@ -52,7 +52,7 @@
 | `docs/README.md` | 文档地图（含时效列） | 找文档时读 |
 | 根 `README.md` | v0.2.52 安装教程 | 装机时读 |
 
-归档（按需才读）：`MEMORY-HISTORY-2026-10-01.md`、
+归档（按需才读）：`memory/MEMORY-HISTORY-2026-10-01.md`、
 `mt-vgpu-guest/HISTORY-2026-09.md`、`docs/PROGRESS-HISTORY.md`、
 `docs/MTT-VGPU-2026-09-22.md`，以及 `PROTOCOL/FIRMWARE-NOTES.md`
 （顶层已有归档头）。
