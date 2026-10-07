@@ -11,13 +11,9 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r255：短预算 10 轮 soak，批准执行）
+## 本次会话进展（r256：TQX 真发射路径盘点，零硬件触碰）
 
-- 同窗口（wait 100ms）10/10 通过，0.12ms/轮起；tag/fence 无跳号（至 79/80）；零 WARN。拆桥干净，默认 + L3 全绿。详见 `reports/r255-tinybudget-soak.md`。
-- **Freeze 已恢复。**无代码改动。
-
-## 本次会话进展（r254：极小预算失配腿，批准执行）
-
-- wait 100ms 下失配 kick 0.118s 后 UMD 37；预算维度全覆盖（5s/1s/100ms 同构）；无 marker。同窗口续跑 soak。详见 `reports/r254-tinymismatch.md` + `.jsonl`。
-- 遗留：TQX 真发射（离线先行）；CCB 解读（离线）；真实执行 backend；DDK2 UMD 侧断点（r228）。USB 短页标题日期问题留待对应轮。
+- 开工声明零硬件触碰。真机便宜缺口扫尽 + r203 配方不可复现止损 + `mt_live_tqx` 污染型排除后，转真发射立项 recon：链条闭合（live_3d_drm 模板可照抄），唯一缺件是 bring-up 补 pool slices；路由已对；锁无障碍；destination 借用 + 回读方案齐备。三步立项（slices/fire/活体）。详见 `reports/r256-tqx-fire-path.md`。
+- 未改码、未跑门禁、未碰会话。
+- 遗留：bring-up 补 slices（离线实现）；fire 函数；活体 fired/verified。USB 短页标题日期问题留待对应轮。
 ---

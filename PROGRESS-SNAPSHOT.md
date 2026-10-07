@@ -461,6 +461,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r256 TQX 真发射路径盘点（零硬件触碰）**：链条闭合（live_3d_drm 模板可照抄），唯一缺件是 bring-up 补 pool slices；路由已对；锁无障碍；destination 借用 + 回读方案齐备。三步立项。见 `reports/r256-tqx-fire-path.md`。
 - **r255 短预算 10 轮 soak（批准执行）**：同窗口（wait 100ms）10/10 通过，0.12ms/轮；tag/fence 无跳号（至 79/80）；零 WARN。拆桥干净，默认 + L3 全绿。见 `reports/r255-tinybudget-soak.md`。
 - **r254 极小预算失配腿（批准执行）**：wait 100ms 下 0.118s 后 UMD 37；预算维度全覆盖（5s/1s/100ms）；无 marker。同窗口续跑 soak。见 `reports/r254-tinymismatch.md` + `.jsonl`。
 - **r253 极小预算匹配腿（批准执行）**：wait 100ms 下预置匹配 45ms 即过（fence=59/60）；预算下限安全（失配腿在 100ms 下未跑）。拆桥干净，默认 + L3 全绿。见 `reports/r253-tinybudget-match.md`。

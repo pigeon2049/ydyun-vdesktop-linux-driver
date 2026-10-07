@@ -208,6 +208,7 @@
 | r251 | UMD standalone flake 现状：render 路径 10/10 崩 + GDB 全过 + probe 偶发 2 failing（重跑即过） |
 | r252 | GDB 监督 L4 闭环：rung6/rung8 全过（叠加 r245，新会话 L4 全级成立） |
 | r253 | 极小预算匹配腿：wait 100ms 下 45ms 即过（fence=59/60）；预算下限安全 |
+| r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |
 
