@@ -3472,6 +3472,37 @@ free:
 	return ret;
 }
 
+/* CCB magic census (r305): the real UMD CCB carries no anchored
+ * 4B-destination block (ccbdst: none), so report where the known TQX
+ * command magics actually sit. One line per magic, first four hit
+ * offsets; the real layout is then decidable from dmesg alone.
+ */
+static void pvr_ccb_magic_census(const u8 *win, u32 bytes)
+{
+	static const u32 magics[] = { 0x40000005U, 0x2da100U, 0xb8000000U,
+				      0x08000001U, 0x25U, 0x2dU };
+	u32 m, i;
+
+	for (m = 0; m < sizeof(magics) / sizeof(magics[0]); m++) {
+		u32 hits[4] = { 0 };
+		u32 total = 0;
+
+		for (i = 0; i + 4 <= bytes; i += 4) {
+			u32 w;
+
+			memcpy(&w, win + i, sizeof(w));
+			if (w != magics[m])
+				continue;
+			if (total < 4)
+				hits[total] = i;
+			total++;
+		}
+		pr_info("mt_pvr_bridge: submit3 ccbmagic: w=%#x hits=%u @%u,%u,%u,%u\n",
+			magics[m], total, hits[0], hits[1], hits[2],
+			hits[3]);
+	}
+}
+
 /* 0x89:0xa RGXTDMSubmitTransfer3 accept-and-log (r174).
  *
  * Accepts the submission (OUT error 0) and reports the CCB window it names,
@@ -3560,7 +3591,9 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 		(unsigned long long)binding->pmr,
 		(unsigned long long)nonzero, (unsigned long long)first,
 		(unsigned long long)hash, head_len, head);
-	/* CCB destination scan (r304): the UMD-named destination VA,
+	pvr_ccb_magic_census((const u8 *)pmr->host + off, in.ccb_bytes);
+
+/* CCB destination scan (r304): the UMD-named destination VA,
 	 * matched against pool bindings. Deterministic attribution for
 	 * fire; the best-heuristic below stays for dry-run comparability.
 	 */

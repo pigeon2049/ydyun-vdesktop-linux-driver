@@ -154,6 +154,12 @@ class TdmSubmit3Observe(unittest.TestCase):
         self.assertIn('-ENODATA', locate)
         self.assertIn('ccbdst_pmr', self.body)
 
+    def test_ccb_magic_census(self):
+        # r305: the real CCB has no anchored block, so the observe
+        # handler reports known-magic hit offsets for layout recovery.
+        self.assertIn('submit3 ccbmagic:', self.src)
+        self.assertIn('pvr_ccb_magic_census', self.body)
+
 
 if __name__ == '__main__':
     unittest.main()
