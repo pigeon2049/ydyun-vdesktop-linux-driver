@@ -41,15 +41,17 @@ class Ddk2RenderContext(unittest.TestCase):
                          r'MT_PVR_KIND_CONTEXT\)',
                          '0x82:0x13 must share the context release path')
 
-    def test_sync_prim_set_stubbed(self):
+    def test_sync_prim_set_writes(self):
+        # r220 re-judges the r142 contract: SyncPrimSet is a real
+        # 16-byte write (handle/index/value per the UMD wrapper), not
+        # a zeroed-OUT stub. Its 0x2:0x1/0x2:0x7 siblings stay stubbed.
         src = code()
         m = re.search(r'case MT_PVR_BRIDGE_SYNC:(.*?)case MT_PVR_BRIDGE_\w+:',
                       src, re.S)
         self.assertIsNotNone(m, 'SYNC dispatch block not found')
         self.assertRegex(m.group(1),
-                         r'case MT_PVR_FN_SYNCPRIMSET:[\s\S]*?pvr_stub_ok',
-                         '0x2:0x2 (SyncPrimSet) must answer zeroed OUT, '
-                         'like its 0x2:0x1/0x2:0x7 siblings')
+                         r'case MT_PVR_FN_SYNCPRIMSET:[\s\S]*?pvr_cmd_syncprim_set',
+                         '0x2:0x2 (SyncPrimSet) must reach the write handler')
 
     def test_sync_free_event_stubbed(self):
         src = code()

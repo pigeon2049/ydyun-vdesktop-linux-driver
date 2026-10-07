@@ -1709,6 +1709,38 @@ static int pvr_translator_wait(struct mt_pvr_ufo_cond *conds, u32 n)
 	}
 }
 
+/* 0x2:0x2 SYNC:SyncPrimSet (r220): write one u32 into a sync PMR.
+ * IN = { sync handle, dword index, value } per the hash-verified 5.2.0
+ * UMD wrapper. Handle resolution mirrors pvr_translator_resolve (raw
+ * PMR handle, or a SYNC-kind object following its backing PMR link);
+ * anything else has no CPU-visible memory and is refused. The write
+ * lands in PMR host memory that translator waiters poll, so a value
+ * preset here is visible to a later kick with no wakeup needed.
+ */
+static int pvr_cmd_syncprim_set(struct mt_pvr_file *file,
+				struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_syncprimset_in in;
+	struct mt_pvr_syncprimset_out out = { 0 };
+	struct mt_pvr_ufo_cond cond;
+	u64 off;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	off = (u64)in.index * sizeof(u32);
+	if (off > (u64)U32_MAX)
+		return -ERANGE;
+	ret = pvr_translator_resolve(file, in.sync, (u32)off, &cond);
+	if (ret)
+		return ret;
+	memcpy((u8 *)cond.host + cond.offset, &in.value, sizeof(in.value));
+	pr_info("mt_pvr_bridge: syncprimset: sync=%#llx off=%u val=%u\n",
+		(unsigned long long)in.sync, (u32)off, in.value);
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
 /* Drop translator objects. translator_lock held; takes trial_lock.
  * Partial-state safe: every destroy primitive rejects empty input. */
 static void pvr_translator_teardown_locked(void)
@@ -3450,7 +3482,9 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case MT_PVR_FN_ALLOCSYNCPRIMITIVEBLOCK:
 			return pvr_cmd_sync_block(file, cmd);
 		case MT_PVR_FN_FREESYNCPRIMITIVEBLOCK:			/* FreeSyncPrimitiveBlock */
-		case MT_PVR_FN_SYNCPRIMSET:			/* SyncPrimSet (DDK2 render tail, r142) */
+			return pvr_stub_ok(cmd);
+		case MT_PVR_FN_SYNCPRIMSET:			/* SyncPrimSet (real write, r220) */
+			return pvr_cmd_syncprim_set(file, cmd);
 		case MT_PVR_FN_SYNCALLOCEVENT:			/* SyncAllocEvent */
 		case MT_PVR_FN_SYNCFREEEVENT:			/* SyncFreeEvent (DDK2 destroy tail, r144) */
 			return pvr_stub_ok(cmd);

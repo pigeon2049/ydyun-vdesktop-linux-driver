@@ -762,6 +762,25 @@ struct MT_PVR_PACKED mt_pvr_sync_block_out {
 
 #define MT_PVR_SYNC_MEM_TYPE 0x100000000ULL
 
+/* 0x2:0x2 SYNC:SyncPrimSet -- 16-byte IN, 4-byte OUT (r220).
+ * Wire layout from the hash-verified 5.2.0 UMD wrapper FUN_00139220:
+ * IN = { u64 sync, u32 dword_index, u32 value } backed by a 16-byte stack
+ * slot, OUT = single u32 error. The public SyncPrimSet(psSync, value)
+ * derives index as (ufo_byte_offset >> 2); the DDK2 CpuSignal path uses
+ * a different function (0x2:0xd, still refused) and is out of scope.
+ * The bridge writes one u32 into the resolved PMR; concurrent translator
+ * waiters poll PMR memory, so no wakeup is needed or added.
+ */
+struct MT_PVR_PACKED mt_pvr_syncprimset_in {
+	u64 sync;
+	u32 index;
+	u32 value;
+};
+
+struct MT_PVR_PACKED mt_pvr_syncprimset_out {
+	u32 error;
+};
+
 static_assert(sizeof(struct mt_pvr_cmd) == 32, "dispatch packet");
 static_assert(sizeof(struct mt_pvr_connect_in) == 16, "0x1:0x0 in");
 static_assert(sizeof(struct mt_pvr_connect_out) == 17, "0x1:0x0 out");
@@ -853,5 +872,7 @@ static_assert(sizeof(struct mt_pvr_ctx_create_in) == 4, "0x6:0xf in");
 static_assert(sizeof(struct mt_pvr_ctx_create_out) == 24, "0x6:0xf out");
 static_assert(sizeof(struct mt_pvr_sync_block_in) == 8, "0x2:0x0 in");
 static_assert(sizeof(struct mt_pvr_sync_block_out) == 32, "0x2:0x0 out");
+static_assert(sizeof(struct mt_pvr_syncprimset_in) == 16, "0x2:0x2 in");
+static_assert(sizeof(struct mt_pvr_syncprimset_out) == 4, "0x2:0x2 out");
 
 #endif /* MT_PVR_WIRE_H */
