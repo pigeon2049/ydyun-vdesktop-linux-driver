@@ -314,10 +314,11 @@ struct MT_PVR_PACKED mt_pvr_render2_create_out {
  * wrapper callsite. The 2.7.1 Native header is 12 bytes shorter: it omits
  * ui32SubmissionFlags and ui64SubmissionId, so it is not this wire layout.
  *
- * This type only describes the packet. The bridge does not dispatch this
- * command yet: the pointer fields name nested userspace arrays, and the real
- * Guest handler must validate/copy them, resolve every handle, and submit the
- * CCB before returning success.
+ * This type only describes the packet. The bridge accept-and-logs the
+ * submission (reports the CCB window and counts, returns 0) without
+ * executing it or reading nested pointers, until pointer bounds, PMR/CCB
+ * ownership and completion semantics are safe enough to translate
+ * (r215, mirroring the 0x89:0xa observer).
  */
 struct MT_PVR_PACKED mt_pvr_rgxkickta3d5_in {
 	u64 render_context;
@@ -435,6 +436,7 @@ struct MT_PVR_PACKED mt_pvr_kicksyncctx2_create_out {
 #define MT_PVR_FN_RGXDESTROYRENDERCONTEXT 0x9U
 #define MT_PVR_FN_RGXCREATERENDERCONTEXT2 0x12U
 #define MT_PVR_FN_RGXDESTROYRENDERCONTEXT2 0x13U
+#define MT_PVR_FN_RGXKICKTA3D5 0x14U
 #define MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT 0x0U
 #define MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT 0x1U
 #define MT_PVR_FN_RGXKICKSYNC2 0x2U

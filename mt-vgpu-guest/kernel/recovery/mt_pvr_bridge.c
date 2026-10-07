@@ -3211,6 +3211,86 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* 0x82:0x14 RGXKICKTA3D5 (r215): accept-and-log observer, mirroring the
+ * 0x89:0xa handler (r174). Reports the named CCB window plus the scalar
+ * check/update/sync-PMR counts and returns 0 without executing anything:
+ * the check/update/sync-PMR pointer fields name userspace arrays that are
+ * never dereferenced here, no fence is minted, and no firmware/DMA/
+ * translator path is reachable. Real TA/3D execution still needs the
+ * DDK2 render backend (r207/r208 boundary).
+ */
+static int pvr_cmd_kickta3d5_observe(struct mt_pvr_file *file,
+				     struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_rgxkickta3d5_in in;
+	struct mt_pvr_rgxkickta3d5_out out = { 0 };
+	struct mt_pvr_object *obj;
+	struct mt_pvr_binding *binding = NULL, *b;
+	struct mt_pvr_pmr *pmr = NULL;
+	u64 end, off, i, nonzero = 0, first = 0;
+	u64 hash = 1469598103934665603ULL;
+	u8 head[64];
+	u32 head_len = 0;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	obj = pvr_object_find(file, in.render_context, MT_PVR_KIND_CONTEXT);
+	if (!obj)
+		return -ENOENT;
+	if (!in.submission_size ||
+	    in.submission_size > MT_PVR_SUBMIT3_LOG_MAX ||
+	    in.submission_va + in.submission_size < in.submission_va)
+		return -EINVAL;
+	end = in.submission_va + in.submission_size;
+	list_for_each_entry(b, &file->bindings, link) {
+		struct mt_pvr_object *res =
+			pvr_reservation_find(file, b->reservation);
+
+		if (!res || res->arg0 > in.submission_va)
+			continue;
+		if (in.submission_va - res->arg0 > res->arg1)
+			continue;
+		if (end - res->arg0 > res->arg1)
+			continue;
+		binding = b;
+		break;
+	}
+	if (!binding)
+		return -EINVAL;
+	pmr = pvr_pmr_find(file, binding->pmr);
+	if (!pmr || !pmr->host || !pmr->bytes)
+		return -EINVAL;
+	if (binding->va > in.submission_va)
+		return -EINVAL;
+	off = in.submission_va - binding->va;
+	if (off > pmr->bytes || in.submission_size > pmr->bytes - off)
+		return -EINVAL;
+	for (i = 0; i < in.submission_size; i++) {
+		u8 byte = ((u8 *)pmr->host)[off + i];
+
+		hash ^= byte;
+		hash *= 1099511628211ULL;
+		if (!byte)
+			continue;
+		if (!nonzero)
+			first = i;
+		nonzero++;
+		if (head_len < sizeof(head))
+			head[head_len++] = byte;
+	}
+	pr_info("mt_pvr_bridge: kickta3d5 observe: flags=%#x va=%#llx bytes=%u id=%llu check=%u update=%u pmrsync=%u res=%#llx pmr=%#llx nonzero=%llu first=%#llx fnv=%#llx head=%*ph\n",
+		in.submission_flags, (unsigned long long)in.submission_va,
+		in.submission_size, (unsigned long long)in.submission_id,
+		in.check_count, in.update_count, in.sync_pmr_count,
+		(unsigned long long)binding->reservation,
+		(unsigned long long)binding->pmr,
+		(unsigned long long)nonzero, (unsigned long long)first,
+		(unsigned long long)hash, head_len, head);
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
 /* Prototype fill geometry lives in ../mt_addr_plan.h (r186; r178:
  * orientation evidence pending; the rect builder rejects anything that
  * does not factor the parsed pixel count).
@@ -3447,6 +3527,8 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 		case MT_PVR_FN_RGXDESTROYRENDERCONTEXT2:			/* BridgeRGXDestroyRenderContext2 (DDK2) */
 			return pvr_cmd_handle_release(file, cmd,
 						      MT_PVR_KIND_CONTEXT);
+		case MT_PVR_FN_RGXKICKTA3D5:			/* RGXKickTA3D5 (accept-and-log, r215) */
+			return pvr_cmd_kickta3d5_observe(file, cmd);
 		default:
 			return -ENOTTY;
 		}

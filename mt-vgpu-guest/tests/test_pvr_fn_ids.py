@@ -3,9 +3,10 @@
 
 The dispatch in pvr_bridge_dispatch compares case labels only; a typo in
 a pasted hex literal would silently reroute a command. Values come from
-reports/stage-b-bridge-requirements.json (5.2 KMD headers); the single
-derived name is RGXTDMSUBMITTRANSFER3 (table says CMD_LAST, following
-the SUBMITTRANSFER2 pattern).
+reports/stage-b-bridge-requirements.json (5.2 KMD headers); the two
+derived names are RGXTDMSUBMITTRANSFER3 (table says CMD_LAST, following
+the SUBMITTRANSFER2 pattern) and RGXKICKTA3D5 (0x14 from the 5.2 UMD
+wrapper callsite FUN_00192930(handle,0x82,0x14,...), r190).
 """
 import re
 import unittest
@@ -57,6 +58,7 @@ PINNED = {
     'MT_PVR_FN_RGXDESTROYRENDERCONTEXT': '0x9U',
     'MT_PVR_FN_RGXCREATERENDERCONTEXT2': '0x12U',
     'MT_PVR_FN_RGXDESTROYRENDERCONTEXT2': '0x13U',
+    'MT_PVR_FN_RGXKICKTA3D5': '0x14U',
     'MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT': '0x0U',
     'MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT': '0x1U',
     'MT_PVR_FN_RGXKICKSYNC2': '0x2U',
@@ -89,7 +91,7 @@ class FnIds(unittest.TestCase):
         cls.dispatch = text[start:nxt]
 
     def test_wire_pins_every_dispatched_id(self):
-        self.assertEqual(len(PINNED), 55)
+        self.assertEqual(len(PINNED), 56)
         for name, literal in PINNED.items():
             self.assertRegex(
                 self.wire,
