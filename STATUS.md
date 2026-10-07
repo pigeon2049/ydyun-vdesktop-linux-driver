@@ -10,7 +10,7 @@
 | 线 | 目录 | 做什么 | 当前结论 |
 |---|---|---|---|
 | 云电脑 USB/画面 | `linux/`、`wayland/`、`docs/` | Debian 云电脑 USB 转发 + KDE Wayland 分辨率 | v0.2.52 可安装（见根 `README.md` 教程）；云端联调待真实会话 |
-| S3000 vGPU Guest | `mt-vgpu-guest/` | 自研内核栈点亮 Moore Threads S3000 vGPU | 新会话已重建并 freeze（r211）：probe 绑定 `00:0e.0`（trial `20261007T040408Z-f3fb55af`，Guest/FW 2/2 pinned，ref 1），bridge 默认加载（`card1`/`renderD128`，ref 0），L3 全绿，dmesg 无 WARN/Oops；r150 Oops 未复现但根因未命名 |
+| S3000 vGPU Guest | `mt-vgpu-guest/` | 自研内核栈点亮 Moore Threads S3000 vGPU | **机器已重启（r263 死锁恢复）：无模块在载，`00:0e.0` 未绑定，会话待重建**；r263 代码（含死锁）仍在树内，未加载前无影响 |
 
 ## vGPU 一句话现状
 

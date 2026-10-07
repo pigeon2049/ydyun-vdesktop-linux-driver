@@ -462,6 +462,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r263 后重启（恢复中）**：机器已重启，无模块，`/dev/dri` 仅 `card0`；死锁随重启清除。r263 代码在树内未加载，会话待重建。见 `reports/r263-slices-deadlock.md`。
+- **r263 slices 死锁待重启（批准执行）**：调用可达证实后第二轮卡死 buffers->lock（D 态 blit，进程栈 + sysrq 双实锤；trial_lock→buffers.lock AB-BA）；rmmod 被拒，待重启。见 `reports/r263-slices-deadlock.md`。
 - **r262 slices 活体未达预期（批准执行）**：新构建上机 + blit 后 `tqx-ctx: ready` 正常，但 slices 零执行零打印（已排除在载≠盘内/调用点错/dmesg 丢；调用未到达待查）。其余正常，拆桥干净，默认 + L3 全绿。见 `reports/r262-slices-noop.md`。
 - **r261 bring-up 补 pool slices（离线，零硬件触碰）**：copy prepare 填 slices（非致命）+ 读镜像 + 先释放后销毁；门禁 6 项（含反向）；`check-offline` 333+292 全绿；`make kernel` 零警告。未加载，会话未碰。见 `reports/r261-tqx-slices.md`。
 - **r260 ck 下 legacy blit（批准执行）**：同样止于 `0x89:0x0` → -25（ck 不干扰 `0x89` 路径）；trace 落硬盘暂存区后已清空。拆桥干净，默认 + L3 全绿。见 `reports/r260-ck-blit.md`。
