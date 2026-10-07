@@ -2,6 +2,15 @@
 
 > 由 `MEMORY.md` 清理周期移入（只保留最新两节），原样保留。
 
+## 本次会话进展（r206：KickGFX5 Host schema 映射）
+
+- 零硬件触碰。对版 5.2 DKMS 包 SHA=`e3f684b1…` 的生成头将 `0x82:0x14` 映射到 `MUSAKICKGFX5 +20`；schema 的 flags/VA/size/submissionID/count 偏移和值逐项匹配 r203 fabricated trace。
+- 12B 偏移差现已由额外 flags 与 submissionID 字段解释；同包 `MTGPUMUSAGFX5KM` 声明给出 sync/PMR 数组与提交参数接口顺序，但没有 handler 实现体；下一步核对 Guest handle 台账和实际 CCB 执行路径。
+- 证据：`reports/r206-kickgfx5-schema.md`、r203 trace、`downloads/mthreads-dkms_5.2.0_amd64.deb`。
+- 遗留：`PROGRESS-SNAPSHOT.md` §5 仍停在 r184，留待快照刷新 pass。
+
+---
+
 ## 本次会话进展（r201：fabricated GFX update producer 动态复核）
 
 - 零硬件触碰。GDB 对上 kick `+0x28` 目标 `+0x200` 与 render-context allocator；修正 `CreateSyncPrim` 输出槽后，CheckSync/UpdateSync 各一项，update `flag=2`、handle 非空，trace 发出 fabricated `0x82:0x14`（IN108/OUT4）。shim 返回后在 `local_e70` update-list 清理处 heap abort；r203 证明根因为 harness 输出复制越界，扩大缓冲后 UMD 可干净返回。
