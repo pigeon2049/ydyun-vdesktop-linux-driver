@@ -285,3 +285,10 @@
 - 遗留：TQX 真发射（离线实现先行）；CCB 内容解读（离线）；真实执行 backend。USB 短页标题日期问题留待对应轮。
 
 ---
+## 本次会话进展（r227：混合 kick 活体验证，批准执行）
+
+- translator 完整语义（r159）活体闭环：预置 check 槽 V7 后混合 fire（check+update）44.8ms 即过（与 r222 Leg1 同构），update 写回 probe 0.11ms 即过；dmesg 双行 `check=1 update=1 fence=7` → `check=1 update=0 fence=8`。工具升级三相 + 门禁更新（含反向）；`check-offline` 325 Python OK。详见 `reports/r227-mixed-kick-live.md`。
+- probe 25→1 对称，默认恢复 + L3 全绿，dmesg 干净。**Freeze 已恢复。**
+- 遗留：TQX 真发射（离线先行）；CCB 内容解读（离线）；真实执行 backend。USB 短页标题日期问题留待对应轮。
+
+---

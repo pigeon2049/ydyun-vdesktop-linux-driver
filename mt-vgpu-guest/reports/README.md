@@ -183,6 +183,7 @@
 | r226 | transfer dry-run 新会话复验通过（`=2` + `translate_transfer`，digest `fnv=0xd893618ca42d3711` 与 r181 预言逐位一致）；附带第五个 `+0x40` 轮变值 |
 | r227 | 混合 kick 活体验证：预置 V7 后混合 fire（check+update）44.8ms 即过，update 写回 probe 0.11ms 即过；fence=7/8；会话未动 |
 | r228 | DDK2 `SetSyncPrim` 侦察：UMD 内 SIGSEGV（RVA `0xa0b38`，param_1 形状不对），`0x2:0xd` 从未发出；非桥缺口，合法形状待 recon |
+| r229 | observer 全套 DDK2 回归：`=2` 下 22 步全过，三行与 legacy 一致；dispatch 与 major 正交证实；会话未动 |
 
 ## 关键单篇（本轮最常用）
 
