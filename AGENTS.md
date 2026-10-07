@@ -60,7 +60,12 @@ NEVER 回改归档文件（`*HISTORY*`、`*2026-09-22*` 只读）。
 3. `timeout` NEVER 落在 bridge ioctl 临界区内；DMA 路径命令只用短超时做挂起
    探测，超时即停手、不堆任务（r67 device-mutex 泄漏只能重启恢复）。
 4. 一次只跑一个 live 实验模块，做完即卸。
-5. `/tmp` 写大文件前先 `df -h /tmp`（trace 洪泛灌满会伪装成测试回归）。
+5. 大体积易失产物（bridge trace、CCB dump、GDB 工作区、blit 中间输出）
+   MUST 写硬盘暂存区 `mt-vgpu-guest/build/traces/`（gitignore，硬盘；
+   按轮建子目录，用完即清），NEVER 写 `/tmp`（tmpfs 仅 8G 易灌满，
+   且重启丢失——r148/r149 trace 前车之鉴）。精选证据拷贝入库
+   （`reports/*.jsonl` 0600、`*.bin`）后再清暂存。`UMD_TRACE` 等环境
+   变量每轮显式指向暂存区，不依赖 shim 的 `/tmp` 默认。
 
 ## 6. 门禁与验证（提交前必须全绿）
 

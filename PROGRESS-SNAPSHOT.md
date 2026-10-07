@@ -461,6 +461,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-07 更新；本节是活页）
 
+- **r258 硬盘暂存区流程验证（批准执行）**：AGENTS.md §5 改判落地；`/tmp/opencode/umda/` 4.2M 清零；新流程 ping/rung8 全过（trace 落硬盘）；暂存区已清空。见 `reports/r258-disk-traces.md`。
 - **r257 RGXKickGfx 签名恢复（零硬件触碰）**：6 参数用途 + 调用链（objdump 实锤：rdi=render ctx，rsi=kickA，rdx=b24，rcx=kickB，r8=b25，r9=栈参）；harness 重建第一步；附 /tmp 用途调查。见 `reports/r257-kickgfx-signature.md`。
 - **r256 TQX 真发射路径盘点（零硬件触碰）**：链条闭合（live_3d_drm 模板可照抄），唯一缺件是 bring-up 补 pool slices；路由已对；锁无障碍；destination 借用 + 回读方案齐备。三步立项。见 `reports/r256-tqx-fire-path.md`。
 - **r255 短预算 10 轮 soak（批准执行）**：同窗口（wait 100ms）10/10 通过，0.12ms/轮；tag/fence 无跳号（至 79/80）；零 WARN。拆桥干净，默认 + L3 全绿。见 `reports/r255-tinybudget-soak.md`。

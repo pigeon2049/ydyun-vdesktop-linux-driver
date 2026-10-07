@@ -11,10 +11,9 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](MEMORY-HISTORY-2026-10-07.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本次会话进展（r257：RGXKickGfx 签名恢复 + /tmp 调查，零硬件触碰）
+## 本次会话进展（r258：硬盘暂存区流程验证，批准执行）
 
-- 开工声明零硬件触碰。用户要求重建 r203 harness 命令：GDB 脚本全裸 `run`、history 无记录，从反汇编恢复 6 参数用途（rdi=render ctx，rsi=kickA，rdx=b24，rcx=kickB，r8=b25，r9=栈参）+ 调用链；b20/b22 字段偏移待 GDB 确认。详见 `reports/r257-kickgfx-signature.md`。
-- /tmp 用途查清：shim 默认 append 到 `/tmp/opencode/umda/trace.jsonl`（量大防 git 污染 + r67 灌满教训）；易失放 /tmp，精选入库（r212 起）。
-- 未改码、未跑门禁、未碰会话。
-- 遗留：GDB 确认字段偏移 + fabricated 重建 + 真桥重放。USB 短页标题日期问题留待对应轮。
+- 用户纠正后 AGENTS.md §5 改判：大体积易失产物 MUST 写硬盘 `build/traces/`，NEVER 写 `/tmp`。本轮落实：`/tmp/opencode/umda/` 4.2M 清零（已入库删副本，未入库确认无证据后删除）；新流程验证（默认桥 ping 全 PASS + fabricated rung8 全过，trace 落硬盘 25KB）；暂存区已清空。详见 `reports/r258-disk-traces.md`。
+- refs 不变，dmesg 干净。**Freeze 继续。**无代码改动（AGENTS.md 约束变更除外）。
+- 遗留：GDB 确认字段偏移 + fabricated 重建 + 真桥重放；TQX 真发射；CCB 解读；backend。USB 短页标题日期问题留待对应轮。
 ---
