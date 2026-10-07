@@ -46,3 +46,11 @@
 - 遗留：soak 重复性或合并策略 recon。本地提交仍未 push。
 ---
 
+
+## 本轮进展（r285：fire 模块 soak 全绿，批准执行）
+
+- 5 轮装/打/卸：轮轮 `fired=Y verified=Y chunks=21 result=0`，probe/bridge ref 轮轮 1→1，节点现即消；窗口零新增 WARN。无代码改动。
+- **bridge 未碰，freeze 继续。**
+- 遗留：合并策略 recon。本地提交仍未 push。
+---
+

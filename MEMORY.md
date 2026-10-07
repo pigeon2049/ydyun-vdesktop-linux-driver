@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r285：fire 模块 soak 全绿，批准执行）
+## 本轮进展（r286：legacy 基线复核，无重载）
 
-- 5 轮装/打/卸：轮轮 `fired=Y verified=Y chunks=21 result=0`，probe/bridge ref 轮轮 1→1，节点现即消；窗口零新增 WARN。无代码改动。
-- **bridge 未碰，freeze 继续。**
+- 当前构建+会话真实 blit：101 调用仅 `0x89:0x0` → -25（seq 8180），有序拆除，UMD 134；与 r244 同形，拒绝点复核成立。refs 全程 1/1，窗口零新增 WARN。无代码改动。
+- **freeze 继续。**
 - 遗留：合并策略 recon。本地提交仍未 push。
 ---
 
