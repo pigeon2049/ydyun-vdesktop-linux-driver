@@ -26,8 +26,10 @@ class UpdateWritebackTool(unittest.TestCase):
         self.assertIn('UPDATE_VAL', self.src)
 
     def test_mixed_fire_wired(self):
-        self.assertIn('client_check_count = 1;', self.src)
-        self.assertIn('check slot preset', self.src)
+        self.assertIn('client_check_count = 2;', self.src)
+        self.assertIn('CHECK_VAL2', self.src)
+        self.assertIn('check slot 1 preset', self.src)
+        self.assertIn('check slot 2 preset', self.src)
         self.assertRegex(self.src, r'bridge_call\(fd, 0x2, 0xa,')
         m = re.search(r'mixed fire accepted[\s\S]{0,400}'
                       r'!kick_out\.error', self.src)

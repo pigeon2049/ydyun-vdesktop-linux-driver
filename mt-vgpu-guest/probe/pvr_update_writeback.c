@@ -27,6 +27,7 @@
 #define PVR_INIT_IOCTL 0x40046445UL
 #define PROOF_VAL 1U
 #define CHECK_VAL 7U
+#define CHECK_VAL2 8U
 #define UPDATE_VAL 9U
 #define PROMPT_LIMIT_NS 4000000000ULL
 
@@ -89,6 +90,7 @@ int main(int argc, char **argv)
 		.mem_type = MT_PVR_SYNC_MEM_TYPE,
 	};
 	struct mt_pvr_sync_block_out sync_out = { 0 };
+	struct mt_pvr_sync_block_out sync_out2 = { 0 };
 	struct mt_pvr_kicksync_create_in ks_in = { 0 };
 	struct mt_pvr_kicksync_create_out ks_out = { 0 };
 	struct mt_pvr_kicksync_destroy_in ksd_in = { 0 };
@@ -98,9 +100,9 @@ int main(int argc, char **argv)
 	uint32_t uoff[1] = { 4 };
 	uint32_t uval[1] = { UPDATE_VAL };
 	uint64_t uufo[1];
-	uint32_t coff[1] = { 0 };
-	uint32_t cval[1] = { CHECK_VAL };
-	uint64_t cufo[1];
+	uint32_t coff[2] = { 0, 0 };
+	uint32_t cval[2] = { CHECK_VAL, CHECK_VAL2 };
+	uint64_t cufo[2];
 	struct mt_pvr_syncprimset_in set_in = { 0 };
 	struct mt_pvr_syncprimset_out set_out = { 0 };
 	uint64_t t0, dt;
@@ -140,6 +142,13 @@ int main(int argc, char **argv)
 		close(fd);
 		return 1;
 	}
+	if (bridge_call(fd, 0x2, 0x0, &sync_in, sizeof(sync_in),
+			&sync_out2, sizeof(sync_out2)) || sync_out2.error ||
+	    !sync_out2.sync_pmr) {
+		perror("AllocSyncPrimitiveBlock#2");
+		close(fd);
+		return 1;
+	}
 	if (bridge_call(fd, 0x88, 0x0, &ks_in, sizeof(ks_in), &ks_out,
 			sizeof(ks_out)) || ks_out.error ||
 	    !ks_out.kicksync_context) {
@@ -147,26 +156,31 @@ int main(int argc, char **argv)
 		close(fd);
 		return 1;
 	}
-	/* Step 0: preset the check slot with the 0x2:0xa write path, so
-	 * the mixed fire below exercises a real check wait (r227).
-	 * A fresh PMR reads zero, which would also pass and prove
-	 * nothing about waiting. */
+	/* Step 0: preset both check slots (r231: two independent
+	 * conditions on two PMRs). A fresh PMR reads zero, which would
+	 * pass without proving anything about waiting. */
 	set_in.sync = sync_out.sync_pmr;
 	set_in.index = 0;
 	set_in.value = CHECK_VAL;
-	check("check slot preset",
+	check("check slot 1 preset",
 	      !bridge_call(fd, 0x2, 0xa, &set_in, sizeof(set_in),
 			   &set_out, sizeof(set_out)) && !set_out.error);
-	/* Step 1: mixed fire (check + update in one kick). The bridge
-	 * must wait for the preset check value, submit the marker,
-	 * then publish UPDATE_VAL into the update slot. */
+	set_in.sync = sync_out2.sync_pmr;
+	set_in.index = 0;
+	set_in.value = CHECK_VAL2;
+	memset(&set_out, 0, sizeof(set_out));
+	check("check slot 2 preset",
+	      !bridge_call(fd, 0x2, 0xa, &set_in, sizeof(set_in),
+			   &set_out, sizeof(set_out)) && !set_out.error);
+	/* Step 1: mixed fire (2 checks + 1 update in one kick). */
 	uufo[0] = sync_out.sync_pmr;
 	cufo[0] = sync_out.sync_pmr;
+	cufo[1] = sync_out2.sync_pmr;
 	kick_in.kicksync_context = ks_out.kicksync_context;
 	kick_in.check_devvar_offset = (u64)(uintptr_t)coff;
 	kick_in.check_value = (u64)(uintptr_t)cval;
 	kick_in.check_ufo_block = (u64)(uintptr_t)cufo;
-	kick_in.client_check_count = 1;
+	kick_in.client_check_count = 2;
 	kick_in.update_devvar_offset = (u64)(uintptr_t)uoff;
 	kick_in.update_value = (u64)(uintptr_t)uval;
 	kick_in.update_ufo_block = (u64)(uintptr_t)uufo;
@@ -182,7 +196,7 @@ int main(int argc, char **argv)
 	dt = now_ns() - t0;
 	printf("%-34s %llu ns\n", "mixed fire elapsed",
 	       (unsigned long long)dt);
-	check("mixed fire prompt (check wait hit)",
+	check("mixed fire prompt (check waits hit)",
 	      dt < PROMPT_LIMIT_NS);
 	close(kick_out.update_fence_fd);
 	/* Step 2: check probe for the update slot+value. Prompt
@@ -215,7 +229,7 @@ int main(int argc, char **argv)
 			   sizeof(ksd_out)) && !ksd_out.error);
 	close(fd);
 	printf(fails ? "FAIL: %d check(s)\n" :
-	       "PASS: mixed kick + writeback verified by timing\n",
+	       "PASS: multi-check mixed kick + writeback verified\n",
 	       fails);
 	return !!fails;
 }
