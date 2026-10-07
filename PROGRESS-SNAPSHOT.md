@@ -463,6 +463,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r290 UMD 驱动 fire 首绿（批准执行）**：停桌面窗口 + 三开重载 + 真实 blit，UMD 矩形（1280×1024）`fired=1 chunks=21 verified=1 bad=0/1310720`；恢复曲折（桌面自重启致 rmmod 被拒，手动补恢复关账，probe 31→1）；L3 全绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r290-umdriven-fire-live.md` + `.jsonl`/`.dmesg`。
 - **r289 超限拒绝（批准执行）**：3840×2160（128 块）`run` 即 `-E2BIG`（`fired=0`，零提交零像素触碰）；拆模块干净，窗口零新增 WARN。模块正反分支活体全覆盖。**bridge 未碰，freeze 继续。**见 `reports/r289-e2big-live.md` + `.dmesg`。
 - **r288 合并决策（离线）**：fire 保持独立（正式工具）+ 桥侧留 UMD 路径；桥 r280 fire 记流水线自阻塞 defect（合流前须串行移植）；holder 解锁程序明确（stop service，需用户协调窗口）。无代码改动。见 `reports/r288-merge-decision.md`。
 - **r287 上限边界全绿（批准执行）**：4096×1024（16 行/块恰 64 块）`fired=1 chunks=64 verified=1 bad=0/4194304`；拆模块干净，窗口零新增 WARN。**bridge 未碰，freeze 继续。**见 `reports/r287-capedge-live.md` + `.dmesg`。
