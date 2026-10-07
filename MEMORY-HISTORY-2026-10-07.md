@@ -152,3 +152,11 @@
 - 遗留：使用可复现的 fabricated GFX producer 配方捕获真实 UMD 生成 CCB，并据其字节结构推进 TA/3D 包映射；捕获/解码仍不等于执行。
 
 ---
+## 本次会话进展（r210：fabricated GFX 原始 CCB 捕获）
+
+- 零硬件触碰。恢复重放工作目录与 sync tuple 后，GDB 实测 check/update helper 均返回 0，`RGXKickGfx` 返回 0；trace seq 125 发出 `0x82:0x14`，VA=`0x8000023000`、size=`0x4700`、check/update counts=1。
+- r209 shim 落盘 18,176 字节原始 UMD CCB，107 字节非零，SHA-256=`faa93985aa6b3f65df66641ac73f25020a66fca7af6cdece3b9e88c3a315dae7`。保存于 `reports/r210-gfx-ccb-capture.bin`，桥 trace 在同名 `.jsonl`。
+- 不证明 Guest handler 或 GPU 执行；STATUS 下一步仍是补齐真实 DDK2 render backend 和 TA/3D CCB 执行链。详见 `reports/r210-gfx-ccb-capture.md`。
+- 遗留：USB/画面线短页 `docs/PROGRESS.md` 标题日期仍为 2026-10-03；本轮是 vGPU 任务，留待对应短页刷新轮处理。
+
+---
