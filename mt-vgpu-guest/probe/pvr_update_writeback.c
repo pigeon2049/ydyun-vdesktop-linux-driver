@@ -29,6 +29,7 @@
 #define CHECK_VAL 7U
 #define CHECK_VAL2 8U
 #define UPDATE_VAL 9U
+#define UPDATE_VAL2 10U
 #define PROMPT_LIMIT_NS 4000000000ULL
 
 struct drm_version {
@@ -97,9 +98,9 @@ int main(int argc, char **argv)
 	struct mt_pvr_kicksync_destroy_out ksd_out = { 0 };
 	struct mt_pvr_kicksync3_in kick_in = { 0 };
 	struct mt_pvr_kicksync3_out kick_out = { 0 };
-	uint32_t uoff[1] = { 4 };
-	uint32_t uval[1] = { UPDATE_VAL };
-	uint64_t uufo[1];
+	uint32_t uoff[2] = { 4, 8 };
+	uint32_t uval[2] = { UPDATE_VAL, UPDATE_VAL2 };
+	uint64_t uufo[2];
 	uint32_t coff[2] = { 0, 0 };
 	uint32_t cval[2] = { CHECK_VAL, CHECK_VAL2 };
 	uint64_t cufo[2];
@@ -172,8 +173,10 @@ int main(int argc, char **argv)
 	check("check slot 2 preset",
 	      !bridge_call(fd, 0x2, 0xa, &set_in, sizeof(set_in),
 			   &set_out, sizeof(set_out)) && !set_out.error);
-	/* Step 1: mixed fire (2 checks + 1 update in one kick). */
+	/* Step 1: mixed fire (2 checks + 2 updates in one kick, r233).
+	 * Both update slots must be published after the marker. */
 	uufo[0] = sync_out.sync_pmr;
+	uufo[1] = sync_out.sync_pmr;
 	cufo[0] = sync_out.sync_pmr;
 	cufo[1] = sync_out2.sync_pmr;
 	kick_in.kicksync_context = ks_out.kicksync_context;
@@ -184,7 +187,7 @@ int main(int argc, char **argv)
 	kick_in.update_devvar_offset = (u64)(uintptr_t)uoff;
 	kick_in.update_value = (u64)(uintptr_t)uval;
 	kick_in.update_ufo_block = (u64)(uintptr_t)uufo;
-	kick_in.client_update_count = 1;
+	kick_in.client_update_count = 2;
 	kick_in.update_fence_name = (u64)(uintptr_t)"pvr-mixed-fire";
 	kick_in.check_fence_fd = 0xffffffffU;
 	kick_in.timeline_fence_fd = 0xffffffffU;
@@ -199,14 +202,20 @@ int main(int argc, char **argv)
 	check("mixed fire prompt (check waits hit)",
 	      dt < PROMPT_LIMIT_NS);
 	close(kick_out.update_fence_fd);
-	/* Step 2: check probe for the update slot+value. Prompt
-	 * translation proves the writeback landed. */
+	/* Step 2: check probe for the SECOND update slot+value (r233:
+	 * proves the translator's update loop publishes every entry,
+	 * not just the first). */
 	memset(&kick_in, 0, sizeof(kick_in));
 	memset(&kick_out, 0, sizeof(kick_out));
 	cufo[0] = sync_out.sync_pmr;
 	kick_in.kicksync_context = ks_out.kicksync_context;
-	kick_in.check_devvar_offset = (u64)(uintptr_t)uoff;
-	kick_in.check_value = (u64)(uintptr_t)uval;
+	{
+		static uint32_t poff[1] = { 8 };
+		static uint32_t pval[1] = { UPDATE_VAL2 };
+
+		kick_in.check_devvar_offset = (u64)(uintptr_t)poff;
+		kick_in.check_value = (u64)(uintptr_t)pval;
+	}
 	kick_in.check_ufo_block = (u64)(uintptr_t)cufo;
 	kick_in.client_check_count = 1;
 	kick_in.update_fence_name = (u64)(uintptr_t)"pvr-update-probe";

@@ -20,14 +20,16 @@ class UpdateWritebackTool(unittest.TestCase):
         cls.src = TOOL.read_text()
 
     def test_update_fire_wired(self):
+        # r233: two update entries now.
         self.assertRegex(self.src,
-                         r'kick_in\.client_update_count = 1;')
+                         r'kick_in\.client_update_count = 2;')
         self.assertIn('kick_in.update_ufo_block', self.src)
         self.assertIn('UPDATE_VAL', self.src)
 
     def test_mixed_fire_wired(self):
         self.assertIn('client_check_count = 2;', self.src)
-        self.assertIn('CHECK_VAL2', self.src)
+        self.assertIn('client_update_count = 2;', self.src)
+        self.assertIn('UPDATE_VAL2', self.src)
         self.assertIn('check slot 1 preset', self.src)
         self.assertIn('check slot 2 preset', self.src)
         self.assertRegex(self.src, r'bridge_call\(fd, 0x2, 0xa,')
