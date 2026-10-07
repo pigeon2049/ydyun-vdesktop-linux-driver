@@ -98,6 +98,27 @@ class TqxFirePath(unittest.TestCase):
         self.assertGreaterEqual(int(m.group(1)), 64,
                                 'table budget must cover the 2112-page scene')
 
+    def test_chunk_loop_splits_full_frame(self):
+        # r280: 1280x1024x4 = 5MB never fits the 256KB scratch; fire must
+        # split into row strips capped at MT_TQX_FIRE_MAX_CHUNKS.
+        self.assertIn('MT_TQX_FIRE_MAX_CHUNKS', self.src)
+        self.assertIn('fire_nfences', self.body)
+        self.assertIn('fire_chunk_h', self.body)
+        self.assertIn('chunks=%u', self.body)
+        self.assertIn('-E2BIG', self.body)
+
+    def test_work_waits_every_chunk_fence(self):
+        self.assertIn('fire_fences[f]', self.work)
+        self.assertIn('fire_nfences', self.work)
+        self.assertIn('chunks=%u', self.work)
+
+    def test_teardown_puts_every_chunk_fence(self):
+        teardown = fn_body(self.src, 'pvr_translator_teardown_locked')
+        self.assertIn('fire_fences[f]', teardown)
+        self.assertIn('fire_nfences', teardown)
+        self.assertNotIn('translator.fire_fence)', teardown,
+                         'singular fence field must be gone')
+
 
 if __name__ == '__main__':
     unittest.main()

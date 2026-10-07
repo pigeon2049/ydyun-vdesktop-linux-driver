@@ -1636,12 +1636,18 @@ struct mt_pvr_translator {
 	/* Live-fire scratch (r267): pre-seal 8MB surface + async
 	 * readback. One fire at a time (fire_pending guards); the work
 	 * touches translator-owned memory only, never file objects.
+	 * Chunked fire (r280): one fence per 256KB chunk, verified in
+	 * order by the single work.
 	 */
+#define MT_TQX_FIRE_MAX_CHUNKS 64U
 	struct mt_bo tqx_scratch;
 	struct work_struct fire_work;
-	struct dma_fence *fire_fence;
+	struct dma_fence *fire_fences[MT_TQX_FIRE_MAX_CHUNKS];
+	u32 fire_nfences;
+	u32 fire_chunk_h;
 	u32 fire_color;
 	u32 fire_pixels;
+	u32 fire_width;
 	u64 fire_seq;
 	bool fire_pending;
 	u64 seq;
@@ -1789,9 +1795,16 @@ static void pvr_translator_teardown_locked(void)
 	 * anything down (it takes no translator_lock, so no deadlock).
 	 */
 	cancel_work_sync(&translator.fire_work);
-	if (translator.fire_fence) {
-		dma_fence_put(translator.fire_fence);
-		translator.fire_fence = NULL;
+	if (translator.fire_nfences) {
+		u32 f;
+
+		for (f = 0; f < translator.fire_nfences; f++) {
+			if (translator.fire_fences[f]) {
+				dma_fence_put(translator.fire_fences[f]);
+				translator.fire_fences[f] = NULL;
+			}
+		}
+		translator.fire_nfences = 0;
 	}
 	if (d && translator.context.process)
 		WARN_ON(mt_execution_context_destroy(&translator.context));
@@ -3693,43 +3706,53 @@ static int pvr_submit3_locate_dst(struct mt_pvr_file *file,
 	return 0;
 }
 
-/* Async scratch readback for live fire (r267). Reads translator fields
+/* Async scratch readback for live fire (r267, chunked r280). Reads
  * lock-free: the previous fire completed (fence signaled, checked under
  * translator_lock at submit) or teardown cancel_work_sync()s this first,
  * so no concurrent writer exists. Never touches file objects.
  */
 static void pvr_translator_fire_work(struct work_struct *ws)
 {
-	struct dma_fence *fence = translator.fire_fence;
-	struct mt_guest_device *d = translator.dev;
-	u32 color = translator.fire_color;
-	u32 pixels = translator.fire_pixels;
-	u64 seq = translator.fire_seq;
-	u32 i, bad = 0;
+	u32 i, bad = 0, pixels;
 	u32 first = 0, last = 0;
+	u64 seq;
+	u32 color;
+	u32 f;
 	long waited;
-	int ret;
+	int ret = 0;
 
 	(void)ws;
-	if (!fence || !d) {
-		pr_info("mt_pvr_bridge: fire work: no fence\n");
-		return;
+	pixels = translator.fire_pixels;
+	color = translator.fire_color;
+	seq = translator.fire_seq;
+	for (f = 0; f < translator.fire_nfences; f++) {
+		struct dma_fence *fence = translator.fire_fences[f];
+
+		if (!fence) {
+			ret = -ENODATA;
+			break;
+		}
+		waited = dma_fence_wait_timeout(fence, false,
+				msecs_to_jiffies(MT_TRANSLATE_FENCE_WAIT_MS));
+		ret = waited > 0 ? dma_fence_get_status(fence) :
+			(waited < 0 ? (int)waited : -ETIMEDOUT);
+		if (ret != 1)
+			break;
+		ret = 0;
 	}
-	waited = dma_fence_wait_timeout(fence, false,
-			msecs_to_jiffies(MT_TRANSLATE_FENCE_WAIT_MS));
-	ret = waited > 0 ? dma_fence_get_status(fence) :
-		(waited < 0 ? (int)waited : -ETIMEDOUT);
-	if (ret != 1) {
-		pr_info("mt_pvr_bridge: fire seq=%llu: fence %d\n",
-			(unsigned long long)seq, ret ? ret : -EIO);
+	if (ret) {
+		pr_info("mt_pvr_bridge: fire seq=%llu: fence %u/%u %d\n",
+			(unsigned long long)seq, f, translator.fire_nfences,
+			ret ? ret : -EIO);
 		goto put;
 	}
 	for (i = 0; i < pixels; i++) {
 		u32 v = 0;
 
-		ret = pvr_translator_bo_read(d, &translator.tqx_scratch,
-					     (u64)i * sizeof(u32),
-					     &v, sizeof(v));
+		ret = pvr_translator_bo_read(translator.dev,
+					     &translator.tqx_scratch,
+				     (u64)i * sizeof(u32),
+				     &v, sizeof(v));
 		if (ret)
 			break;
 		if (i == 0)
@@ -3739,11 +3762,16 @@ static void pvr_translator_fire_work(struct work_struct *ws)
 		if (v != color)
 			bad++;
 	}
-	pr_info("mt_pvr_bridge: fire seq=%llu: verified=%d bad=%u/%u first=%#x last=%#x\n",
+	pr_info("mt_pvr_bridge: fire seq=%llu: verified=%d bad=%u/%u first=%#x last=%#x chunks=%u\n",
 		(unsigned long long)seq, !ret && !bad, bad, pixels,
-		first, last);
+		first, last, translator.fire_nfences);
 put:
-	dma_fence_put(fence);
+	for (f = 0; f < translator.fire_nfences; f++) {
+		if (translator.fire_fences[f]) {
+			dma_fence_put(translator.fire_fences[f]);
+			translator.fire_fences[f] = NULL;
+		}
+	}
 }
 
 /* Live TQX fill fire (r267): submit the dry-run program at the scratch
@@ -3767,29 +3795,54 @@ static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 	struct mt_tqx_fill_input fi;
 	struct mt_tqx_work work = { 0 };
 	struct mt_bo *bos[4];
-	struct dma_fence *fence = NULL;
 	u32 cores;
-	u64 bytes;
+	u64 row_bytes;
+	u32 chunk_rows;
+	u32 nchunks;
+	u32 c;
 	int ret;
 
 	if (!translator.tqx_ready || !translator.tqx_slices_ready)
 		return -EOPNOTSUPP;
 	if (translator.fire_pending) {
-		if (translator.fire_fence &&
-		    !dma_fence_is_signaled(translator.fire_fence))
-			return -EBUSY;
-		if (translator.fire_fence) {
-			dma_fence_put(translator.fire_fence);
-			translator.fire_fence = NULL;
+		u32 f;
+		bool busy = false;
+
+		for (f = 0; f < translator.fire_nfences; f++) {
+			if (translator.fire_fences[f] &&
+			    !dma_fence_is_signaled(translator.fire_fences[f])) {
+				busy = true;
+				break;
+			}
 		}
+		if (busy)
+			return -EBUSY;
+		for (f = 0; f < translator.fire_nfences; f++) {
+			if (translator.fire_fences[f]) {
+				dma_fence_put(translator.fire_fences[f]);
+				translator.fire_fences[f] = NULL;
+			}
+		}
+		translator.fire_nfences = 0;
 	}
 	(void)dst_binding;
 	ret = pvr_submit3_locate_dst(file, ccb_pmr, &dst, &dst_binding,
 				     &rect, prog, sizeof(prog), &surf);
 	if (ret)
 		return ret;
-	bytes = (u64)rect.width * rect.height * MT_TRANSFER_PIXEL_BYTES;
-	if (!bytes || bytes > MT_TQX_SCRATCH_BYTES)
+	/* Chunked fire (r280): the 256KB scratch cannot hold a full frame
+	 * (1280x1024x4 = 5MB), so split the rect into row strips that each
+	 * fit. Every chunk reuses the scratch base; each fence proves its
+	 * chunk executed, and the work verifies the last chunk's content.
+	 */
+	if (!rect.width || !rect.height)
+		return -EINVAL;
+	row_bytes = (u64)rect.width * MT_TRANSFER_PIXEL_BYTES;
+	if (!row_bytes || row_bytes > MT_TQX_SCRATCH_BYTES)
+		return -E2BIG;
+	chunk_rows = (u32)(MT_TQX_SCRATCH_BYTES / row_bytes);
+	nchunks = (rect.height + chunk_rows - 1) / chunk_rows;
+	if (!nchunks || nchunks > MT_TQX_FIRE_MAX_CHUNKS)
 		return -E2BIG;
 	ret = mt_tqx_topology_from_info(&cores, &d->gem.profile,
 					(void *)d->state.info, PAGE_SIZE);
@@ -3798,55 +3851,75 @@ static int pvr_submit3_transfer_fire(struct mt_pvr_file *file,
 	fill_ws = kvzalloc(sizeof(*fill_ws), GFP_KERNEL);
 	if (!fill_ws)
 		return -ENOMEM;
-	fi = (struct mt_tqx_fill_input){
-		.destination_va = MT_TQX_SCRATCH_VA,
-		.command_va = MT_TQX_CMD_VA,
-		.element_bytes = MT_TRANSFER_PIXEL_BYTES,
-		.width = rect.width, .height = rect.height,
-		.x = 0, .y = 0, .rect_width = rect.width,
-		.rect_height = rect.height,
-		.color = { rect.color, 0, 0, 0 },
-	};
 	bos[0] = &translator.tqx_cmd;
 	bos[1] = &translator.tqx_scratch;
 	bos[2] = &translator.tqx_dma;
 	bos[3] = &translator.tqx_state;
-	WRITE_ONCE(pvr_translator_upload_dev, d);
-	mutex_lock(d->shared_boot.buffers->lock);
-	ret = mt_tqx_fill_work_prepare(&work, fill_ws, &upload,
-			&d->shared_boot, &d->gem.profile, cores,
-			&translator.tqx_context, bos, &fi, MT_TQX_DMA_VA,
-			MT_TQX_STATE_VA);
-	mutex_unlock(d->shared_boot.buffers->lock);
-	WRITE_ONCE(pvr_translator_upload_dev, NULL);
+	for (c = 0; c < nchunks; c++) {
+		struct dma_fence *fence = NULL;
+		u32 rows = min(chunk_rows, rect.height - c * chunk_rows);
+
+		memset(&work, 0, sizeof(work));
+		fi = (struct mt_tqx_fill_input){
+			.destination_va = MT_TQX_SCRATCH_VA,
+			.command_va = MT_TQX_CMD_VA,
+			.element_bytes = MT_TRANSFER_PIXEL_BYTES,
+			.width = rect.width, .height = rows,
+			.x = 0, .y = 0, .rect_width = rect.width,
+			.rect_height = rows,
+			.color = { rect.color, 0, 0, 0 },
+		};
+		WRITE_ONCE(pvr_translator_upload_dev, d);
+		mutex_lock(d->shared_boot.buffers->lock);
+		ret = mt_tqx_fill_work_prepare(&work, fill_ws, &upload,
+				&d->shared_boot, &d->gem.profile, cores,
+				&translator.tqx_context, bos, &fi, MT_TQX_DMA_VA,
+				MT_TQX_STATE_VA);
+		mutex_unlock(d->shared_boot.buffers->lock);
+		WRITE_ONCE(pvr_translator_upload_dev, NULL);
+		if (ret) {
+			if (work.context)
+				WARN_ON(mt_tqx_work_cancel(&work));
+			goto fail_chunks;
+		}
+		mutex_lock(&d->state.trial_lock);
+		d->markers.ready = true;
+		d->markers.work_ready = true;
+		ret = d->markers.ops->submit_tqx_work(&d->markers, &work,
+						      &fence);
+		d->markers.work_ready = false;
+		d->markers.ready = false;
+		mutex_unlock(&d->state.trial_lock);
+		if (ret) {
+			if (work.context)
+				WARN_ON(mt_tqx_work_cancel(&work));
+			goto fail_chunks;
+		}
+		translator.fire_fences[c] = fence;
+	}
 	kvfree(fill_ws);
-	if (ret) {
-		if (work.context)
-			WARN_ON(mt_tqx_work_cancel(&work));
-		return ret;
-	}
-	mutex_lock(&d->state.trial_lock);
-	d->markers.ready = true;
-	d->markers.work_ready = true;
-	ret = d->markers.ops->submit_tqx_work(&d->markers, &work, &fence);
-	d->markers.work_ready = false;
-	d->markers.ready = false;
-	mutex_unlock(&d->state.trial_lock);
-	if (ret) {
-		if (work.context)
-			WARN_ON(mt_tqx_work_cancel(&work));
-		return ret;
-	}
-	translator.fire_fence = fence;
+	translator.fire_nfences = nchunks;
+	translator.fire_chunk_h = chunk_rows;
+	translator.fire_width = rect.width;
 	translator.fire_color = rect.color;
-	translator.fire_pixels = rect.width * rect.height;
+	translator.fire_pixels = rect.width *
+		min(chunk_rows, rect.height - (nchunks - 1) * chunk_rows);
 	translator.fire_seq = ++translator.seq;
 	translator.fire_pending = true;
 	schedule_work(&translator.fire_work);
-	pr_info("mt_pvr_bridge: fire seq=%llu: submitted pixels=%u color=%#x\n",
-		(unsigned long long)translator.fire_seq,
+	pr_info("mt_pvr_bridge: fire seq=%llu: submitted chunks=%u pixels=%u color=%#x\n",
+		(unsigned long long)translator.fire_seq, nchunks,
 		translator.fire_pixels, translator.fire_color);
 	return 0;
+fail_chunks:
+	kvfree(fill_ws);
+	for (c = 0; c < nchunks; c++) {
+		if (translator.fire_fences[c]) {
+			dma_fence_put(translator.fire_fences[c]);
+			translator.fire_fences[c] = NULL;
+		}
+	}
+	return ret;
 }
 
 static int pvr_submit3_transfer_dry_run(struct mt_pvr_file *file,
