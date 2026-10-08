@@ -393,9 +393,12 @@ static int mt_reserve_memory(struct pci_dev *pdev, struct mt_guest *g)
 	u64 first_table_pa;
 	u32 dm;
 	int ret;
+	u32 reg890;
 	if (!g->queried)
 		return -ENODATA;
-	if (readl(g->regs + 0x890) != 0 || readl(g->regs + 0x898) != 1)
+	/* 0x890==2 accepted (see mt_probe). */
+	reg890 = readl(g->regs + 0x890);
+	if ((reg890 != 0 && reg890 != 2) || readl(g->regs + 0x898) != 1)
 		return -EBUSY;
 	ret = mt_vram_init(&g->vram, pdev, (void *)g->info, PAGE_SIZE);
 	if (ret)
@@ -1209,7 +1212,10 @@ static int mt_read_device_info(struct pci_dev *pdev, struct mt_guest *g)
 {
 	if (!g->info)
 		return -EINVAL;
-	if (readl(g->regs + 0x890) != (recover_channels ? 1 : 0) ||
+	/* 0x890==2 accepted when trial_connect (see mt_probe). */
+	u32 reg890 = readl(g->regs + 0x890);
+	if ((reg890 != (recover_channels ? 1 : 0) &&
+	     !(trial_connect && !recover_channels && reg890 == 2)) ||
 	    readl(g->regs + 0x898) != 1)
 		return -EBUSY;
 	memset((void *)g->info, 0, PAGE_SIZE);
@@ -1320,8 +1326,13 @@ static int mt_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	}
 	pci_set_drvdata(pdev, g);
 	if (query_info) {
-		/* Recovery is restricted to the orphaned Guest=1/FW=1 session. */
-		if (readl(g->regs + 0x890) != (recover_channels ? 1 : 0) ||
+		/* Recovery is restricted to the orphaned Guest=1/FW=1 session.
+		 * 0x890==2 (trial session active, per mt_runtime_can_submit) is also
+		 * accepted when trial_connect: firmware may boot with the session
+		 * indicator set (cold boot does not clear it). */
+		u32 reg890 = readl(g->regs + 0x890);
+		if ((reg890 != (recover_channels ? 1 : 0) &&
+		     !(trial_connect && !recover_channels && reg890 == 2)) ||
 		    readl(g->regs + 0x898) != 1) {
 			ret = -EBUSY;
 			goto unmap;
