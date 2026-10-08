@@ -1,0 +1,10 @@
+Function "RGXTDMSubmit" not defined.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGABRT, Aborted.
+0x00007ffff72a069c in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#0  0x00007ffff72a069c in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff724bc42 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff72344ac in abort () from /lib/x86_64-linux-gnu/libc.so.6
+[Inferior 1 (process 142482) killed]

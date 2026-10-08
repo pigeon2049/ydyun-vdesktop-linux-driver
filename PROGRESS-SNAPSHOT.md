@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r323 setup 全过（批准执行）**：三元组全进入全返回（含参数），abort 在其下游、submit 未达；dprintf 文件脚本法定稿；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r323-setup-trace.md` + 双 `.txt`。
+
 - **r322 桩读参（批准执行）**：abort 调用点三命中；`rdi` 系堆 job 结构（指针×5 + 计数 + cookie）；abort 在 `RGXTDMSubmit` 内自杀（尾跳）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r322-abort-stub-params.md` + 双 `.txt`。
 
 - **r321 尾跳定锤（离线）**：abort 经 file `0x88650` 尾跳直达 abort 调用点（非直接调用；解释 core 两帧栈 + r320 未命中）；helper 为静态函数名不可考；r322 断调用点读参。无代码改动。见 `reports/r321-abort-tailjump.md`。

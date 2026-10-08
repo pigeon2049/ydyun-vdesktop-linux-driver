@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r322：abort 桩命中读参，批准执行）
+## 本轮进展（r323：setup 三元组全过，批准执行）
 
-- GDB 文件脚本法断调用点三命中；rdi 系堆 job 结构（非字符串）；abort 在 RGXTDMSubmit 内（尾跳）；校验条件仍未命名。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
+- BlitInit/CheckFences/LookUpEOT 全进入全返回（含参数）；abort 在下游，RGXTDMSubmit 未达；dprintf 文件脚本法定稿。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，窗口零新增 WARN。无代码改动。
 - **Freeze 已恢复。**
-- 遗留：RGXTDMSubmit 对齐反汇编找 abort 分支；或 job 结构差分。已推送（恢复 push 习惯）。
+- 遗留：LookUpEOT 返回值/出参（断点停机读 rax 或静态跟分支）。已推送。
 ---
 
