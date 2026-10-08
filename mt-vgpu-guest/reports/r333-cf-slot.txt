@@ -1,0 +1,6 @@
+Breakpoint 2 at 0x7ffff7465240Breakpoint 3 at 0x7ffff742c8ccARMED cf=0x7ffff7465240 ab=0x7ffff742c8cc
+CF hit=1 type=0 rsi204=1 flags=0 a8=0 r8=0x7fffffffc344
+ABORT slot=0x7fffffffc344
+0x7fffffffc344:	0x00000001	0x00000000	0x00000000	0x00000000
+0x7fffffffc344:	0x0000000000000001	0x0000000000000000
+[Inferior 1 (process 17545) killed]

@@ -12,10 +12,11 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r332：活会话重建，批准执行）
+## 本轮进展（r333：出参判决，批准执行）
 
-- 冷启动后重建：cold 因 `guest=0` 被拒（设备已干净，非缺口）→ fresh-trial 新 trial `20261008T025100Z-c85ff8c5`（0/0/1/1/1，固件 sha 不变）→ 默认桥 + L3 双绿（refs 1/0，零新增 WARN）。**Freeze 生效。**
-- 遗留：r328 `[r8]` 出参读数（下一轮，需批准）。
+- GDB 活体单发 copy tq-perf（`=2` 窗口）：CF 一次命中（0/1/0/0，rsi=ctx 反证）→ abort 点槽值仍为 1——mismatch 解读死亡，abort 在下游。默认回 + L3 双绿，零新增 WARN。**Freeze 已恢复。**
+- 副产 `scripts/cf-slot-window.sh` 落库；GDB `printf` 不吃 python 变量教训。`bt 8` 无输出缺口记报告。
+- 遗留：LookUpEOT 后状态（release 返回值或 job 差分），另行批准。
 ---
 
 ## 本轮进展（r331：头文件拼写收尾，离线）

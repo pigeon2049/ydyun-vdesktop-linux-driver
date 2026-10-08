@@ -281,6 +281,7 @@
 | r327 | CheckFences 反汇编切入（批准执行）：真入口对齐解码 type/count 开关；dprintf 配方首发转义漏改；L3 双绿，窗口零新增 WARN |
 | r328 | CheckFences 字段值 + 返回值被忽略（批准执行）：type=0/count=1/flags=0/a8=0 两轮一致；r8 系出参；L3 双绿，窗口零新增 WARN |
 | r329 | 桌面 GPU 禁用与菜单持久化（用户指令）：--disable-gpu 已写入菜单覆盖层并验证生效，但不释放 renderD128（两次实锤）；GDB 函数注入致 UI 重启事故备忘 |
+| r333 | CheckFences出参判决：abort时[r8]仍=1，mismatch解读死亡，abort在其下游；窗口脚本落库 |
 | r332 | 冷启动后活会话重建：新trial 20261008T025100Z-c85ff8c5，默认桥+L3全绿，freeze生效（cold因设备已干净被拒非缺口） |
 | r331 | 头文件 userspace 拼写收尾：双#else修复+9处pr_info转宏，L1+L2全绿 |
 | r330 | 桌面进程全清（用户指令冷启动前）：exe 精确匹配清 10 进程，serve 保留；现为天然重载窗口（ref 0） |
