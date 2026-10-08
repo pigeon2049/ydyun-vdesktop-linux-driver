@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r336 同路径无人写（批准执行）**：`=2` 窗口 GDB 单发——`+0x3320` 入口锚定 + 计数槽写观察零命中 + 分发 `0/1/0`；默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r336-nowrite-inpath.md` + 双证据。
+
 - **r335 调用链静态闭合（离线）**：多入口簇定锤，TQ 经 `+0x3320=0x889c0`（`0x601dd` 直调→分发→`+0x2ff0`→abort 循环）；entry 零命中得解，纠算术一处。会话未碰。见 `reports/r335-callchain-static.md`。
 
 - **r334 空表断言（批准执行）**：`=2` 窗口 GDB 单发 copy tq-perf——release 内断言首轮即中（`ebx=0/edx=0`，容量槽 0）；默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r334-empty-table-assert.md` + 双证据。

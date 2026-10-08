@@ -1,0 +1,12 @@
+Breakpoint 2 at 0x7ffff74889c0Breakpoint 3 at 0x7ffff7488a15Breakpoint 4 at 0x7ffff742c8ccARMED entry=0x7ffff74889c0 disp=0x7ffff7488a15 abort=0x7ffff742c8cc
+ENTRY rdi=0x7fffffffd470 rsi=0x555555580240 rdx=0x7fffffffcd00
+CSLOT armed
+DISP m0=0 m8=1 ma0=0
+ABORTSITE
+rbx            0x0                 0
+rdx            0x0                 0
+rax            0x5555555808f0      93824992413936
+rdi            0x555555581380      93824992416640
+rsi            0x0                 0
+rcx            0x160000            1441792
+[Inferior 1 (process 19704) killed]
