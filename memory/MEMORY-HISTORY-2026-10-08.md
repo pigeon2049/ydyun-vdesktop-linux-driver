@@ -790,3 +790,16 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 **门禁**：441 Python + 299 C 全绿（新增 `tests/test_render_context_layout.py` 3 tests：layout pins/sizeof+offsets、render_ctx 存在性、kzalloc NULL 验证）；`make kernel` W=1 零警告；反向验证通过（stride 改 32MB → 1 failure）。
 
 报告 `reports/r388-per-context-struct-defined.md`。R6-2（create 真实化）前置就绪。
+
+
+## r389 (2026-10-08): R6-2 Create 真实化活体验证通过（11 BO，无 oops）
+
+**实现**：`mt_render_context_create()`（`kernel/recovery/mt_pvr_bridge.c`，~200 行）——8 步流程：per-context VM（`d->buffers`-backed 64KB 页表，解决 r376 synthetic VM 的 store/ops 不匹配）→ 11×（`mt_bo_create` + `pvr_translator_bo_write` 写初始数据 + `mt_gpu_vm_bind_many` 到 `0x70000000+i*16MB`）→ `mt_gfx_context_build_csw()` → `mt_execution_process_create` + `mt_execution_context_create(5,0)` → `resources_ready=true`；任一步失败逆序回滚。`pvr_cmd_render2_create`（`0x82:0x12`）改调它，不再 mint 空 token。`struct mt_pvr_render_context` 加 `pt_bo` 字段（1544B）。
+
+**活体 V1**：单次 `0x82:0x12` → 11/11 BO 绑定成功、CSW built、exec created、`resources_ready=true`，dmesg 零 WARN/BUG/Oops；bridge 重载一次（r360 流程），probe 未动。实现中修正：16KB 页表仅容 2 ranges（ENOSPC）→ 增至 64KB。
+
+**门禁**：450 Python + 299 C 全绿（+9 新测试 `test_render_context_create.py`）；`make kernel` W=1 零警告；反向验证通过。
+
+**诚实边界**：仅 V1；R6-3（destroy）、R6-4（kick 解析）、V3/V4 待后续；probe ref 1→13（R6-3 释放）。
+
+报告 `reports/r389-render-context-create-live-verified.md`，证据 `reports/r389-dmesg-v1.txt`。

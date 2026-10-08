@@ -981,6 +981,11 @@ as-built 机制（`da3df8b`，r45–r63）：
 - Gate: 450+299 green, kernel W=1 zero warnings, reverse validation passed.
 - Honest: V1 only; R6-3 (destroy), R6-4 (kick parse), V3/V4 future.
 
+### r392 (2026-10-08): R6-5 CCB research verdict — no server-side CCB needed (offline)
+- `0x88:0x5` (BridgeRGXCreateKickSyncContext2) empty token is sufficient; R6-5 closed as wont-do by design. CCB = command ring, two-sided: UMD-side SubmissionBufAllocator (userspace, render ctx +0x200, r199) + server-side device-memory ring (Windows KMD internal, r56 rung6: no UMD-visible PMR/heap).
+- Our DDK2 path builds firmware packets directly in-kernel (DM3/0x66 r366, DM2/0x68 r382) and submits via DM — bypasses the CCB-ring model entirely; 0x82:0xC / 0x82:0x14 IN have no kicksync field; 0x88:0x2/3/4 only existence-check the handle.
+- r144 live proof: after harness fix (&b5 -> b5*), full CCB lifecycle (0x88:0x5 create -> 0x88:0x6 destroy) all ret=0, zero crashes — r143 crash was a harness bug, not a bridge gap.
+- Independent of R6 (render ctx); does not block real UMD. Gate: check-offline green (research only, no code).
 ### r391 (2026-10-08): R6-4 Kick-side render_ctx parsing, live V3 verified (no oops)
 - `pvr_cmd_musakickgfx2` (0x82:0xC) resolves `h_render_context` via `pvr_object_find(..., MT_PVR_KIND_CONTEXT)`; uses per-context VM when `resources_ready`, else per-file fallback (Phase 1 marker protection). V2 bind validation on selected VM.
 - TA marker keeps TA-dm context (render_ctx exec_ctx is node_type 5/DM3D; real exec submission = R6-5). 0x82:0x14 unchanged (observer).

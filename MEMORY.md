@@ -31,6 +31,7 @@
 > r388 轮按 §4 清理：r386、r384 节已移入归档。
 > r390 轮按 §4 清理：r387 节已移入归档。
 > r391 轮按 §4 清理：r388 节已移入归档。
+> r392 轮按 §4 清理：r389 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
@@ -38,6 +39,13 @@
 
 
 
+## r392 (2026-10-08): R6-5 调研结论——server 侧 CCB 不需要真实化（离线）
+
+结论：0x88:0x5（BridgeRGXCreateKickSyncContext2）空 token 已足够，R6-5 关闭为 wont-do by design。CCB=命令环，两面：UMD 侧 SubmissionBufAllocator（用户态，render context +0x200，r199）+ server 侧设备内存 ring（Windows KMD 内部分配，r56 rung6 无 UMD 可见 PMR/heap）。本桥 DDK2 路径直接在内核构造固件包（DM3/0x66 r366、DM2/0x68 r382）经 DM 提交，不经 CCB ring；0x82:0xC / 0x82:0x14 IN 无 kicksync 字段；0x88:0x2/3/4 仅存在性校验。r144 活体证：harness 传参修正后 CCB 全生命周期（create→destroy）全 0、零崩溃——r143 崩溃是 harness bug 非桥缺口。与 R6 独立，不阻塞真实 UMD。
+
+门禁：check-offline 全绿（纯调研无代码改动）。
+
+报告 reports/r392-ccb-no-server-state-needed.md，证据 reports/r392-evidence.txt。
 ## r391 (2026-10-08): R6-4 Kick 侧 render_ctx 解析活体验证通过（V3 隔离）
 
 **实现**：`pvr_cmd_musakickgfx2`（0x82:0xC）经 `pvr_object_find(file, in.h_render_context, MT_PVR_KIND_CONTEXT)` 解析 render_ctx；若 `resources_ready` 则 `kick_vm=rctx->vm`（per-context VM），否则回退 `file->ta_vm_ctx`（per-file，Phase 1 保护 marker）。V2 bind 验证跑在选中的 VM 上。TA marker 的 `work->context` 仍用 TA-dm（`render_ctx->exec_ctx` 为 node_type 5/DM3D，真实 exec 提交待 R6-5）；0x82:0x14 未动（仍 observer）。
@@ -63,16 +71,4 @@
 **诚实边界**：probe ref 基线 13（含 r389 旧泄漏 12 refs，下次冷重启清零）；V2 delta 25→13 证明新路径无泄漏；半初始化 destroy 未活体 fault 注入（仅代码审查）；V3（多 context 隔离）、R6-4（kick 解析）待后续。
 
 报告 `reports/r390-render-context-destroy-verified.md`，证据 `reports/r390-dmesg-v2.txt`。
-
-## r389 (2026-10-08): R6-2 Create 真实化活体验证通过（11 BO，无 oops）
-
-**实现**：`mt_render_context_create()`（`kernel/recovery/mt_pvr_bridge.c`，~200 行）——8 步流程：per-context VM（`d->buffers`-backed 64KB 页表，解决 r376 synthetic VM 的 store/ops 不匹配）→ 11×（`mt_bo_create` + `pvr_translator_bo_write` 写初始数据 + `mt_gpu_vm_bind_many` 到 `0x70000000+i*16MB`）→ `mt_gfx_context_build_csw()` → `mt_execution_process_create` + `mt_execution_context_create(5,0)` → `resources_ready=true`；任一步失败逆序回滚。`pvr_cmd_render2_create`（`0x82:0x12`）改调它，不再 mint 空 token。`struct mt_pvr_render_context` 加 `pt_bo` 字段（1544B）。
-
-**活体 V1**：单次 `0x82:0x12` → 11/11 BO 绑定成功、CSW built、exec created、`resources_ready=true`，dmesg 零 WARN/BUG/Oops；bridge 重载一次（r360 流程），probe 未动。实现中修正：16KB 页表仅容 2 ranges（ENOSPC）→ 增至 64KB。
-
-**门禁**：450 Python + 299 C 全绿（+9 新测试 `test_render_context_create.py`）；`make kernel` W=1 零警告；反向验证通过。
-
-**诚实边界**：仅 V1；R6-3（destroy）、R6-4（kick 解析）、V3/V4 待后续；probe ref 1→13（R6-3 释放）。
-
-报告 `reports/r389-render-context-create-live-verified.md`，证据 `reports/r389-dmesg-v1.txt`。
 
