@@ -304,3 +304,4 @@
 | r376 | Bridge-side proper VM init (no probe reload): deleted r375 manual assembly (oops cause); synthetic page-table BO + mt_gpu_vm_init() per proven 3D pattern; probe pinned, no reload needed; gate 428+299 green, W=1 zero warnings; V1/V2 live pending (harness issue) |
 | r377 | Harness INIT 修复，V1/V2 活体验证通过（无 oops） | r377-harness-fixed-v1v2-verified.md |
 | r378 | 真实页表绑定验证通过（V2 非空，无 oops）：1 真实页绑定到 VA 0x70000000，bind_many 返回 0；VM 初始化正式，清理无泄漏；marker 回归正常；firmware VA 翻译待验证 | r378-real-bind-verified.md |
+| r379 | 0x82:0x14 MUSAKICKGFX5 research: accept-and-log observer, 108B IN/4B OUT in wire.h, DM2 inferred, V1-V4 await live | r379-82x14-musakickgfx5-research.md |

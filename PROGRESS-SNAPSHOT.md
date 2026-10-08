@@ -962,3 +962,4 @@ as-built 机制（`da3df8b`，r45–r63）：
 - 门禁 428+299 全绿；本地提交待执行。
 
 - **r378** (2026-10-08): 真实页表绑定验证通过——1 真实页绑定到 VA 0x70000000，`mt_gpu_vm_bind_many()` 返回 0，无 oops；r375 oops 根因彻底消除；marker 回归正常；firmware VA 翻译待验证。
+- **r379** (2026-10-08): 0x82:0x14 (MUSAKICKGFX5) 调研——R3 缺口现状：桥侧为 r215 accept-and-log observer（108B IN 解码后返回 0，不执行）；wire 结构已入库（KMD 5.2.0 头）；与 0x82:0xC 差异：单一 submission、render_context 显式、OUT 无回填；设计 DM2 + 第 6 op；V1–V4 待活体验证。门禁全绿。
