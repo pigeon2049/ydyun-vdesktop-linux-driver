@@ -1,0 +1,10 @@
+R354: CAP b10=0x55d3fc37e300 desc=0x55d3fc35c800 desc+8=1
+R354: POKE slot=0x55d3fc361338 rdx=0x55d3fc3612f0 old=0x0 desc=0x55d3fc35c800
+R354: POKE verify=0x55d3fc35c800
+R354: SyncPrimRef -> 0
+R354: SyncPrimRef -> 0
+R354: 92930 entry rdi=0x6000 rsi=0x82 rdx=0xc
+R354: reached 0x929ce pc=0x7fc6746929ce, continuing
+R354: signal: SIGSEGV
+R354: pc=0x7fc6746929ce
+R354: fault_addr=0x6000

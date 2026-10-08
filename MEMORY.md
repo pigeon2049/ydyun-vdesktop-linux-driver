@@ -14,6 +14,14 @@
 
 
 
+## 本轮进展（r354：T2-g，离线 fabricated）
+
+- 定性：`0x929ce` 处 SIGSEGV（`mov (%rax),%edi`，`rax=fault_addr=0x6000`）是 **fabricated artifact**，非真实执行链问题。`0x6000` 经 GDB 实测溯源自 `GetSrvHandle @ 0x3c1c0`（`rdi ? *(uint64_t*)rdi : 0`）的返回值——某结构体首 qword 存的是句柄值而非指针；该值经 `0x79733 → 0x7a30b → 0x36ec0 → 0x37111 → 0x92930 (rdi=0x6000,rsi=0x82,rdx=0xc)`，在 `0x929ce` 被当作指针解引用以取 ioctl fd（`ioctl([rax], 0xc0206440=_IOWR('d',64,32), r15)`）。`0x6000` 非法指针在任何真实执行中同样会崩，而官方驱动真机正常，故真实路径下该字段必为有效指针——fabricated harness 未做完整 PVRSRV 建连/句柄表初始化所致。零硬件触碰，freeze 继续。
+- 方法修正：pending 断点落在 `RGXKickTA+17` 而非入口，`pc-0x7afd0` 误算 base 差 `0x11` 致首轮行为回退到 `→3`；改由 `info proc mappings` 的 `r--p` 映射取 base 后复现成功（`SyncPrimRef → 0` ×2，再现 `0x929ce` 崩溃）。
+- 遗留：fabricated TA 路径天花板已到（下游是设备 ioctl 建连路径）；下一步转向真实 DDK2 render backend（STATUS.md #1）。
+---
+
+
 ## 本轮进展（r353：T2-f，离线 fabricated）
 
 - 端到端验证：在 `0x79c92` 处把 b10 真描述子 poke 进槽 0（`$rdx+0x48`，原 NULL）后，完整 `RGXKickTA` 路径上 `SyncPrimRef` 两次返回 0，`SubmitTA` 未跳错误出口。T2 系列核心问题闭合。零硬件触碰，freeze 继续。
@@ -22,14 +30,3 @@
 - 遗留：T2-g（`0x929ce` SIGSEGV 定位）。
 ---
 
-## 本轮进展（r352：T2-e，离线 fabricated）
-
-- b10 描述子直接验证：`SyncPrimRef(b10@0)` 返回 0（成功），`SyncPrimRef(NULL)` 返回 3（基线）；描述子 `+8=1` 符合要求。结合 r351 选中逻辑，回填槽 0 `+0x48` 后应成功。零硬件触碰，freeze 继续。
-- `r14+0x18` 链静态定位：r14=RGXKickTA `rbp-0x170` 栈结构体，经 PrepareTA 原样传给 SubmitTA；`+0x18` 由 PrepareTA 写入。具体来源 buffer 未实测（GDB 在完整 mapA 下触发堆布局敏感 SIGSEGV，已穷尽绕行方案）。
-- 遗留：T2-f（`r14+0x18` 来源实测定位，或 harness 层 poke 回填后跑完整 RGXKickTA）。
----
-
-- b10 描述子直接验证： 返回 0（成功）， 返回 3（基线）；描述子  符合要求。结合 r351 选中逻辑，回填槽 0  后应成功。零硬件触碰，freeze 继续。
--  链静态定位：r14=RGXKickTA  栈结构体，经 PrepareTA 原样传给 SubmitTA； 由 PrepareTA 写入。具体来源 buffer 未实测（GDB 在完整 mapA 下触发堆布局敏感 SIGSEGV，已穷尽绕行方案）。
-- 遗留：T2-f（ 来源实测定位，或 harness 层 poke 回填后跑完整 RGXKickTA）。
----
