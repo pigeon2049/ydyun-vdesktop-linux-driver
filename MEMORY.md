@@ -12,10 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r325：嵌套与扫描双空跑，批准执行）
+## 本轮进展（r326：EOT 假设证伪，批准执行）
 
-- catch 内建断点可用，但 `finish` 嵌套静默失败；`LookUpEOT` 无 `ret`（尾跳风格）；返值改道 core 出参/行为判据。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
+- 同窗口先 PASS blit 再 tq-perf：仍同形 abort（134/8206/101 全零/末 map）；完成态非钥匙。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
 - **Freeze 已恢复。**
-- 遗留：core 读 LookUpEOT 出参（离线，r317 core 现成）；或行为判据窗口。已推送。
+- 遗留：CheckFences 读写（fence 状态机嫌疑）或静态跟分支。已推送。
 ---
 

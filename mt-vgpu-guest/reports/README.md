@@ -277,6 +277,7 @@
 | r323 | setup 三元组全进入（批准执行）：BlitInit/CheckFences/LookUpEOT 入口全命中（dprintf 文件脚本法定稿）；“全返回”待返值证据（r324 收敛）；L3 双绿，窗口零新增 WARN |
 | r324 | LookUpEOT 返值抓取未遂（批准执行）：finish 版脚本空跑（pending 未命中）；r323“全返回”收敛为“全进入”；两步走方案已定；L3 双绿 |
 | r325 | 嵌套断点与返值扫描双空跑（批准执行）：finish 嵌套静默失败；LookUpEOT 无 ret（尾跳风格）；返值改 core 出参/行为判据；L3 双绿 |
+| r326 | 先 fill 后 copy 仍 abort（批准执行）：translator 完成态不能解除 copy 中止；EOT/会话态假设证伪；L3 双绿，窗口零新增 WARN |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |

@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r326 EOT 证伪（批准执行）**：先 PASS blit 再 tq-perf，仍同形 abort——完成态不是钥匙，abort 条件自带；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r326-fill-then-copy.md` + 双 `.jsonl`/stdout。
+
 - **r325 双空跑（批准执行）**：嵌套 `finish` 静默失败；`LookUpEOT` 无 `ret`（尾跳风格）；返值改 core 出参/行为判据；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r325-nested-miss.md` + 三 `.txt`/`.jsonl`。
 
 - **r324 未遂（批准执行）**：finish 版脚本空跑（pending 断点未命中）；r323“全返回”收敛为“全进入”；返值改两步走（裸断停机 + 第二会话 finish）。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r324-lookupret-miss.md` + `.txt`。
