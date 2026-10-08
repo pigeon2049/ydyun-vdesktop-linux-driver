@@ -1004,3 +1004,4 @@ as-built 机制（`da3df8b`，r45–r63）：
 - Live V2: V2a explicit destroy 25→13 refs (delta -12, all released); V2b file-close 25→13 refs. dmesg zero WARN/BUG/Oops. Bridge reloaded once.
 - Gate: 458+299 green (+8 new tests), kernel W=1 zero warnings, reverse validation passed.
 - Honest: probe ref baseline 13 (r389 old leak, clears on cold reboot); partial-init destroy not fault-injected live; V3/R6-4 future.
+- r394（2026-10-08）：live 前安全测试落地（离线）：三类事故复盘→三类门禁——T1 `tests/test_vm_init_integrity.py`（VM 内部字段赋值禁区：ranges/page_lists/bindings 等禁出 `mt_gpu_vm.h`）；T2 `tests/test_opcode_whitelist.py`（`(dm,opcode)` PROVEN 白名单：trial/DM0、TQX/DM1、3D/DM2、TA/DM3，`(2,0x66)` 永禁，TA 钉 DM3、3D 钉 DM2）；T3 `tests/test_pre_live_safety.py`（强制卸载仓库黑名单）+ `mt-vgpu-guest/scripts/safe_rmmod.sh`（refcount 非 0 拒绝）；pre-live 检查清单 5 条（`(dm,opcode)` 查表 / VM 走 init / 不用 -f / trial 前置 / 单模块）；反向验证 RV1–RV3 全过；门禁 472+299 全绿；本地提交未 push。

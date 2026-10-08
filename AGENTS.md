@@ -60,7 +60,9 @@ NEVER 回改归档文件（`*HISTORY*`、`*2026-09-22*` 只读）。
 3. `timeout` NEVER 落在 bridge ioctl 临界区内；DMA 路径命令只用短超时做挂起
    探测，超时即停手、不堆任务（r67 device-mutex 泄漏只能重启恢复）。
 4. 一次只跑一个 live 实验模块，做完即卸。
-5. 大体积易失产物（bridge trace、CCB dump、GDB 工作区、blit 中间输出）
+5. NEVER `rmmod -f`/`--force`——用 `mt-vgpu-guest/scripts/safe_rmmod.sh`
+   （查 refcount，非 0 拒绝；r394 教训：强卸 ref=1 的 probe 致内核挂起）。
+6. 大体积易失产物（bridge trace、CCB dump、GDB 工作区、blit 中间输出）
    MUST 写硬盘暂存区 `mt-vgpu-guest/build/traces/`（gitignore，硬盘；
    按轮建子目录，用完即清），NEVER 写 `/tmp`（tmpfs 仅 8G 易灌满，
    且重启丢失——r148/r149 trace 前车之鉴）。精选证据拷贝入库
@@ -74,7 +76,9 @@ NEVER 回改归档文件（`*HISTORY*`、`*2026-09-22*` 只读）。
 2. 含代码改动：`make -C mt-vgpu-guest check-offline`（221 Python + 268 C）
    MUST 全绿；改内核再加 `make kernel`（`W=1` 零警告）。
    新增行为 MUST 配门禁测试并做**反向验证**（注入 bug 确认能抓到，再还原）。
-3. 验证靠执行，不靠推断：二进制结论读重定位表/notes 段，不读注释；
+3. live 轮次开工前 MUST 跑 `tests/test_pre_live_safety.py`（r394 pre-live
+   门禁：T1 VM 完整性 + T2 opcode 白名单 + T3 rmmod 安全 + 检查清单）。
+4. 验证靠执行，不靠推断：二进制结论读重定位表/notes 段，不读注释；
    断点地址实测，不从反编译抄；“没匹配上”不等于阴性结论。
    详见快照 §8，四条教训仍然有效。
 
@@ -95,6 +99,8 @@ NEVER 回改归档文件（`*HISTORY*`、`*2026-09-22*` 只读）。
 - [ ] 引用基础硬件事实（显存/PCI/固件/内核版本）吗？（是 → 以快照 §12 硬件画像为准，不凭记忆；会话重建后必须重解 `info_raw` 并 diff，变化即告警——r270 教训：90MB 启动池≠1G 配额）
 - [ ] 本轮目标是 STATUS 下一步之一或用户原话？（都不是 → 先问）
 - [ ] 需要动硬件吗？（需要 → 有明确批准吗？没有 → 只做只读部分）
+- [ ] 提交固件的 (dm, opcode) 在 `tests/test_opcode_whitelist.py` 的 PROVEN 表中吗？
+      （否 → 先开离线研究轮；r380 教训：DM2/0x66 清 trial）
 - [ ] 涉及驱动行为/结构映射吗？（先查 §9 语料 + Win 侧实现，对过 SHA 吗？）
 - [ ] 知道写完后 rNN 编号、MEMORY 节标题、门禁命令分别是什么？
 - [ ] 预计读的文件超过 300 行吗？（超过 → 改查索引/单节，不要通读）
