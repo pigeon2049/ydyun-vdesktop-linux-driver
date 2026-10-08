@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r367 0x82:0xC 真实分发接 submit_ta_work（真机）**：observer（-ENOTTY）改为真实分发 `pvr_cmd_musakickgfx2()`（kernel/recovery/mt_pvr_bridge.c），IN→`mt_ta_submit_params` 映射（D5，kernel/mt_ta_submit.h）。活体（direct ioctl，INIT 建连）：TA+PR kick 诚实拒收 -EOPNOTSUPP✅、TA-only 真实执行（wire=6，OUT.update_fence）✅；fence 语义（T2/T3）受阻——dispatch 成功路径 `kfree(ctx)` 致 UAF（op 已转交 m->context，源码已修，未上机），wire 6 未完成致桥 refcnt=1 无法二次重载。桥计划重载一次（新 build-id 4a78b331），probe 未动；dmesg 无新增 WARN。门禁：check-offline 408+299 全绿、make kernel W=1 零警告、新增 tests/test_ta_kick_dispatch.py（反向验证通过）。见 reports/r367-ta-kick-dispatch-live.md。
+
 - **r366 submit_ta_work 落地并活体验证（真机）**：R2b 第一阶段完成。mt_marker_ops 第 5 个独立 op（kernel/mt_marker_fence.h），DM3/opcode 0x66 marker 构造，MT_FW_TA_COMPLETE_CODE=0x100 入库（kernel/mt_ta_submit.h），桥侧导出 mt_bridge_submit_ta_work（EXPORT_SYMBOL_GPL）。验证模块经真实 op 发送：T1 基础（wire=3，完成码 0x100，fence signaled）✅、T2 check_fence=已完成 wire 即满足✅、T3 非法 id 返 -EINVAL✅、T4 真异步等待（dm1 marker）后 0x100 完成✅，result=0。桥按计划重载一次（r360 流程），probe 全程未动；验证后模块即卸，refs 1/0不变，dmesg 无新增 WARN。门禁：check-offline 402+299 全绿、make kernel W=1 零警告、新增 tests/test_ta_submit_op.py（反向验证通过）。见 reports/r366-submit-ta-work-live-verified.md + dmesg 证服（0600）。
 
 - **r365 DM3 接受 opcode 0x66 marker（真机活体）**：单发空包（DM=3，opcode 0x66）被 firmware 即时消费，回 wire_id 匹配事件（words[1]=0x100，非 FAULT）；对照 opcode 0x64 得标准 COMPLETE（words[1]=0），证明 firmware 区分 opcode；V1/V2 通过，无需 DM4 回退。探针未入库（一次性，build/traces/r365/）。两次 insmod/rmmod 干净，refs 1/0 不变，dmesg 无新增 WARN。见 `reports/r365-ta-marker-dm3-opcode66-accepted.md` + 三证据（0600）。

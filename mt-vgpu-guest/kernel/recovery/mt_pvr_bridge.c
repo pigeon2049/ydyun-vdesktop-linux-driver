@@ -3785,17 +3785,43 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
  * until the DDK2 render backend exists (r359/r360). No userspace pointer
  * is dereferenced here -- only scalar header fields are logged.
  */
-static int pvr_cmd_musakickgfx2_observe(struct mt_pvr_file *file,
-				       struct mt_pvr_cmd *cmd)
+/* ---- r367: 0x82:0xC real TA dispatch (R2b) ---- */
+/* MUSAKickGFX2 real dispatch: decode IN (keeping the r356 decode log),
+ * map to TA submit params (D5), and submit via the bridge's exported
+ * submit_ta_work op. Replaces the r356 observer's -ENOTTY.
+ *
+ * D5: kick_ta=1 dispatches to DM3; kick_pr=1 stays TO-VALIDATE -- the op
+ * honestly returns -EOPNOTSUPP and the occurrence is logged, never faked;
+ * kick_3d has no execution path this round (-EOPNOTSUPP).
+ * D8: userspace pointers are captured at decode time (pvr_in); the submit
+ * path only sees kernel-side copies.
+ *
+ * Locking: runs under file->lock like the rest of dispatch. trial_lock is
+ * taken only around the store checks; it is released before the op call
+ * (the op manages s->lock internally and the caller must not hold it).
+ * Never touches mt_guest_probe (session acquired read-only via
+ * pvr_session_acquire). */
+static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
+				struct mt_pvr_cmd *cmd)
 {
 	struct mt_pvr_musakickgfx2_in in;
+	struct mt_pvr_musakickgfx2_out out = { 0 };
+	struct mt_ta_work work;
+	struct mt_execution_context *ctx;
+	struct dma_fence *fence = NULL;
+	struct mt_guest *g;
+	struct mt_guest_device *d;
+	struct mt_marker_store *s;
+	struct module *owner = NULL;
+	u32 wire_id;
 	int ret;
 
 	(void)file;
+
 	ret = pvr_in(cmd, &in, sizeof(in));
 	if (ret)
 		return ret;
-	pr_info("mt_pvr_bridge: musakickgfx2 observe (NOT EXECUTED, -ENOTTY): "
+	pr_info("mt_pvr_bridge: musakickgfx2 dispatch: "
 		"ctx=%#llx abort=%u kick_ta=%u kick_3d=%u kick_pr=%u "
 		"ta_size=%u 3d_size=%u 3dpr_size=%u draws=%u indices=%u mrt=%u "
 		"ta_upd=%u ta_fence=%u 3d_upd=%u pmr_sync=%u "
@@ -3808,7 +3834,75 @@ static int pvr_cmd_musakickgfx2_observe(struct mt_pvr_file *file,
 		in.client_3d_upd_count, in.sync_pmr_count,
 		in.check_fence, in.check_fence_3d,
 		in.render_target_size);
-	return -ENOTTY;
+
+	/* D5: only TA kicks dispatch; PR/3D have no execution path. */
+	if (!in.kick_ta || in.kick_3d) {
+		pr_info("mt_pvr_bridge: musakickgfx2: not dispatched "
+			"(kick_ta=%u kick_3d=%u)\n", in.kick_ta, in.kick_3d);
+		return -EOPNOTSUPP;
+	}
+
+	g = pvr_session_acquire(&owner);
+	if (!g)
+		return -ENODEV;
+	d = container_of(g, struct mt_guest_device, state);
+	s = &d->markers;
+
+	mutex_lock(&g->trial_lock);
+	if (s->lock != &g->trial_lock || !s->can_submit || s->opaque != g ||
+	    s->ready || s->work_ready) {
+		ret = -EBUSY;
+		goto out_unlock;
+	}
+	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
+	if (!ctx) {
+		ret = -ENOMEM;
+		goto out_unlock;
+	}
+	ctx->route.dm = MT_FW_DM_TA;
+	memset(&work, 0, sizeof(work));
+	work.job.state = MT_JOB_HELD;
+	work.context = ctx;
+	mt_ta_params_from_musakickgfx2(&work.params, &in);
+	if (work.params.kick_flags & MT_TA_KICK_PR)
+		pr_info("mt_pvr_bridge: musakickgfx2: kick_pr=1 TO-VALIDATE, "
+			"recorded; op will honestly refuse\n");
+
+	s->ready = true;
+	mutex_unlock(&g->trial_lock);
+	/* The op manages s->lock internally; the caller must not hold it. */
+	ret = mt_bridge_submit_ta_work(s, &work, &fence);
+	mutex_lock(&g->trial_lock);
+	s->ready = false;
+	mutex_unlock(&g->trial_lock);
+	if (owner)
+		module_put(owner);
+
+	if (ret) {
+		pr_info("mt_pvr_bridge: musakickgfx2: submit_ta_work -> %d\n",
+			ret);
+		kfree(ctx);
+		return ret;
+	}
+
+	/* D5: OUT.update_fence <- wire_id (no 3D work this round). */
+	wire_id = container_of(fence, struct mt_marker_fence, fence)->wire_id;
+	dma_fence_put(fence);
+	/* ctx ownership transferred to the pending marker (m->context); the
+	 * completion path dereferences it, so it must NOT be freed here.
+	 * It is released when the marker completes (currently leaked by the
+	 * op -- R5 cleanup). Freeing here would be a use-after-free. */
+	out.error = 0;
+	out.update_fence = (int)wire_id;
+	out.update_fence_3d = 0;
+	pr_info("mt_pvr_bridge: musakickgfx2: submitted wire=%u\n", wire_id);
+	return pvr_out(cmd, &out, sizeof(out));
+
+out_unlock:
+	mutex_unlock(&g->trial_lock);
+	if (owner)
+		module_put(owner);
+	return ret;
 }
 
 /* 0x82:0x14 RGXKICKTA3D5 (r215): accept-and-log observer, mirroring the
@@ -4532,8 +4626,8 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			 */
 			return pvr_cmd_handle_release(file, cmd,
 						      MT_PVR_KIND_CONTEXT);
-		case MT_PVR_FN_MUSAKICKGFX2:	/* MUSAKickGFX2 (observer, not executed, r356) */
-			return pvr_cmd_musakickgfx2_observe(file, cmd);
+		case MT_PVR_FN_MUSAKICKGFX2:	/* MUSAKickGFX2 (real TA dispatch, r367) */
+			return pvr_cmd_musakickgfx2(file, cmd);
 		case MT_PVR_FN_RGXCREATERENDERCONTEXT2:			/* BridgeRGXCreateRenderContext2 (DDK2) */
 			return pvr_cmd_render2_create(file, cmd);
 		case MT_PVR_FN_RGXDESTROYRENDERCONTEXT2:			/* BridgeRGXDestroyRenderContext2 (DDK2) */

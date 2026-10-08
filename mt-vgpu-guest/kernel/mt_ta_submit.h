@@ -36,6 +36,8 @@ typedef uint64_t u64;
 typedef int32_t s32;
 #endif
 
+#include "mt_pvr_wire.h"	/* struct mt_pvr_musakickgfx2_in for r367 mapping */
+
 /* D2 [INFERRED -> TO-VALIDATE]: TA data master.
  * dm=1 (TQX) and dm=2 (3D) are taken by live code; dm=0 is META/system
  * (excluded from idle checks). TA is a distinct engine, so dm=3.
@@ -82,6 +84,37 @@ struct mt_ta_submit_params {
 	u32 pr_fence_value;	/* pr_fence_value (1 in r363) */
 	s32 check_fence;	/* check_fence: input dma_fence dependency */
 };
+
+/* D5 [r367]: map a decoded 0x82:0xC (MUSAKickGFX2) IN to TA submit params.
+ * Pure function (no locks, no hardware); the bridge dispatch calls it
+ * before mt_bridge_submit_ta_work(). Field sources cite r363's 45-field
+ * table against struct mt_pvr_musakickgfx2_in (kernel/mt_pvr_wire.h).
+ * Userspace pointers are captured at decode time (D8); the submit path
+ * only sees kernel-side copies. */
+static inline void
+mt_ta_params_from_musakickgfx2(struct mt_ta_submit_params *p,
+			       const struct mt_pvr_musakickgfx2_in *in)
+{
+	*p = (struct mt_ta_submit_params){ 0 };
+	p->ta_cmd_va = in->p_ta_cmd;
+	p->ta_cmd_size = in->ta_cmd_size;
+	if (in->kick_ta)
+		p->kick_flags |= MT_TA_KICK_TA;
+	if (in->kick_pr)
+		p->kick_flags |= MT_TA_KICK_PR;
+	p->ta_upd_sync_off = in->p_client_ta_upd_sync_off;
+	p->ta_upd_val = in->p_client_ta_upd_val;
+	p->ta_upd_block = in->ph_client_ta_upd_block;
+	p->ta_upd_count = in->client_ta_upd_count;
+	p->ta_fence_sync_off = in->p_client_ta_fence_sync_off;
+	p->ta_fence_val = in->p_client_ta_fence_val;
+	p->ta_fence_block = in->ph_client_ta_fence_block;
+	p->ta_fence_count = in->client_ta_fence_count;
+	p->pr_fence_block = in->h_pr_fence_ufo_block;
+	p->pr_fence_offset = in->pr_fence_ufo_sync_offset;
+	p->pr_fence_value = in->pr_fence_value;
+	p->check_fence = in->check_fence;
+}
 
 /* D1 [INFERRED]: new marker op, parallel to submit_tqx_work
  * (kernel/mt_marker_fence.h). Independent -- not a branch inside

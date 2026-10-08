@@ -1,0 +1,10 @@
+[22445.694187] mt_pvr_bridge: musakickgfx2 observe (NOT EXECUTED, -ENOTTY): ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=1 ta_size=360 3d_size=544 3dpr_size=544 draws=0 indices=0 mrt=0 ta_upd=1 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
+[26595.505003] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=1 ta_size=360 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=1 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
+[26595.505029] mt_pvr_bridge: musakickgfx2: kick_pr=1 TO-VALIDATE, recorded; op will honestly refuse
+[26595.505030] mt_pvr_bridge: musakickgfx2: submit_ta_work -> -95
+[26595.505070] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=360 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
+[26595.505338] mt_pvr_bridge: musakickgfx2: submitted wire=6
+[26595.505379] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=360 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=6 check_fence_3d=0 rt_size=0
+[26600.749347] mt_pvr_bridge: musakickgfx2: submit_ta_work -> -110
+[26600.749523] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=360 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=2147483647 check_fence_3d=0 rt_size=0
+[26600.749544] mt_pvr_bridge: musakickgfx2: submit_ta_work -> -112
