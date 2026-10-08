@@ -1,0 +1,12 @@
+Catchpoint 1 (load)
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+Dprintf 2 at 0x7ffff7465240
+CF2-ARMED
+CF2 type=0 count=1 flags=0 a8=0
+
+Program received signal SIGABRT, Aborted.
+0x00007ffff72a069c in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#0  0x00007ffff72a069c in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff724bc42 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+[Inferior 1 (process 148446) killed]

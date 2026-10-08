@@ -489,6 +489,9 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r328 字段落定（批准执行）**：`type=0/count=1/flags=0/a8=0` 两轮一致；调用点证明返回值被忽略、`[r8]` 系出参；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r328-checkfences-fields.md` + 双证据。
+- **r327 切入（批准执行）**：真入口对齐解码 type/count 开关；dprintf 转义教训；L3 双绿，窗口零新增 WARN。见 `reports/r327-checkfences-disasm.md`。
+
 - **r326 EOT 证伪（批准执行）**：先 PASS blit 再 tq-perf，仍同形 abort——完成态不是钥匙，abort 条件自带；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r326-fill-then-copy.md` + 双 `.jsonl`/stdout。
 
 - **r325 双空跑（批准执行）**：嵌套 `finish` 静默失败；`LookUpEOT` 无 `ret`（尾跳风格）；返值改 core 出参/行为判据；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r325-nested-miss.md` + 三 `.txt`/`.jsonl`。
