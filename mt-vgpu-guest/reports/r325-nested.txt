@@ -1,0 +1,9 @@
+Catchpoint 1 (load)
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+Breakpoint 2 at 0x7ffff7465200
+0x00007ffff7460178 in TQJobSubmit () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#0  0x00007ffff7460178 in TQJobSubmit () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#1  0x000055555555802b in ?? ()
+#2  0x00007ffff7235ca8 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+[Inferior 1 (process 144788) killed]

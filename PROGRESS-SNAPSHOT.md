@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r325 双空跑（批准执行）**：嵌套 `finish` 静默失败；`LookUpEOT` 无 `ret`（尾跳风格）；返值改 core 出参/行为判据；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r325-nested-miss.md` + 三 `.txt`/`.jsonl`。
+
 - **r324 未遂（批准执行）**：finish 版脚本空跑（pending 断点未命中）；r323“全返回”收敛为“全进入”；返值改两步走（裸断停机 + 第二会话 finish）。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r324-lookupret-miss.md` + `.txt`。
 
 - **r323 setup 全过（批准执行）**：三元组全进入全返回（含参数），abort 在其下游、submit 未达；dprintf 文件脚本法定稿；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r323-setup-trace.md` + 双 `.txt`。

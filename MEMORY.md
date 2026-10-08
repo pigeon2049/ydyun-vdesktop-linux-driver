@@ -12,17 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r324：返值抓取未遂，批准执行）
+## 本轮进展（r325：嵌套与扫描双空跑，批准执行）
 
-- finish 版脚本空跑（pending 未命中，9 行）；r323 收敛为“全进入”；两步走方案已定。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
+- catch 内建断点可用，但 `finish` 嵌套静默失败；`LookUpEOT` 无 `ret`（尾跳风格）；返值改道 core 出参/行为判据。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
 - **Freeze 已恢复。**
-- 遗留：r325 两步走读返值。已推送。
----
-
-## 本轮进展（r323：setup 三元组全进入（r324 已收敛“全返回”待证），批准执行）
-
-- BlitInit/CheckFences/LookUpEOT 全进入全返回（含参数）；abort 在下游，RGXTDMSubmit 未达；dprintf 文件脚本法定稿。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，窗口零新增 WARN。无代码改动。
-- **Freeze 已恢复。**
-- 遗留：LookUpEOT 返回值/出参（断点停机读 rax 或静态跟分支）。已推送。
+- 遗留：core 读 LookUpEOT 出参（离线，r317 core 现成）；或行为判据窗口。已推送。
 ---
 
