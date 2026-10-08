@@ -1,0 +1,24 @@
+# r361 b10 descriptor dump evidence
+# Captured via GDB at CreateSyncPrim return, fabricated connection
+# (connect 0 + PVRSRVConnectionCreateDevice b7 u1 u0)
+#
+# Date: 2026-10-08
+# UMD SHA: b3058c02bbd7c879f076c48ee1faf78e0e764beeab09da7cbd053f3ec34237b0
+# Bridge: 0d6bb8d7 (r356, with observer) - NOT involved in this crash (UMD-side)
+
+TST armed
+TST desc=0x56226978fc80 +8=1 +0x18=0x0 +0x20=0x56226978fe60
+TST *(d18+0x30) NOT readable
+
+# Interpretation:
+# - desc+0x08 = 1 (matches r352: expected 1)
+# - desc+0x18 = 0x0 (NULL) -- DIFFERS from r352/r353 which recorded <ptr>
+# - desc+0x20 = 0x56226978fe60 (a heap pointer) -- DIFFERS from r352/r353 which recorded 0
+#
+# SyncPrimRef disassembly (0xa0f70):
+#   a0f98: mov 0x18(%rdi),%rdx    # rdx = 0x0
+#   a0f9c: mov 0x20(%rdi),%rax
+#   a0fa0: sub 0x30(%rdx),%eax    # CRASH: *(0x0+0x30) -> SIGSEGV
+#
+# The NULL +0x18 makes SyncPrimRef crash instead of returning 0.
+# This blocks the r353 TA-path replication.

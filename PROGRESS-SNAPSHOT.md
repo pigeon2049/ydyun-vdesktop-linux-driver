@@ -489,6 +489,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r361 0x82:0xC 活体 IN 观察被阻塞（真机）**：复现 r353 GDB 驱动 TA 路径（fabricated 建连 + b10 poke + ASLR 开），b10 描述子 `+0x18` 实测为 NULL（r352/r353 记载为有效指针），`SyncPrimRef` 在 `0xa0fa0: sub 0x30(%rdx),%eax` 处解引用 SIGSEGV，TA 路径无法推进到 `0x92930`；尝试过 SyncPrimRef 入口短路（伪造返回 0）但下游仍崩溃。静态分析确认 `0x36ec0` 构造 268B IN 缓冲（`in_len=0x10c`，从输入结构多偏移经 XMM 打包）。**未发任何 ioctl、未提交 GPU 工作**；freeze 完好（bridge ref 0、probe ref 1），dmesg 无新增 WARN/BUG/Oops。见 `reports/r361-82c-blocked-desc-mismatch.md` + 描述子 dump 证据（0600）。r362 建议：查 `+0x18=NULL` 根因（`CreateSyncPrim` 内部或 `*b7*+176` 差异），或基于静态映射推进 R2 设计。
 - **r360 桥重载至 r356（真机活体，用户已批准）**：预检（fuser 无持有者、bridge ref 0、vermagic 一致、observer 串在）→ `rmmod` → `insmod` r356 构建；新桥 build-id `0d6b…55da` == 在盘构建（含 `pvr_cmd_musakickgfx2_observe`），旧 `2a2a…261f` 已下线。dmesg：`unloaded cleanly` → pvr node registered，无新增 WARN/BUG/Oops。活体 connect 健康检查 PASS（`PVRSRVConnectionCreateDevice`→0、`GetSrvHandle` 指针形态、单次 `PVRSRVBridgeCall(1,0)`→0 且 OUT 逐字节命中 `bvnc=0x0023000406600017`）。方法教训：maps 取 bias 须减 file offset；`PVRSRVBridgeCall` 真为 7 参数。probe 未碰（ref 1），bridge ref 0，card0/card1/renderD128 齐全，**freeze 已恢复**。`check-offline` 400+299 全绿；无代码改动。见 `reports/r360-bridge-reload-r356.md` + 四证据（0600）。
 
 
