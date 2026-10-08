@@ -369,3 +369,10 @@
 - 教训：诊断日志误放 `/tmp/opencode/`（84K，已清，`/tmp` 仅 1%）；后续易失产物走 `build/traces/<rNN>/`。`runtime-integration-build.json` 随 L2 刷新提交（旧凭证 272→299）。
 - 遗留：r328 的 `[r8]` 出参读数（需重建活会话，待批准）；`mt_boot_bo.h:118 kzalloc` 未动。
 ---
+
+## 本轮进展（r341：尾跳调用方，批准执行）
+
+- GDB 活体单发（`=2` 窗口）：返回地址归属 app `0x402b`，`QueueTransferNew+0x46` 尾跳进 JobSubmit——调用方点名，`bt` 静默根因亦明。生产者即 copy-setup 自身（`rep stos` 后无回填）。默认回 + L3 双绿，零新增 WARN。**Freeze 已恢复。**
+- 落库 `scripts/retaddr-window.sh`。
+- 遗留：app `0x3f00–0x4030` 离线反汇编（优先）或断 `0x4026` 活体读参，另行开轮。
+---

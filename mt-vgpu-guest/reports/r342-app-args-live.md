@@ -1,3 +1,5 @@
+> **更正（r343）**：本报告“rdx 缓冲 `+0x820` 起非零系 app 填入”的解读撤回——`[0,0x820)` 由 `rep stos` 清零，非零尾部为清零范围之外的残留栈，见 `r343-buffer-zeroed-tail-stale.md`。
+
 # r342：app 调用点入参活体读取——rdx 结构非零，计数槽仍不在 app 侧填写（批准执行）
 
 - **结论**：GDB 文件脚本单发真实 copy tq-perf（`=2` 窗口），断 app 调用 `RGXTDMQueueTransferNew` 的指令处（`0x402b` 前一条，即 `0x4026`）：

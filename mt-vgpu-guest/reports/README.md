@@ -281,6 +281,7 @@
 | r327 | CheckFences 反汇编切入（批准执行）：真入口对齐解码 type/count 开关；dprintf 配方首发转义漏改；L3 双绿，窗口零新增 WARN |
 | r328 | CheckFences 字段值 + 返回值被忽略（批准执行）：type=0/count=1/flags=0/a8=0 两轮一致；r8 系出参；L3 双绿，窗口零新增 WARN |
 | r329 | 桌面 GPU 禁用与菜单持久化（用户指令）：--disable-gpu 已写入菜单覆盖层并验证生效，但不释放 renderD128（两次实锤）；GDB 函数注入致 UI 重启事故备忘 |
+| r343 | 修正 r342：rdx 缓冲 `[0,0x820)` 由 app 清零，非零尾部是清零范围外残留栈；计数槽仍空，生产者仍在 transfer 侧 |
 | r342 | app 调用点入参：rdx 缓冲非零（栈指针），计数槽仍不在 app 侧填写；收回“清零后无回填”，未决 +0x820/+0x828/+0x838 来源 |
 | r341 | 调用方是尾跳：app调QueueTransferNew后jmp进JobSubmit；bt静默根因亦明；生产者即copy-setup自身 |
 | r340 | bt文件脚本下通用静默；app走transferAPI，TQJobSubmit内部经指针到达；下刀x/gx$rsp |
