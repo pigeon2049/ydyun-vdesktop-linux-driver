@@ -507,3 +507,9 @@
 
 ---
 ---
+## 本轮进展（r359：0x82:0xC 活体观察停轮——在载桥无 observer）
+
+- 基线（真机，freeze 未碰）：refs（bridge 0/probe 1）、`renderD128` 存在、dmesg 无 WARN/BUG/Oops、UMD SHA `b3058c02…34237b0` 对版、HEAD `12c6bd6` 工作区干净。
+- 在载桥 build-id `2a2a…261f` ≠ 在盘 r356 构建 `0d6b…55da`（含 observer 串）；在载桥 ~11:26 加载，早于 r356 提交（14:37）约 3 小时；r356/r357/r358 均未重载桥。按任务安全协议 §2 停轮：未发 `0x82:0xC`，未重载桥。
+- 门禁 `check-offline` 400+299 全绿；无代码改动。见 `reports/r359-bridge-version-blocked.md` + 证据（0600）。
+---
