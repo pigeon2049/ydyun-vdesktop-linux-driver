@@ -281,6 +281,7 @@
 | r327 | CheckFences 反汇编切入（批准执行）：真入口对齐解码 type/count 开关；dprintf 配方首发转义漏改；L3 双绿，窗口零新增 WARN |
 | r328 | CheckFences 字段值 + 返回值被忽略（批准执行）：type=0/count=1/flags=0/a8=0 两轮一致；r8 系出参；L3 双绿，窗口零新增 WARN |
 | r329 | 桌面 GPU 禁用与菜单持久化（用户指令）：--disable-gpu 已写入菜单覆盖层并验证生效，但不释放 renderD128（两次实锤）；GDB 函数注入致 UI 重启事故备忘 |
+| r352 | T2-e：b10描述子直接验证通过（SyncPrimRef返回0 vs NULL返回3）；r14+0x18链静态定位到PrepareTA写入（离线fabricated） |
 | r351 | T2-d：SubmitTA内描述子选中步骤定位：*(rbx+208*i+0x48)，i=*(rbx+0x24)；fabricated下i=0取NULL（离线fabricated） |
 | r350 | T2-c：SyncPrimRef要非空描述子(8∈{1,2})，传入NULL；真handle已落b10，未闭合（离线fabricated） |
 | r349 | T2-b：3=INVALID_PARAMS出自SyncPrimRef同步校验，需真sync handle；T2-c回填tuple（离线fabricated） |
