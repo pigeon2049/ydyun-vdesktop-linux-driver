@@ -588,3 +588,12 @@
 - **重载**：一次计划内重载成功（r360 流程），refs probe=1/bridge=0，dmesg 干净，freeze 完好。
 - **阻塞**：TA kick dispatch 到达，但 `submit_ta_work` 返 `-EHOSTDOWN`——`mt_runtime_can_submit`（probe 内）拒绝，`pvr_session_acquire` 成功故 trial.pinned/connected 为真，卡点在余下条件之一。**环境/trial 状态问题，非 r370 代码所致**。新代码未被活体执行。
 - 报告：`mt-vgpu-guest/reports/r370-ta-completion-path-live-blocked.md`；证据 `r370-dmesg.txt`（0600）。
+
+## 本轮进展（r376：R5 VM 初始化重新设计，bridge 侧 proper init）
+
+- **教训**：r375 手动拼装 `mt_gpu_vm` 致 `mt_gpu_vm_bind_many` oops；`mt_gpu_vm_init()` 要求 `page_pa==NULL`，borrow 的系统内存不满足。
+- **方案**：bridge 侧 `mt_bridge_ta_vm_create()` 用合成 BO（`gpu_pa=page_to_phys()`，`page_pa==NULL`）+ 正式 `mt_gpu_vm_init()`，遵循已验证的 3D 模式（`pvr_gpu_vm_ensure`）。删除 r375 手动代码（~360 行）。
+- **约束**：probe 因 trial pinned 无法重载；`mt_gpu_vm_init`/`bind_many` 均为 static inline，无跨模块问题，无需 probe API。
+- **门禁**：428+299 全绿，W=1 零警告，反向验证通过。
+- **活体**：bridge 已重载；V1/V2 未执行（Python harness ioctl 格式问题，非代码问题）。
+- 报告：`reports/r376-bridge-proper-vm-init.md`。

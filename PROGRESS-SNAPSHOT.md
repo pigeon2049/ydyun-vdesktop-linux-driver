@@ -961,3 +961,4 @@ as-built 机制（`da3df8b`，r45–r63）：
 - **回归**：两次 TA kick 的 OUT.update_fence 与 dmesg wire 精确匹配（1/1、2/2）。
 - 门禁 428+299 全绿；本地提交待执行。
 
+- **r378** (2026-10-08): 真实页表绑定验证通过——1 真实页绑定到 VA 0x70000000，`mt_gpu_vm_bind_many()` 返回 0，无 oops；r375 oops 根因彻底消除；marker 回归正常；firmware VA 翻译待验证。

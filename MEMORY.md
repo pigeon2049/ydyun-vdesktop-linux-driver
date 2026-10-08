@@ -18,6 +18,7 @@
 > r370 轮按 §4 清理：r366 节已移入归档。
 > r372 轮按 §4 清理：r367 节已移入归档。
 > r373 轮按 §4 清理：r368 节已移入归档。
+> r378 轮按 §4 清理：r376 节已移入归档。
 > r374 轮按 §4 清理：r369 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
@@ -25,19 +26,17 @@
 
 
 
+## r378 (2026-10-08): 真实页表绑定验证通过（V2 非空，无 oops）
+- 一次性内核模块 `mt_live_ta_bind`：正式 `mt_gpu_vm_init()` 创建 VM，1 真实页（pa=0x1688f8000）绑定到 VA `0x70000000`，`mt_gpu_vm_bind_many()` 返回 0，**无 oops**。
+- r375 oops 根因彻底消除（proper init + ops 一致）。模块卸载干净，无泄漏；dmesg 无 WARN/BUG/Oops。
+- 回归：marker 级 TA kick 正常（OUT.update_fence=3 == dmesg wire=3）。
+- 诚实边界：firmware 侧 VA 翻译未验证（无查询接口）；`MT_TA_VM_READY` 门保持关闭。
+- 门禁 425+299 全绿（无新增代码，仅文档证据）。本地提交待执行。
 ## r377 (2026-10-08): Harness INIT 修复，V1/V2 活体验证通过
 - r376 的 harness 因 INIT 传参错误（init_module 非 1/2）致 EINVAL；按 r373 既证格式（u32 module=2）重写后通过。
 - 两次真实 TA kick：V1（mt_bridge_ta_vm_create 成功）、V2（bind_many 返回 -EINVAL，无 oops），OUT.update_fence 与 dmesg wire 精确匹配（1/1、2/2）。
 - r375 的 oops 根因已消除（proper mt_gpu_vm_init + 合成 BO）。门禁 428+299 全绿。本地提交待执行。
 
-## 本轮进展（r376：R5 VM 初始化重新设计，bridge 侧 proper init）
-
-- **教训**：r375 手动拼装 `mt_gpu_vm` 致 `mt_gpu_vm_bind_many` oops；`mt_gpu_vm_init()` 要求 `page_pa==NULL`，borrow 的系统内存不满足。
-- **方案**：bridge 侧 `mt_bridge_ta_vm_create()` 用合成 BO（`gpu_pa=page_to_phys()`，`page_pa==NULL`）+ 正式 `mt_gpu_vm_init()`，遵循已验证的 3D 模式（`pvr_gpu_vm_ensure`）。删除 r375 手动代码（~360 行）。
-- **约束**：probe 因 trial pinned 无法重载；`mt_gpu_vm_init`/`bind_many` 均为 static inline，无跨模块问题，无需 probe API。
-- **门禁**：428+299 全绿，W=1 零警告，反向验证通过。
-- **活体**：bridge 已重载；V1/V2 未执行（Python harness ioctl 格式问题，非代码问题）。
-- 报告：`reports/r376-bridge-proper-vm-init.md`。
 
 ## 本轮进展（r375：R5 基础设施实现，活体因 oops 中断）
 

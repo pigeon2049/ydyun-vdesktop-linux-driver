@@ -1,0 +1,7 @@
+[ 1286.135740] mt_live_ta_bind: r378 real bind test starting
+[ 1286.135754] mt_live_ta_bind: VM initialized (capacity=16384)
+[ 1286.135756] mt_live_ta_bind: data page allocated pa=0x1688f8000
+[ 1286.135761] mt_live_ta_bind: r378 V2 real bind ret=0 (expect 0, no oops)
+[ 1286.135762] mt_live_ta_bind: REAL BIND OK va=0x70000000 pa=0x1688f8000
+[ 1294.424141] mt_live_ta_bind: cleaning up (bound=1 vm_ready=1)
+[ 1294.424149] mt_live_ta_bind: cleanup done, no leaks
