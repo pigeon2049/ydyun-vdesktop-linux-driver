@@ -981,6 +981,12 @@ as-built 机制（`da3df8b`，r45–r63）：
 - Gate: 450+299 green, kernel W=1 zero warnings, reverse validation passed.
 - Honest: V1 only; R6-3 (destroy), R6-4 (kick parse), V3/V4 future.
 
+### r391 (2026-10-08): R6-4 Kick-side render_ctx parsing, live V3 verified (no oops)
+- `pvr_cmd_musakickgfx2` (0x82:0xC) resolves `h_render_context` via `pvr_object_find(..., MT_PVR_KIND_CONTEXT)`; uses per-context VM when `resources_ready`, else per-file fallback (Phase 1 marker protection). V2 bind validation on selected VM.
+- TA marker keeps TA-dm context (render_ctx exec_ctx is node_type 5/DM3D; real exec submission = R6-5). 0x82:0x14 unchanged (observer).
+- Live: bridge reloaded once. Marker regression: no-ctx (fence=1, per-file) / ctx1 (fence=2) / ctx2 (fence=3) all error=0, OUT.update_fence matches wire. V3: two contexts, separate VMs (VM-level isolation; same vm_base_va by design), correct per-handle routing, no leak (file-close 25→13). dmesg zero WARN/BUG/Oops.
+- Gate: 463+299 green (+5 new `test_kick_render_ctx.py`), kernel W=1 zero warnings, reverse validation passed.
+- Honest: exec_ctx not used for TA (dm mismatch, by design); VA ranges overlap (page-table isolation); firmware VA translation TO-VALIDATE.
 ### r390 (2026-10-08): R6-3 Destroy realized, live V2 verified (no leaks)
 - `mt_render_context_destroy()` in `kernel/recovery/mt_pvr_bridge.c`: reverse-order teardown (exec ctx → exec process → 11 BOs put → VM destroy); safe on partial init via exec_ready/bos_ready/vm-NULL guards; WARN_ON on failures.
 - Hooked into `pvr_cmd_handle_release` (0x82:0x13 + DDK2 destroy, kind==MT_PVR_KIND_CONTEXT) and `pvr_file_release` (V4 file-close cleanup).

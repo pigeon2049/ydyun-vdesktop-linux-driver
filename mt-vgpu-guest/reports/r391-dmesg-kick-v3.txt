@@ -1,0 +1,15 @@
+[ 4109.636477] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[ 4161.921444] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[ 4983.813910] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[ 4983.830788] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[ 5533.438373] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[ 5533.446073] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[ 5533.452469] mt_pvr_bridge: R5 V1: TA VM context created
+[ 5533.452472] mt_pvr_bridge: r391 V2: bind empty ret=-22 (expect -EINVAL, no oops)
+[ 5533.452755] mt_pvr_bridge: musakickgfx2: submitted wire=1
+[ 5533.452780] mt_pvr_bridge: r391: kick with render_ctx vm_base_va=0x70000000
+[ 5533.452783] mt_pvr_bridge: r391 V2: bind empty ret=-22 (expect -EINVAL, no oops)
+[ 5533.453037] mt_pvr_bridge: musakickgfx2: submitted wire=2
+[ 5533.453054] mt_pvr_bridge: r391: kick with render_ctx vm_base_va=0x70000000
+[ 5533.453056] mt_pvr_bridge: r391 V2: bind empty ret=-22 (expect -EINVAL, no oops)
+[ 5533.453333] mt_pvr_bridge: musakickgfx2: submitted wire=3

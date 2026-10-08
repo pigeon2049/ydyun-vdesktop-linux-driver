@@ -30,12 +30,25 @@
 > r387 轮按 §4 清理：r383 节已移入归档。
 > r388 轮按 §4 清理：r386、r384 节已移入归档。
 > r390 轮按 §4 清理：r387 节已移入归档。
+> r391 轮按 §4 清理：r388 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
 
+
+## r391 (2026-10-08): R6-4 Kick 侧 render_ctx 解析活体验证通过（V3 隔离）
+
+**实现**：`pvr_cmd_musakickgfx2`（0x82:0xC）经 `pvr_object_find(file, in.h_render_context, MT_PVR_KIND_CONTEXT)` 解析 render_ctx；若 `resources_ready` 则 `kick_vm=rctx->vm`（per-context VM），否则回退 `file->ta_vm_ctx`（per-file，Phase 1 保护 marker）。V2 bind 验证跑在选中的 VM 上。TA marker 的 `work->context` 仍用 TA-dm（`render_ctx->exec_ctx` 为 node_type 5/DM3D，真实 exec 提交待 R6-5）；0x82:0x14 未动（仍 observer）。
+
+**活体**：bridge 重载一次（r391 构建）。Marker 回归：no-ctx kick（fence=1，per-file）/ ctx1 kick（fence=2，per-context）/ ctx2 kick（fence=3，per-context）全部 error=0，OUT.update_fence 与 dmesg wire 匹配。V3：两 context 各持独立 `mt_bridge_ta_vm`（`vm_base_va` 同为 0x70000000 系设计——隔离在 VM/页表级，非 VA 级），kick 按 handle 正确路由，无串扰；文件关闭后 probe ref 25→13（r390 V2b 路径）。dmesg 零 WARN/BUG/Oops。
+
+**门禁**：463 Python + 299 C 全绿（+5 新测试 `test_kick_render_ctx.py`）；`make kernel` W=1 零警告；反向验证通过。
+
+**诚实边界**：`exec_ctx` 未用于 TA 提交（dm 不匹配，系设计）；VA 范围跨 context 重叠（页表隔离）；firmware 侧 VA 翻译仍 TO-VALIDATE。
+
+报告 `reports/r391-kick-render-ctx-verified.md`，证据 `reports/r391-dmesg-kick-v3.txt`。
 
 ## r390 (2026-10-08): R6-3 Destroy 真实化活体验证通过（无泄漏）
 
@@ -62,16 +75,4 @@
 **诚实边界**：仅 V1；R6-3（destroy）、R6-4（kick 解析）、V3/V4 待后续；probe ref 1→13（R6-3 释放）。
 
 报告 `reports/r389-render-context-create-live-verified.md`，证据 `reports/r389-dmesg-v1.txt`。
-
-## r388 (2026-10-08): R6-1 per-context 对象模型扩展落地（离线，纯结构，零硬件触碰）
-
-**结构定义**：`kernel/mt_render_context.h` 新（45 行）——`struct mt_pvr_render_context` 1456B：11 BO（`struct mt_bo bos[11]`，968B）+ `vas[11]` + `bos_ready[11]` + `mt_execution_process`（32B）+ `mt_execution_context`（72B）+ `exec_ready` + `csw[248]` + `mt_bridge_ta_vm *vm`（前向声明）+ `vm_base_va` + `resources_ready`。`MT_RENDER_CONTEXT_VA_STRIDE` 16MB（r387 §3.3，TO-VALIDATE）。
-
-**挂载**：`struct mt_pvr_object` 加 `struct mt_pvr_render_context *render_ctx`（:293-295，注释说明 NULL 语义）；`pvr_object_new()` 的 kzalloc 已保证 NULL 默认，无需改动。
-
-**设计决策**（r387 §1.2 落实）：指针而非内嵌（避免 SYNC/PMR 等 kind 浪费 1456B）；独立头文件（userspace 可编译，前向声明 `mt_bridge_ta_vm`）。
-
-**门禁**：441 Python + 299 C 全绿（新增 `tests/test_render_context_layout.py` 3 tests：layout pins/sizeof+offsets、render_ctx 存在性、kzalloc NULL 验证）；`make kernel` W=1 零警告；反向验证通过（stride 改 32MB → 1 failure）。
-
-报告 `reports/r388-per-context-struct-defined.md`。R6-2（create 真实化）前置就绪。
 

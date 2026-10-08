@@ -4382,23 +4382,51 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 		return -EOPNOTSUPP;
 	}
 
-	/* r376 V1: per-file TA VM via proper mt_gpu_vm_init() (bridge-side). */
-	if (!file->ta_vm_ctx) {
-		file->ta_vm_ctx = mt_bridge_ta_vm_create();
-		if (file->ta_vm_ctx)
-			pr_info("mt_pvr_bridge: R5 V1: TA VM context created\n");
-		else
-			pr_info("mt_pvr_bridge: R5 V1: ctx create failed (non-fatal)\n");
-	}
-	/* r376 V2: bind validation via probe API. Gate closed; marker continues.
-	 * Tests bind with empty binding (validates VM state,
-	 * no oops). Real userspace mapping is future work. */
-	if (file->ta_vm_ctx) {
-		struct mt_bridge_ta_vm *tvm = file->ta_vm_ctx;
-		ret = mt_gpu_vm_bind_many(&tvm->vm, NULL, 0);
-		/* bind_many with count=0 returns -EINVAL (expected); oops would be BUG. */
-		pr_info("mt_pvr_bridge: r376 V2: bind empty ret=%d (expect -EINVAL, no oops)\n", ret);
-		ret = 0;
+	/* r391 R6-4: resolve render context for kick. If h_render_context
+	 * names a live MT_PVR_KIND_CONTEXT object whose render_ctx is
+	 * resources_ready, the kick uses the per-context VM (V3 isolation);
+	 * otherwise it falls back to the per-file VM (Phase 1, protects the
+	 * marker path). The TA marker op requires route.dm == MT_FW_DM_TA,
+	 * while render_ctx->exec_ctx is node_type 5 (DM 3D); real exec_ctx
+	 * submission arrives with 3D kick enablement (R6-5). */
+	{
+		struct mt_pvr_object *robj;
+		struct mt_pvr_render_context *rctx = NULL;
+		struct mt_bridge_ta_vm *kick_vm = NULL;
+
+		robj = pvr_object_find(file, in.h_render_context,
+					 MT_PVR_KIND_CONTEXT);
+		if (robj)
+			rctx = robj->render_ctx;
+		if (rctx && rctx->resources_ready && rctx->vm) {
+			pr_info("mt_pvr_bridge: r391: kick with render_ctx "
+				"vm_base_va=%#llx\n",
+				(unsigned long long)rctx->vm_base_va);
+			kick_vm = rctx->vm;
+		} else {
+			/* r376 V1: per-file TA VM via proper mt_gpu_vm_init()
+			 * (bridge-side). Fallback when no live render context. */
+			if (!file->ta_vm_ctx) {
+				file->ta_vm_ctx = mt_bridge_ta_vm_create();
+				if (file->ta_vm_ctx)
+					pr_info("mt_pvr_bridge: R5 V1: TA VM context created\n");
+				else
+					pr_info("mt_pvr_bridge: R5 V1: ctx create failed (non-fatal)\n");
+			}
+			kick_vm = file->ta_vm_ctx;
+		}
+		/* r376 V2 / r391: bind validation on the selected VM.
+		 * Gate closed; marker continues. Tests bind with empty binding
+		 * (validates VM state, no oops). Real userspace mapping is
+		 * future work. */
+		if (kick_vm) {
+			ret = mt_gpu_vm_bind_many(&kick_vm->vm, NULL, 0);
+			/* bind_many with count=0 returns -EINVAL (expected);
+			 * oops would be BUG. */
+			pr_info("mt_pvr_bridge: r391 V2: bind empty ret=%d (expect -EINVAL, no oops)\n",
+				ret);
+			ret = 0;
+		}
 	}
 
 	g = pvr_session_acquire(&owner);
