@@ -1,0 +1,15 @@
+[ 1751.777391] mt_live_3d_probe: submitted DM2 marker opcode=0x66 wire=1
+[ 1753.774649] mt_live_3d_probe: no event for wire=1 within 2000ms (firmware ignored/rejected)
+[ 1753.774661] mt_live_3d_probe: done result=-110
+[ 1764.839129] mt_live_3d_probe: exit
+[ 1765.902219] mt_live_3d_probe: HW not ready: guest=0 fw=0 started=1
+[ 1765.902579] mt_live_3d_probe: init failed result=-112
+[ 1778.517015] mt_live_3d_probe: exit
+[ 1811.705912] mt_live_3d_probe: HW not ready: guest=0 fw=0 started=1
+[ 1811.706244] mt_live_3d_probe: init failed result=-112
+[ 1814.722374] mt_live_3d_probe: exit
+
+# Note: dmesg was cleared (dmesg -C) during the round for a clean baseline.
+# Above lines were captured from tool outputs during the live tests.
+# Key: Test 1 (0x66) submitted wire=1, timed out after 2000ms (no event).
+#      Tests 2-3 (0x64) failed precondition: trial session cleared by firmware.

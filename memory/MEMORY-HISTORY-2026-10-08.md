@@ -635,3 +635,11 @@
 - 但 trial 无法启动：`mt_trial_start` 要求 `0x890==0`，`connect_result=-61`，`pinned=0`；固件 MMIO `0x890=2` vs RPC `fw_state=1` 不一致。
 - TA kick dispatch 到达桥侧（dmesg 解码日志），但 `pvr_session_acquire` 返 `-ENODEV`（trial 未 pinned）；r370 完成路径未被活体执行。
 - 门禁 417+299 全绿，`make kernel` W=1 零警告；报告 `r371-ta-e2e-blocked-by-trial.md` 入库。
+
+## r378 (2026-10-08): 真实页表绑定验证通过（V2 非空，无 oops）
+- 一次性内核模块 `mt_live_ta_bind`：正式 `mt_gpu_vm_init()` 创建 VM，1 真实页（pa=0x1688f8000）绑定到 VA `0x70000000`，`mt_gpu_vm_bind_many()` 返回 0，**无 oops**。
+- r375 oops 根因彻底消除（proper init + ops 一致）。模块卸载干净，无泄漏；dmesg 无 WARN/BUG/Oops。
+- 回归：marker 级 TA kick 正常（OUT.update_fence=3 == dmesg wire=3）。
+- 诚实边界：firmware 侧 VA 翻译未验证（无查询接口）；`MT_TA_VM_READY` 门保持关闭。
+- 门禁 425+299 全绿（无新增代码，仅文档证据）。本地提交待执行。
+
