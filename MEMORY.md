@@ -32,6 +32,7 @@
 > r390 轮按 §4 清理：r387 节已移入归档。
 > r391 轮按 §4 清理：r388 节已移入归档。
 > r392 轮按 §4 清理：r389 节已移入归档。
+> r393 轮按 §4 清理：r390 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
@@ -46,6 +47,14 @@
 门禁：check-offline 全绿（纯调研无代码改动）。
 
 报告 reports/r392-ccb-no-server-state-needed.md，证据 reports/r392-evidence.txt。
+## r393 (2026-10-08): R6-6 调研结论——server 侧 TDM context 不需要真实化（离线）
+
+结论：0x89:0x8（RGXTDMCreateTransferContext2）空 token 已足够，R6-6 关闭为 wont-do by design。TDM=Transfer Data Manager（2D/blit 引擎，KMD 头 common_musaxfer_bridge.h）。r150 活体证：真实 UMD 的 TDM 全生命周期（0x89:0x8 create → 0x89:0xa submit → 0x89:0x9 destroy）全 ret=0，UMD 正常推进；r174 活体：0x89:0xa accept-and-log 从真实 UMD 捕获到非零 CCB 字节。submit 仅做存在性校验（have_ctx），不读 context 状态；唯一真实的 TDM 资源是 shared-memory PMR（0x89:0x5，CLI+USC 独立，已实现）。与 R6 独立，不阻塞真实 UMD。若未来实现真实 TDM 执行可重开。
+
+门禁：check-offline 全绿（纯调研无代码改动）。
+
+报告 reports/r393-tdm-no-server-state-needed.md，证据 reports/r393-evidence.txt。
+
 ## r391 (2026-10-08): R6-4 Kick 侧 render_ctx 解析活体验证通过（V3 隔离）
 
 **实现**：`pvr_cmd_musakickgfx2`（0x82:0xC）经 `pvr_object_find(file, in.h_render_context, MT_PVR_KIND_CONTEXT)` 解析 render_ctx；若 `resources_ready` 则 `kick_vm=rctx->vm`（per-context VM），否则回退 `file->ta_vm_ctx`（per-file，Phase 1 保护 marker）。V2 bind 验证跑在选中的 VM 上。TA marker 的 `work->context` 仍用 TA-dm（`render_ctx->exec_ctx` 为 node_type 5/DM3D，真实 exec 提交待 R6-5）；0x82:0x14 未动（仍 observer）。
@@ -57,18 +66,4 @@
 **诚实边界**：`exec_ctx` 未用于 TA 提交（dm 不匹配，系设计）；VA 范围跨 context 重叠（页表隔离）；firmware 侧 VA 翻译仍 TO-VALIDATE。
 
 报告 `reports/r391-kick-render-ctx-verified.md`，证据 `reports/r391-dmesg-kick-v3.txt`。
-
-## r390 (2026-10-08): R6-3 Destroy 真实化活体验证通过（无泄漏）
-
-**实现**：`mt_render_context_destroy()`（`kernel/recovery/mt_pvr_bridge.c`）——严格逆序释放：exec context → exec process（`vm->owners--`，须在 VM fini 前，否则 fini 返 `-EBUSY`）→ 11 BO `mt_bo_put`（VM 每 binding 持一 ref，`mt_gpu_vm_fini` 释放之）→ `mt_render_context_vm_destroy`（fini + `pt_bo` put，fini 失败加 `WARN_ON`）。`resources_ready=false` 的半初始化安全：`exec_ready`/`bos_ready[]`/`vm`-NULL 守卫；全状态清零，二次调用 no-op。Create 的 `out_rollback` 改调它（单一路径，删 15 行重复）。
-
-**钩子**：`pvr_cmd_handle_release`（`0x82:0x13` + DDK2 destroy）在 `kind==MT_PVR_KIND_CONTEXT && obj->render_ctx` 时调 destroy + `kfree`；legacy 空 token 跳过。`pvr_file_release` 加 V4 文件关闭清理（否则 `rmmod` 泄漏 11 BO+VM+exec——r389 V1 遗留 probe ref 13 即此因）。
-
-**活体 V2**：bridge 重载一次（r390 构建）。V2a 显式 destroy：create（ref 13→25）→ `0x82:0x13` destroy（ref 25→13），delta -12 全释放。V2b 文件关闭：create（→25）→ 直接 close fd（→13），`pvr_file_release` 清理生效。dmesg 零 WARN/BUG/Oops。
-
-**门禁**：458 Python + 299 C 全绿（+8 新测试 `test_render_context_destroy.py`，r389 `test_rollback` 更新为委托检查）；`make kernel` W=1 零警告；反向验证通过。
-
-**诚实边界**：probe ref 基线 13（含 r389 旧泄漏 12 refs，下次冷重启清零）；V2 delta 25→13 证明新路径无泄漏；半初始化 destroy 未活体 fault 注入（仅代码审查）；V3（多 context 隔离）、R6-4（kick 解析）待后续。
-
-报告 `reports/r390-render-context-destroy-verified.md`，证据 `reports/r390-dmesg-v2.txt`。
 

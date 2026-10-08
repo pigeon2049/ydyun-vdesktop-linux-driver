@@ -803,3 +803,18 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 **诚实边界**：仅 V1；R6-3（destroy）、R6-4（kick 解析）、V3/V4 待后续；probe ref 1→13（R6-3 释放）。
 
 报告 `reports/r389-render-context-create-live-verified.md`，证据 `reports/r389-dmesg-v1.txt`。
+
+## r390 (2026-10-08): R6-3 Destroy 真实化活体验证通过（无泄漏）
+
+**实现**：`mt_render_context_destroy()`（`kernel/recovery/mt_pvr_bridge.c`）——严格逆序释放：exec context → exec process（`vm->owners--`，须在 VM fini 前，否则 fini 返 `-EBUSY`）→ 11 BO `mt_bo_put`（VM 每 binding 持一 ref，`mt_gpu_vm_fini` 释放之）→ `mt_render_context_vm_destroy`（fini + `pt_bo` put，fini 失败加 `WARN_ON`）。`resources_ready=false` 的半初始化安全：`exec_ready`/`bos_ready[]`/`vm`-NULL 守卫；全状态清零，二次调用 no-op。Create 的 `out_rollback` 改调它（单一路径，删 15 行重复）。
+
+**钩子**：`pvr_cmd_handle_release`（`0x82:0x13` + DDK2 destroy）在 `kind==MT_PVR_KIND_CONTEXT && obj->render_ctx` 时调 destroy + `kfree`；legacy 空 token 跳过。`pvr_file_release` 加 V4 文件关闭清理（否则 `rmmod` 泄漏 11 BO+VM+exec——r389 V1 遗留 probe ref 13 即此因）。
+
+**活体 V2**：bridge 重载一次（r390 构建）。V2a 显式 destroy：create（ref 13→25）→ `0x82:0x13` destroy（ref 25→13），delta -12 全释放。V2b 文件关闭：create（→25）→ 直接 close fd（→13），`pvr_file_release` 清理生效。dmesg 零 WARN/BUG/Oops。
+
+**门禁**：458 Python + 299 C 全绿（+8 新测试 `test_render_context_destroy.py`，r389 `test_rollback` 更新为委托检查）；`make kernel` W=1 零警告；反向验证通过。
+
+**诚实边界**：probe ref 基线 13（含 r389 旧泄漏 12 refs，下次冷重启清零）；V2 delta 25→13 证明新路径无泄漏；半初始化 destroy 未活体 fault 注入（仅代码审查）；V3（多 context 隔离）、R6-4（kick 解析）待后续。
+
+报告 `reports/r390-render-context-destroy-verified.md`，证据 `reports/r390-dmesg-v2.txt`。
+

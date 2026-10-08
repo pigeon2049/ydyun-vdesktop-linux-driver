@@ -981,6 +981,11 @@ as-built 机制（`da3df8b`，r45–r63）：
 - Gate: 450+299 green, kernel W=1 zero warnings, reverse validation passed.
 - Honest: V1 only; R6-3 (destroy), R6-4 (kick parse), V3/V4 future.
 
+### r393 (2026-10-08): R6-6 TDM research verdict — no server-side TDM context needed (offline)
+- `0x89:0x8` (RGXTDMCreateTransferContext2) empty token is sufficient; R6-6 closed as wont-do by design. TDM = Transfer Data Manager (2D/blit engine, KMD `common_musaxfer_bridge.h`).
+- r150 live proof: real UMD TDM lifecycle (0x89:0x8 create -> 0x89:0xa submit -> 0x89:0x9 destroy) all ret=0, UMD proceeds normally; r174 live: 0x89:0xa accept-and-log captured real CCB bytes from UMD.
+- Submit only existence-checks the handle (`have_ctx`); no consumer of TDM context server-side state. Only real TDM resource is shared-memory PMRs (0x89:0x5, CLI+USC separate, already implemented, r150).
+- Independent of R6 (render ctx); does not block real UMD. Reopen if real TDM execution is ever implemented. Gate: check-offline green (research only, no code).
 ### r392 (2026-10-08): R6-5 CCB research verdict — no server-side CCB needed (offline)
 - `0x88:0x5` (BridgeRGXCreateKickSyncContext2) empty token is sufficient; R6-5 closed as wont-do by design. CCB = command ring, two-sided: UMD-side SubmissionBufAllocator (userspace, render ctx +0x200, r199) + server-side device-memory ring (Windows KMD internal, r56 rung6: no UMD-visible PMR/heap).
 - Our DDK2 path builds firmware packets directly in-kernel (DM3/0x66 r366, DM2/0x68 r382) and submits via DM — bypasses the CCB-ring model entirely; 0x82:0xC / 0x82:0x14 IN have no kicksync field; 0x88:0x2/3/4 only existence-check the handle.

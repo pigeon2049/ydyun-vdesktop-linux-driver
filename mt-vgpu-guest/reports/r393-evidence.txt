@@ -1,0 +1,102 @@
+[r393 证据] TDM (0x89:0x8/0x9) server 侧状态调研
+
+=== 1. TDM handler 源码摘录 ===
+
+--- kernel/recovery/mt_pvr_bridge.c:3484 (pvr_cmd_tdm_context2_create) ---
+static int pvr_cmd_tdm_context2_create(struct mt_pvr_file *file,
+				       struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_tdm_context2_create_in in;
+	struct mt_pvr_tdm_context2_create_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	obj = pvr_object_new(file, MT_PVR_KIND_TDM_CONTEXT);
+	if (!obj)
+		return -ENOMEM;
+	obj->arg0 = in.device_mem_context;   /* 仅存 2 个 u64，无 firmware 操作 */
+	obj->arg1 = in.context_type;
+	out.transfer_context = obj->handle;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
+--- kernel/recovery/mt_pvr_bridge.c:3504 (pvr_cmd_tdm_context2_destroy) ---
+	obj = pvr_object_find(file, in.transfer_context, MT_PVR_KIND_TDM_CONTEXT);
+	if (!obj)
+		return -ENOENT;
+	list_del(&obj->link);
+	kfree(obj);                            /* 纯 bookkeeping，无 firmware 释放 */
+	return pvr_out(cmd, &out, sizeof(out));
+
+--- kernel/recovery/mt_pvr_bridge.c:3686 (pvr_cmd_tdm_submit3_observe, r174) ---
+	list_for_each_entry(obj, &file->objects, link) {
+		if (obj->handle == in.transfer_context &&
+		    obj->kind == MT_PVR_KIND_TDM_CONTEXT) {
+			have_ctx = true;           /* 仅存在性校验，不读 arg0/arg1 */
+			break;
+		}
+	}
+	if (!have_ctx)
+		return -ENOENT;
+
+=== 2. Wire 布局 (kernel/mt_pvr_wire.h) ===
+
+--- :153-173 ---
+/* 0x89:0x8 RGXTDMCreateTransferContext2 -- 12B IN/OUT. */
+struct MT_PVR_PACKED mt_pvr_tdm_context2_create_in {
+	__u64 device_mem_context;   /* -> obj->arg0 */
+	__u32 context_type;         /* -> obj->arg1 */
+	__u32 _pad;
+};
+struct MT_PVR_PACKED mt_pvr_tdm_context2_create_out {
+	__u64 transfer_context;
+	__u32 error;
+	__u32 _pad;
+};
+/* 0x89:0xa RGXTDMSubmitTransfer3 -- 108B IN/4B OUT */
+--- :522-526 ---
+#define MT_PVR_FN_RGXTDMCREATETRANSFERCONTEXT2 0x8U
+#define MT_PVR_FN_RGXTDMDestroyTransferContext2 0x9U  /* 实际为 DESTROYTRANSFERCONTEXT2 */
+#define MT_PVR_FN_RGXTDMSUBMITTRANSFER3 0xaU
+
+=== 3. KMD 5.2.0 生成头 (reference/kmd-5.2.0-server-generated/common_musaxfer_bridge.h) ===
+#define MTGPU_BRIDGE_MUSAXFER_MUSACREATETRANSFERCONTEXT2  MTGPU_BRIDGE_MUSAXFER_CMD_FIRST+8
+#define MTGPU_BRIDGE_MUSAXFER_MUSADESTROYTRANSFERCONTEXT2 MTGPU_BRIDGE_MUSAXFER_CMD_FIRST+9
+#define MTGPU_BRIDGE_MUSAXFER_MUSASUBMITTRANSFER3         MTGPU_BRIDGE_MUSAXFER_CMD_FIRST+10
+("MUSAXFER" = MUSA Transfer; TDM = Transfer Data Manager, 2D/blit 引擎)
+
+=== 4. 历史轮次结论引用 ===
+
+--- r150 (活体): TDM 全生命周期 ---
+"0x89:0x8 / 0x89:0x9 TransferContext2 create/destroy 均 ret=0。UMD 后续仍因
+零尺寸 context-store allocation 退出，trace 未到 0x89:0xa。"
+→ 空 token 未阻塞 UMD；阻塞点在别处 (0x1:0xc num_cores)。
+
+--- r174 (活体): SubmitTransfer3 捕获真实 CCB ---
+"0x89:0xa RGXTDMSubmitTransfer3 accept-and-log ... Lets the real UMD walk
+past SubmitTransfer3 so its generated CCB bytes become observable"
+→ UMD 带着空 token context 走完 submit，产生真实 CCB (r174-real-ccb.jsonl)。
+
+--- r112: legacy-TDM 可能是 vendor 死代码 ---
+"legacy-TDM 路径下该槽恒零 ... vendor 的真 2D 路径极可能只走新 DDK 分支
+(+0x228 系)，legacy-TDM (+0x38 系) 是无人维护的死代码"
+→ 本轮结论仅针对 DDK2 0x89:0x8，不涉及 legacy 0x89:0x0。
+
+--- r384 §2.3: TDM 现状 ---
+"mint MT_PVR_KIND_TDM_CONTEXT，存 arg0=device_mem_context、arg1=context_type，
+比 render2 多存 2 个字段，但仍无 firmware context"
+
+=== 5. Dispatch 路由 (mt_pvr_bridge.c:5285-5297) ===
+	case MT_PVR_BRIDGE_RGXTDM:
+		switch (function) {
+		case MT_PVR_FN_RGXTDMCREATETRANSFERCONTEXT2:
+			return pvr_cmd_tdm_context2_create(file, cmd);
+		case MT_PVR_FN_RGXTDMDestroyTransferContext2:
+			return pvr_cmd_tdm_context2_destroy(file, cmd);
+		case MT_PVR_FN_RGXTDMGETSHAREDMEMORY:
+			return pvr_cmd_tdm_shmem(file, cmd);       /* 真实 PMR */
+		case MT_PVR_FN_RGXTDMSUBMITTRANSFER3:
+			return pvr_cmd_tdm_submit3_observe(file, cmd); /* accept-and-log */
