@@ -306,3 +306,4 @@
 | r378 | 真实页表绑定验证通过（V2 非空，无 oops）：1 真实页绑定到 VA 0x70000000，bind_many 返回 0；VM 初始化正式，清理无泄漏；marker 回归正常；firmware VA 翻译待验证 | r378-real-bind-verified.md |
 | r379 | 0x82:0x14 MUSAKICKGFX5 research: accept-and-log observer, 108B IN/4B OUT in wire.h, DM2 inferred, V1-V4 await live | r379-82x14-musakickgfx5-research.md |
 | r380 | DM2/0x66 ignored by firmware (no event, timeout); trial session cleared by firmware (0x890 2->0); probe unloaded clean, no oops; trial needs cold reboot to recover | r380-dm2-opcode66-ignored.md |
+| r381 | 3D opcode 为 0x68 (RGXCompute, type 5→DM2)；0x66 在 DM2 仅对真实命令有效（mt_live_3d.c 实证），空 marker 被忽略（r380）；完成码预测为标准 0；Windows KMD 确认 RGXCompute | r381-3d-opcode-0x68-rgxcompute.md |

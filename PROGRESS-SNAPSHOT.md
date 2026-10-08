@@ -964,3 +964,4 @@ as-built 机制（`da3df8b`，r45–r63）：
 - **r378** (2026-10-08): 真实页表绑定验证通过——1 真实页绑定到 VA 0x70000000，`mt_gpu_vm_bind_many()` 返回 0，无 oops；r375 oops 根因彻底消除；marker 回归正常；firmware VA 翻译待验证。
 - **r379** (2026-10-08): 0x82:0x14 (MUSAKICKGFX5) 调研——R3 缺口现状：桥侧为 r215 accept-and-log observer（108B IN 解码后返回 0，不执行）；wire 结构已入库（KMD 5.2.0 头）；与 0x82:0xC 差异：单一 submission、render_context 显式、OUT 无回填；设计 DM2 + 第 6 op；V1–V4 待活体验证。门禁全绿。
 - **r380** (2026-10-08): DM2/0x66 单发 marker 被 firmware 忽略（2s 无事件，timeout）；副作用致 trial 会话被 firmware 清除（0x890 2→0），需冷重启恢复；0x66 非 3D opcode，0x64 对照未测；无 oops，模块未重载，探针已卸载。
+- r381 (2026-10-08): 3D opcode 研究（离线，零硬件触碰）：3D (DM2) 的 firmware opcode 为 0x68 (RGXCompute, type 5)；0x66 在 DM2 上仅对真实命令包有效（mt_live_3d.c 实证，r37–r41），空 marker 被忽略（r380）；完成码预测为标准 0；Windows KMD (mtkm64.sys) 确认 RGXCompute；建议 0x82:0x14 实现用 0x68，须构造完整命令包。门禁 428+299 全绿（待跑），本地提交未 push。

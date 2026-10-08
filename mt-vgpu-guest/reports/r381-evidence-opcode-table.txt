@@ -1,0 +1,32 @@
+# r381 Evidence: Opcode 对照表
+
+## mt_work_opcode() (mt_work_command.h:14-24)
+type 1  → 0x67 (Transfer Op)
+type 3  → 0x66 (RGXVertex)
+type 5  → 0x68 (RGXCompute)      <-- 3D, DM2
+type 6  → 0x65 (Preempt, disabled)
+type 9  → 0x69 (CopyEngine)
+type 11 → 0x66 (UniversalQueue)
+default → 0x64 (standard marker)
+
+## mt_node_route_build() DM 映射 (mt_work_command.h:89-106)
+type 1 → DM 1 (TQX)
+type 2 → DM 3 (TA)
+type 3 → DM 4
+type 4 → DM 5
+type 5 → DM 2 (3D)               <-- 0x82:0x14 target
+type 8 → DM 2 (3D, group 1)
+
+## 实测对照
+| 场景 | DM | Opcode | 结果 | 来源 |
+|------|-----|--------|------|------|
+| TA marker | 3 | 0x66 | 接受, 完成码 0x100 | r365 |
+| TA marker | 3 | 0x64 | 接受, 完成码 0 | r365 |
+| 3D 空 marker | 2 | 0x66 | 忽略 (无事件) | r380 |
+| 3D 真实命令 | 2 | 0x66 | 成功 (r37-r41) | mt_live_3d.c |
+| 3D (预测) | 2 | 0x68 | 待验证 | 本轮推荐 |
+
+## Windows KMD strings (mtkm64.sys)
+RGXVertex
+RGXPixel
+RGXCompute
