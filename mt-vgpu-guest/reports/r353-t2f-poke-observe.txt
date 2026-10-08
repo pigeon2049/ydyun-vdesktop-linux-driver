@@ -1,0 +1,53 @@
+Function "CreateSyncPrim" not defined.
+Breakpoint 1 (CreateSyncPrim) pending.
+Function "RGXKickTA" not defined.
+Breakpoint 2 (RGXKickTA) pending.
+T2F: armed, running
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+CONNECT(0) -> 0 conn=0x5568492cb8c0
+BUF 7 -> 0x5568492cce90 (64 bytes)
+SYMBOL PVRSRVConnectionCreateDevice(...) -> 0
+BUF 5 -> 0x5568492cfe70 (16 bytes)
+SYMBOL RGXCreateDeviceMemContext(...) -> 0
+BUF 6 -> 0x5568492e17e0 (256 bytes)
+BUF 9 -> 0x5568492e2570 (8 bytes)
+SYMBOL RGXCreateRenderContext(...) -> 0
+BUF 14 -> 0x5568492de630 (8 bytes)
+BUF 10 -> 0x5568492df0c0 (64 bytes)
+BUF 11 -> 0x5568492de650 (32 bytes)
+T2F: CreateSyncPrim entry, b10=0x5568492df0c0, ret=0x556819953728
+Temporary breakpoint 3 at 0x556819953728: file umd_connect_harness.c, line 190.
+T2F-CAP b10 buf=0x5568492df0c0 desc=0x5568492dd5e0
+T2F-CAP desc+8=1 (expect 1)
+SYMBOL CreateSyncPrim(...) -> 0
+BUF 20 -> 0x5568492e3e30 (12288 bytes)
+BUF 21 -> 0x5568492e6e40 (4096 bytes)
+BUF 22 -> 0x5568492e7e50 (4096 bytes)
+BUF 23 -> 0x5568492e8e60 (4096 bytes)
+BUF 24 -> 0x5568492e9e70 (1040 bytes)
+BUF 25 -> 0x5568492ea290 (1040 bytes)
+BUF 26 -> 0x5568492ea6b0 (1040 bytes)
+BUF 27 -> 0x5568492eaad0 (1040 bytes)
+BUF 30 -> 0x5568492df2c0 (64 bytes)
+BUF 31 -> 0x5568492e1790 (64 bytes)
+BUF 28 -> 0x5568492df070 (64 bytes)
+BUF 29 -> 0x5568492def30 (64 bytes)
+BUF 19 -> 0x5568492eaef0 (4096 bytes)
+POKE b9*+80 <- 0x5568492df2c0
+POKE b9*+40 <- 0x5568492df070
+T2F: RGXKickTA entry, base=0x7f5080800000
+Breakpoint 4 at 0x7f5080879c92
+Breakpoint 5 at 0x7f50808a0fac
+Breakpoint 6 at 0x7f50808a0f94
+Breakpoint 7 at 0x7f50808a0fea
+Breakpoint 8 at 0x7f5080879cc7
+Breakpoint 9 at 0x7f508087ada7
+T2F-POKE slot=0x5568492e6e88 rdx=0x5568492e6e40 old=0x0 desc=0x5568492dd5e0 verify=0x5568492dd5e0
+T2F-RET SyncPrimRef -> 0 [success-0]
+T2F-PATH SubmitTA continued past SyncPrimRef
+T2F-RET SyncPrimRef -> 0 [success-0]
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00007f50808929ce in ?? () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+T2F: run finished

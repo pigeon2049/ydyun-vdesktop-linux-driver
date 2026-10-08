@@ -434,3 +434,9 @@
 - 遗留：T2-d 描述子选中步骤。
 ---
 
+
+## 本轮进展（r351：T2-d，离线 fabricated）
+
+- 描述子选中步骤定位：`0x79c92: mov 0x48(%rdx),%rdi`，`rdx = rbx+208*i`，`rbx=*(*(r14+0x18)+0x30)`，`i=*(rbx+0x24)`；fabricated 下 i=0，槽0+0x48 为 NULL → `SyncPrimRef` 报 3。GDB 链式复核 match，断点单次命中。零硬件触碰，freeze 继续。
+- 遗留：T2-e——`r14+0x18` 堆对象在 kick 结构体中的来源；b10 描述子填槽0+0x48 后复测。
+---
