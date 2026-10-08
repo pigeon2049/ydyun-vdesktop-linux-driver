@@ -45,6 +45,7 @@
 #include "../mt_mmu.h"
 #include "../mt_guest_device.h"
 #include "../mt_ta_vm.h"
+#include "../mt_render_context.h"
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <linux/file.h>
@@ -292,6 +293,9 @@ struct mt_pvr_object {
 	 */
 	u64 arg0;
 	u64 arg1;
+	/* R6 Route A (r387/r388): per-context real state. NULL = uninitialized
+	 * or non-CONTEXT kind. kzalloc in pvr_object_new() zeroes it. */
+	struct mt_pvr_render_context *render_ctx;
 };
 
 /* One PVR MapPMR range. The wire ledger remains byte-exact; aligned entries
