@@ -31,6 +31,7 @@ esac
 PREFIX="connect 0 buf 7 64 call PVRSRVConnectionCreateDevice b7 u1 u0"
 MEMCTX="$PREFIX buf 5 16 call RGXCreateDeviceMemContext b7* b5 b5+8"
 RENDER="$MEMCTX buf 6 256 u64 6 16 'b5*+0' u32 6 48 u1 u32 6 52 u1 buf 9 8 call RGXCreateRenderContext b7* b6 b9"
+SYNC="buf 14 8 u64 14 0 \*b7*+176 buf 10 64 buf 11 32 call CreateSyncPrim b14\* b10 b11"
 TA_SHAPE="buf 20 12288 buf 21 4096 buf 22 4096 buf 23 4096 u64 20 0x30 b21 u64 20 0x2d8 b22 u64 20 0x2e0 b22 u64 20 0x2e8 b23 buf 24 1040 buf 25 1040 buf 26 1040 buf 27 1040 buf 30 64 buf 31 64 buf 28 64 buf 29 64 buf 19 4096 u64 20 0x28 b19"
 
 run() {
@@ -48,6 +49,6 @@ run() {
 	unset UMD_TRACE UMD_CCB_DUMP_DIR LD_LIBRARY_PATH
 }
 
-eval "run mapA $RENDER $TA_SHAPE poke b9*+80 b30 poke b9*+40 b28 call RGXKickTA b9* b20 b24 b25 b26 b27"
-eval "run mapB $RENDER $TA_SHAPE poke conn+80 b31 poke conn+40 b29 call RGXKickTA conn b20 b24 b25 b26 b27"
+eval "run mapA $RENDER $SYNC $TA_SHAPE u64 22 0x48 b10@0 u64 22 0x50 u0x1234 poke b9*+80 b30 poke b9*+40 b28 call RGXKickTA b9* b20 b24 b25 b26 b27"
+eval "run mapB $RENDER $SYNC $TA_SHAPE u64 22 0x48 b10@0 u64 22 0x50 u0x1234 poke conn+80 b31 poke conn+40 b29 call RGXKickTA conn b20 b24 b25 b26 b27"
 say done
