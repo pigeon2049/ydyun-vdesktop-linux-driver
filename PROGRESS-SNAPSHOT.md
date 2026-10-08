@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r329 菜单 flag（用户指令）**：`--disable-gpu` 已入菜单覆盖层并验证生效，但 renderD128 照持（flag 与主进程占用无关，两次实锤）；GDB 函数注入 UI 事故备忘。bridge 未动，refs 1/1。见 `reports/r329-desktop-nogpu.md`。
+
 - **r328 字段落定（批准执行）**：`type=0/count=1/flags=0/a8=0` 两轮一致；调用点证明返回值被忽略、`[r8]` 系出参；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r328-checkfences-fields.md` + 双证据。
 - **r327 切入（批准执行）**：真入口对齐解码 type/count 开关；dprintf 转义教训；L3 双绿，窗口零新增 WARN。见 `reports/r327-checkfences-disasm.md`。
 

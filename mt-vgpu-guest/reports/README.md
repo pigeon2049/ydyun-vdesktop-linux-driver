@@ -280,6 +280,7 @@
 | r326 | 先 fill 后 copy 仍 abort（批准执行）：translator 完成态不能解除 copy 中止；EOT/会话态假设证伪；L3 双绿，窗口零新增 WARN |
 | r327 | CheckFences 反汇编切入（批准执行）：真入口对齐解码 type/count 开关；dprintf 配方首发转义漏改；L3 双绿，窗口零新增 WARN |
 | r328 | CheckFences 字段值 + 返回值被忽略（批准执行）：type=0/count=1/flags=0/a8=0 两轮一致；r8 系出参；L3 双绿，窗口零新增 WARN |
+| r329 | 桌面 GPU 禁用与菜单持久化（用户指令）：--disable-gpu 已写入菜单覆盖层并验证生效，但不释放 renderD128（两次实锤）；GDB 函数注入致 UI 重启事故备忘 |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |
