@@ -3888,10 +3888,12 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	/* D5: OUT.update_fence <- wire_id (no 3D work this round). */
 	wire_id = container_of(fence, struct mt_marker_fence, fence)->wire_id;
 	dma_fence_put(fence);
-	/* ctx ownership transferred to the pending marker (m->context); the
-	 * completion path dereferences it, so it must NOT be freed here.
-	 * It is released when the marker completes (currently leaked by the
-	 * op -- R5 cleanup). Freeing here would be a use-after-free. */
+	/* Marker-level: the op takes no context ownership (it clears
+	 * work->context and never assigns m->context -- r368 falsified the
+	 * r367 UAF claim). The dispatch-allocated ctx is therefore
+	 * unreferenced after the op returns; freeing it here is a clean
+	 * release, not a use-after-free. */
+	kfree(ctx);
 	out.error = 0;
 	out.update_fence = (int)wire_id;
 	out.update_fence_3d = 0;

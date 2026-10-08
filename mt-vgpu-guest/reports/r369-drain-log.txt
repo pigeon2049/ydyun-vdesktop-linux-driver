@@ -1,0 +1,11 @@
+=== r369 drain log ===
+[27970.243741] mt_drain_pending: inspecting markers: total=1 ready=0 work_ready=0
+[27970.243781] mt_drain_pending: diag: pub=1 ev_res=-95 pin=1 conn=1 srv=1 normal=1 direct_890=2 direct_898=2 fw0=0x8482cc01 fw4=1
+[27970.243785] mt_drain_pending: dm[0] count=0 empty=1
+[27970.243786] mt_drain_pending: dm[1] count=0 empty=1
+[27970.243787] mt_drain_pending: dm[2] count=0 empty=1
+[27970.243788] mt_drain_pending: dm[3] count=1 empty=0
+[27970.243790] mt_drain_pending: dm[4] count=0 empty=1
+[27970.243791] mt_drain_pending: dm[5] count=0 empty=1
+[27970.243792] mt_drain_pending: drained=1 remaining_total=0
+

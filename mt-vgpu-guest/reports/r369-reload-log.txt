@@ -1,0 +1,15 @@
+=== r369 rmmod/insmod log ===
+[26298.270704] mt_pvr_bridge: unloaded cleanly
+[26307.972064] [drm] Initialized pvr 0.1.0 for 0000:00:0e.0 on minor 1
+[26307.972072] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[27999.780666] mt_pvr_bridge: unloaded cleanly
+[28162.457874] [drm] Initialized pvr 0.1.0 for 0000:00:0e.0 on minor 1
+[28162.457884] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+
+=== refs after recovery ===
+probe refcnt: 1
+bridge refcnt: 0
+=== new bridge sha256 ===
+4f5b08af1fd3f170b3ebfeb0f81d13dddef176b50c793712120c8c5a7fc3cc3a  mt-vgpu-guest/kernel/recovery/mt_pvr_bridge.ko
+=== rollback sha256 ===
+1cc3d47f806f0616a1f44a7d4fd1cdb66be82f6e3aa474efda9fd1e621dc5607  mt-vgpu-guest/build/traces/r369-recovery/mt_pvr_bridge.rollback-4a78b331.ko

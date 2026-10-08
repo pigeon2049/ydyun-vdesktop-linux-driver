@@ -545,3 +545,10 @@
 - 全程离线：未加载模块、未提交 GPU 工作、freeze 完好。见 `reports/r364-ta-submit-channel-design.md` + 盘点表证据（0600）。
 ---
 
+
+## 本轮进展（r365：DM3 接受 opcode 0x66 marker，真机活体）
+
+- 单发 TA marker（DM=3，opcode 0x66，空 payload）：firmware 即时消费，回 wire_id 匹配事件（words[1]=0x100，非 FAULT/超时/无视）；对照组 opcode 0x64 得标准 COMPLETE（words[1]=0）→ firmware 在分发层区分 opcode。V1（DM3）/V2（0x66）通过，无需 DM=4 回退。
+- 探针 `mt_live_ta_marker.c`（一次性，未入库；build/traces/r365/，W=1 零警告）：raw queue 直发、不碰 marker store bookkeeping、事件只 peek 不 ack；两次 insmod/rmmod 均干净。
+- refs 1/0 不变，dmesg 无新增 WARN/BUG/Oops；未跑 make probe（WITH_BRIDGE 会 rmmod，同 r358 取舍）。见 `reports/r365-ta-marker-dm3-opcode66-accepted.md` + 三证据（0600）。
+---
