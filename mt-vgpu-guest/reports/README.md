@@ -300,45 +300,4 @@
 | r372 | Trial accepts 0x890==2, e2e TA verified: mt_trial_start relaxed (0/2), trial connected (pinned=1); two 0x82:0xC kicks OK (wire=1/2), 0x100 arrived, no hang; gate 421+299 green |
 | r373 | OUT.update_fence writeback verified live: kernel path always correct (KMD header layout match); r372's zero-read was its harness passing bad out_ptr/out_size; correct harness gets update_fence==dmesg wire (3==3, 4==4); fix: pvr_out failure now pr_warn (was misleading 'submitted' info); gate 425+299 green |
 | r374 | R5 per-file GPU VM/BO backend design (offline): TA cmd buffer via mt_bo_system_borrow() into per-file device-store VM; 8-step map flow; MT_TA_VM_READY gate mirrors TQX; kernel/mt_ta_vm.h + 6 layout tests; V1-V4 await live; gate 425+299 green |
-| r370 | 生产 TA 完成路径实现（桥侧轮询，活体被 EHOSTDOWN 阻塞）：pvr_ta_wait_complete() 轮询 DM3 等 0x100（2s 超时）→mt_marker_complete_ta() 退役，超时 pvr_ta_abandon() 以 -ETIMEDOUT error-signal fence；不碰 frozen probe；一次计划内重载成功；TA kick dispatch 到达但 submit 返 -EHOSTDOWN（trial 状态问题，非本轮代码所致）；门禁 417+299 全绿 |
-| r364 | TA firmware 提交通道设计（R4，离线）：`mt_marker_ops` 新增独立 op `submit_ta_work`（与 `submit_tqx_work` 并列）；TA 分配 DM3、firmware 命令 opcode 候选 `0x66`、`0x82:0xC` IN 解码为 `struct mt_ta_submit_params`（104B，`kernel/mt_ta_submit.h`）；DM/opcode 为推断须活体验证（V1–V6）；门禁新增布局测试+反向验证，402+299 全绿 |
-| r363 | 0x82:0xC 活体 IN 参数观察成功（真机）：r362 修正（CreateSyncPrim 入口捕获 $rsi）后 TA 路径一次打通，SyncPrimRef 返回 0；桥侧 observer 解码 268B IN（kick_ta=1/kick_pr=1/kick_3d=0，ta_cmd_size=360，client_ta_upd_count=1，余 0）并返 -ENOTTY；未提交 GPU 工作；freeze 完好 |
-| r362 | r361 描述子不匹配系 GDB 脚本读错位置（离线 fabricated，零硬件触碰）：CreateSyncPrim 入口取 $rdi（param_1）、返回时读 *(param_1)，但描述子按 ABI 写到 *param_2（b10）；实测 *(param_2) 处 +0x18 为有效指针、+0x20=0（与 r352/r353 一致），*(param_1) 处 +0x18=NULL（与 r361 dump 一致）；直接调用 SyncPrimRef(*b10) 返回 0；无需参数调整，r363 唯一前置是修正脚本从 $rsi 取值 |
-| r361 | 0x82:0xC 活体 IN 观察被阻塞（真机）：复现 r353 GDB 驱动 TA 路径，b10 描述子 +0x18 为 NULL（r352/r353 记载为有效指针），SyncPrimRef 在 0xa0fa0 解引用崩溃，无法到达 0x92930；静态分析确认 0x36ec0 构造 268B IN 缓冲（in_len=0x10c）；未发 ioctl、未提交 GPU 工作；freeze 完好（bridge ref 0、probe ref 1），dmesg 无异常 |
-| r360 | mt_pvr_bridge 重载至 r356 构建（真机活体，用户已批准）：rmmod/insmod 成功，新桥 build-id `0d6b…55da` == 在盘构建；dmesg 干净（unloaded cleanly → pvr node registered）；活体 connect 健康检查 PASS（GetSrvHandle 指针形态、BridgeCall(1,0)→0 且 OUT 逐字节命中）；probe 未碰（ref 1），bridge ref 0，card0/card1/renderD128 齐全，freeze 已恢复 |
-| r349 | T2-b：3=INVALID_PARAMS出自SyncPrimRef同步校验，需真sync handle；T2-c回填tuple（离线fabricated） |
-| r348 | T2-a：fabricated RGXKickTA跑通，PrepareTA=0，3来自SubmitTA；0x14未发出（离线fabricated） |
-| r347 | T1关闭：EnQueue纯入队不发桥命令；0x82静态普查18个、无0xC；T2锁定打0x14（离线） |
-| r346 | TA bring-up阶梯定义：RGXKickTA入口链静态定锤，缺producer/桥口/执行三件；T1下轮（离线） |
-| r345 | 缺失的生产者是app：copy流程无surface描述调用，CreateCCB只calloc；r333-345因果链闭合（离线） |
-| r344 | QueueTransferNew是特性门分发器：>1走TQJobSubmit（rdx+8活体互证），≤1走legacy；解释=2/默认行为分裂（离线） |
-| r343 | 修正 r342：rdx 缓冲 `[0,0x820)` 由 app 清零，非零尾部是清零范围外残留栈；计数槽仍空，生产者仍在 transfer 侧 |
-| r342 | app 调用点入参：rdx 缓冲非零（栈指针），计数槽仍不在 app 侧填写；收回“清零后无回填”，未决 +0x820/+0x828/+0x838 来源 |
-| r341 | 调用方是尾跳：app调QueueTransferNew后jmp进JobSubmit；bt静默根因亦明；生产者即copy-setup自身 |
-| r340 | bt文件脚本下通用静默；app走transferAPI，TQJobSubmit内部经指针到达；下刀x/gx$rsp |
-| r339 | ctx来自job+0x10调用前已存在，序言零写+0x58，建表责任在调用方（离线） |
-| r338 | 表是空壳定锤：JobSubmit入口链尚空，空壳建于序言，copy转立项；r333-338链条一句话 |
-| r337 | 零值在BlitInit入口已存在：四阶段快照指针关联，生产者在上游；堆地址三轮一致 |
-| r336 | 计数槽同路径无人写：入口写观察零命中，分发m0=0/m8=1/ma0=0走+0x2ff0；堆地址跨轮一致 |
-| r335 | abort调用链静态闭合：多入口簇，TQ走+0x3320=0x889c0，entry零命中得解；纠+0x3320算术（离线） |
-| r334 | abort系空表断言：首轮ebx=0>=edx=0即自杀，release列表容量槽为0；entry零命中/bt静默如实记 |
-| r333 | CheckFences出参判决：abort时[r8]仍=1，mismatch解读死亡，abort在其下游；窗口脚本落库 |
-| r332 | 冷启动后活会话重建：新trial 20261008T025100Z-c85ff8c5，默认桥+L3全绿，freeze生效（cold因设备已干净被拒非缺口） |
-| r331 | 头文件 userspace 拼写收尾：双#else修复+9处pr_info转宏，L1+L2全绿 |
-| r330 | 桌面进程全清（用户指令冷启动前）：exe 精确匹配清 10 进程，serve 保留；现为天然重载窗口（ref 0） |
-| r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
-| r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
-| r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |
-
-## 关键单篇（本轮最常用）
-
-- 翻译器输入规约：r53（包）→ r54（PMR/VA）→ r55（对齐策略）→ r56（CCB 归属）→ r62（签发路径）。
-- 运维红线：r67（泄漏）→ r68（恢复流程）。
-- 门禁与复核：r58。构建 canvases：`runtime-integration-build.json`。
-
-## 非 r 编号专题（按子系统追溯时读）
-
-`boot-bo-lifetime`、`buffer-object-layer`、`ce-*`、`context-pool*`、
-`event-fence-path`、`execution-context-path`、`firmware-*`、`gem-*`、
-`gpu-vm-mapping`、`tqx-*`、`work-*` 等。完整清单见目录；
-各 `*-validation.json` 为机器可读验证结果，与同名 `.md` 配对。
+| r375 | R5 TA VM infra implemented, live oops (bind disabled) (offline): TA cmd buffer via mt_bo_system_borrow() into per-file device-store VM; 8-step map flow; MT_TA_VM_READY gate mirrors TQX; kernel/mt_ta_vm.h + 6 layout tests; V1-V4 await live; gate 425+299 green |

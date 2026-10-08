@@ -25,6 +25,14 @@
 
 
 
+## 本轮进展（r375：R5 基础设施实现，活体因 oops 中断）
+
+- 实现：`mt_pvr_bridge.c` +450 行：`mt_ta_vm_context_create/destroy`（per-file 上下文）、`mt_ta_vm_map_cmd_buffer/unmap`（pin→borrow→VA）、V1/V2 钩子、`pvr_file_release` 清理。`MT_TA_VM_READY` 门保持关闭。
+- 关键发现：① 跨模块 `mt_bo_vram_ops`（static const）地址不一致致 `mt_bo_system_borrow` -EINVAL，已用本地 `mt_ta_bo_borrow` 绕过；② 手动 VM 初始化不完整致 `mt_gpu_vm_bind_many` 内核 oops，已禁用 bind（V2 仅验证 pin/borrow/VA）。
+- 门禁：425+299 全绿，W=1 零警告，`test_ta_vm_impl.py`（11 tests）+ 反向验证。
+- 活体：一次重载后 V1 触发即 oops（D-state 进程残留，bridge ref=3 无法卸载），需重启恢复。V1/V2 未完成。
+- 报告：`reports/r375-ta-vm-infra-live-interrupted.md`。
+
 ## 本轮进展（r374：R5 per-file GPU VM/BO 后端设计定稿）
 
 - **设计**：TA 真实渲染 payload 的内存路径——per-file GPU VM（真实设备 store，非 `store=file` facade）+ `mt_bo_system_borrow()` 借入 TA 命令缓冲 + 预留 VA（`0x70000000`）绑定 + `sealed`/`uploaded` 校验门（`MT_TA_VM_READY`，照抄 TQX）。
