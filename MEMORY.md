@@ -15,22 +15,17 @@
 
 
 
+## 本轮进展（r360：mt_pvr_bridge 重载至 r356 构建成功，真机活体）
+
+- 换桥（真机活体，用户已批准 2026-10-08 15:13）：预检（fuser 无持有者、bridge ref 0、probe ref 1、vermagic 一致、observer 串 grep=1）→ `rmmod mt_pvr_bridge` → `insmod` r356 构建。新桥 build-id `0d6b…55da` == 在盘构建 ≠ 旧 `2a2a…261f`。
+- dmesg：`unloaded cleanly` → `[drm] Initialized pvr 0.1.0 ... on minor 1` → `registered 'pvr' node`；无新增 WARN/BUG/Oops。
+- 健康检查 PASS（纯 userspace，r358 方法）：`PVRSRVConnectionCreateDevice`→0、`GetSrvHandle` 指针形态、单次 `PVRSRVBridgeCall(1,0)`→0 且 OUT 逐字节命中（`bvnc=0x0023000406600017`/`error=0`）。
+- 方法教训：`/proc/self/maps` 取 load bias 须减 file offset；`PVRSRVBridgeCall` 真签名 7 参数 `(handle,bridge,func,in_ptr,in_len,out_ptr,out_len)`（connect 实证 r8d=0x10/stack=0x11）。
+- freeze 恢复确认：probe 仍绑 00:0e.0（ref 1，未碰）、bridge 默认参数在载（ref 0）、card0/card1/renderD128 齐全。见 `reports/r360-bridge-reload-r356.md` + 四证据（0600）。
+---
 ## 本轮进展（r359：0x82:0xC 活体观察停轮——在载桥无 observer）
 
 - 基线（真机，freeze 未碰）：refs（bridge 0/probe 1）、`renderD128` 存在、dmesg 无 WARN/BUG/Oops、UMD SHA `b3058c02…34237b0` 对版、HEAD `12c6bd6` 工作区干净。
 - 在载桥 build-id `2a2a…261f` ≠ 在盘 r356 构建 `0d6b…55da`（含 observer 串）；在载桥 ~11:26 加载，早于 r356 提交（14:37）约 3 小时；r356/r357/r358 均未重载桥。按任务安全协议 §2 停轮：未发 `0x82:0xC`，未重载桥。
 - 门禁 `check-offline` 400+299 全绿；无代码改动。见 `reports/r359-bridge-version-blocked.md` + 证据（0600）。
----
-
-## 本轮进展（r358：UMD 真实建连打通，真机活体）
-
-- 建连（真机活体，纯 userspace，freeze 未碰）：`PVRSRVConnectionCreateDevice(&conn,0xffffffff,0xffffffff)`→0（`conn=0x25220fe0`，1ms），经 `_GetFd` 打开 `renderD128`（driver `pvr` 首轮匹配）→`ioctl(0x40046445)`→内部 `BridgeConnect`→`GetFeatures`（纯读）→`BridgeAlignmentCheck(1,0xa)`（桥 `pvr_stub_ok` 回零）。
-- `GetSrvHandle(conn)`→`0x252211a0` 指针形态；单次显式 `PVRSRVBridgeCall(1,0,in16,out17)`→0，OUT 逐字节命中桥侧 `mt_pvr_connect_result`（`bvnc=0x0023000406600017`/`error=0`）。
-- IN 布局实证（`BridgeConnect` 反汇编）：16B=`[param_3,param_5,param_4,param_2]`，取 `[0x80000850,0,0x10000,0]`；桥侧忽略 IN。
-- dmesg 1117→1118 行，仅+1 行 `arena close`（fd 关闭正常清理），无 WARN/BUG/Oops；refs（bridge 0/probe 1）不变。
-- 未跑 `make probe`（L3）：其 `WITH_BRIDGE` 会 rmmod，违反红线；桥未被扰动，等效健康证据为活体交互全绿。
-- 门禁：`check-offline` 400+299 全绿；无代码改动。见 `reports/r358-umd-live-connect.md` + 三证据（0600）。
----
-
----
 ---
