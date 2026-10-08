@@ -14,6 +14,17 @@
 
 
 
+
+## 本轮进展（r358：UMD 真实建连打通，真机活体）
+
+- 建连（真机活体，纯 userspace，freeze 未碰）：`PVRSRVConnectionCreateDevice(&conn,0xffffffff,0xffffffff)`→0（`conn=0x25220fe0`，1ms），经 `_GetFd` 打开 `renderD128`（driver `pvr` 首轮匹配）→`ioctl(0x40046445)`→内部 `BridgeConnect`→`GetFeatures`（纯读）→`BridgeAlignmentCheck(1,0xa)`（桥 `pvr_stub_ok` 回零）。
+- `GetSrvHandle(conn)`→`0x252211a0` 指针形态；单次显式 `PVRSRVBridgeCall(1,0,in16,out17)`→0，OUT 逐字节命中桥侧 `mt_pvr_connect_result`（`bvnc=0x0023000406600017`/`error=0`）。
+- IN 布局实证（`BridgeConnect` 反汇编）：16B=`[param_3,param_5,param_4,param_2]`，取 `[0x80000850,0,0x10000,0]`；桥侧忽略 IN。
+- dmesg 1117→1118 行，仅+1 行 `arena close`（fd 关闭正常清理），无 WARN/BUG/Oops；refs（bridge 0/probe 1）不变。
+- 未跑 `make probe`（L3）：其 `WITH_BRIDGE` 会 rmmod，违反红线；桥未被扰动，等效健康证据为活体交互全绿。
+- 门禁：`check-offline` 400+299 全绿；无代码改动。见 `reports/r358-umd-live-connect.md` + 三证据（0600）。
+---
+
 ## 本轮进展（r357：UMD 真实建连链路 recon，离线 fabricated）
 
 - 链路语义（语料实测，SHA `b3058c02…34237b0` 对版）：`GetSrvHandle @ 0x3c1c0`=`rdi?*rdi:0`（读连接首 qword；Ghidra 口径 `0x13c1c0`=文件偏移+`0x100000`，与r354/r355 写法统一）；连接 0xd0（`FUN_0013b7c0` 内 `PVRSRVCallocUserModeMem(0xd0)`）；首 qword 由 `OpenServicesDevice`（`FUN_00192550`）写入 0x10 services-handle 指针，其首 dword 为 DRM fd；`PVRSRVBridgeCall`（`FUN_00192930`）`ioctl(*param_1, 0xc0206440)`，`ENOTTY`→`0x26`。
@@ -22,12 +33,4 @@
 - r358 活体前置与验收已写出（见报告）：freeze 完好 + `renderD128` 存在 + SHA 对版；只建连不提交 GPU 工作；验收=`GetSrvHandle` 指针形态 + 桥侧 `pvr_cmd_connect` 收包 + 建连返回 0。
 - 门禁：新增 `tests/test_umd_connection_layout.py`（6 项钉地址/0xd0/读语义/ioctl 号/写链），反向验证通过后还原；`check-offline` 400+299 全绿。零硬件触碰，freeze 继续。
 ---
-
-
-## 本轮进展（r356：0x82:0xC wire 入库 + observer 占位，离线）
-
-- 入库：`kernel/mt_pvr_wire.h` 新增 `mt_pvr_musakickgfx2_in`（268B）/`_out`（12B），字段与 5.2 生成头 1:1；类型尺寸经 5.2 DKMS 包（SHA `e3f684b1…`）实证：`MTGPU_FENCE`/`MTGPU_TIMELINE`=`int32_t`，`MT_BOOL`=4B 枚举，`MT_HANDLE`=8B；268/12 与 requirements 表既有 `0x82:0xC=RGXKICKTA3D2` 条目逐字节一致。
-- 占位：`pvr_cmd_musakickgfx2_observe()` 接入 dispatch，解码打印标量头字段后返 `-ENOTTY`（明确非执行；与 0x82:0x14 的 accept-and-log 区分，守 STATUS 红线）。
-- 门禁：static_assert 钉尺寸+7 偏移；`test_pvr_wire_sizes.py` MAPPING/DIRECTION 新增 `(0x82,0xC)`；`check-offline` 394+299 全绿；反向验证（267→编译失败）通过后还原；`make kernel` W=1 零警告。
-- 遗留：r357（UMD 真实建连 recon）。零硬件触碰，freeze 继续。
 ---

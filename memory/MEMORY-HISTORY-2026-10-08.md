@@ -478,3 +478,11 @@
 - 分轮分解 r356+（提案）：r356=0x82:0xC wire 入库+observer 占位；r357=UMD 真实建连 recon；r358=0x82:0xC 活体观察（需批准）；r359=TA 提交通道设计；r360=0x82:0x14 执行翻译设计；r361+=实现验收。
 - 遗留：r356（0x82:0xC wire 入库）。零硬件触碰，freeze 继续。
 ---
+
+## 本轮进展（r356：0x82:0xC wire 入库 + observer 占位，离线）
+
+- 入库：`kernel/mt_pvr_wire.h` 新增 `mt_pvr_musakickgfx2_in`（268B）/`_out`（12B），字段与 5.2 生成头 1:1；类型尺寸经 5.2 DKMS 包（SHA `e3f684b1…`）实证：`MTGPU_FENCE`/`MTGPU_TIMELINE`=`int32_t`，`MT_BOOL`=4B 枚举，`MT_HANDLE`=8B；268/12 与 requirements 表既有 `0x82:0xC=RGXKICKTA3D2` 条目逐字节一致。
+- 占位：`pvr_cmd_musakickgfx2_observe()` 接入 dispatch，解码打印标量头字段后返 `-ENOTTY`（明确非执行；与 0x82:0x14 的 accept-and-log 区分，守 STATUS 红线）。
+- 门禁：static_assert 钉尺寸+7 偏移；`test_pvr_wire_sizes.py` MAPPING/DIRECTION 新增 `(0x82,0xC)`；`check-offline` 394+299 全绿；反向验证（267→编译失败）通过后还原；`make kernel` W=1 零警告。
+- 遗留：r357（UMD 真实建连 recon）。零硬件触碰，freeze 继续。
+---
