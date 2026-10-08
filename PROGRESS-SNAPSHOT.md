@@ -489,6 +489,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r344 分发门（离线，零硬件触碰）**：`QueueTransferNew` 按 `features+0x54` 分发（`>1→TQJobSubmit`，`≤1→legacy`）；`rdx+8` 被 r342×r338 活体互证；`=2`/默认行为分裂得解。会话未碰，freeze 继续。见 `reports/r344-queue-dispatch-gate.md`。
 - **r343 修正 r342（离线，零硬件触碰）**：rdx 缓冲 `[0,0x820)` 由 `rep stos` 清零，`+0x820` 起的非零值是残留栈，撤回“app 填入”解读；反汇编闭合。会话未碰，freeze 继续。见 `reports/r343-buffer-zeroed-tail-stale.md`。
 - **r342 app 入参（批准执行）**：`=2` 窗口断 app `0x4026`——rdx 缓冲 `+0x820/+0x828/+0x838` 非零（栈指针），计数槽未变；收回 r341 “清零后无回填”。默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r342-app-args-live.md` + 双证据。
 - **r341 尾跳调用方（批准执行）**：`=2` 窗口返回地址点名——app `0x4026` 调 QueueTransferNew，`+0x46` 尾跳进 JobSubmit；`bt` 静默根因亦明。默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r341-tailcall-caller.md` + 双证据。
