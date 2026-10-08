@@ -489,6 +489,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r345 app 未描述 surface（离线，零硬件触碰）**：copy 提交序列无 surface 调用，`CreateCCB` 只做 calloc；r333–r345 因果链闭合，缺口在 vendor 测试程序 setup（开放项记报告）。copy 线关账，待拍板。会话未碰，freeze 继续。见 `reports/r345-app-never-describes-surface.md`。
 - **r344 分发门（离线，零硬件触碰）**：`QueueTransferNew` 按 `features+0x54` 分发（`>1→TQJobSubmit`，`≤1→legacy`）；`rdx+8` 被 r342×r338 活体互证；`=2`/默认行为分裂得解。会话未碰，freeze 继续。见 `reports/r344-queue-dispatch-gate.md`。
 - **r343 修正 r342（离线，零硬件触碰）**：rdx 缓冲 `[0,0x820)` 由 `rep stos` 清零，`+0x820` 起的非零值是残留栈，撤回“app 填入”解读；反汇编闭合。会话未碰，freeze 继续。见 `reports/r343-buffer-zeroed-tail-stale.md`。
 - **r342 app 入参（批准执行）**：`=2` 窗口断 app `0x4026`——rdx 缓冲 `+0x820/+0x828/+0x838` 非零（栈指针），计数槽未变；收回 r341 “清零后无回填”。默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r342-app-args-live.md` + 双证据。

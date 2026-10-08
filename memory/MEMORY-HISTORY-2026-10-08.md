@@ -383,3 +383,9 @@
 - 落库 `scripts/app-args-window.sh`。
 - 遗留：app `0x3f00–0x4030` 离线反汇编，命名 rdx 缓冲写入来源；计数槽（ctx 链）与 rdx 缓冲的对应待确认。
 ---
+
+## 本轮进展（r343：修正 r342，离线）
+
+- 反汇编闭合：rdx 缓冲 `[0,0x820)` 由 `rep stos` 清零（`0x3ffc→0x400b`，`%r12` 自 `0x3c5c` 未改写），`+0x820` 起的非零值为残留栈，撤回 r342“app 填入”解读。计数槽仍空，生产者仍待 transfer 侧 RE（`RGXTDMQueueTransferNew` 0x614e0）。零硬件触碰，freeze 继续。
+- 遗留：`RGXTDMQueueTransferNew` 参数消费（离线）。
+---

@@ -281,6 +281,7 @@
 | r327 | CheckFences 反汇编切入（批准执行）：真入口对齐解码 type/count 开关；dprintf 配方首发转义漏改；L3 双绿，窗口零新增 WARN |
 | r328 | CheckFences 字段值 + 返回值被忽略（批准执行）：type=0/count=1/flags=0/a8=0 两轮一致；r8 系出参；L3 双绿，窗口零新增 WARN |
 | r329 | 桌面 GPU 禁用与菜单持久化（用户指令）：--disable-gpu 已写入菜单覆盖层并验证生效，但不释放 renderD128（两次实锤）；GDB 函数注入致 UI 重启事故备忘 |
+| r345 | 缺失的生产者是app：copy流程无surface描述调用，CreateCCB只calloc；r333-345因果链闭合（离线） |
 | r344 | QueueTransferNew是特性门分发器：>1走TQJobSubmit（rdx+8活体互证），≤1走legacy；解释=2/默认行为分裂（离线） |
 | r343 | 修正 r342：rdx 缓冲 `[0,0x820)` 由 app 清零，非零尾部是清零范围外残留栈；计数槽仍空，生产者仍在 transfer 侧 |
 | r342 | app 调用点入参：rdx 缓冲非零（栈指针），计数槽仍不在 app 侧填写；收回“清零后无回填”，未决 +0x820/+0x828/+0x838 来源 |
