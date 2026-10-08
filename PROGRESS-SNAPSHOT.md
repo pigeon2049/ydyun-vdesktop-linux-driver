@@ -227,7 +227,7 @@ RGXCreateRenderContext
 
 | 门禁 | 结果 |
 |---|---|
-| Python 测试 | **386 项通过，零 skip**（r312 poolbox 门 + r308 颜色覆盖 + r306 普查/pristine + r304 定向 + r297 bump 8 项 + r282 独立模块 12 项；余见下表） |
+| Python 测试 | **394 项通过（1 skip）**（r331 头文件拼写 8 项 + r312 poolbox 门 + r308 颜色覆盖 + r306 普查/pristine + r304 定向 + r297 bump 8 项 + r282 独立模块 12 项；余见下表） |
 | C RAM 模型测试 | **299 checks**（r179 fill 构造器 16 项；r181–r182 复核全绿；r304 CCB 目的回环自测 +2） |
 | 内核构建 | `W=1` 0 error / 0 warning |
 | ABI 门（`mt_guest` 共享结构 + 7 结构 pahole 摘要） | PASS |
@@ -488,6 +488,8 @@ as-built 机制（`da3df8b`，r45–r63）：
    下一次需空存储的实验必须等新会话（重启 + 重建），不能插队。
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
+
+- **r331 拼写收尾（离线，零硬件触碰）**：r332 草稿闭合——双 `#else` 修复 + 9 处裸 `pr_info` 转 `mt_gpu_vm_log`（三头复用）；门禁 8 项（含反向）；`check-offline` 394+299 全绿，`make kernel` W=1 零警告，`make check` 全绿（HEAD 上原红）；bootstrap 页表字节零变化（validation json 零 diff）。开工时会话已随冷启动消失（仅 `card0`）。见 `reports/r331-userspace-spellings.md`。
 
 - **r330 桌面全清（用户指令）**：exe 精确匹配清桌面树 10 进程（serve 保留，会话存续）；renderD128 零持有，bridge ref 0——**现为天然重载窗口**。见 `reports/r330-desktop-cleared.md`。
 
