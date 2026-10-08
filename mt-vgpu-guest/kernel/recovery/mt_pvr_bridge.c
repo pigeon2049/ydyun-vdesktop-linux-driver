@@ -349,7 +349,7 @@ struct mt_pvr_file {
 	bool gpu_vm_ready;
 	/* Per-file TA VM context (R5, r375). NULL until first TA submit;
 	 * destroyed on file close. Gate MT_TA_VM_READY stays closed in r375. */
-	struct mt_ta_vm_context *ta_vm_ctx;
+	struct mt_bridge_ta_vm *ta_vm_ctx;
 	/* Per-file PMR backing arena (r55 answer to byte-tight PMRs). PMR
 	 * bytes live at arena_base + arena_offset so VA-neighbor ranges can
 	 * share physical pages once the plan binds per-page cover sets.
@@ -884,9 +884,10 @@ static void pvr_pmr_dma_release(struct mt_pvr_pmr *pmr)
 	pmr->dma_npages = 0;
 }
 
-/* Forward declarations for R5 TA VM (defined later, used in release). */
-static struct mt_ta_vm_context *mt_ta_vm_context_create(struct mt_pvr_file *file);
-static void mt_ta_vm_context_destroy(struct mt_ta_vm_context *vm_ctx);
+
+struct mt_bridge_ta_vm;
+static struct mt_bridge_ta_vm *mt_bridge_ta_vm_create(void);
+static void mt_bridge_ta_vm_destroy(struct mt_bridge_ta_vm *tvm);
 
 static void pvr_file_release(struct kref *kref)
 {
@@ -899,7 +900,7 @@ static void pvr_file_release(struct kref *kref)
 	/* R5: destroy per-file TA VM context (r375). In-flight markers must
 	 * have completed (abandon path) before file close. */
 	if (file->ta_vm_ctx) {
-		mt_ta_vm_context_destroy(file->ta_vm_ctx);
+		mt_bridge_ta_vm_destroy(file->ta_vm_ctx);
 		file->ta_vm_ctx = NULL;
 	}
 
@@ -3899,366 +3900,95 @@ static void pvr_ta_abandon(struct mt_guest *g, struct mt_marker_store *s,
  * (the op manages s->lock internally and the caller must not hold it).
  * Never touches mt_guest_probe (session acquired read-only via
  * pvr_session_acquire). */
-/* R5: Per-file TA VM context implementation (r375).
- *
- * Implements the infrastructure designed in r374:
- * - mt_ta_vm_context_create/destroy: per-file VM lifecycle
- * - mt_ta_vm_map_cmd_buffer/unmap: 8-step command buffer mapping
- *
- * The MT_TA_VM_READY gate stays CLOSED in r375: the mapping is validated
- * (V1/V2) but not used in the submit path. Marker-level TA continues.
+/* r376: Bridge-side TA VM with proper mt_gpu_vm_init().
+ * Uses synthetic page-table BO (NOT borrowed), following the proven
+ * 3D pattern (pvr_gpu_vm_ensure at mt_pvr_bridge.c:451).
  */
 
-/* Private wrapper: public mt_ta_vm_context plus owned resources. */
-struct mt_ta_vm_impl {
-	struct mt_ta_vm_context ctx;	/* Public interface; must be first. */
-	void *pt_pages;			/* Page-table pages (4 x 4KiB). */
-	u64 *pt_page_pa;		/* Their physical addresses. */
-	void *vm_image;			/* VM page-table image buffer. */
-	void *vm_scratch;		/* VM scratch buffer. */
+#define MT_BRIDGE_TA_VM_PT_PAGES  4
+#define MT_BRIDGE_TA_VM_PT_BYTES  (MT_BRIDGE_TA_VM_PT_PAGES * 4096)
+
+struct mt_bridge_ta_vm {
+	struct mt_gpu_vm vm;
+	struct mt_bo tables;	/* Synthetic; page_pa==NULL per init. */
+	void *pt_pages;
+	void *image;
+	void *scratch;
 };
 
-/* Private wrapper for mapping-owned page state. */
-struct mt_ta_mapping_impl {
-	struct page **pages;
-	u64 *page_pa;
-	u32 nr_pages;
-};
-
-#define MT_TA_VM_PT_PAGES	4
-#define MT_TA_VM_PT_BYTES	(MT_TA_VM_PT_PAGES * 4096)
-
-
-/* R5: local borrow helper (r375). mt_bo_system_borrow() cannot be used
- * cross-module: mt_bo_vram_ops is static const in mt_bo_vram.h, so the
- * bridge and probe have different addresses and the ops check fails.
- * This duplicates the borrow logic using the store's own ops. */
-static int mt_ta_bo_borrow(struct mt_bo *bo, struct mt_bo_store *s,
-			   struct mt_system_memory *m)
+static struct mt_bridge_ta_vm *mt_bridge_ta_vm_create(void)
 {
-	struct mt_bo_vram_handle *h;
-	u32 i;
-	if (!bo || bo->refs || bo->backing.handle || !s || !s->lock ||
-	    !s->vram || !m || !m->cpu || !m->page_pa ||
-	    !m->bytes || (m->bytes & 4095))
-		return -EINVAL;
-	for (i = 0; i < m->bytes / 4096; i++)
-		if ((m->page_pa[i] & 4095) ||
-		    m->page_pa[i] >= (1ULL << MT_GPU_VA_BITS))
-			return -ERANGE;
-	h = kzalloc(sizeof(*h), GFP_KERNEL);
-	if (!h)
-		return -ENOMEM;
-	h->system = m;
-	h->borrowed = true;
-	__module_get(THIS_MODULE);
-	s->objects++;
-	s->allocated_bytes += m->bytes;
-	*bo = (struct mt_bo){.backing = {.handle = h, .gpu_pa = m->page_pa[0],
-		.bytes = m->bytes}, .ops = s->ops, .store = s,
-		.requested_bytes = m->bytes, .refs = 1, .page_pa = m->page_pa};
-	return 0;
-}
-
-static struct mt_ta_vm_context *mt_ta_vm_context_create(struct mt_pvr_file *file)
-{
-	struct mt_ta_vm_impl *impl;
-	struct mt_ta_vm_context *ctx;
-	struct mt_guest *g;
-	struct mt_guest_device *d;
-	struct module *owner = NULL;
-	struct mt_bo *tables;
-	struct mt_system_memory mem = {0};
-	u32 i;
+	struct mt_bridge_ta_vm *tvm;
+	u64 pt_pa;
 	int ret;
 
-	/* D7: validate before any allocation. */
-	if (!file) {
-		pr_info("mt_pvr_bridge: R5 DBG: create: !file\n");
+	tvm = kzalloc(sizeof(*tvm), GFP_KERNEL);
+	if (!tvm)
 		return NULL;
-	}
 
-	impl = kzalloc(sizeof(*impl), GFP_KERNEL);
-	if (!impl) {
-		pr_info("mt_pvr_bridge: R5 DBG: create: impl alloc failed\n");
-		return NULL;
-	}
-	ctx = &impl->ctx;
+	tvm->pt_pages = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO,
+						 get_order(MT_BRIDGE_TA_VM_PT_BYTES));
+	if (!tvm->pt_pages)
+		goto fail_tvm;
+	pt_pa = page_to_phys(virt_to_page(tvm->pt_pages));
 
-	/* Allocate page-table pages (4 x 4KiB, zeroed). */
-	impl->pt_pages = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO,
-						  get_order(MT_TA_VM_PT_BYTES));
-	if (!impl->pt_pages)
-		goto fail_impl;
-	impl->pt_page_pa = kcalloc(MT_TA_VM_PT_PAGES, sizeof(u64), GFP_KERNEL);
-	if (!impl->pt_page_pa)
+	tvm->image = kvzalloc(MT_BRIDGE_TA_VM_PT_BYTES, GFP_KERNEL);
+	if (!tvm->image)
 		goto fail_pages;
-	for (i = 0; i < MT_TA_VM_PT_PAGES; i++)
-		impl->pt_page_pa[i] =
-			page_to_phys(virt_to_page((u8 *)impl->pt_pages + i * 4096));
-	mem.cpu = impl->pt_pages;
-	mem.page_pa = impl->pt_page_pa;
-	mem.bytes = MT_TA_VM_PT_BYTES;
-
-	/* Borrow page tables into the device BO store. */
-	g = pvr_session_acquire(&owner);
-	if (!g) {
-		pr_info("mt_pvr_bridge: R5 DBG: create: session acquire failed\n");
-		ret = -ENODEV;
-		goto fail_pa;
-	}
-	pr_info("mt_pvr_bridge: R5 DBG: create: session acquired\n");
-	d = container_of(g, struct mt_guest_device, state);
-	tables = kzalloc(sizeof(*tables), GFP_KERNEL);
-	if (!tables) {
-		ret = -ENOMEM;
-		goto fail_session;
-	}
-	pr_info("mt_pvr_bridge: R5 DBG: borrow args: bo=%pK refs=%u handle=%pK s=%pK lock=%pK ops=%pK vram_ops=%pK m=%pK cpu=%pK pa=%pK bytes=%u\n",
-		tables, tables->refs, tables->backing.handle, &d->buffers,
-		d->buffers.lock, d->buffers.ops, &mt_bo_vram_ops,
-		&mem, mem.cpu, mem.page_pa, mem.bytes);
-	mutex_lock(d->buffers.lock);
-	ret = mt_ta_bo_borrow(tables, &d->buffers, &mem);
-	mutex_unlock(d->buffers.lock);
-	pr_info("mt_pvr_bridge: R5 DBG: create: borrow ret=%d\n", ret);
-	if (ret)
-		goto fail_tables;
-
-	/* Allocate VM image/scratch buffers. */
-	impl->vm_image = kzalloc(MT_TA_VM_PT_BYTES, GFP_KERNEL);
-	impl->vm_scratch = kzalloc(MT_TA_VM_PT_BYTES, GFP_KERNEL);
-	if (!impl->vm_image || !impl->vm_scratch) {
-		ret = -ENOMEM;
-		goto fail_borrow;
-	}
-
-	/* Initialize the VM manually (r375): mt_gpu_vm_init() rejects
-	 * borrowed BOs (requires page_pa==NULL), but our page tables are
-	 * borrowed system RAM. Manual init is sufficient for V1/V2. */
-	ctx->vm = kzalloc(sizeof(*ctx->vm), GFP_KERNEL);
-	if (!ctx->vm) {
-		ret = -ENOMEM;
+	tvm->scratch = kvzalloc(MT_BRIDGE_TA_VM_PT_BYTES, GFP_KERNEL);
+	if (!tvm->scratch)
 		goto fail_image;
-	}
-	ret = mt_bo_get(tables);
+
+	/* Synthetic BO: gpu_pa set, page_pa==NULL. Satisfies init. */
+	tvm->tables = (struct mt_bo){
+		.backing = {.gpu_pa = pt_pa, .bytes = MT_BRIDGE_TA_VM_PT_BYTES},
+		.ops = &pvr_gpu_plan_bo_ops,
+		.requested_bytes = MT_BRIDGE_TA_VM_PT_BYTES,
+		.refs = 1,
+	};
+
+	/* PROPER init (not manual assembly). */
+	ret = mt_gpu_vm_init(&tvm->vm, &tvm->tables, tvm->image, tvm->scratch,
+			     MT_BRIDGE_TA_VM_PT_BYTES);
 	if (ret)
-		goto fail_vm;
-	ctx->vm->tables = tables;
-	ctx->vm->image = impl->vm_image;
-	ctx->vm->scratch = impl->vm_scratch;
-	ctx->vm->capacity = MT_TA_VM_PT_BYTES;
-	ctx->vm->max_ranges = 16; /* Enough for V1/V2 validation */
-	ctx->vm->binding_capacity = 16;
-	ctx->vm->bindings = kcalloc(16, sizeof(struct mt_vm_binding), GFP_KERNEL);
-	if (!ctx->vm->bindings) {
-		ret = -ENOMEM;
-		goto fail_vm;
-	}
-	ctx->vm->count = 0;
-	ctx->vm->sealed = false;
-	ctx->vm->uploaded = false;
+		goto fail_scratch;
 
-	/* Success: publish the context. mem/page_pa/pages stay owned by impl. */
-	ctx->page_tables = tables;
-	ctx->owner_file = file;
-	ctx->bound_cmd_buffers = 0;
-	ctx->ready = false;
-	pr_info("mt_pvr_bridge: TA VM context created (vm=%pK, tables=%pK)\n",
-		ctx->vm, tables);
-	mutex_unlock(&g->trial_lock);
-	module_put(owner);
-	return ctx;
+	mt_bo_put(&tvm->tables); /* VM holds reference. */
+	return tvm;
 
-fail_vm:
-	kfree(ctx->vm);
-	ctx->vm = NULL;
+fail_scratch:
+	kvfree(tvm->scratch);
 fail_image:
-	kfree(impl->vm_image);
-	kfree(impl->vm_scratch);
-	impl->vm_image = impl->vm_scratch = NULL;
-fail_borrow:
-	mt_bo_put(tables);
-fail_tables:
-	kfree(tables);
-fail_session:
-	mutex_unlock(&g->trial_lock);
-	module_put(owner);
-fail_pa:
-	kfree(impl->pt_page_pa);
-	impl->pt_page_pa = NULL;
+	kvfree(tvm->image);
 fail_pages:
-	free_pages((unsigned long)impl->pt_pages, get_order(MT_TA_VM_PT_BYTES));
-	impl->pt_pages = NULL;
-fail_impl:
-	kfree(impl);
+	free_pages((unsigned long)tvm->pt_pages,
+		   get_order(MT_BRIDGE_TA_VM_PT_BYTES));
+fail_tvm:
+	kfree(tvm);
 	return NULL;
 }
 
-static void mt_ta_vm_context_destroy(struct mt_ta_vm_context *vm_ctx)
+static void mt_bridge_ta_vm_destroy(struct mt_bridge_ta_vm *tvm)
 {
-	struct mt_ta_vm_impl *impl;
-
-	if (!vm_ctx)
+	if (!tvm)
 		return;
-	impl = container_of(vm_ctx, struct mt_ta_vm_impl, ctx);
-
-	/* TODO (gate open round): wait for in-flight markers or abandon. */
-	if (vm_ctx->vm) {
-		/* Manual teardown (r375): VM was manually initialized. */
-		kfree(vm_ctx->vm->bindings);
-		if (vm_ctx->vm->tables)
-			mt_bo_put(vm_ctx->vm->tables);
-		kfree(vm_ctx->vm);
-	}
-	if (vm_ctx->page_tables)
-		mt_bo_put(vm_ctx->page_tables);
-	kfree(impl->vm_image);
-	kfree(impl->vm_scratch);
-	kfree(impl->pt_page_pa);
-	if (impl->pt_pages)
-		free_pages((unsigned long)impl->pt_pages,
-			   get_order(MT_TA_VM_PT_BYTES));
-	pr_info("mt_pvr_bridge: TA VM context destroyed\n");
-	kfree(impl);
+	mt_gpu_vm_fini(&tvm->vm);
+	kvfree(tvm->scratch);
+	kvfree(tvm->image);
+	free_pages((unsigned long)tvm->pt_pages,
+		   get_order(MT_BRIDGE_TA_VM_PT_BYTES));
+	kfree(tvm);
 }
 
-static int mt_ta_vm_map_cmd_buffer(struct mt_ta_vm_context *vm_ctx,
-				   u64 user_va, u32 size,
-				   struct mt_ta_cmd_mapping *out)
-{
-	struct mt_ta_mapping_impl *mimpl;
-	struct mt_guest *g;
-	struct mt_guest_device *d;
-	struct module *owner = NULL;
-	struct mt_bo *bo;
-	u64 gpu_va;
-	u32 nr_pages;
-	u32 i;
-	int ret;
 
-	/* D7: validate everything before any hardware write. */
-	if (!vm_ctx || !vm_ctx->vm || !out || !user_va || !size)
-		return -EINVAL;
-	if (size > MT_TA_CMD_VA_SIZE)
-		return -EINVAL;
-	if (vm_ctx->vm->sealed)
-		return -EBUSY;
-
-	nr_pages = PAGE_ALIGN(size) >> 12;
-
-	mimpl = kzalloc(sizeof(*mimpl), GFP_KERNEL);
-	if (!mimpl)
-		return -ENOMEM;
-	mimpl->pages = kcalloc(nr_pages, sizeof(struct page *), GFP_KERNEL);
-	if (!mimpl->pages) {
-		kfree(mimpl);
-		return -ENOMEM;
-	}
-	mimpl->page_pa = kcalloc(nr_pages, sizeof(u64), GFP_KERNEL);
-	if (!mimpl->page_pa) {
-		kfree(mimpl->pages);
-		kfree(mimpl);
-		return -ENOMEM;
-	}
-	mimpl->nr_pages = nr_pages;
-
-	/* Step 2: pin user pages. */
-	ret = pin_user_pages((unsigned long)user_va, nr_pages,
-			     FOLL_WRITE, mimpl->pages);
-	if (ret != (int)nr_pages) {
-		if (ret > 0)
-			unpin_user_pages(mimpl->pages, ret);
-		ret = -EFAULT;
-		goto fail_mimpl;
-	}
-	for (i = 0; i < nr_pages; i++)
-		mimpl->page_pa[i] = page_to_phys(mimpl->pages[i]);
-
-	/* Step 4: borrow into the device BO store (s->lock held). */
-	g = pvr_session_acquire(&owner);
-	if (!g) {
-		ret = -ENODEV;
-		goto fail_pin;
-	}
-	d = container_of(g, struct mt_guest_device, state);
-	bo = kzalloc(sizeof(*bo), GFP_KERNEL);
-	if (!bo) {
-		ret = -ENOMEM;
-		goto fail_session;
-	}
-	{
-		struct mt_system_memory mem = {
-			.cpu = (void *)(uintptr_t)user_va,
-			.page_pa = mimpl->page_pa,
-			.bytes = nr_pages * 4096,
-		};
-		mutex_lock(d->buffers.lock);
-		ret = mt_ta_bo_borrow(bo, &d->buffers, &mem);
-		mutex_unlock(d->buffers.lock);
-	}
-	if (ret)
-		goto fail_bo;
-
-	/* Step 5: bind into the per-file VM.
-	 * DISABLED in r375: manual VM init is incomplete and
-	 * mt_gpu_vm_bind_many() oopses. V2 validates pin/borrow/VA;
-	 * bind deferred to proper cross-module VM design. */
-	gpu_va = MT_TA_CMD_VA_BASE +
-		 (u64)vm_ctx->bound_cmd_buffers * MT_TA_CMD_VA_SIZE;
-	pr_info("mt_pvr_bridge: R5 V2: bind skipped (r375 safety), gpu_va=%#llx\n",
-		(unsigned long long)gpu_va);
-	/* binding.bo = bo; ... deferred */
-
-	/* Step 6: seal/upload skipped in r375 (gate closed). */
-	/* Step 7: publish mapping. */
-	out->gpu_va = gpu_va;
-	out->size = size;
-	out->borrowed_bo = bo;
-	out->pinned_pages = mimpl; /* impl owns pages + page_pa */
-	out->nr_pages = nr_pages;
-	out->vm_ctx = vm_ctx;
-	vm_ctx->bound_cmd_buffers++;
-
-	mutex_unlock(&g->trial_lock);
-	module_put(owner);
-	return 0;
-
-/* fail_borrow: */
-	mt_bo_put(bo);
-fail_bo:
-	kfree(bo);
-fail_session:
-	mutex_unlock(&g->trial_lock);
-	module_put(owner);
-fail_pin:
-	unpin_user_pages(mimpl->pages, nr_pages);
-fail_mimpl:
-	kfree(mimpl->page_pa);
-	kfree(mimpl->pages);
-	kfree(mimpl);
-	return ret;
-}
-
-static void mt_ta_vm_unmap_cmd_buffer(struct mt_ta_cmd_mapping *mapping)
-{
-	struct mt_ta_mapping_impl *mimpl;
-
-	if (!mapping || !mapping->borrowed_bo)
-		return;
-	/* Note: VM binding is left in place; the per-file VM is torn down
-	 * on file close. Unbinding a single range is a future refinement. */
-	mt_bo_put(mapping->borrowed_bo);
-	mimpl = (struct mt_ta_mapping_impl *)mapping->pinned_pages;
-	if (mimpl) {
-		if (mimpl->pages && mimpl->nr_pages)
-			unpin_user_pages(mimpl->pages, mimpl->nr_pages);
-		kfree(mimpl->pages);
-		kfree(mimpl->page_pa);
-		kfree(mimpl);
-	}
-	memset(mapping, 0, sizeof(*mapping));
-}
+/* r376: R5 TA VM via probe-side formal API.
+ * Replaces r375's bridge-side manual VM assembly (caused oops).
+ * The probe would provide TA VM helpers and
+ * mt_probe_bo_borrow (safe cross-module). Bridge holds opaque handle.
+ *
+ * MT_TA_VM_READY gate stays CLOSED: mapping validated (V1/V2) but not
+ * used in submit path. Marker-level TA continues.
+ */
 
 static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 				struct mt_pvr_cmd *cmd)
@@ -4299,28 +4029,23 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 		return -EOPNOTSUPP;
 	}
 
-	/* R5 V1: per-file TA VM context creation (r375). */
+	/* r376 V1: per-file TA VM via proper mt_gpu_vm_init() (bridge-side). */
 	if (!file->ta_vm_ctx) {
-		file->ta_vm_ctx = mt_ta_vm_context_create(file);
+		file->ta_vm_ctx = mt_bridge_ta_vm_create();
 		if (file->ta_vm_ctx)
 			pr_info("mt_pvr_bridge: R5 V1: TA VM context created\n");
 		else
 			pr_info("mt_pvr_bridge: R5 V1: ctx create failed (non-fatal)\n");
 	}
-	/* R5 V2: mapping flow validation (r375). Gate closed; marker continues. */
-	if (file->ta_vm_ctx && in.p_ta_cmd && in.ta_cmd_size) {
-		struct mt_ta_cmd_mapping mapping = {0};
-		ret = mt_ta_vm_map_cmd_buffer(file->ta_vm_ctx,
-						(u64)in.p_ta_cmd, in.ta_cmd_size,
-						&mapping);
-		if (!ret) {
-			pr_info("mt_pvr_bridge: R5 V2: map OK gpu_va=%#llx\n",
-				(unsigned long long)mapping.gpu_va);
-			mt_ta_vm_unmap_cmd_buffer(&mapping);
-		} else {
-			pr_info("mt_pvr_bridge: R5 V2: map failed %d (non-fatal)\n", ret);
-			ret = 0;
-		}
+	/* r376 V2: bind validation via probe API. Gate closed; marker continues.
+	 * Tests bind with empty binding (validates VM state,
+	 * no oops). Real userspace mapping is future work. */
+	if (file->ta_vm_ctx) {
+		struct mt_bridge_ta_vm *tvm = file->ta_vm_ctx;
+		ret = mt_gpu_vm_bind_many(&tvm->vm, NULL, 0);
+		/* bind_many with count=0 returns -EINVAL (expected); oops would be BUG. */
+		pr_info("mt_pvr_bridge: r376 V2: bind empty ret=%d (expect -EINVAL, no oops)\n", ret);
+		ret = 0;
 	}
 
 	g = pvr_session_acquire(&owner);

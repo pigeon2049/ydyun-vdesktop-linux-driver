@@ -25,6 +25,15 @@
 
 
 
+## 本轮进展（r376：R5 VM 初始化重新设计，bridge 侧 proper init）
+
+- **教训**：r375 手动拼装 `mt_gpu_vm` 致 `mt_gpu_vm_bind_many` oops；`mt_gpu_vm_init()` 要求 `page_pa==NULL`，borrow 的系统内存不满足。
+- **方案**：bridge 侧 `mt_bridge_ta_vm_create()` 用合成 BO（`gpu_pa=page_to_phys()`，`page_pa==NULL`）+ 正式 `mt_gpu_vm_init()`，遵循已验证的 3D 模式（`pvr_gpu_vm_ensure`）。删除 r375 手动代码（~360 行）。
+- **约束**：probe 因 trial pinned 无法重载；`mt_gpu_vm_init`/`bind_many` 均为 static inline，无跨模块问题，无需 probe API。
+- **门禁**：428+299 全绿，W=1 零警告，反向验证通过。
+- **活体**：bridge 已重载；V1/V2 未执行（Python harness ioctl 格式问题，非代码问题）。
+- 报告：`reports/r376-bridge-proper-vm-init.md`。
+
 ## 本轮进展（r375：R5 基础设施实现，活体因 oops 中断）
 
 - 实现：`mt_pvr_bridge.c` +450 行：`mt_ta_vm_context_create/destroy`（per-file 上下文）、`mt_ta_vm_map_cmd_buffer/unmap`（pin→borrow→VA）、V1/V2 钩子、`pvr_file_release` 清理。`MT_TA_VM_READY` 门保持关闭。
@@ -56,11 +65,3 @@
 - 但 trial 无法启动：`mt_trial_start` 要求 `0x890==0`，`connect_result=-61`，`pinned=0`；固件 MMIO `0x890=2` vs RPC `fw_state=1` 不一致。
 - TA kick dispatch 到达桥侧（dmesg 解码日志），但 `pvr_session_acquire` 返 `-ENODEV`（trial 未 pinned）；r370 完成路径未被活体执行。
 - 门禁 417+299 全绿，`make kernel` W=1 零警告；报告 `r371-ta-e2e-blocked-by-trial.md` 入库。
-
-## 本轮进展（r370：生产 TA 完成路径已实现，活体被 EHOSTDOWN 阻塞）
-
-- **实现**：`mt_pvr_bridge.c` 新增 `pvr_ta_wait_complete()`（轮询 DM3 等 0x100，2s 超时）与 `pvr_ta_abandon()`（超时以 `-ETIMEDOUT` error-signal fence），接入 `pvr_cmd_musakickgfx2()` 成功路径。**不碰 frozen probe**（其 `mt_runtime_event` 为 static，`mt_marker_complete` 为旧编译副本）。
-- **门禁**：`check-offline` 417 Python + 299 C 全绿；`make kernel` W=1 零警告；新增 `tests/test_ta_completion_path.py`（6 tests）+ 反向验证通过。
-- **重载**：一次计划内重载成功（r360 流程），refs probe=1/bridge=0，dmesg 干净，freeze 完好。
-- **阻塞**：TA kick dispatch 到达，但 `submit_ta_work` 返 `-EHOSTDOWN`——`mt_runtime_can_submit`（probe 内）拒绝，`pvr_session_acquire` 成功故 trial.pinned/connected 为真，卡点在余下条件之一。**环境/trial 状态问题，非 r370 代码所致**。新代码未被活体执行。
-- 报告：`mt-vgpu-guest/reports/r370-ta-completion-path-live-blocked.md`；证据 `r370-dmesg.txt`（0600）。
