@@ -12,10 +12,9 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r329：桌面 GPU 禁用，听用户指令）
+## 本轮进展（r330：桌面全清，用户指令）
 
-- 菜单覆盖层两份 `.desktop` 加 `--disable-gpu`（`%U` 保留），`gio launch` 验证生效；但 renderD128 照持（flag 与主进程占用无关）——bridge 重载仍需窗口。GDB 函数注入致 UI 重启事故备忘；`pgrep -x` 16 字符截断教训。
-- bridge 未动，refs 1/1。无代码改动。
-- 遗留：copy/TA 大项待立项。已推送。
+- exe 精确匹配清 10 进程（TERM 即净；serve 保留）；现 ref 0，天然重载窗口。无代码改动。
+- 遗留：用户冷启动后 holder 即回归（菜单 flag 已就绪，仍会持有——预期内）。
 ---
 

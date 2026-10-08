@@ -287,3 +287,11 @@
 - 真入口对齐解码 type/count 开关与 fence 对象循环；dprintf 配方首发转义漏改（修正后 r328 命中）。停桌面窗口一次；L3 双绿，零新增 WARN。
 ---
 
+
+## 本轮进展（r329：桌面 GPU 禁用，听用户指令）
+
+- 菜单覆盖层两份 `.desktop` 加 `--disable-gpu`（`%U` 保留），`gio launch` 验证生效；但 renderD128 照持（flag 与主进程占用无关）——bridge 重载仍需窗口。GDB 函数注入致 UI 重启事故备忘；`pgrep -x` 16 字符截断教训。
+- bridge 未动，refs 1/1。无代码改动。
+- 遗留：copy/TA 大项待立项。已推送。
+---
+
