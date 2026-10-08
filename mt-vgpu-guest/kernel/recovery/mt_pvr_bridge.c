@@ -3786,6 +3786,89 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
  * is dereferenced here -- only scalar header fields are logged.
  */
 /* ---- r367: 0x82:0xC real TA dispatch (R2b) ---- */
+/* ---- r370: production TA completion path (R2b) ----
+ * The frozen probe's mt_runtime_event() routes DM3 events to the generic
+ * mt_marker_complete(), which rejects the TA completion code 0x100
+ * (MT_FW_TA_COMPLETE_CODE) via mt_fw_event_matches(). Without a production
+ * consumer, TA markers hang forever (r368: wire 6 was pending ~940s with
+ * zero completion events; the marker framework has no timeout).
+ *
+ * The bridge therefore polls for the 0x100 completion after submitting a
+ * TA marker and retires it via mt_marker_complete_ta() -- the TA-aware
+ * path (r366). Pattern proven by the r366 verifier's ta_wait_complete().
+ *
+ * Locking: caller must hold g->trial_lock (== s->lock). Holding it blocks
+ * the probe's poller for the poll duration; the firmware produces the
+ * completion event independently, so this cannot deadlock. The consumed
+ * event is left in the ring: once s->count[DM3]==0, the probe's drain
+ * stages it harmlessly in t->events (no queue poisoning, r368).
+ */
+#define PVR_TA_COMPLETE_TIMEOUT_MS 2000
+
+static int pvr_ta_wait_complete(struct mt_guest *g, struct mt_marker_store *s,
+				u32 wire_id)
+{
+	struct mt_fw_queue_io *q = s->queue;
+	const u32 base = MT_FW_DM_TA * MT_FW_DM_BYTES;
+	const u32 cursor = base + MT_FW_CURSOR_OFFSET + 32;
+	unsigned long deadline =
+		jiffies + msecs_to_jiffies(PVR_TA_COMPLETE_TIMEOUT_MS);
+	u32 head, tail, i;
+
+	lockdep_assert_held(&g->trial_lock);
+	while (time_before(jiffies, deadline)) {
+		head = mt_fw_event_io_ops.read32(q, cursor);
+		tail = mt_fw_event_io_ops.read32(q, cursor + 8);
+		if (head >= 64 || tail >= 64)
+			return -EIO;
+		for (i = 0; i < 64; i++) {
+			u32 idx = (tail + i) & 63;
+			struct mt_fw_event ev;
+			int rc;
+
+			if (idx == head)
+				break;
+			mt_fw_event_io_ops.copy_from(q, &ev,
+				base + MT_FW_EVENT_OFFSET +
+					idx * MT_FW_EVENT_BYTES,
+				sizeof(ev));
+			if (ev.words[1] == MT_FW_TA_COMPLETE_CODE &&
+			    ev.words[2] == wire_id) {
+				rc = mt_marker_complete_ta(s, MT_FW_DM_TA,
+							   &ev);
+				return rc ? rc : 0;
+			}
+		}
+		usleep_range(100, 200);
+	}
+	return -ETIMEDOUT;
+}
+
+/* Drop a TA marker whose completion never arrived. Signals its fence with
+ * an error so check_fence waiters do not hang forever (r368: wire 6).
+ * Caller must hold g->trial_lock.
+ */
+static void pvr_ta_abandon(struct mt_guest *g, struct mt_marker_store *s,
+			   u32 wire_id)
+{
+	struct mt_marker_fence *m, *tmp;
+
+	lockdep_assert_held(&g->trial_lock);
+	list_for_each_entry_safe(m, tmp, &s->pending[MT_FW_DM_TA], link) {
+		if (m->wire_id != wire_id)
+			continue;
+		list_del(&m->link);
+		s->count[MT_FW_DM_TA]--;
+		s->total--;
+		dma_fence_set_error(&m->fence, -ETIMEDOUT);
+		dma_fence_signal(&m->fence);
+		dma_fence_put(&m->fence);
+		pr_warn("mt_pvr_bridge: TA wire=%u completion timeout, abandoned\n",
+			wire_id);
+		return;
+	}
+	pr_warn("mt_pvr_bridge: TA wire=%u not found for abandon\n", wire_id);
+}
 /* MUSAKickGFX2 real dispatch: decode IN (keeping the r356 decode log),
  * map to TA submit params (D5), and submit via the bridge's exported
  * submit_ta_work op. Replaces the r356 observer's -ENOTTY.
@@ -3894,6 +3977,23 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	 * unreferenced after the op returns; freeing it here is a clean
 	 * release, not a use-after-free. */
 	kfree(ctx);
+
+	/* r370: production TA completion path (R2b). The frozen probe's
+	 * event drain rejects 0x100, so without this poll the marker hangs
+	 * forever (r368: wire 6). Retire it via the TA-aware completion;
+	 * on timeout, error-signal so check_fence waiters do not hang. */
+	mutex_lock(&g->trial_lock);
+	ret = pvr_ta_wait_complete(g, s, wire_id);
+	if (ret == -ETIMEDOUT) {
+		pvr_ta_abandon(g, s, wire_id);
+		ret = 0;
+	} else if (ret) {
+		pr_warn("mt_pvr_bridge: musakickgfx2: TA complete rc=%d wire=%u\n",
+			ret, wire_id);
+		ret = 0;
+	}
+	mutex_unlock(&g->trial_lock);
+
 	out.error = 0;
 	out.update_fence = (int)wire_id;
 	out.update_fence_3d = 0;
