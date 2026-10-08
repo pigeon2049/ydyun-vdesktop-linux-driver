@@ -489,6 +489,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r351 T2-d（离线 fabricated，零硬件触碰）**：描述子选中步骤定位——`0x79c92: mov 0x48(%rdx),%rdi`，`rdx=rbx+208*i`，`rbx=*(*(r14+0x18)+0x30)`，`i=*(rbx+0x24)`；fabricated 下 `i=0`，槽0 `+0x48`=NULL，故 `SyncPrimRef` 报 3。GDB 链式复核 `*(*(r14+0x18)+0x30)==base` 成立，断点单次命中（无循环）。T2-e 为 `r14+0x18` 对象来源与 b10 描述子回填槽0。会话未碰，freeze 继续。见 `reports/r351-submitta-desc-select.md` + 双证据。
 - **r350 T2-c（离线 fabricated，零硬件触碰）**：`SyncPrimRef` 判空描述子即 3，传入确为 NULL；真 handle 已备，回填位置未中。T2-d 找描述子选中步骤。会话未碰，freeze 继续。见 `reports/r350-syncref-wants-desc.md` + 双证据；脚本增量单提交。
 - **r349 T2-b（离线 fabricated，零硬件触碰）**：5 被调者全良性，`SyncPrimRef` 首报 3（`INVALID_PARAMS`，需真 handle）；T2-c 回填 tuple。会话未碰，freeze 继续。见 `reports/r349-submitta-syncprimref-3.md`（无新增证据文件）。
 - **r348 T2-a（离线 fabricated，零硬件触碰）**：`RGXKickTA` 双映射 `-> 3`；`PRET=0/SURET=3`；`0x82:0x14` 未发出。T2-b 为 SubmitTA 归因。会话未碰，freeze 继续。见 `reports/r348-ta-fabricated-3.md` + 三证据。

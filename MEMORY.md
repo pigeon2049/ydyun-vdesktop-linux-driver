@@ -12,23 +12,17 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
+## 本轮进展（r351：T2-d，离线 fabricated）
+
+- 描述子选中步骤定位：`0x79c92: mov 0x48(%rdx),%rdi`，`rdx = rbx+208*i`，`rbx=*(*(r14+0x18)+0x30)`，`i=*(rbx+0x24)`；fabricated 下 i=0，槽0+0x48 为 NULL → `SyncPrimRef` 报 3。GDB 链式复核 match，断点单次命中。零硬件触碰，freeze 继续。
+- 遗留：T2-e——`r14+0x18` 堆对象在 kick 结构体中的来源；b10 描述子填槽0+0x48 后复测。
+---
+
+
 ## 本轮进展（r350：T2-c，离线 fabricated）
 
 - `SyncPrimRef` 要非空描述子，传入 NULL 即 3；真 handle 已落 `b10`，回填位置未中。零硬件触碰，freeze 继续。
 - 脚本增量已单提交；mapB 漏 `$SYNC` 已补。
 - 遗留：T2-d 描述子选中步骤。
 ---
-
-## 本轮进展（r349：T2-b，离线 fabricated）
-
-- `SubmitTA` 内逐个被调者断点：`SyncPrimRef` 首报 3（`INVALID_PARAMS`，零 handle 被拒）；T2-c 回填 tuple。零硬件触碰，freeze 继续。
-- 遗留：T2-c 真 handle 回填（脚本三行，fabricated）。
----
-
-
-
-
-
-
-
 

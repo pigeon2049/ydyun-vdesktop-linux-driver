@@ -420,3 +420,9 @@
 - 落库 `scripts/ta-kick-attempt1.sh`；r194“返回3”平反（系 SubmitTA 非守卫）。
 - 遗留：T2-b SubmitTA 的 3 归因（`0x9c250`？）。
 ---
+
+## 本轮进展（r349：T2-b，离线 fabricated）
+
+- `SubmitTA` 内逐个被调者断点：`SyncPrimRef` 首报 3（`INVALID_PARAMS`，零 handle 被拒）；T2-c 回填 tuple。零硬件触碰，freeze 继续。
+- 遗留：T2-c 真 handle 回填（脚本三行，fabricated）。
+---

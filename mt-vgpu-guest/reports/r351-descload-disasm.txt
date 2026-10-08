@@ -1,0 +1,99 @@
+   79ace:	49 8b 56 18          	mov    0x18(%r14),%rdx
+   79ad2:	48 8b 5a 30          	mov    0x30(%rdx),%rbx
+   79ad6:	8b 43 24             	mov    0x24(%rbx),%eax
+   79ad9:	48 89 9d f8 f9 ff ff 	mov    %rbx,-0x608(%rbp)
+   79ae0:	48 8b b4 c3 d8 01 00 	mov    0x1d8(%rbx,%rax,8),%rsi
+   79ae7:	00 
+   79ae8:	48 89 85 d8 f9 ff ff 	mov    %rax,-0x628(%rbp)
+   79aef:	48 89 b5 40 fa ff ff 	mov    %rsi,-0x5c0(%rbp)
+   79af6:	48 89 c6             	mov    %rax,%rsi
+   79af9:	48 8d 04 40          	lea    (%rax,%rax,2),%rax
+   79afd:	48 8d 04 86          	lea    (%rsi,%rax,4),%rax
+   79b01:	48 c1 e0 04          	shl    $0x4,%rax
+   79b05:	48 8b 44 03 50       	mov    0x50(%rbx,%rax,1),%rax
+   79b0a:	48 89 85 70 fa ff ff 	mov    %rax,-0x590(%rbp)
+   79b11:	89 85 d4 f9 ff ff    	mov    %eax,-0x62c(%rbp)
+   79b17:	41 8b 45 40          	mov    0x40(%r13),%eax
+   79b1b:	89 85 c0 f9 ff ff    	mov    %eax,-0x640(%rbp)
+   79b21:	41 8b 46 20          	mov    0x20(%r14),%eax
+   79b25:	41 89 c7             	mov    %eax,%r15d
+   79b28:	41 83 e7 10          	and    $0x10,%r15d
+   79b2c:	40 0f 94 c6          	sete   %sil
+   79b30:	0f 94 c1             	sete   %cl
+   79b33:	40 0f b6 f6          	movzbl %sil,%esi
+   79b37:	89 b5 60 fa ff ff    	mov    %esi,-0x5a0(%rbp)
+   79b3d:	89 c6                	mov    %eax,%esi
+   79b3f:	83 e6 20             	and    $0x20,%esi
+   79b42:	40 0f 95 c7          	setne  %dil
+   79b46:	83 e0 08             	and    $0x8,%eax
+   79b49:	89 b5 c4 f9 ff ff    	mov    %esi,-0x63c(%rbp)
+   79b4f:	40 0f b6 ff          	movzbl %dil,%edi
+   79b53:	89 85 94 fa ff ff    	mov    %eax,-0x56c(%rbp)
+   79b59:	89 bd 90 fa ff ff    	mov    %edi,-0x570(%rbp)
+   79b5f:	89 bd d0 f9 ff ff    	mov    %edi,-0x630(%rbp)
+   79b65:	74 22                	je     79b89 <ZeusSyncPrimImportFD@@Base+0x1879>
+   79b67:	8b 03                	mov    (%rbx),%eax
+   79b69:	be 01 00 00 00       	mov    $0x1,%esi
+   79b6e:	83 e0 02             	and    $0x2,%eax
+   79b71:	0f 45 f7             	cmovne %edi,%esi
+   79b74:	83 f8 01             	cmp    $0x1,%eax
+   79b77:	0f 92 c0             	setb   %al
+   79b7a:	0f b6 c0             	movzbl %al,%eax
+   79b7d:	89 b5 d0 f9 ff ff    	mov    %esi,-0x630(%rbp)
+   79b83:	89 85 94 fa ff ff    	mov    %eax,-0x56c(%rbp)
+   79b89:	48 8b 85 c8 f9 ff ff 	mov    -0x638(%rbp),%rax
+   79b90:	4d 8d 66 28          	lea    0x28(%r14),%r12
+   79b94:	8b 40 58             	mov    0x58(%rax),%eax
+   79b97:	45 85 ff             	test   %r15d,%r15d
+   79b9a:	0f 85 38 02 00 00    	jne    79dd8 <ZeusSyncPrimImportFD@@Base+0x1ac8>
+   79ba0:	48 8b 9d b0 fa ff ff 	mov    -0x550(%rbp),%rbx
+   79ba7:	8b 9b 20 01 00 00    	mov    0x120(%rbx),%ebx
+   79bad:	89 9d 68 fa ff ff    	mov    %ebx,-0x598(%rbp)
+   79bb3:	83 e3 01             	and    $0x1,%ebx
+   79bb6:	89 9d ac f9 ff ff    	mov    %ebx,-0x654(%rbp)
+   79bbc:	0f 84 16 02 00 00    	je     79dd8 <ZeusSyncPrimImportFD@@Base+0x1ac8>
+   79bc2:	85 c0                	test   %eax,%eax
+   79bc4:	0f 85 4c 0e 00 00    	jne    7aa16 <ZeusSyncPrimImportFD@@Base+0x2706>
+   79bca:	48 8d 8a 30 01 00 00 	lea    0x130(%rdx),%rcx
+   79bd1:	8b 92 24 01 00 00    	mov    0x124(%rdx),%edx
+   79bd7:	4d 89 e1             	mov    %r12,%r9
+   79bda:	4c 8d 05 73 67 39 00 	lea    0x396773(%rip),%r8        # 410354 <ConvertInstToIntermediateIMMA@@Base+0x22a1d4>
+   79be1:	31 f6                	xor    %esi,%esi
+   79be3:	31 ff                	xor    %edi,%edi
+   79be5:	e8 36 04 fd ff       	call   4a020 <PVRSRVGetDevInfo@@Base+0x3a0>
+   79bea:	49 8b 46 18          	mov    0x18(%r14),%rax
+   79bee:	31 f6                	xor    %esi,%esi
+   79bf0:	31 ff                	xor    %edi,%edi
+   79bf2:	4c 8d 05 1d 69 39 00 	lea    0x39691d(%rip),%r8        # 410516 <ConvertInstToIntermediateIMMA@@Base+0x22a396>
+   79bf9:	bb 01 00 00 00       	mov    $0x1,%ebx
+   79bfe:	48 8d 88 00 02 00 00 	lea    0x200(%rax),%rcx
+   79c05:	8b 90 28 01 00 00    	mov    0x128(%rax),%edx
+   79c0b:	48 8b 85 f8 f9 ff ff 	mov    -0x608(%rbp),%rax
+   79c12:	4c 8d 88 60 04 00 00 	lea    0x460(%rax),%r9
+   79c19:	e8 02 04 fd ff       	call   4a020 <PVRSRVGetDevInfo@@Base+0x3a0>
+   79c1e:	8b 85 ac f9 ff ff    	mov    -0x654(%rbp),%eax
+   79c24:	b9 01 00 00 00       	mov    $0x1,%ecx
+   79c29:	89 85 64 fa ff ff    	mov    %eax,-0x59c(%rbp)
+   79c2f:	48 8b bd d8 f9 ff ff 	mov    -0x628(%rbp),%rdi
+   79c36:	48 c7 85 e0 fa ff ff 	movq   $0x0,-0x520(%rbp)
+   79c3d:	00 00 00 00 
+   79c41:	48 8d b5 d8 fa ff ff 	lea    -0x528(%rbp),%rsi
+   79c48:	48 c7 85 e8 fa ff ff 	movq   $0x0,-0x518(%rbp)
+   79c4f:	00 00 00 00 
+   79c53:	48 8d 04 7f          	lea    (%rdi,%rdi,2),%rax
+   79c57:	48 c7 85 f0 fa ff ff 	movq   $0x0,-0x510(%rbp)
+   79c5e:	00 00 00 00 
+   79c62:	48 8d 14 87          	lea    (%rdi,%rax,4),%rdx
+   79c66:	48 c7 85 00 fb ff ff 	movq   $0x0,-0x500(%rbp)
+   79c6d:	00 00 00 00 
+   79c71:	48 c1 e2 04          	shl    $0x4,%rdx
+   79c75:	48 03 95 f8 f9 ff ff 	add    -0x608(%rbp),%rdx
+   79c7c:	48 c7 85 08 fb ff ff 	movq   $0x0,-0x4f8(%rbp)
+   79c83:	00 00 00 00 
+   79c87:	48 c7 85 10 fb ff ff 	movq   $0x0,-0x4f0(%rbp)
+   79c8e:	00 00 00 00 
+   79c92:	48 8b 7a 48          	mov    0x48(%rdx),%rdi
+   79c96:	89 8d 48 fa ff ff    	mov    %ecx,-0x5b8(%rbp)
+   79c9c:	48 89 95 68 fa ff ff 	mov    %rdx,-0x598(%rbp)
+   79ca3:	48 89 b5 b0 f9 ff ff 	mov    %rsi,-0x650(%rbp)
+   79caa:	e8 c1 72 02 00       	call   a0f70 <SyncPrimRef@@Base+0x1000>
