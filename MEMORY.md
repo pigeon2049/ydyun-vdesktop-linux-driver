@@ -26,27 +26,27 @@
 > r383 轮按 §4 清理：r380 节已移入归档。
 > r384 轮按 §4 清理：r381 节已移入归档。
 > r385 轮按 §4 清理：r382 节已移入归档。
+> r386 轮按 §4 清理：r385 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
 
-## r385 (2026-10-08): R7 Sync prim import 缺口分析（离线，零硬件触碰）
 
-**R7 定义**（r355）：`ZeusSyncPrimImportFD` 下游在真实建连后应走通；桥侧 SYNC 命令多已实现。
+## r386 (2026-10-08): SyncPrimImportFD（SYNC:0xC）实现落地（离线，零硬件触碰）
 
-**核心发现**（实测源码）：`ZeusSyncPrimImportFD` = SYNC:0xC（`BridgeSyncPrimImportFD`，IN 24B），但 Linux 桥侧**未实现**——`mt_pvr_wire.h` 无 0xC 的 `MT_PVR_FN_*` 定义，dispatch `default:` 返 `-ENOTTY`。
+**R7-1~R7-4 关闭**：`ZeusSyncPrimImportFD` = SYNC:0xC（`BridgeSyncPrimImportFD`）在 Linux 桥侧实现落地。
 
-**SYNC 组现状**：0x0 Alloc（真实，`pvr_cmd_sync_block`）/ 0xA CpuSignal（真实，r222）/ 0x1/0x2/0x7/0x8 空桩（`pvr_stub_ok`）/ **0xC 缺失**。
+**Wire**（`kernel/mt_pvr_wire.h`）：`MT_PVR_FN_SYNCPRIMIMPORTFD 0xcU`；IN 24B `{u32 fd, u64 hSyncBlock, u32 offset, u64 hDevmemCtx}` / OUT 12B `{u64 value, u32 error}`——KMD 5.2.0 生成头权威定义（`common_sync_bridge.h:243/252`），UMD `FUN_00139990`（decompiled.c:12418）确认 IN 布局；static_assert 24/12。
 
-**是否阻塞真实 UMD**：很可能阻塞 TA 路径——r361 证实 UMD 路径为 `...→ZeusSyncPrimImportFD→0x92930(0x82:0xC)`；`-ENOTTY` 可能致中止。但尚无活体证据（r361 在 `SyncPrimRef` 被阻塞）。
+**Handler**（`kernel/recovery/mt_pvr_bridge.c:1850` `pvr_cmd_syncprim_importfd`）：`pvr_in` 解析 → `pvr_translator_resolve` 验证 hSyncBlock（-EOPNOTSUPP/-ERANGE）→ `fdget`+`fd_empty` 验证 FD（-EBADF，kernel 6.12 `struct fd` opaque 用宏）→ 返回 offset 处当前 u32 值（零扩展），eError=0。**FD payload 不解释**——sync_file/dma-buf/PVR 私有三选一 TO-VALIDATE，需真实 ExportFD (0x2:0xb) 生产者 + 活体 UMD。
 
-**与 R6 关系**：独立。R6=context 对象（firmware 状态），R7=sync prim 对象（FD 导入）；无依赖，但真实 UMD 渲染同时需要。
+**设计**（R7-4）：Export (0xB) / Import (0xC) 配对做跨进程 sync prim 共享；`hDevmemCtx` 多设备场景（单 vGPU 忽略）；导入后本进程经 translator 看到值；firmware UFO 同步 TO-VALIDATE。
 
-**缺口清单**：R7-1（0xC 常量定义）→ R7-2（dispatch handler）→ R7-3（IN/OUT 结构入库）→ R7-4（FD 导入语义设计）。
+**门禁**：438 Python + 299 C 全绿（新增 `tests/test_pvr_syncprimimportfd.py` 10 tests）；`make kernel` W=1 零警告；反向验证通过（dispatch 改 0x99 → 测试失败）。
 
-报告 `reports/r385-sync-prim-import-gaps.md`，证据 `reports/r385-evidence.txt`。门禁全绿。
+报告 `reports/r386-syncprimimportfd-implemented.md`，证据 `reports/r386-evidence.txt`。
 
 ## r384 (2026-10-08): R6 DDK2 context statefulness 缺口分析（离线，零硬件触碰）
 

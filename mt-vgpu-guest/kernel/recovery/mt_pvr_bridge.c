@@ -1821,6 +1821,64 @@ static int pvr_cmd_syncprim_set(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* 0x2:0xc SYNC:SyncPrimImportFD (r386).
+ * IN = { u32 fd, u64 hSyncBlock, u32 offset, u64 hDevmemCtx } (24B);
+ * OUT = { u64 value, u32 error } (12B). Wire layout from the hash-verified
+ * KMD 5.2.0 generated header MTGPU_BRIDGE_IN/OUT_SYNCPRIMIMPORTFD
+ * (reference/kmd-5.2.0-server-generated/common_sync_bridge.h:243/252),
+ * confirmed against the UMD ZeusSyncPrimImportFD wrapper FUN_00139990
+ * (decompiled.c:12418).
+ *
+ * Semantics: import a sync primitive from a Linux FD into the caller's
+ * sync block at the given dword offset. The FD is produced by
+ * SyncPrimExportFD (0x2:0xb, not yet implemented) for cross-process
+ * sync prim sharing (e.g. UMD <-> compositor).
+ *
+ * Current implementation (offline, r386):
+ * - Resolves hSyncBlock via pvr_translator_resolve (must be a real
+ *   MT_PVR_KIND_SYNC object; -EOPNOTSUPP / -ERANGE otherwise).
+ * - Validates the FD with fdget (must refer to an open file; -EBADF
+ *   otherwise). The FD's sync-prim payload is NOT interpreted yet:
+ *   resolving a sync_file / dma-buf / PVR-private export to a fence
+ *   value is TO-VALIDATE (needs a real ExportFD producer + live UMD).
+ * - Returns the current u32 value at the offset (zero-extended to u64)
+ *   with eError = 0 (MTGPU_OK).
+ *
+ * Called with file->lock already held by pvr_bridge_dispatch(), so it
+ * must not take it again.
+ */
+static int pvr_cmd_syncprim_importfd(struct mt_pvr_file *file,
+				     struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_syncprimimportfd_in in;
+	struct mt_pvr_syncprimimportfd_out out = { 0 };
+	struct mt_pvr_ufo_cond cond;
+	struct fd f;
+	u32 val;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	ret = pvr_translator_resolve(file, in.sync_block, in.offset, &cond);
+	if (ret)
+		return ret;
+	f = fdget(in.fd);
+	if (fd_empty(f))
+		return -EBADF;
+	/* TO-VALIDATE (r386): interpret f.file as a sync-prim export
+	 * (sync_file? dma-buf? PVR private?) and transfer its fence value
+	 * into the destination. For now, log the import request. */
+	pr_info("mt_pvr_bridge: syncprimimportfd: fd=%u sync=%#llx off=%u devmemctx=%#llx (FD payload TO-VALIDATE)\n",
+		in.fd, (unsigned long long)in.sync_block, in.offset,
+		(unsigned long long)in.devmem_ctx);
+	fdput(f);
+	memcpy(&val, (u8 *)cond.host + cond.offset, sizeof(val));
+	out.value = val;
+	out.error = 0;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+
 /* Drop translator objects. translator_lock held; takes trial_lock.
  * Partial-state safe: every destroy primitive rejects empty input. */
 static void pvr_translator_teardown_locked(void)
@@ -4795,6 +4853,8 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			return pvr_stub_ok(cmd);
 		case MT_PVR_FN_SYNCPRIMCPUSIGNAL:			/* SyncPrimCpuSignal (real write, r222) */
 			return pvr_cmd_syncprim_set(file, cmd);
+		case MT_PVR_FN_SYNCPRIMIMPORTFD:	/* SyncPrimImportFD (r386) */
+			return pvr_cmd_syncprim_importfd(file, cmd);
 		default:
 			return -ENOTTY;
 		}

@@ -60,6 +60,11 @@ MAPPING = {
     # generated header MTGPU_BRIDGE_IN_SYNCPRIMCPUSIGNAL (16/4).
     "mt_pvr_syncprimset_in": (0x2, 0xa),
     "mt_pvr_syncprimset_out": (0x2, 0xa),
+    # 0x2:0xc SyncPrimImportFD (r386): 24-byte IN {fd,sync_block,offset,
+    # devmem_ctx}, 12-byte OUT {value,error} from the KMD 5.2.0 header.
+    # No JSON table row (stage-b scope); size gated by static_assert.
+    "mt_pvr_syncprimimportfd_in": None,
+    "mt_pvr_syncprimimportfd_out": None,
     "mt_pvr_ctx_create_in": (0x6, 0xF),
     "mt_pvr_ctx_create_out": (0x6, 0xF),
     # 0x86:0x4 reuses mt_pvr_handle_out. 0x86:0x5 appeared in the S2 real-UMD
@@ -162,6 +167,7 @@ DIRECTION = {
     "mt_pvr_reserve_in": "in", "mt_pvr_reserve_out": "out",
     "mt_pvr_sync_block_in": "in", "mt_pvr_sync_block_out": "out",
     "mt_pvr_syncprimset_in": "in", "mt_pvr_syncprimset_out": "out",
+    "mt_pvr_syncprimimportfd_in": "in", "mt_pvr_syncprimimportfd_out": "out",
     "mt_pvr_ctx_create_in": "in", "mt_pvr_ctx_create_out": "out",
     "mt_pvr_hwperf_release_in": "in", "mt_pvr_hwperf_release_out": "out",
     "mt_pvr_heap_count_out": "out",

@@ -483,6 +483,7 @@ struct MT_PVR_PACKED mt_pvr_kicksyncctx2_create_out {
 #define MT_PVR_FN_SYNCPRIMCPUSIGNAL 0xaU
 #define MT_PVR_FN_SYNCALLOCEVENT 0x7U
 #define MT_PVR_FN_SYNCFREEEVENT 0x8U
+#define MT_PVR_FN_SYNCPRIMIMPORTFD 0xcU
 #define MT_PVR_FN_PMRMAKELOCALIMPORTHANDLE 0x3U
 #define MT_PVR_FN_PMRUNMAKELOCALIMPORTHANDLE 0x4U
 #define MT_PVR_FN_PMRLOCALIMPORTPMR 0x6U
@@ -852,6 +853,27 @@ struct MT_PVR_PACKED mt_pvr_syncprimset_out {
 	u32 error;
 };
 
+/* 0x2:0xc SYNC:SyncPrimImportFD -- 24-byte IN, 12-byte OUT (r386).
+ * Wire layout from the hash-verified KMD 5.2.0 generated header
+ * MTGPU_BRIDGE_IN_SYNCPRIMIMPORTFD / MTGPU_BRIDGE_OUT_SYNCPRIMIMPORTFD
+ * (reference/kmd-5.2.0-server-generated/common_sync_bridge.h:243/252),
+ * confirmed against the UMD wrapper FUN_00139990 (decompiled.c:12418):
+ * the 24-byte stack slot at &local_40 packs { u32 fd, u64 hSyncBlock,
+ * u32 ui32Offset, u64 hDevmemCtx }; OUT is { u64 ui64Value, u32 eError }.
+ * MT_HANDLE is pointer-sized (u64 on LP64).
+ */
+struct MT_PVR_PACKED mt_pvr_syncprimimportfd_in {
+	u32 fd;		/* MT_UINT32 ui32Fd */
+	u64 sync_block;	/* MT_HANDLE hSyncBlock */
+	u32 offset;		/* MT_UINT32 ui32Offset */
+	u64 devmem_ctx;	/* MT_HANDLE hDevmemCtx */
+};
+
+struct MT_PVR_PACKED mt_pvr_syncprimimportfd_out {
+	u64 value;	/* MT_UINT64 ui64Value */
+	u32 error;	/* MTGPU_ERROR eError */
+};
+
 static_assert(sizeof(struct mt_pvr_cmd) == 32, "dispatch packet");
 static_assert(sizeof(struct mt_pvr_connect_in) == 16, "0x1:0x0 in");
 static_assert(sizeof(struct mt_pvr_connect_out) == 17, "0x1:0x0 out");
@@ -961,5 +983,7 @@ static_assert(sizeof(struct mt_pvr_sync_block_in) == 8, "0x2:0x0 in");
 static_assert(sizeof(struct mt_pvr_sync_block_out) == 32, "0x2:0x0 out");
 static_assert(sizeof(struct mt_pvr_syncprimset_in) == 16, "0x2:0x2 in");
 static_assert(sizeof(struct mt_pvr_syncprimset_out) == 4, "0x2:0x2 out");
+static_assert(sizeof(struct mt_pvr_syncprimimportfd_in) == 24, "0x2:0xc in");
+static_assert(sizeof(struct mt_pvr_syncprimimportfd_out) == 12, "0x2:0xc out");
 
 #endif /* MT_PVR_WIRE_H */
