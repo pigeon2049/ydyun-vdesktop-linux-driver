@@ -1,0 +1,4 @@
+[  173.106054] mt_guest_probe 0000:00:0e.0: firmware trial: connect=-61 disconnect=-61 restored=0 pinned=0 result=-16
+[  988.785091] mt_guest_probe 0000:00:0e.0: firmware trial: connect=0 disconnect=-61 restored=0 pinned=1 result=0
+[ 1099.240280] mt_pvr_bridge: musakickgfx2: submitted wire=1
+[ 1153.787712] mt_pvr_bridge: musakickgfx2: submitted wire=2

@@ -212,8 +212,16 @@ static inline int mt_trial_start(struct mt_fw_trial *t,
 {
 	u32 i;
 	int ret;
-	if (!t->scratch || t->published || t->pinned ||
-	    readl(t->queue->registers + 0x890) != 0 || mt_trial_fw_state(t) != 1)
+	u32 reg890;
+	if (!t->scratch || t->published || t->pinned)
+		return -EBUSY;
+	/* 0x890==2 at boot means firmware pre-initialized (cold boot does not
+	 * clear it). The upload below is idempotent and ensures VRAM contents;
+	 * connect then proceeds normally. See r372. */
+	reg890 = readl(t->queue->registers + 0x890);
+	if (reg890 != 0 && reg890 != 2)
+		return -EBUSY;
+	if (mt_trial_fw_state(t) != 1)
 		return -EBUSY;
 	/* Removal must not free live mappings after an unacknowledged transition.
 	 * PCI manual bind/unbind is suppressed by the owning driver as well.
@@ -231,7 +239,7 @@ static inline int mt_trial_start(struct mt_fw_trial *t,
 		}
 	}
 	t->verified = true;
-	if (readl(t->queue->registers + 0x890) != 0 || mt_trial_fw_state(t) != 1) {
+	if (readl(t->queue->registers + 0x890) != reg890 || mt_trial_fw_state(t) != 1) {
 		ret = mt_trial_restore(t);
 		return ret ? ret : -EBUSY;
 	}

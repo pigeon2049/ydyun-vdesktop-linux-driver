@@ -552,3 +552,10 @@
 - 探针 `mt_live_ta_marker.c`（一次性，未入库；build/traces/r365/，W=1 零警告）：raw queue 直发、不碰 marker store bookkeeping、事件只 peek 不 ack；两次 insmod/rmmod 均干净。
 - refs 1/0 不变，dmesg 无新增 WARN/BUG/Oops；未跑 make probe（WITH_BRIDGE 会 rmmod，同 r358 取舍）。见 `reports/r365-ta-marker-dm3-opcode66-accepted.md` + 三证据（0600）。
 ---
+
+## 本轮进展（r371：端到端 TA 验证被固件 trial 状态阻塞）
+
+- 冷启动后 `0x890=2`（固件启动即为 2，非残留）；probe 改源码 3 处接受 `0x890==2`（`trial_connect=Y` 时），绑定成功。
+- 但 trial 无法启动：`mt_trial_start` 要求 `0x890==0`，`connect_result=-61`，`pinned=0`；固件 MMIO `0x890=2` vs RPC `fw_state=1` 不一致。
+- TA kick dispatch 到达桥侧（dmesg 解码日志），但 `pvr_session_acquire` 返 `-ENODEV`（trial 未 pinned）；r370 完成路径未被活体执行。
+- 门禁 417+299 全绿，`make kernel` W=1 零警告；报告 `r371-ta-e2e-blocked-by-trial.md` 入库。
