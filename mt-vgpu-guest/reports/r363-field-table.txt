@@ -1,0 +1,50 @@
+IN buffer: 268 bytes (expect 268)
+
+=== u64 pointer/handle fields ===
++  0 deadline                     = 0x0000000000000000
++  8 h_km_hwrt_dataset            = 0x0000000000000000
++ 16 h_msaa_scratch               = 0x0000000000000000
++ 24 h_pr_fence_ufo_block         = 0x000000000000102d <-- NONZERO
++ 32 h_render_context             = 0x0000000000000000
++ 40 h_zs_buffer                  = 0x0000000000000000
++ 48 p_client_3d_upd_sync_off     = 0x00007ffd6cfb90d0 <-- NONZERO
++ 56 p_client_3d_upd_val          = 0x00007ffd6cfb9120 <-- NONZERO
++ 64 p_client_ta_fence_sync_off   = 0x00007ffd6cfb8f90 <-- NONZERO
++ 72 p_client_ta_fence_val        = 0x00007ffd6cfb8fe0 <-- NONZERO
++ 80 p_client_ta_upd_sync_off     = 0x00007ffd6cfb9030 <-- NONZERO
++ 88 p_client_ta_upd_val          = 0x00007ffd6cfb9080 <-- NONZERO
++ 96 p_sync_pmr_flags             = 0x00007ffd6cfb9170 <-- NONZERO
++104 p_3d_cmd                     = 0x0000561392471410 <-- NONZERO
++112 p_3dpr_cmd                   = 0x0000561392472420 <-- NONZERO
++120 p_ta_cmd                     = 0x0000561392471410 <-- NONZERO
++128 p_upd_fence_name             = 0x00007ffd6cfb8f50 <-- NONZERO
++136 p_upd_fence_name_3d          = 0x00007ffd6cfb8f70 <-- NONZERO
++144 ph_client_3d_upd_block       = 0x00007ffd6cfb92e0 <-- NONZERO
++152 ph_client_ta_fence_block     = 0x00007ffd6cfb91c0 <-- NONZERO
++160 ph_client_ta_upd_block       = 0x00007ffd6cfb9250 <-- NONZERO
++168 ph_sync_pmrs                 = 0x00007ffd6cfb9370 <-- NONZERO
+
+=== u32/int scalar fields ===
++176 abort                    = 0u (0x0)
++180 kick_3d                  = 0u (0x0)
++184 kick_pr                  = 1u (0x1) <-- NONZERO
++188 kick_ta                  = 1u (0x1) <-- NONZERO
++192 check_fence              = 0d
++196 check_fence_3d           = 0d
++200 update_timeline          = 0d
++204 update_timeline_3d       = 0d
++208 cmd_3d_size              = 544u (0x220) <-- NONZERO
++212 cmd_3dpr_size            = 544u (0x220) <-- NONZERO
++216 client_3d_upd_count      = 0u (0x0)
++220 client_ta_fence_count    = 0u (0x0)
++224 client_ta_upd_count      = 1u (0x1) <-- NONZERO
++228 ext_job_ref              = 0u (0x0)
++232 num_draw_calls           = 0u (0x0)
++236 num_indices              = 0u (0x0)
++240 num_mrts                 = 0u (0x0)
++244 pdump_flags              = 0u (0x0)
++248 pr_fence_ufo_sync_offset = 0u (0x0)
++252 pr_fence_value           = 1u (0x1) <-- NONZERO
++256 render_target_size       = 0u (0x0)
++260 sync_pmr_count           = 0u (0x0)
++264 ta_cmd_size              = 360u (0x168) <-- NONZERO

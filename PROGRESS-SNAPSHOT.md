@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r363 0x82:0xC 活体 IN 观察成功（真机活体）**：r362 修正（`$rsi` 捕获）后 TA 路径一次打通，`SyncPrimRef` → 0，`0x82:0xC`（268B IN）到达桥侧 observer 并解码 （`kick_ta=1/kick_pr=1/kick_3d=0`，`ta_cmd_size=360`，`client_ta_upd_count=1`），返 `-ENOTTY` 未执行；未提交 GPU 工作。新发现：GDB 直 `open()` 的 fd 须补 `ioctl(0x40046445)`（INIT）否则 dispatch 卡 `-ENOTCONN`。dmesg 无新增 WARN，refs 不变，freeze 完好。见 `reports/r363-82c-live-in-observed.md` + 三证据（0600）。
+
 - **r362 描述子根因（离线 fabricated，零硬件触碰）**：r361 的 `+0x18=NULL` 系 GDB 脚本 bug——入口取 `$rdi`（param_1）、返回读 `*(param_1)`，但 `CreateSyncPrim` 把描述子写到 `*param_2`（b10）；实测 `*(param_2)` 处 `+0x18=<ptr>、+0x20=0`（= r352/r353），`*(param_1)` 处 `+0x18=NULL`（= r361 dump）；直接调用 `SyncPrimRef(*b10)` → 0。无需参数调整；r363 唯一前置是修正脚本从 `$rsi` 取值。会话未碰，freeze 继续。见 `reports/r362-desc-mismatch-root-cause.md` + 双证据。
 
 - **r361 0x82:0xC 活体 IN 观察被阻塞（真机）**：复现 r353 GDB 驱动 TA 路径（fabricated 建连 + b10 poke + ASLR 开），b10 描述子 `+0x18` 实测为 NULL（r352/r353 记载为有效指针），`SyncPrimRef` 在 `0xa0fa0: sub 0x30(%rdx),%eax` 处解引用 SIGSEGV，TA 路径无法推进到 `0x92930`；尝试过 SyncPrimRef 入口短路（伪造返回 0）但下游仍崩溃。静态分析确认 `0x36ec0` 构造 268B IN 缓冲（`in_len=0x10c`，从输入结构多偏移经 XMM 打包）。**未发任何 ioctl、未提交 GPU 工作**；freeze 完好（bridge ref 0、probe ref 1），dmesg 无新增 WARN/BUG/Oops。见 `reports/r361-82c-blocked-desc-mismatch.md` + 描述子 dump 证据（0600）。r362 建议：查 `+0x18=NULL` 根因（`CreateSyncPrim` 内部或 `*b7*+176` 差异），或基于静态映射推进 R2 设计。
