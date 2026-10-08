@@ -314,3 +314,10 @@
 - 副产 `scripts/cf-slot-window.sh` 落库；GDB `printf` 不吃 python 变量教训。`bt 8` 无输出缺口记报告。
 - 遗留：LookUpEOT 后状态（release 返回值或 job 差分），另行批准。
 ---
+
+## 本轮进展（r334：空表断言，批准执行）
+
+- GDB 活体单发 copy tq-perf（`=2` 窗口）：release 内断言分支首轮即中（`ebx=0/edx=0/mem12=0`）——release 列表容量为 0，前置缺失第一条命名条件。默认回 + L3 双绿，零新增 WARN。**Freeze 已恢复。**
+- 落库 `scripts/release-assert-window.sh`；entry 零命中 + `bt` 两轮静默 + r322 归属收回，三事如实记。
+- 遗留：计数槽谁清零/没填（写入史追踪或换 producer 差分），另行开轮。
+---
