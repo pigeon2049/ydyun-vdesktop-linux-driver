@@ -652,3 +652,14 @@
 - 设计：DM2（3D 引擎，推断）、`mt_marker_ops` 第 6 op `submit_3d_work`、`submission_va` 经 R5 per-file VM 映射。
 - 待验证 V1–V4：DM2 接受性、firmware opcode、完成事件格式、submission 解析。
 - 门禁 425+299 全绿（无新增代码）。报告 `r379-82x14-musakickgfx5-research.md`。
+
+## r380 (2026-10-08): DM2/0x66 被 firmware 忽略，trial 会话被清除
+
+- 单发 DM2 空 marker（opcode 0x66，r365 布局）：提交成功（wire=1），但 2 秒内无任何事件（`-ETIMEDOUT`）。Firmware 直接忽略，未返回完成/FAULT/NAK。
+- **副作用**：被忽略的 marker 导致 firmware 清除 trial 会话（`0x890`: 2→0，`fw_state`: 2→0）；驱动 `trial.started` 仍为 1，形成不一致。
+- 对照 r365（TA）：DM3/0x66 接受（`0x100`）、DM3/0x64 接受（标准 COMPLETE）。3D 路径行为显著不同。
+- `0x66` 不是 3D 的有效 opcode（或 DM2 不接受最小 marker）。0x64 对照未测（trial 中断）。
+- 安全：无 oops、无 hang；探针已卸载；bridge ref 0、probe ref 1 未动；本轮未重载模块。
+- Trial 需冷重启恢复（warm reboot 不重置 firmware）。3D opcode 需从 Windows KMD 或完整 `submit_context` 路径研究，不宜在 trial 会话上试探。
+- 报告 `reports/r380-dm2-opcode66-ignored.md`，门禁全绿，本地提交（未 push）。
+

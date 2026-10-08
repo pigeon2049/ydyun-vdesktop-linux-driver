@@ -3981,10 +3981,12 @@ static void mt_bridge_ta_vm_destroy(struct mt_bridge_ta_vm *tvm)
 }
 
 
-/* r376: R5 TA VM via probe-side formal API.
+/* r376/r383: R5 TA VM via bridge-side self-contained init.
  * Replaces r375's bridge-side manual VM assembly (caused oops).
- * The probe would provide TA VM helpers and
- * mt_probe_bo_borrow (safe cross-module). Bridge holds opaque handle.
+ * Uses proper mt_gpu_vm_init() with synthetic page-table BO (no borrow),
+ * following the proven 3D pattern (pvr_gpu_vm_ensure).
+ * (r376's probe-side API removed in r383 as dead code; probe cannot be
+ *  reloaded while trial is pinned.)
  *
  * MT_TA_VM_READY gate stays CLOSED: mapping validated (V1/V2) but not
  * used in submit path. Marker-level TA continues.

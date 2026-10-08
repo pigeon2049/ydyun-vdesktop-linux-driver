@@ -23,11 +23,19 @@
 > r379 轮按 §4 清理：r377 节已移入归档。
 > r380 轮按 §4 清理：r378 节已移入归档。
 > r382 轮按 §4 清理：r379 节已移入归档。
+> r383 轮按 §4 清理：r380 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
+
+## r383 (2026-10-08): probe 侧 r376 死代码清理（离线，零警告）
+
+- 删除 kernel/mt_probe_ta_vm.h（29 行，git rm）+ mt_guest_probe.c 中 122 行（struct mt_probe_ta_vm、4 函数、4x EXPORT_SYMBOL_GPL）；bridge 过时注释更新。
+- grep 零引用（头文件无 include，函数无调用者）；nm 确认 ko 无残留符号；test_probe_ta_vm.py 保留作回归 guard。
+- make kernel W=1 零警告（r376 的 4 个 pre-existing 警告消除）；check-offline 430+299 全绿。
+- 未重载 probe/bridge，未重启；零硬件触碰。报告 reports/r383-probe-dead-code-removed.md。
 
 ## r382 (2026-10-08): submit_3d_work 落地（第 6 op，0x68，门控关闭，离线）
 
@@ -62,14 +70,4 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 **建议**：0x82:0x14 实现用 0x68；必须构造完整命令包，不得用空 marker；首次活体验证等真实 UMD 调用。
 
 报告：mt-vgpu-guest/reports/r381-3d-opcode-0x68-rgxcompute.md
-
-## r380 (2026-10-08): DM2/0x66 被 firmware 忽略，trial 会话被清除
-
-- 单发 DM2 空 marker（opcode 0x66，r365 布局）：提交成功（wire=1），但 2 秒内无任何事件（`-ETIMEDOUT`）。Firmware 直接忽略，未返回完成/FAULT/NAK。
-- **副作用**：被忽略的 marker 导致 firmware 清除 trial 会话（`0x890`: 2→0，`fw_state`: 2→0）；驱动 `trial.started` 仍为 1，形成不一致。
-- 对照 r365（TA）：DM3/0x66 接受（`0x100`）、DM3/0x64 接受（标准 COMPLETE）。3D 路径行为显著不同。
-- `0x66` 不是 3D 的有效 opcode（或 DM2 不接受最小 marker）。0x64 对照未测（trial 中断）。
-- 安全：无 oops、无 hang；探针已卸载；bridge ref 0、probe ref 1 未动；本轮未重载模块。
-- Trial 需冷重启恢复（warm reboot 不重置 firmware）。3D opcode 需从 Windows KMD 或完整 `submit_context` 路径研究，不宜在 trial 会话上试探。
-- 报告 `reports/r380-dm2-opcode66-ignored.md`，门禁全绿，本地提交（未 push）。
 
