@@ -981,3 +981,10 @@ as-built 机制（`da3df8b`，r45–r63）：
 - Gate: 450+299 green, kernel W=1 zero warnings, reverse validation passed.
 - Honest: V1 only; R6-3 (destroy), R6-4 (kick parse), V3/V4 future.
 
+### r390 (2026-10-08): R6-3 Destroy realized, live V2 verified (no leaks)
+- `mt_render_context_destroy()` in `kernel/recovery/mt_pvr_bridge.c`: reverse-order teardown (exec ctx → exec process → 11 BOs put → VM destroy); safe on partial init via exec_ready/bos_ready/vm-NULL guards; WARN_ON on failures.
+- Hooked into `pvr_cmd_handle_release` (0x82:0x13 + DDK2 destroy, kind==MT_PVR_KIND_CONTEXT) and `pvr_file_release` (V4 file-close cleanup).
+- Create's `out_rollback` refactored to reuse destroy (single path).
+- Live V2: V2a explicit destroy 25→13 refs (delta -12, all released); V2b file-close 25→13 refs. dmesg zero WARN/BUG/Oops. Bridge reloaded once.
+- Gate: 458+299 green (+8 new tests), kernel W=1 zero warnings, reverse validation passed.
+- Honest: probe ref baseline 13 (r389 old leak, clears on cold reboot); partial-init destroy not fault-injected live; V3/R6-4 future.

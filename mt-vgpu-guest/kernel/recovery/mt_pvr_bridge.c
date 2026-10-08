@@ -893,6 +893,9 @@ struct mt_bridge_ta_vm;
 static struct mt_bridge_ta_vm *mt_bridge_ta_vm_create(void);
 static void mt_bridge_ta_vm_destroy(struct mt_bridge_ta_vm *tvm);
 
+/* r390: forward decl for R6-3 destroy (defined after mt_render_context_vm_destroy). */
+static void mt_render_context_destroy(struct mt_pvr_render_context *ctx);
+
 static void pvr_file_release(struct kref *kref)
 {
 	struct mt_pvr_file *file = container_of(kref, struct mt_pvr_file, ref);
@@ -952,6 +955,11 @@ static void pvr_file_release(struct kref *kref)
 	file->arena_base = NULL;
 	list_for_each_entry_safe(obj, otmp, &file->objects, link) {
 		list_del(&obj->link);
+		/* r390 R6-3/V4: Tear down real per-context state on file close. */
+		if (obj->render_ctx) {
+			mt_render_context_destroy(obj->render_ctx);
+			kfree(obj->render_ctx);
+		}
 		kfree(obj);
 	}
 	{
@@ -3350,6 +3358,13 @@ static int pvr_cmd_handle_release(struct mt_pvr_file *file,
 	if (!obj)
 		return -ENOENT;
 	list_del(&obj->link);
+	/* r390 R6-3: Tear down real per-context state in reverse order.
+	 * Legacy token objects have render_ctx == NULL and skip this. */
+	if (kind == MT_PVR_KIND_CONTEXT && obj->render_ctx) {
+		mt_render_context_destroy(obj->render_ctx);
+		kfree(obj->render_ctx);
+		obj->render_ctx = NULL;
+	}
 	kfree(obj);
 	return pvr_out(cmd, &out, sizeof(out));
 }
@@ -4126,16 +4141,69 @@ fail_tvm:
 static void mt_render_context_vm_destroy(struct mt_bridge_ta_vm *tvm)
 {
 	struct mt_bo *pt_bo;
+	int ret;
 	if (!tvm)
 		return;
 	pt_bo = (struct mt_bo *)tvm->pt_pages;
-	mt_gpu_vm_fini(&tvm->vm);
+	ret = mt_gpu_vm_fini(&tvm->vm);
+	/* r390: fini must succeed here (exec destroyed first, owners==0).
+	 * A failure means a refcount bug; flag it loudly. */
+	if (WARN_ON(ret))
+		pr_warn("mt_pvr_bridge: r390: per-context VM fini failed: %d\n",
+			  ret);
 	kvfree(tvm->scratch);
 	kvfree(tvm->image);
 	/* Release the caller's pt_bo reference (VM's ref already dropped by fini). */
 	if (pt_bo)
 		mt_bo_put(pt_bo);
 	kfree(tvm);
+}
+
+/* r390: R6-3 Destroy realization (Route A per-context).
+ * Tears down a render context in strict reverse order of creation:
+ *   exec context -> exec process -> 11 BOs (put; VM fini drops its refs)
+ *   -> per-context VM destroy (fini + pt_bo put).
+ * Safe on partially-initialized ctx (resources_ready=false): the
+ * exec_ready/bos_ready/vm-NULL guards skip whatever was never built.
+ * All teardown state is cleared, so a second call is a no-op.
+ * Caller (pvr_cmd_handle_release) holds file->lock; this takes no locks.
+ */
+static void mt_render_context_destroy(struct mt_pvr_render_context *ctx)
+{
+	u32 i;
+
+	if (!ctx)
+		return;
+
+	/* 1. Exec context, then process. Process destroy requires
+	 * contexts==0 and decrements vm->owners, so it must precede
+	 * VM fini (which returns -EBUSY while owners>0). */
+	if (ctx->exec_ready) {
+		if (WARN_ON(mt_execution_context_destroy(&ctx->exec_ctx)))
+			pr_warn("mt_pvr_bridge: r390: exec context destroy failed\n");
+		if (WARN_ON(mt_execution_process_destroy(&ctx->process)))
+			pr_warn("mt_pvr_bridge: r390: exec process destroy failed\n");
+		ctx->exec_ready = false;
+	}
+
+	/* 2. BOs: drop our refs. The VM holds one ref per binding;
+	 * mt_gpu_vm_fini() (inside vm_destroy below) drops those. */
+	for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++) {
+		if (ctx->bos_ready[i]) {
+			mt_bo_put(&ctx->bos[i]);
+			ctx->bos_ready[i] = false;
+			ctx->vas[i] = 0;
+		}
+	}
+
+	/* 3. Per-context VM (fini tears down bindings, puts tables BO). */
+	if (ctx->vm) {
+		mt_render_context_vm_destroy(ctx->vm);
+		ctx->vm = NULL;
+		ctx->vm_base_va = 0;
+	}
+
+	ctx->resources_ready = false;
 }
 
 /* r389: R6-2 Create realization (Route A per-context).
@@ -4254,21 +4322,8 @@ static int mt_render_context_create(struct mt_pvr_file *file,
 	goto out_release;
 
 out_rollback:
-	if (ctx->exec_ready) {
-		mt_execution_context_destroy(&ctx->exec_ctx);
-		mt_execution_process_destroy(&ctx->process);
-		ctx->exec_ready = false;
-	}
-	for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++) {
-		if (ctx->bos_ready[i]) {
-			mt_bo_put(&ctx->bos[i]);
-			ctx->bos_ready[i] = false;
-		}
-	}
-	if (ctx->vm) {
-		mt_render_context_vm_destroy(ctx->vm);
-		ctx->vm = NULL;
-	}
+	/* r390: Reuse the R6-3 destroy path for rollback (same reverse order). */
+	mt_render_context_destroy(ctx);
 out_release:
 	if (owner)
 		module_put(owner);

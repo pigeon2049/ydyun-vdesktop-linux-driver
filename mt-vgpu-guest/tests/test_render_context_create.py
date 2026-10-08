@@ -77,15 +77,13 @@ class TestRenderContextCreate(unittest.TestCase):
         src = read_bridge()
         # Rollback label must exist
         self.assertIn("out_rollback:", src, "rollback label not found")
-        # Must destroy exec on rollback
-        self.assertIn("mt_execution_context_destroy(&ctx->exec_ctx);",
-                      src, "exec ctx destroy in rollback not found")
-        # Must put BOs on rollback
-        self.assertIn("mt_bo_put(&ctx->bos[i]);",
-                      src, "BO put in rollback not found")
-        # Must destroy VM on rollback
-        self.assertIn("mt_render_context_vm_destroy(ctx->vm);",
-                      src, "VM destroy in rollback not found")
+        # r390: rollback delegates to the shared R6-3 destroy path
+        # (reverse-order teardown lives in mt_render_context_destroy,
+        # gated by test_render_context_destroy.py)
+        m = re.search(r"out_rollback:\n(.*?)\nout_release:", src, re.S)
+        self.assertIsNotNone(m, "out_rollback block not found")
+        self.assertIn("mt_render_context_destroy(ctx)", m.group(1),
+                      "out_rollback must delegate to mt_render_context_destroy")
 
     def test_resources_ready_gated(self):
         src = read_bridge()
