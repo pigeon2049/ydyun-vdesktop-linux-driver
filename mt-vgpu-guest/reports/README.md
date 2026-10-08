@@ -281,6 +281,7 @@
 | r327 | CheckFences 反汇编切入（批准执行）：真入口对齐解码 type/count 开关；dprintf 配方首发转义漏改；L3 双绿，窗口零新增 WARN |
 | r328 | CheckFences 字段值 + 返回值被忽略（批准执行）：type=0/count=1/flags=0/a8=0 两轮一致；r8 系出参；L3 双绿，窗口零新增 WARN |
 | r329 | 桌面 GPU 禁用与菜单持久化（用户指令）：--disable-gpu 已写入菜单覆盖层并验证生效，但不释放 renderD128（两次实锤）；GDB 函数注入致 UI 重启事故备忘 |
+| r340 | bt文件脚本下通用静默；app走transferAPI，TQJobSubmit内部经指针到达；下刀x/gx$rsp |
 | r339 | ctx来自job+0x10调用前已存在，序言零写+0x58，建表责任在调用方（离线） |
 | r338 | 表是空壳定锤：JobSubmit入口链尚空，空壳建于序言，copy转立项；r333-338链条一句话 |
 | r337 | 零值在BlitInit入口已存在：四阶段快照指针关联，生产者在上游；堆地址三轮一致 |

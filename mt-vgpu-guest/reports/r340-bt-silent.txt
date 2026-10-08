@@ -1,0 +1,14 @@
+Breakpoint 2 at 0x7ffff745ff00Breakpoint 3 at 0x7ffff74656c0Breakpoint 4 at 0x7ffff7465240Breakpoint 5 at 0x7ffff7465200Breakpoint 6 at 0x7ffff74889c0Breakpoint 7 at 0x7ffff742c8ccARMED jobsubmit=0x7ffff745ff00 blit=0x7ffff74656c0 cf=0x7ffff7465240 eot=0x7ffff7465200 rel=0x7ffff74889c0 abort=0x7ffff742c8cc
+JOBSUBMIT | rdi=0x55555557b830 [0]=0x0 [+58]=0x0 [w20]=- cnt=- | rsi=0x7fffffffd470 [0]=0x0 [+58]=0x0 [w20]=- cnt=- | rdx=0x7fffffffd648 [0]=0x0 [+58]=0x0 [w20]=- cnt=-
+BLITINIT | rdi=0x7fffffffd470 [0]=0x0 [+58]=0x0 [w20]=- cnt=- | rsi=0x555555580240 [0]=0x55555556f6c0 [+58]=0x555555581380 [w20]=0x5555555808f0 cnt=0 | rdx=0x7fffffffcd00 [0]=0x0 [+58]=0x0 [w20]=- cnt=-
+CHECKF | rdi=0x5555555843a0 [0]=0x55555556f6c0 [+58]=0x555555587f60 [w20]=0x80 cnt=1001062907 | rsi=0x7fffffffcd00 [0]=0x0 [+58]=0x0 [w20]=- cnt=- | rdx=0x7fffffffd470 [0]=0x0 [+58]=0x0 [w20]=- cnt=-
+LOOKUPEOT | rdi=0x1 [0]=0x55fd3b8626bb [+58]=0x55fd3b8626bb [w20]=0x55fd3b8626bb cnt=998647483 | rsi=0x0 [0]=0x55fd3b8626bb [+58]=- [w20]=- cnt=- | rdx=0x7fffffffd470 [0]=0x0 [+58]=0x0 [w20]=- cnt=-
+REL3320 | rdi=0x7fffffffd470 [0]=0x0 [+58]=0x0 [w20]=- cnt=- | rsi=0x555555580240 [0]=0x55555556f6c0 [+58]=0x555555581380 [w20]=0x5555555808f0 cnt=0 | rdx=0x7fffffffcd00 [0]=0x0 [+58]=0x0 [w20]=- cnt=-
+ABORTSITE
+rbx            0x0                 0
+rdx            0x0                 0
+rax            0x5555555808f0      93824992413936
+rdi            0x555555581380      93824992416640
+rsi            0x0                 0
+rcx            0x160000            1441792
+[Inferior 1 (process 22498) killed]

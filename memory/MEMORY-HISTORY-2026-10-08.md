@@ -348,3 +348,9 @@
 - 落库 `scripts/jobsubmit-snapshot-window.sh`；r333–r338 链条一句话记报告。
 - 遗留：copy/TA 转 RE 立项或接受不可达，不再烧单窗口。
 ---
+
+## 本轮进展（r339：ctx 来自调用方，离线）
+
+- 纯 objdump/nm：ctx=`*(job+0x10)` 调用前已存在；序言零写 `+0x58`、无分配；建表责任在调用方。链条终版记报告。
+- 遗留：活体一发（JobSubmit 入口 `bt` + job 指针倾印），另行开轮。会话未碰，freeze 继续。
+---
