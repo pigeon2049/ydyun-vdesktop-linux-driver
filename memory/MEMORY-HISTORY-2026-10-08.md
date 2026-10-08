@@ -643,3 +643,12 @@
 - 诚实边界：firmware 侧 VA 翻译未验证（无查询接口）；`MT_TA_VM_READY` 门保持关闭。
 - 门禁 425+299 全绿（无新增代码，仅文档证据）。本地提交待执行。
 
+
+
+## r379 (2026-10-08): 0x82:0x14 (MUSAKICKGFX5) 调研——现状 accept-and-log，执行路径设计完成
+- 桥侧 `MT_PVR_FN_RGXKICKTA3D5` → `pvr_cmd_kickta3d5_observe()`（r215），解码 108B IN 后返回 0，**未真实执行**。
+- Wire 结构已入库（`mt_pvr_wire.h:311`）：108B IN（render_context + check/update 数组 + submission_va@76/size@84 + counts），4B OUT（仅 error，**无 update_fence 回填**）。
+- 与 0x82:0xC 关键差异：单一 submission（vs TA+PR+3D 三分路）、显式 render_context、无 fence 回填。
+- 设计：DM2（3D 引擎，推断）、`mt_marker_ops` 第 6 op `submit_3d_work`、`submission_va` 经 R5 per-file VM 映射。
+- 待验证 V1–V4：DM2 接受性、firmware opcode、完成事件格式、submission 解析。
+- 门禁 425+299 全绿（无新增代码）。报告 `r379-82x14-musakickgfx5-research.md`。

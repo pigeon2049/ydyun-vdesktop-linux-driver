@@ -22,12 +22,33 @@
 > r374 轮按 §4 清理：r369 节已移入归档。
 > r379 轮按 §4 清理：r377 节已移入归档。
 > r380 轮按 §4 清理：r378 节已移入归档。
+> r382 轮按 §4 清理：r379 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
 
+## r382 (2026-10-08): submit_3d_work 落地（第 6 op，0x68，门控关闭，离线）
+
+**结论**：submit_3d_work 作为 mt_marker_ops 第 6 个 op 落地（仿 r366 模式），
+DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 默认关闭；
+0x82:0x14 dispatch 保持 r215 observer。零硬件触碰。
+
+**实现**：
+- kernel/mt_3d_submit.h (新，108 行): MT_FW_DM_3D=2, MT_FW_3D_OPCODE=0x68,
+  MT_FW_3D_COMPLETE_CODE=0, MT_3D_SUBMIT_GATE=0; struct mt_3d_submit_params (56B)
+  含 vm_map_hook (R5 预留); mt_3d_params_from_rgxkickta3d5() 映射函数
+- kernel/mt_marker_fence.h (+163): mt_3d_work, d3_params, 第 6 op (+ABI WARNING),
+  mt_fw_3d_command() (0x68@0x0c, va@0x28, size@0x30), mt_marker_submit_3d_work()
+  (门控关闭→-EOPNOTSUPP; 非空校验 r380 教训), ops 表, mt_bridge_submit_3d_work 声明
+- kernel/recovery/mt_pvr_bridge.c (+9): mt_bridge_submit_3d_work + EXPORT_SYMBOL_GPL
+
+**门禁**：check-offline 430+299 全绿 (+2 新测试); make kernel W=1 零新增警告
+(4 pre-existing 来自 r376); 反向验证通过 (0x99→fail, 恢复→pass)。
+
+**诚实边界**：未活体验证；dispatch 未切换；VM 映射未实现；门控开启待 r381 TO-VALIDATE。
+见 reports/r382-submit-3d-work-offline.md。
 ## r381 (2026-10-08): 3D opcode 为 0x68 (RGXCompute)，0x66 在 DM2 仅对真实命令有效
 
 **结论**：3D (DM2) 的 firmware opcode 是 **0x68** (RGXCompute, type 5)。0x66 在 DM2 上仅对真实命令包有效（mt_live_3d.c 实证，r37–r41），空 marker 被忽略（r380）。
@@ -52,10 +73,3 @@
 - Trial 需冷重启恢复（warm reboot 不重置 firmware）。3D opcode 需从 Windows KMD 或完整 `submit_context` 路径研究，不宜在 trial 会话上试探。
 - 报告 `reports/r380-dm2-opcode66-ignored.md`，门禁全绿，本地提交（未 push）。
 
-## r379 (2026-10-08): 0x82:0x14 (MUSAKICKGFX5) 调研——现状 accept-and-log，执行路径设计完成
-- 桥侧 `MT_PVR_FN_RGXKICKTA3D5` → `pvr_cmd_kickta3d5_observe()`（r215），解码 108B IN 后返回 0，**未真实执行**。
-- Wire 结构已入库（`mt_pvr_wire.h:311`）：108B IN（render_context + check/update 数组 + submission_va@76/size@84 + counts），4B OUT（仅 error，**无 update_fence 回填**）。
-- 与 0x82:0xC 关键差异：单一 submission（vs TA+PR+3D 三分路）、显式 render_context、无 fence 回填。
-- 设计：DM2（3D 引擎，推断）、`mt_marker_ops` 第 6 op `submit_3d_work`、`submission_va` 经 R5 per-file VM 映射。
-- 待验证 V1–V4：DM2 接受性、firmware opcode、完成事件格式、submission 解析。
-- 门禁 425+299 全绿（无新增代码）。报告 `r379-82x14-musakickgfx5-research.md`。

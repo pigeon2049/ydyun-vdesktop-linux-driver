@@ -5244,6 +5244,14 @@ int mt_bridge_submit_ta_work(struct mt_marker_store *s, struct mt_ta_work *work,
 	return mt_marker_submit_ta_work(s, work, out);
 }
 EXPORT_SYMBOL_GPL(mt_bridge_submit_ta_work);
+/* Bridge-exported 3D submit entry (r382, R3). Mirrors
+ * mt_bridge_submit_ta_work; gated by MT_3D_SUBMIT_GATE (default 0). */
+int mt_bridge_submit_3d_work(struct mt_marker_store *s, struct mt_3d_work *work,
+			     struct dma_fence **out)
+{
+	return mt_marker_submit_3d_work(s, work, out);
+}
+EXPORT_SYMBOL_GPL(mt_bridge_submit_3d_work);
 
 module_init(pvr_start);
 module_exit(pvr_stop);

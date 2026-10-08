@@ -13,6 +13,7 @@
 #include "mt_execution_context.h"
 #include "mt_tqx_work.h"
 #include "mt_ta_submit.h"
+#include "mt_3d_submit.h"
 
 /* Pending work owns its VM/BO resources independently of external fence
  * references. Timeout or file closure cannot cancel published ownership. */
@@ -27,6 +28,9 @@ struct mt_marker_fence {
 	/* r366: TA submit params, meaningful iff submitted via submit_ta_work.
 	 * Appended; pre-r366 code never touches it. */
 	struct mt_ta_submit_params ta_params;
+	/* r382: 3D submit params, meaningful iff submitted via submit_3d_work.
+	 * Appended; pre-r382 code never touches it. */
+	struct mt_3d_submit_params d3_params;
 };
 /* TA work owner (r366, r364 D1). Mirrors struct mt_tqx_work; params carries
  * the decoded 0x82:0xC IN subset. Caller-owned until the submit op accepts
@@ -36,6 +40,15 @@ struct mt_ta_work {
 	struct mt_execution_context *context;
 	struct mt_pool_slice *pool_slices[3];
 	struct mt_ta_submit_params params;
+};
+/* 3D work owner (r382). Mirrors struct mt_ta_work; params carries
+ * the decoded 0x82:0x14 IN subset. Caller-owned until the submit op accepts
+ * it; never copied. */
+struct mt_3d_work {
+	struct mt_work_job job;
+	struct mt_execution_context *context;
+	struct mt_pool_slice *pool_slices[3];
+	struct mt_3d_submit_params params;
 };
 struct mt_marker_store;
 struct mt_marker_ops {
@@ -51,6 +64,13 @@ struct mt_marker_ops {
 	 * the bridge's exported mt_bridge_submit_ta_work() until the probe
 	 * is rebuilt. */
 	int (*submit_ta_work)(struct mt_marker_store *, struct mt_ta_work *,
+		struct dma_fence **);
+	/* r382: 3D submission, 6th op. ABI WARNING: marker stores
+	 * initialized by probe builds predating r382 contain a 5-entry table;
+	 * dereferencing this member on such a store reads out of bounds. Use
+	 * the bridge's exported mt_bridge_submit_3d_work() until the probe
+	 * is rebuilt. Gated by MT_3D_SUBMIT_GATE (default 0 = disabled). */
+	int (*submit_3d_work)(struct mt_marker_store *, struct mt_3d_work *,
 		struct dma_fence **);
 };
 struct mt_marker_store {
@@ -512,16 +532,160 @@ static inline int mt_marker_complete_ta(struct mt_marker_store *s, u32 dm,
 	return 0;
 }
 
+/* ---- 3D submission (r382, R3) ---- */
+
+/* 3D command packet (r381): opcode MT_FW_3D_OPCODE at +0x0c, wire_id at
+ * +0x48, command_va at +0x28, size at +0x30, pid at +0x4c; rest zero.
+ * DM2 requires a complete command packet; empty markers are ignored
+ * by firmware (r380). */
+static inline void mt_fw_3d_command(void *command, u32 fence, u32 pid,
+				    u64 command_va, u32 size)
+{
+	memset(command, 0, MT_FW_COMMAND_BYTES);
+	mt_fw_put32(command, 0x0c, MT_FW_3D_OPCODE);
+	mt_fw_put32(command, 0x48, fence);
+	mt_fw_put32(command, 0x4c, pid);
+	/* 64-bit VA at +0x28 (two u32 writes, little-endian). */
+	mt_fw_put32(command, 0x28, (u32)(command_va & 0xffffffffULL));
+	mt_fw_put32(command, 0x2c, (u32)(command_va >> 32));
+	mt_fw_put32(command, 0x30, size);
+}
+
+/* Submit 3D work as an independent marker op (r382, R3).
+ *
+ * Lock contract: caller must NOT hold s->lock. The check_fence input wait
+ * runs without the session lock (completions need it); the submit phase
+ * takes it internally. This mirrors submit_ta_work.
+ *
+ * Gate (r382): MT_3D_SUBMIT_GATE defaults to 0 (disabled). The op returns
+ * -EOPNOTSUPP until the gate is opened after live validation (r381
+ * TO-VALIDATE). The 0x82:0x14 dispatch stays on the r215 observer.
+ *
+ * DM2 requires a complete command packet (r381); empty submissions
+ * (submission_va == 0 or submission_size == 0) are rejected with -EINVAL,
+ * not silently ignored (r380 lesson).
+ *
+ * Completion uses the standard code (MT_FW_3D_COMPLETE_CODE == 0, r381),
+ * so the generic mt_marker_complete() path handles it; no TA-style
+ * special matcher is needed.
+ */
+static int mt_marker_submit_3d_work(struct mt_marker_store *s,
+				    struct mt_3d_work *work,
+				    struct dma_fence **out)
+{
+#if !MT_3D_SUBMIT_GATE
+	(void)s;
+	(void)work;
+	(void)out;
+	return -EOPNOTSUPP;
+#else
+	struct mt_marker_fence *m;
+	struct mt_execution_context *c;
+	struct dma_fence *dep = NULL;
+	const u32 dm = MT_FW_DM_3D;
+	long waited;
+	int ret;
+
+	/* Validate everything before any hardware write. */
+	if (!s || !work || !out)
+		return -EINVAL;
+	if (work->job.state != MT_JOB_HELD)
+		return -EINVAL;
+	c = work->context;
+	if (!c || c->route.dm != dm)
+		return -EOPNOTSUPP;
+	if (s->profile.family != 2)
+		return -EOPNOTSUPP;
+	/* r381: DM2 ignores empty markers. Reject honestly. */
+	if (!work->params.submission_va || !work->params.submission_size)
+		return -EINVAL;
+	if (!s->ready || !s->can_submit)
+		return -EHOSTDOWN;
+	ret = s->can_submit(s->opaque);
+	if (ret)
+		return ret;
+
+	/* Input dependency wait, without s->lock (see contract above).
+	 * Reuses the TA fence lookup (generic by wire_id). */
+	ret = mt_marker_ta_lookup_fence(s, work->params.check_fence, &dep);
+	if (ret)
+		return ret;
+	if (dep) {
+		waited = dma_fence_wait_timeout(dep, false, msecs_to_jiffies(5000));
+		dma_fence_put(dep);
+		if (waited < 0)
+			return (int)waited;
+		if (waited == 0)
+			return -ETIMEDOUT;
+	}
+
+	mutex_lock(s->lock);
+	if (s->count[dm] >= 63) {
+		ret = -EAGAIN;
+		goto out_unlock;
+	}
+	/* Never reuse a 32-bit wire ID, including failure gaps. */
+	if (s->next[dm] > 0xffffffffULL) {
+		ret = -EOVERFLOW;
+		goto out_unlock;
+	}
+	m = kzalloc(sizeof(*m), GFP_KERNEL);
+	if (!m) {
+		ret = -ENOMEM;
+		goto out_unlock;
+	}
+	__module_get(THIS_MODULE);
+	spin_lock_init(&m->lock);
+	m->wire_id = s->next[dm]++;
+	dma_fence_init(&m->fence, &mt_marker_fence_ops, &m->lock,
+		       s->context[dm], m->wire_id);
+	/* DM2, opcode 0x68; wire_id at +0x48, command_va at +0x28 (r381). */
+	mt_fw_3d_command(m->job.packet, m->wire_id, (u32)current->pid,
+			 work->params.submission_va, work->params.submission_size);
+	m->d3_params = work->params;
+	/* No context ownership at this stage (R3 binds the real context). */
+	list_add_tail(&m->link, &s->pending[dm]);
+	s->count[dm]++;
+	s->total++;
+	ret = mt_fw_queue_try_submit(s->queue, dm, 0, m->job.packet);
+	if (ret) {
+		/* Queue errors precede hardware writes; unwind fully. */
+		list_del(&m->link);
+		s->count[dm]--;
+		s->total--;
+		/* wire_id is never reused. */
+		dma_fence_put(&m->fence);
+		goto out_unlock;
+	}
+	/* Success: consume the caller's prepared work. */
+	work->job.state = MT_JOB_EMPTY;
+	work->context = NULL;
+	memset(work->pool_slices, 0, sizeof(work->pool_slices));
+	*out = dma_fence_get(&m->fence);
+	ret = 0;
+out_unlock:
+	mutex_unlock(s->lock);
+	return ret;
+#endif /* MT_3D_SUBMIT_GATE */
+}
+
 static const struct mt_marker_ops mt_marker_operations = {
 	.submit_tqx_work = mt_marker_submit_tqx_work,
 	.submit = mt_marker_submit, .submit_work = mt_marker_submit_work,
 	.submit_context = mt_marker_submit_context,
 	.submit_ta_work = mt_marker_submit_ta_work,
+	.submit_3d_work = mt_marker_submit_3d_work,
 };
 /* Bridge-exported TA submit entry (r366). Implemented in mt_pvr_bridge.c;
  * runs in the bridge's context so pending TA fences pin the bridge module,
  * never a short-lived verifier. See the ABI WARNING on struct mt_marker_ops. */
 int mt_bridge_submit_ta_work(struct mt_marker_store *s, struct mt_ta_work *work,
+			     struct dma_fence **out);
+/* Bridge-exported 3D submit entry (r382). Implemented in mt_pvr_bridge.c;
+ * runs in the bridge's context so pending 3D fences pin the bridge module,
+ * never a short-lived verifier. See the ABI WARNING on struct mt_marker_ops.
+ * Gated by MT_3D_SUBMIT_GATE (default 0 = disabled). */
+int mt_bridge_submit_3d_work(struct mt_marker_store *s, struct mt_3d_work *work,
 			     struct dma_fence **out);
 
 static inline void mt_marker_store_init(struct mt_marker_store *s, struct mutex *lock,
