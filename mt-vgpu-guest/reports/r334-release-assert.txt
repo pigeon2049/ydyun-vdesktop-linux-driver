@@ -1,0 +1,10 @@
+Breakpoint 2 at 0x7ffff74856a0Breakpoint 3 at 0x7ffff7487a82Breakpoint 4 at 0x7ffff742c8ccARMED entry=0x7ffff74856a0 cmp=0x7ffff7487a82 abort=0x7ffff742c8cc
+CMP ebx=0 edx=0 rdi=0x555555581380 rax=0x5555555808f0 mem12=0
+ABORTSITE
+rbx            0x0                 0
+rdx            0x0                 0
+rax            0x5555555808f0      93824992413936
+rdi            0x555555581380      93824992416640
+rsi            0x0                 0
+rcx            0x160000            1441792
+[Inferior 1 (process 18546) killed]
