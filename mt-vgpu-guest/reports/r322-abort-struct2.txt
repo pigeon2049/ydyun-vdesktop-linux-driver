@@ -1,0 +1,22 @@
+Catchpoint 1 (load)
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+Breakpoint 2 at 0x7ffff742c8cc
+
+Breakpoint 2, 0x00007ffff742c8cc in ?? () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+0x555555581380:	0x0000555555580910	0x000000e000010000
+0x555555581390:	0x00005555555802b0	0x00005555555833a0
+0x5555555813a0:	0x00005555555808f0	0x0000555555580908
+0x5555555813b0:	0x000000000000101c	0x000000000000101d
+0x5555555813c0:	0x0000000000000000	0x00000000000003a1
+0x5555555813d0:	0x00005550000d5a61	0xba6979c1d12fb48e
+0x5555555813e0:	0x000000000000008e	0x0000000000000000
+0x5555555813f0:	0x0000000000000000	0x0000000000000000
+0x555555581400:	0x0000000000000000	0x0000000000000000
+0x555555581410:	0x0000000000000000	0x0000000000000000
+0x555555581420:	0x0000000000000000	0x0000000000000000
+0x555555581430:	0x0000000000000000	0x0000000000000000
+#0  0x00007ffff742c8cc in ?? () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#1  0x00007ffff74601e2 in TQJobSubmit () from /opt/ydyun-vdesktop-linux-driver/mt-vgpu-guest/build/legacy-umd-pvr-connect-candidate/rootfs/usr/lib/x86_64-linux-gnu/libsrv_um_MUSA.so
+#2  0x000055555555802b in ?? ()
+[Inferior 1 (process 141392) killed]

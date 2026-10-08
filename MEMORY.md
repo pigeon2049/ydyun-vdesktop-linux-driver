@@ -12,9 +12,10 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r321：abort 尾跳定锤，离线）
+## 本轮进展（r322：abort 桩命中读参，批准执行）
 
-- 全二进制 call（0 命中）/jmp（1 命中 file 0x88650→0x2c8cc）扫描定锤尾跳；解释 core 栈 + r320 未命中；helper 静态无名。纯文档。
-- 遗留：r322 断 abort 调用点读参（短窗口）。本地提交未 push（攒两轮一起推）。
+- GDB 文件脚本法断调用点三命中；rdi 系堆 job 结构（非字符串）；abort 在 RGXTDMSubmit 内（尾跳）；校验条件仍未命名。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
+- **Freeze 已恢复。**
+- 遗留：RGXTDMSubmit 对齐反汇编找 abort 分支；或 job 结构差分。已推送（恢复 push 习惯）。
 ---
 
