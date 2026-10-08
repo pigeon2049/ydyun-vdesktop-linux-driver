@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r364 TA firmware 提交通道设计（R4，离线，零硬件触碰）**：`mt_marker_ops` 新增独立 op `submit_ta_work`（与 `submit_tqx_work` 并列）；TA 分配 DM3（推断）、firmware 命令 opcode 候选 `0x66`（推断）；`0x82:0xC` IN 解码为 `struct mt_ta_submit_params`（104B，`kernel/mt_ta_submit.h`，静态断言钉死）；V1–V6 待活体验证清单已列（DM/opcode/`kick_pr`/TA 命令语义/per-file VM/完成事件）。门禁新增 `tests/test_ta_submit_layout.py`（反向验证通过），`check-offline` 402+299 全绿，`make kernel` W=1 零警告。会话未碰，freeze 继续。见 `reports/r364-ta-submit-channel-design.md` + 盘点表证据（0600）。
+
 - **r363 0x82:0xC 活体 IN 观察成功（真机活体）**：r362 修正（`$rsi` 捕获）后 TA 路径一次打通，`SyncPrimRef` → 0，`0x82:0xC`（268B IN）到达桥侧 observer 并解码 （`kick_ta=1/kick_pr=1/kick_3d=0`，`ta_cmd_size=360`，`client_ta_upd_count=1`），返 `-ENOTTY` 未执行；未提交 GPU 工作。新发现：GDB 直 `open()` 的 fd 须补 `ioctl(0x40046445)`（INIT）否则 dispatch 卡 `-ENOTCONN`。dmesg 无新增 WARN，refs 不变，freeze 完好。见 `reports/r363-82c-live-in-observed.md` + 三证据（0600）。
 
 - **r362 描述子根因（离线 fabricated，零硬件触碰）**：r361 的 `+0x18=NULL` 系 GDB 脚本 bug——入口取 `$rdi`（param_1）、返回读 `*(param_1)`，但 `CreateSyncPrim` 把描述子写到 `*param_2`（b10）；实测 `*(param_2)` 处 `+0x18=<ptr>、+0x20=0`（= r352/r353），`*(param_1)` 处 `+0x18=NULL`（= r361 dump）；直接调用 `SyncPrimRef(*b10)` → 0。无需参数调整；r363 唯一前置是修正脚本从 `$rsi` 取值。会话未碰，freeze 继续。见 `reports/r362-desc-mismatch-root-cause.md` + 双证据。

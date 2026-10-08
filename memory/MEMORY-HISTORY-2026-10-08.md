@@ -522,3 +522,10 @@
 - 方法教训：`/proc/self/maps` 取 load bias 须减 file offset；`PVRSRVBridgeCall` 真签名 7 参数 `(handle,bridge,func,in_ptr,in_len,out_ptr,out_len)`（connect 实证 r8d=0x10/stack=0x11）。
 - freeze 恢复确认：probe 仍绑 00:0e.0（ref 1，未碰）、bridge 默认参数在载（ref 0）、card0/card1/renderD128 齐全。见 `reports/r360-bridge-reload-r356.md` + 四证据（0600）。
 ---
+
+## 本轮进展（r362：r361 描述子"不匹配"系 GDB 脚本读错位置）
+
+- `CreateSyncPrim` 反汇编确认：描述子 `+0x18` = `RA_Alloc` 的 `puStack_70` 输出，写入 `*param_2`（`b10`）；r361 GDB 脚本在入口取 `$rdi`（param_1）、返回时读 `*(param_1)`——读错了位置。
+- 实测（同一 harness，两次独立运行）：`*(param_2)` 处 `+0x18=<ptr>、+0x20=0`（= r352/r353）；`*(param_1)` 处 `+0x18=NULL、+0x20=<heap ptr>`（= r361 dump）。直接调用 `SyncPrimRef(*b10)` → 0。
+- 定性：测量方法 bug，非输入/状态/布局问题。无需 fabricated 参数调整。r363 唯一前置：修正 GDB 脚本从 `$rsi` 取 param_2。零硬件触碰，freeze 完好。见 `reports/r362-desc-mismatch-root-cause.md` + 双证据（0600）。
+---

@@ -11,21 +11,23 @@
 > 2026-10-07 起归档于 [`MEMORY-HISTORY-2026-10-07.md`](memory/MEMORY-HISTORY-2026-10-07.md)。
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > r363 轮按 §4 清理：r361 节已移入归档。
+> r364 轮按 §4 清理：r362 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
+
+## 本轮进展（r364：TA firmware 提交通道设计）
+
+- R4 设计：`mt_marker_ops` 新增独立 op `submit_ta_work`（与 `submit_tqx_work` 并列，不碰 TQX 路径）；TA 分配 DM3（dm=1 TQX、dm=2 3D 已占用）；firmware 命令 opcode 候选 `0x66`；`0x82:0xC` IN 解码为 `struct mt_ta_submit_params`（104B）。
+- 接口头文件 `kernel/mt_ta_submit.h`（只含接口定义与静态断言，无实现逻辑）；DM/opcode 为推断、须活体验证（V1–V6 清单见报告）；`kick_pr` 语义未编造，标 TO-VALIDATE。
+- 门禁：新增 `tests/test_ta_submit_layout.py`（尺寸/偏移/DM 不碰撞），反向验证通过；`check-offline` 402+299 全绿，`make kernel` W=1 零警告。
+- 全程离线：未加载模块、未提交 GPU 工作、freeze 完好。见 `reports/r364-ta-submit-channel-design.md` + 盘点表证据（0600）。
+---
 
 ## 本轮进展（r363：0x82:0xC 活体 IN 参数观察成功）
 
 - r362 修正（`CreateSyncPrim` 入口捕获 `$rsi`）后 TA 路径一次打通：`SyncPrimRef` 返回 0，`0x82:0xC` 到达桥侧 observer，268B IN 解码（`kick_ta=1/kick_pr=1/kick_3d=0`，`ta_cmd_size=360`，`client_ta_upd_count=1`）并返 `-ENOTTY`；未提交 GPU 工作。
 - 新发现：GDB 内直接 `open()` 的 fd 必须再做 `ioctl(0x40046445)`（INIT），否则 dispatch 卡在 `srv_handle==0` → `-ENOTCONN`，observer 永不触发。
 - freeze 完好（bridge ref 0、probe ref 1），dmesg 无新增 WARN/BUG/Oops；门禁 400+299 全绿。
----
-
-## 本轮进展（r362：r361 描述子"不匹配"系 GDB 脚本读错位置）
-
-- `CreateSyncPrim` 反汇编确认：描述子 `+0x18` = `RA_Alloc` 的 `puStack_70` 输出，写入 `*param_2`（`b10`）；r361 GDB 脚本在入口取 `$rdi`（param_1）、返回时读 `*(param_1)`——读错了位置。
-- 实测（同一 harness，两次独立运行）：`*(param_2)` 处 `+0x18=<ptr>、+0x20=0`（= r352/r353）；`*(param_1)` 处 `+0x18=NULL、+0x20=<heap ptr>`（= r361 dump）。直接调用 `SyncPrimRef(*b10)` → 0。
-- 定性：测量方法 bug，非输入/状态/布局问题。无需 fabricated 参数调整。r363 唯一前置：修正 GDB 脚本从 `$rsi` 取 param_2。零硬件触碰，freeze 完好。见 `reports/r362-desc-mismatch-root-cause.md` + 双证据（0600）。
 ---

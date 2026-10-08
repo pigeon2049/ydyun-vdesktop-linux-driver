@@ -1,0 +1,54 @@
+r364 现状盘点表（只读核对，2026-10-08，离线）
+==================================================
+
+A. submit_tqx_work 模板（kernel/mt_marker_fence.h:204-271）
+------------------------------------------------------------
+签名      : submit_tqx_work(struct mt_marker_store *s, struct mt_tqx_work *work, struct dma_fence **out)
+输入要求  : work->job.state == MT_JOB_HELD; context->route.type == 1; route.dm == 1
+校验门    : profile.family==2 && transfer_version==1; vm sealed+uploaded;
+            buffers 归属一致 (s->buffers == c->process->store->buffers);
+            work->job.vm == vm; wire_id 不溢出; count[dm] < 63
+提交      : mt_fw_queue_try_submit(s->queue, dm=1, ring=0, packet)
+            packet+0x48 打 wire_id 补丁后提交
+回滚      : 队列错误在硬件写之前 -> job 回移, packet+0x48 清零,
+            pool_slices 归还, m->context=NULL, fence put
+fence     : mt_marker_complete() 在 event words[2]==wire_id 时 dma_fence_signal
+
+B. Firmware queue（kernel/mt_fw_queue_io.h, mt_fw_queue.h）
+------------------------------------------------------------
+DM 总数   : 6 (MT_FW_DM_COUNT), 每 DM 0x2e30 字节
+命令尺寸  : 0x50 字节 (MT_FW_COMMAND_BYTES)
+kick      : writel(dm, registers + 0xb00)
+DM 分工   : dm=0 META/system（idle 检查排除）; dm=1 TQX/transfer（实测）;
+            dm=2 3D Universal（mt_live_3d.c 实测）; dm=3/4/5 当前无使用者
+命令包    : +0x08 flags; +0x0c opcode; +0x18 root_pa; +0x20 process_id;
+            +0x28 command_va; +0x30 bytes; +0x48 fence/wire_id; +0x4c process_pid
+opcode    : 0x64 marker/default; 0x65 preempt; 0x66 RGXVertex/UniversalQueue;
+            0x67 Transfer; 0x68 RGXCompute; 0x69 CopyEngine
+            （kernel/mt_work_command.h mt_work_opcode()）
+
+C. 0x82:0xC IN（r363 活体实测，268B / 45 字段）
+------------------------------------------------------------
+开关      : kick_ta=1, kick_pr=1, kick_3d=0, abort=0
+尺寸      : ta_cmd_size=360, cmd_3d_size=544, cmd_3dpr_size=544
+update    : client_ta_upd_count=1（余 0）, pr_fence_value=1
+指针      : p_ta_cmd 非零（堆）; p_client_ta_upd_* 非零（栈数组）;
+            p_ta_cmd == p_3d_cmd（同缓冲）; h_pr_fence_ufo_block=0x102d
+绘制      : num_draw_calls=0, num_indices=0, num_mrts=0
+wire 结构 : kernel/mt_pvr_wire.h struct mt_pvr_musakickgfx2_in（r356 入库）
+
+D. r208 per-file VM/BO 边界（实测）
+------------------------------------------------------------
+mt_bo_system_borrow() : PVR 页借入设备 BO store 的可用入口（kernel/mt_bo_vram.h）
+mt_gpu_vm_bind_many()  : 要求 BO 与页表 BO 的 store/ops 指针完全相同
+现状缺口  : PVR per-file VM 页表 BO/PMR facade 为 store=file 的 CPU-only 规划域，
+            不可进入设备 session；translator 的 VM/context 为全局共享对象，
+            与 PVR per-file reservation/PMR 生命周期无连接
+真实路径需求: per-file + 设备 store + 已上传 GPU VM；每 render context 的
+            execution process/context；PMR borrowed BO 按 per-file VA 绑定；
+            CCB 资源闭包；嵌套 sync/PMR 数组校验
+
+E. 0x36ec0 IN 构造（r361 静态分析，72 指令）
+------------------------------------------------------------
+in_len = 0x10c (268)；从输入结构多偏移（0x58/0x60/0x68/0x78/0x80/0x98/0xd0/0xe0）
+经 XMM 打包写入 268B IN 缓冲。意义：IN 字段源于 TA kick 上下文结构体。
