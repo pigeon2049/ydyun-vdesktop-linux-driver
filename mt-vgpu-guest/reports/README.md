@@ -272,6 +272,7 @@
 | r318 | copy abort 根因 RE（离线）：断言式自杀（ud2+abort），setup 深水区；bridge 全 0 无罪；候选按验证成本排序；无代码改动 |
 | r319 | tq-perf 三连发矩阵（批准执行）：sysmem/小几何/对照全同形 abort（与配置无关）；反汇编定位 abort 桩；L3 双绿，窗口零新增 WARN |
 | r320 | abort 桩活体机制 + 栈取证（批准执行）：batch 符号教训 + abort 点寄存器已破坏；栈上 destination-magic 与维度对；L3 双绿，窗口零新增 WARN |
+| r321 | abort 经尾跳进入桩（离线 RE）：全二进制 call/jmp 扫描定锤；r320 未命中解释齐；r322 断调用点设计；无代码改动 |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |
