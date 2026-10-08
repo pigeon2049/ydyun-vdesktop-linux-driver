@@ -290,6 +290,7 @@
 | r350 | T2-c：SyncPrimRef要非空描述子(8∈{1,2})，传入NULL；真handle已落b10，未闭合（离线fabricated） |
 | r357 | UMD真实建连链路recon：GetSrvHandle读连接首qword返回有效指针（语料+SHA对版，澄清0x3c1c0/0x13c1c0为同一函数）；fabricated ctypes直调7/7走通（/dev/null fd→ENOTTY→0x26无崩溃）；设备打开路径盘点（render minor扫描+driver名pvr/mtgpu匹配）；r358活体前置与验收判据已写出（离线） |
 | r358 | UMD真实建连打通（真机活体）：PVRSRVConnectionCreateDevice经renderD128建连返回0，GetSrvHandle返回指针0x252211a0，单次PVRSRVBridgeCall(1,0)返回0且OUT逐字节命中桥侧connect预期（bvnc=0x0023000406600017/error=0）；dmesg仅+1行arena close、无WARN/BUG/Oops；refs不变；freeze未碰（未跑make probe，其WITH_BRIDGE会rmmod，违反红线） |
+| r359 | 0x82:0xC 活体 IN 观察停轮（真机，安全协议 §2）：在载桥 build-id `2a2a…261f` ≠ 在盘 r356 构建 `0d6b…55da`，在载桥 ~11:26 加载早于 r356 提交（14:37），不含 `pvr_cmd_musakickgfx2_observe`；未发包、未重载桥；freeze 未碰，dmesg 无新增；门禁 400+299 全绿 |
 | r349 | T2-b：3=INVALID_PARAMS出自SyncPrimRef同步校验，需真sync handle；T2-c回填tuple（离线fabricated） |
 | r348 | T2-a：fabricated RGXKickTA跑通，PrepareTA=0，3来自SubmitTA；0x14未发出（离线fabricated） |
 | r347 | T1关闭：EnQueue纯入队不发桥命令；0x82静态普查18个、无0xC；T2锁定打0x14（离线） |
