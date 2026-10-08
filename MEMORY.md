@@ -12,11 +12,11 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r337：零值胎里带来，批准执行）
+## 本轮进展（r338：空壳定锤，批准执行）
 
-- GDB 活体单发（`=2` 窗口）：四入口快照指针关联——ctx 链在 BlitInit 入口已全链接且 `cnt=0`；生产者在上游。默认回 + L3 双绿，零新增 WARN。**Freeze 已恢复。**
-- 落库 `scripts/stage-snapshot-window.sh`；LOOKUPEOT 标量行备忘。
-- 遗留：`TQJobSubmit` 入口快照定锤（表从未被建则转立项），另行开轮。
+- GDB 活体单发（`=2` 窗口）：JobSubmit 入口链尚空 → BlitInit 入口空壳建成（cnt 恒零）——copy 表从未被建，转立项。默认回 + L3 双绿，零新增 WARN。**Freeze 已恢复。**
+- 落库 `scripts/jobsubmit-snapshot-window.sh`；r333–r338 链条一句话记报告。
+- 遗留：copy/TA 转 RE 立项或接受不可达，不再烧单窗口。
 ---
 
 ## 本轮进展（r331：头文件拼写收尾，离线）

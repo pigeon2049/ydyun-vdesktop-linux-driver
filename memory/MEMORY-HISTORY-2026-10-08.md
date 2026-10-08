@@ -334,3 +334,10 @@
 - 落库 `scripts/dispatch-watch-window.sh`；堆地址跨轮一致备忘。
 - 遗留：调用前填充责任方（写入史追踪或 fill 对照），另行开轮。
 ---
+
+## 本轮进展（r337：零值胎里带来，批准执行）
+
+- GDB 活体单发（`=2` 窗口）：四入口快照指针关联——ctx 链在 BlitInit 入口已全链接且 `cnt=0`；生产者在上游。默认回 + L3 双绿，零新增 WARN。**Freeze 已恢复。**
+- 落库 `scripts/stage-snapshot-window.sh`；LOOKUPEOT 标量行备忘。
+- 遗留：`TQJobSubmit` 入口快照定锤（表从未被建则转立项），另行开轮。
+---

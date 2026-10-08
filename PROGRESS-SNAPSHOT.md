@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r338 空壳定锤（批准执行）**：`=2` 窗口 GDB 六点快照——JobSubmit 入口链尚空，空壳建于序言；copy 表从未被建，转立项。默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r338-empty-shell-verdict.md` + 双证据。
+
 - **r337 零值胎里带来（批准执行）**：`=2` 窗口 GDB 四入口快照——ctx 链在 BlitInit 入口已全链接且 `cnt=0`，生产者在上游；默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r337-zero-at-birth.md` + 双证据。
 
 - **r336 同路径无人写（批准执行）**：`=2` 窗口 GDB 单发——`+0x3320` 入口锚定 + 计数槽写观察零命中 + 分发 `0/1/0`；默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r336-nowrite-inpath.md` + 双证据。
