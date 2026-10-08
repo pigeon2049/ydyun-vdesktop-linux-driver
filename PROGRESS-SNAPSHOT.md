@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r332 重建后 freeze（批准执行）**：冷启动后新 trial `20261008T025100Z-c85ff8c5`（Guest/FW 2/2 pinned，固件 sha 不变，probe ref 1）→ 默认桥（`card1`/`renderD128`，ref 0）→ L3 全绿；cold 因设备已干净被拒（非缺口）；dmesg 干净。在载桥为 r331 新鲜构建。**Freeze 生效。**见 `reports/r332-session-rebuild.md`。
+
 - **r331 拼写收尾（离线，零硬件触碰）**：r332 草稿闭合——双 `#else` 修复 + 9 处裸 `pr_info` 转 `mt_gpu_vm_log`（三头复用）；门禁 8 项（含反向）；`check-offline` 394+299 全绿，`make kernel` W=1 零警告，`make check` 全绿（HEAD 上原红）；bootstrap 页表字节零变化（validation json 零 diff）。开工时会话已随冷启动消失（仅 `card0`）。见 `reports/r331-userspace-spellings.md`。
 
 - **r330 桌面全清（用户指令）**：exe 精确匹配清桌面树 10 进程（serve 保留，会话存续）；renderD128 零持有，bridge ref 0——**现为天然重载窗口**。见 `reports/r330-desktop-cleared.md`。
