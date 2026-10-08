@@ -953,3 +953,11 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 - **r375** (2026-10-08): R5 基础设施实现（per-file TA VM 上下文 + 映射流程），门禁全绿；活体因 `bind_many` oops 中断，bind 已禁用，系统待重启。V1/V2 未完成。
 - **r376** (2026-10-08): R5 VM 初始化重新设计——bridge 侧 `mt_bridge_ta_vm_create()` 用合成 BO + 正式 `mt_gpu_vm_init()`（遵循 3D 模式），删除 r375 手动拼装（oops 根因）；probe 因 trial pinned 未重载（无需 probe API）；门禁 428+299 全绿，W=1 零警告；bridge 已重载，V1/V2 活体待 harness 修复。
+
+### r377 (2026-10-08): Harness INIT 修复，V1/V2 活体验证通过
+- **Harness 修复**：r376 的 INIT 传参错误（init_module 非 1/2 → EINVAL）；按 r373 既证格式（u32 module=2）重写，一次通过。
+- **V1**：`mt_bridge_ta_vm_create()` 成功（proper init，无 oops）。
+- **V2**：`mt_gpu_vm_bind_many()` 空绑定返回 `-EINVAL`（预期），无 oops。r375 oops 根因消除。
+- **回归**：两次 TA kick 的 OUT.update_fence 与 dmesg wire 精确匹配（1/1、2/2）。
+- 门禁 428+299 全绿；本地提交待执行。
+

@@ -302,3 +302,4 @@
 | r374 | R5 per-file GPU VM/BO backend design (offline): TA cmd buffer via mt_bo_system_borrow() into per-file device-store VM; 8-step map flow; MT_TA_VM_READY gate mirrors TQX; kernel/mt_ta_vm.h + 6 layout tests; V1-V4 await live; gate 425+299 green |
 | r375 | R5 TA VM infra implemented, live oops (bind disabled) (offline): TA cmd buffer via mt_bo_system_borrow() into per-file device-store VM; 8-step map flow; MT_TA_VM_READY gate mirrors TQX; kernel/mt_ta_vm.h + 6 layout tests; V1-V4 await live; gate 425+299 green |
 | r376 | Bridge-side proper VM init (no probe reload): deleted r375 manual assembly (oops cause); synthetic page-table BO + mt_gpu_vm_init() per proven 3D pattern; probe pinned, no reload needed; gate 428+299 green, W=1 zero warnings; V1/V2 live pending (harness issue) |
+| r377 | Harness INIT 修复，V1/V2 活体验证通过（无 oops） | r377-harness-fixed-v1v2-verified.md |

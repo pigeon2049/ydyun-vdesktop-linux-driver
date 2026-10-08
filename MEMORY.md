@@ -25,6 +25,11 @@
 
 
 
+## r377 (2026-10-08): Harness INIT 修复，V1/V2 活体验证通过
+- r376 的 harness 因 INIT 传参错误（init_module 非 1/2）致 EINVAL；按 r373 既证格式（u32 module=2）重写后通过。
+- 两次真实 TA kick：V1（mt_bridge_ta_vm_create 成功）、V2（bind_many 返回 -EINVAL，无 oops），OUT.update_fence 与 dmesg wire 精确匹配（1/1、2/2）。
+- r375 的 oops 根因已消除（proper mt_gpu_vm_init + 合成 BO）。门禁 428+299 全绿。本地提交待执行。
+
 ## 本轮进展（r376：R5 VM 初始化重新设计，bridge 侧 proper init）
 
 - **教训**：r375 手动拼装 `mt_gpu_vm` 致 `mt_gpu_vm_bind_many` oops；`mt_gpu_vm_init()` 要求 `page_pa==NULL`，borrow 的系统内存不满足。
