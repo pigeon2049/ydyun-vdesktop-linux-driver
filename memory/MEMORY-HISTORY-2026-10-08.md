@@ -354,3 +354,10 @@
 - 纯 objdump/nm：ctx=`*(job+0x10)` 调用前已存在；序言零写 `+0x58`、无分配；建表责任在调用方。链条终版记报告。
 - 遗留：活体一发（JobSubmit 入口 `bt` + job 指针倾印），另行开轮。会话未碰，freeze 继续。
 ---
+
+## 本轮进展（r340：bt 静默，批准执行）
+
+- GDB 活体单发（`=2` 窗口）：JobSubmit 入口 `bt` 同样零输出——文件脚本下 `bt` 通用不可用，改走 `x/gx $rsp`。app 进 transfer API，TQJobSubmit 内部经指针到达。默认回 + L3 双绿，零新增 WARN。**Freeze 已恢复。**
+- 落库 `scripts/jobsubmit-bt-window.sh`。
+- 遗留：返回地址一发点名调用方，另行开轮。
+---
