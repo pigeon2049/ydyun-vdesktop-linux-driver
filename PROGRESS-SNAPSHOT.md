@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r324 未遂（批准执行）**：finish 版脚本空跑（pending 断点未命中）；r323“全返回”收敛为“全进入”；返值改两步走（裸断停机 + 第二会话 finish）。拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r324-lookupret-miss.md` + `.txt`。
+
 - **r323 setup 全过（批准执行）**：三元组全进入全返回（含参数），abort 在其下游、submit 未达；dprintf 文件脚本法定稿；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r323-setup-trace.md` + 双 `.txt`。
 
 - **r322 桩读参（批准执行）**：abort 调用点三命中；`rdi` 系堆 job 结构（指针×5 + 计数 + cookie）；abort 在 `RGXTDMSubmit` 内自杀（尾跳）；拆桥 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r322-abort-stub-params.md` + 双 `.txt`。

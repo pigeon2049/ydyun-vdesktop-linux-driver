@@ -274,7 +274,8 @@
 | r320 | abort 桩活体机制 + 栈取证（批准执行）：batch 符号教训 + abort 点寄存器已破坏；栈上 destination-magic 与维度对；L3 双绿，窗口零新增 WARN |
 | r321 | abort 经尾跳进入桩（离线 RE）：全二进制 call/jmp 扫描定锤；r320 未命中解释齐；r322 断调用点设计；无代码改动 |
 | r322 | abort 桩命中读参 + 结构转储（批准执行）：rdi 系堆 job 结构（非字符串）；abort 在 RGXTDMSubmit 内；L3 双绿，窗口零新增 WARN |
-| r323 | setup 三元组全返回 + abort 在其下游（批准执行）：BlitInit/CheckFences/LookUpEOT 全过，RGXTDMSubmit 未达；dprintf 文件脚本法定稿；窗口零新增 WARN |
+| r323 | setup 三元组全进入（批准执行）：BlitInit/CheckFences/LookUpEOT 入口全命中（dprintf 文件脚本法定稿）；“全返回”待返值证据（r324 收敛）；L3 双绿，窗口零新增 WARN |
+| r324 | LookUpEOT 返值抓取未遂（批准执行）：finish 版脚本空跑（pending 未命中）；r323“全返回”收敛为“全进入”；两步走方案已定；L3 双绿 |
 | r256 | TQX 真发射路径盘点（离线）：bring-up 补 slices 即发射就绪；锁无障碍；三步立项 |
 | r254 | 极小预算失配腿：wait 100ms 下 0.118s 后 37；预算维度全覆盖（5s/1s/100ms） |
 | r255 | 短预算 10 轮 soak：10/10 通过，0.12ms/轮；预算×复用组合成立 |

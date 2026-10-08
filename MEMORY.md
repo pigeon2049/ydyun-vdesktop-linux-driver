@@ -12,7 +12,14 @@
 > 2026-10-08 起归档于 [`MEMORY-HISTORY-2026-10-08.md`](memory/MEMORY-HISTORY-2026-10-08.md)。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
-## 本轮进展（r323：setup 三元组全过，批准执行）
+## 本轮进展（r324：返值抓取未遂，批准执行）
+
+- finish 版脚本空跑（pending 未命中，9 行）；r323 收敛为“全进入”；两步走方案已定。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，零新增 WARN。无代码改动。
+- **Freeze 已恢复。**
+- 遗留：r325 两步走读返值。已推送。
+---
+
+## 本轮进展（r323：setup 三元组全进入（r324 已收敛“全返回”待证），批准执行）
 
 - BlitInit/CheckFences/LookUpEOT 全进入全返回（含参数）；abort 在下游，RGXTDMSubmit 未达；dprintf 文件脚本法定稿。拆桥 + 默认 + L3 双绿 + 拉回；refs 1/1，窗口零新增 WARN。无代码改动。
 - **Freeze 已恢复。**
