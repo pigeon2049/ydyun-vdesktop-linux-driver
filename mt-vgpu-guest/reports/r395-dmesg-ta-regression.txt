@@ -1,0 +1,8 @@
+[ 5533.452777] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x1000 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=0 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
+[ 5533.453037] mt_pvr_bridge: musakickgfx2: submitted wire=2
+[ 5533.453051] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x1001 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=0 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
+[ 5533.453333] mt_pvr_bridge: musakickgfx2: submitted wire=3
+[ 8468.583765] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=0 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
+[ 8468.584083] mt_pvr_bridge: musakickgfx2: submitted wire=4
+[ 8481.107287] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=0 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
+[ 8481.107603] mt_pvr_bridge: musakickgfx2: submitted wire=5

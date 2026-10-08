@@ -840,3 +840,11 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 门禁：check-offline 全绿（纯调研无代码改动）。
 
 报告 reports/r392-ccb-no-server-state-needed.md，证据 reports/r392-evidence.txt。
+
+## r393 (2026-10-08): R6-6 调研结论——server 侧 TDM context 不需要真实化（离线）
+
+结论：0x89:0x8（RGXTDMCreateTransferContext2）空 token 已足够，R6-6 关闭为 wont-do by design。TDM=Transfer Data Manager（2D/blit 引擎，KMD 头 common_musaxfer_bridge.h）。r150 活体证：真实 UMD 的 TDM 全生命周期（0x89:0x8 create → 0x89:0xa submit → 0x89:0x9 destroy）全 ret=0，UMD 正常推进；r174 活体：0x89:0xa accept-and-log 从真实 UMD 捕获到非零 CCB 字节。submit 仅做存在性校验（have_ctx），不读 context 状态；唯一真实的 TDM 资源是 shared-memory PMR（0x89:0x5，CLI+USC 独立，已实现）。与 R6 独立，不阻塞真实 UMD。若未来实现真实 TDM 执行可重开。
+
+门禁：check-offline 全绿（纯调研无代码改动）。
+
+报告 reports/r393-tdm-no-server-state-needed.md，证据 reports/r393-evidence.txt。
