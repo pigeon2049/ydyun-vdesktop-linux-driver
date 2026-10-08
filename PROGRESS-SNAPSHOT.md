@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r339 ctx 来自调用方（离线）**：`*(job+0x10)` 调用前已存在，序言零写 `+0x58`；建表责任在调用方，链条终版。会话未碰。见 `reports/r339-ctx-from-caller.md`。
+
 - **r338 空壳定锤（批准执行）**：`=2` 窗口 GDB 六点快照——JobSubmit 入口链尚空，空壳建于序言；copy 表从未被建，转立项。默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r338-empty-shell-verdict.md` + 双证据。
 
 - **r337 零值胎里带来（批准执行）**：`=2` 窗口 GDB 四入口快照——ctx 链在 BlitInit 入口已全链接且 `cnt=0`，生产者在上游；默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r337-zero-at-birth.md` + 双证据。
