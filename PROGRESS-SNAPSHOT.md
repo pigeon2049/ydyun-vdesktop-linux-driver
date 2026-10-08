@@ -489,6 +489,8 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r365 DM3 接受 opcode 0x66 marker（真机活体）**：单发空包（DM=3，opcode 0x66）被 firmware 即时消费，回 wire_id 匹配事件（words[1]=0x100，非 FAULT）；对照 opcode 0x64 得标准 COMPLETE（words[1]=0），证明 firmware 区分 opcode；V1/V2 通过，无需 DM4 回退。探针未入库（一次性，build/traces/r365/）。两次 insmod/rmmod 干净，refs 1/0 不变，dmesg 无新增 WARN。见 `reports/r365-ta-marker-dm3-opcode66-accepted.md` + 三证据（0600）。
+
 - **r364 TA firmware 提交通道设计（R4，离线，零硬件触碰）**：`mt_marker_ops` 新增独立 op `submit_ta_work`（与 `submit_tqx_work` 并列）；TA 分配 DM3（推断）、firmware 命令 opcode 候选 `0x66`（推断）；`0x82:0xC` IN 解码为 `struct mt_ta_submit_params`（104B，`kernel/mt_ta_submit.h`，静态断言钉死）；V1–V6 待活体验证清单已列（DM/opcode/`kick_pr`/TA 命令语义/per-file VM/完成事件）。门禁新增 `tests/test_ta_submit_layout.py`（反向验证通过），`check-offline` 402+299 全绿，`make kernel` W=1 零警告。会话未碰，freeze 继续。见 `reports/r364-ta-submit-channel-design.md` + 盘点表证据（0600）。
 
 - **r363 0x82:0xC 活体 IN 观察成功（真机活体）**：r362 修正（`$rsi` 捕获）后 TA 路径一次打通，`SyncPrimRef` → 0，`0x82:0xC`（268B IN）到达桥侧 observer 并解码 （`kick_ta=1/kick_pr=1/kick_3d=0`，`ta_cmd_size=360`，`client_ta_upd_count=1`），返 `-ENOTTY` 未执行；未提交 GPU 工作。新发现：GDB 直 `open()` 的 fd 须补 `ioctl(0x40046445)`（INIT）否则 dispatch 卡 `-ENOTCONN`。dmesg 无新增 WARN，refs 不变，freeze 完好。见 `reports/r363-82c-live-in-observed.md` + 三证据（0600）。

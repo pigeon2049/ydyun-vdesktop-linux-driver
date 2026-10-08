@@ -1,0 +1,27 @@
+r365 live probe runs (2026-10-08, remote yuyun)
+=============================================
+Module: mt_live_ta_marker.ko (build/traces/r365/, W=1 zero warnings)
+Packet: 0x50 bytes, +0x0c=opcode, +0x48=wire_id 0x65036501, +0x4c=pid, rest zero
+Method: raw mt_fw_queue_try_submit(s->queue, dm, 0, packet); marker store untouched;
+        events peeked (never acked); 2s bounded poll; module rmmod'd immediately after.
+
+--- Run 1: target_dm=3 opcode=0x66 (V1/V2 primary) ---
+insmod: OK
+sysfs params: result=-71 wire_used=1694721281 consumed=Y
+              ev_w0=0 ev_w1=256 ev_w2=1694721281 ev_w3=0 ev_w4=0 ev_w5=0
+dmesg: [23911.209261] mt_live_ta_marker: dm=3 opcode=0x66 wire=0x65036501 result=-71 consumed=1 ev=[00000000 00000100 65036501 00000000 00000000 00000000]
+verdict: firmware consumed the command and emitted a wire_id-matched event
+         with kind 0x100 (not FAULT/0x101, not timeout, not ignored)
+
+--- Run 2: target_dm=3 opcode=100 (0x64, control) ---
+insmod: OK
+sysfs params: result=0 consumed=Y ev_w0=0 ev_w1=0 ev_w2=1694721281
+dmesg: [24003.993291] mt_live_ta_marker: dm=3 opcode=0x64 wire=0x65036501 result=0 consumed=1 ev=[00000000 00000000 65036501 00000000 00000000 00000000]
+verdict: standard COMPLETE (words[1]=0); proves firmware dispatches on opcode
+         (0x100 for 0x66 vs 0 for 0x64)
+
+--- Post-run ---
+rmmod: clean both times; lsmod shows no mt_live_* remaining
+refs: probe=1 bridge=0 (unchanged)
+dmesg after last probe line: 0 lines matching warn|bug|oops|call trace
+DM=4 fallback: not needed (DM3 not rejected)

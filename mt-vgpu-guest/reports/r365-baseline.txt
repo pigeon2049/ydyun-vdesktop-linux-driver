@@ -1,0 +1,12 @@
+r365 baseline snapshot (2026-10-08, pre-probe, remote yuyun)
+=====================================================
+git HEAD: 8051ace "feat(mt-vgpu-guest): TA firmware submission channel design (R4, r364)"
+git status: clean
+mt_guest_probe refcnt: 1
+mt_pvr_bridge refcnt: 0
+loaded mt_pvr_bridge build-id: 0d6bb8d74929eec7c0bc1f88ec0b4dae7bd455da (r356, has musakickgfx2 observer)
+loaded mt_guest_probe build-id: 7245f564cb8c70aa1d3237eafd582ac2 (matches on-disk kernel/mt_guest_probe.ko)
+lsmod | grep mt_live: none
+/dev/dri: card0 card1 renderD128 by-path
+dmesg lines: 1281 (tail = prior rounds' residue: r363 observer log, arena close lines; no new anomalies)
+UMD .so: not involved in this round (kernel marker layer only)
