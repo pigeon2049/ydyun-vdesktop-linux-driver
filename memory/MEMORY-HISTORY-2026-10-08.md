@@ -413,3 +413,10 @@
 - `EnQueue` 纯入队不发桥命令；0x82 静态普查 18 个、无 `0xC`；T2 锁定 `0x14`。两次 `/tmp` 违规（已删）。零硬件触碰，freeze 继续。
 - 遗留：T2 fabricated TA producer（r210 配方移植）。
 ---
+
+## 本轮进展（r348：T2-a，离线 fabricated）
+
+- 新脚本可复现 fabricated 双映射试探：`RGXKickTA -> 3`，`PrepareTA=0`，3 来自 `SubmitTA`；`0x82:0x14` 未发出。整形三跳收敛。
+- 落库 `scripts/ta-kick-attempt1.sh`；r194“返回3”平反（系 SubmitTA 非守卫）。
+- 遗留：T2-b SubmitTA 的 3 归因（`0x9c250`？）。
+---

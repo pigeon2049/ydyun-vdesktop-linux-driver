@@ -281,6 +281,7 @@
 | r327 | CheckFences 反汇编切入（批准执行）：真入口对齐解码 type/count 开关；dprintf 配方首发转义漏改；L3 双绿，窗口零新增 WARN |
 | r328 | CheckFences 字段值 + 返回值被忽略（批准执行）：type=0/count=1/flags=0/a8=0 两轮一致；r8 系出参；L3 双绿，窗口零新增 WARN |
 | r329 | 桌面 GPU 禁用与菜单持久化（用户指令）：--disable-gpu 已写入菜单覆盖层并验证生效，但不释放 renderD128（两次实锤）；GDB 函数注入致 UI 重启事故备忘 |
+| r350 | T2-c：SyncPrimRef要非空描述子(8∈{1,2})，传入NULL；真handle已落b10，未闭合（离线fabricated） |
 | r349 | T2-b：3=INVALID_PARAMS出自SyncPrimRef同步校验，需真sync handle；T2-c回填tuple（离线fabricated） |
 | r348 | T2-a：fabricated RGXKickTA跑通，PrepareTA=0，3来自SubmitTA；0x14未发出（离线fabricated） |
 | r347 | T1关闭：EnQueue纯入队不发桥命令；0x82静态普查18个、无0xC；T2锁定打0x14（离线） |
