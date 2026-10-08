@@ -4,6 +4,23 @@
 
 #include "mt_mmu.h"
 
+/* Allocation/logging through header-local macros (r332): the kernel
+ * spellings (kvzalloc/GFP_KERNEL/pr_info) have no userspace equivalent
+ * in harness TUs, and TU-provided spellings differ per file, so this
+ * header abstracts its three uses (mirrors the mt_gpu_vm.h convention).
+ */
+#ifndef __KERNEL__
+#include <stdio.h>
+#include <stdlib.h>
+#define mt_mmu_bootstrap_zalloc(n) calloc(1, (n))
+#define mt_mmu_bootstrap_free(p) free(p)
+#define mt_mmu_bootstrap_log(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define mt_mmu_bootstrap_zalloc(n) kvzalloc((n), GFP_KERNEL)
+#define mt_mmu_bootstrap_free(p) kvfree(p)
+#define mt_mmu_bootstrap_log(fmt, ...) pr_info(fmt, ##__VA_ARGS__)
+#endif
+
 /* CPU-side construction for disjoint VA ranges with contiguous or explicit
  * page-list backing. Not a live mapper or a GPU TLB invalidation interface.
  * Allocation order matches 140019074/1400197b4: root, then PD/PT as first used.
@@ -84,8 +101,7 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 	 * fits a kernel frame (8KB > 2KB limit). kvzalloc matches the
 	 * old zeroed-array semantics.
 	 */
-	u32 *keys = kvzalloc(sizeof(*keys) * MT_BOOT_MAX_TABLE_PAGES,
-			     GFP_KERNEL);
+	u32 *keys = mt_mmu_bootstrap_zalloc(sizeof(*keys) * MT_BOOT_MAX_TABLE_PAGES);
 	u32 pages = 1, i, j, k, page, keys_to_add[2];
 	u64 va, end, total = 0, flags, value;
 	u32 pc_value;
@@ -157,7 +173,7 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 		for (j = 0; j < ranges[i].size / 4096; j++) {
 			u64 pa = list ? list[j] : ranges[i].pa + j * 4096ULL;
 			if (pa < table_pa + pages * 4096ULL && table_pa < pa + 4096) {
-				pr_info("mt_mmu: build_pages overlap i=%u j=%u pa=%#llx tpa=%#llx pages=%u\n",
+				mt_mmu_bootstrap_log("mt_mmu: build_pages overlap i=%u j=%u pa=%#llx tpa=%#llx pages=%u\n",
 					i, j, (unsigned long long)pa,
 					(unsigned long long)table_pa, pages);
 				ret = -EINVAL;
@@ -190,7 +206,7 @@ static inline int mt_mmu_build_pages(void *out, u32 capacity, u64 table_pa,
 	}
 	*used_pages = pages;
 out:
-	kvfree(keys);
+	mt_mmu_bootstrap_free(keys);
 	return ret;
 }
 

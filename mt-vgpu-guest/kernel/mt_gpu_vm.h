@@ -3,6 +3,7 @@
 #define MT_GUEST_GPU_VM_H
 #ifndef __KERNEL__
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
@@ -12,7 +13,9 @@
 #endif
 #define mt_gpu_vm_zalloc(n) calloc(1, (n))
 #define mt_gpu_vm_free(p) free(p)
+#define mt_gpu_vm_log(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
 #else
+#define mt_gpu_vm_log(fmt, ...) pr_info(fmt, ##__VA_ARGS__)
 #include <linux/bug.h>
 #include <linux/kernel.h>
 #include <linux/vmalloc.h>
@@ -185,7 +188,7 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 	u32 total, pages, i, j;
 	int ret;
 	if (!vm || !vm->tables || !bindings || !count) {
-		pr_info("mt_gpu_vm: bind_many fail args at %d\n", __LINE__);
+		mt_gpu_vm_log("mt_gpu_vm: bind_many fail args at %d\n", __LINE__);
 		return -EINVAL;
 	}
 	if (vm->sealed || vm->active_uses)
@@ -203,7 +206,7 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 		u64 va_end;
 		if (!bo || !bo->refs || bo == vm->tables || !b->bytes ||
 		    ((b->va | b->offset | b->bytes) & 4095) || (b->flags & ~0x1fU)) {
-			pr_info("mt_gpu_vm: bind_many fail valid at %d: idx=%u\n", __LINE__, i);
+			mt_gpu_vm_log("mt_gpu_vm: bind_many fail valid at %d: idx=%u\n", __LINE__, i);
 			return -EINVAL;
 		}
 		if (bo->store != vm->tables->store || bo->ops != vm->tables->ops)
@@ -216,7 +219,7 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 				bo->backing.gpu_pa + b->offset + j;
 			if (pa < vm->tables->backing.gpu_pa + vm->capacity &&
 			    vm->tables->backing.gpu_pa < pa + 4096) {
-				pr_info("mt_gpu_vm: bind_many fail overlap at %d: idx=%u pa=%#llx tpa=%#llx cap=%u\n",
+				mt_gpu_vm_log("mt_gpu_vm: bind_many fail overlap at %d: idx=%u pa=%#llx tpa=%#llx cap=%u\n",
 					__LINE__, i, (unsigned long long)pa,
 					(unsigned long long)vm->tables->backing.gpu_pa, vm->capacity);
 				return -EINVAL;
@@ -225,7 +228,7 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 		/* Same acceptance as the planner's own range preflight, so hoisting
 		 * these checks here cannot change which errno a caller observes. */
 		if (b->va >= (1ULL << MT_GPU_VA_BITS)) {
-			pr_info("mt_gpu_vm: bind_many fail varange at %d: idx=%u\n", __LINE__, i);
+			mt_gpu_vm_log("mt_gpu_vm: bind_many fail varange at %d: idx=%u\n", __LINE__, i);
 			return -EINVAL;
 		}
 		if (b->bytes > (1ULL << MT_GPU_VA_BITS) - b->va)
@@ -251,10 +254,10 @@ static inline int mt_gpu_vm_bind_many(struct mt_gpu_vm *vm,
 	/* plan() reads the full range array; the tail is the staged batch. */
 	ret = mt_gpu_vm_plan(vm, vm->bindings, total, &pages);
 	if (ret)
-		pr_info("mt_gpu_vm: bind_many plan failed: %d total=%u\n",
+		mt_gpu_vm_log("mt_gpu_vm: bind_many plan failed: %d total=%u\n",
 			ret, total);
 	if (ret)
-		pr_info("mt_gpu_vm: bind_many plan failed: %d (total=%u)\n",
+		mt_gpu_vm_log("mt_gpu_vm: bind_many plan failed: %d (total=%u)\n",
 			ret, total);
 	if (ret)
 		return ret;
