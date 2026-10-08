@@ -288,6 +288,7 @@
 | r352 | T2-e：b10描述子直接验证通过（SyncPrimRef返回0 vs NULL返回3）；r14+0x18链静态定位到PrepareTA写入（离线fabricated） |
 | r351 | T2-d：SubmitTA内描述子选中步骤定位：*(rbx+208*i+0x48)，i=*(rbx+0x24)；fabricated下i=0取NULL（离线fabricated） |
 | r350 | T2-c：SyncPrimRef要非空描述子(8∈{1,2})，传入NULL；真handle已落b10，未闭合（离线fabricated） |
+| r357 | UMD真实建连链路recon：GetSrvHandle读连接首qword返回有效指针（语料+SHA对版，澄清0x3c1c0/0x13c1c0为同一函数）；fabricated ctypes直调7/7走通（/dev/null fd→ENOTTY→0x26无崩溃）；设备打开路径盘点（render minor扫描+driver名pvr/mtgpu匹配）；r358活体前置与验收判据已写出（离线） |
 | r349 | T2-b：3=INVALID_PARAMS出自SyncPrimRef同步校验，需真sync handle；T2-c回填tuple（离线fabricated） |
 | r348 | T2-a：fabricated RGXKickTA跑通，PrepareTA=0，3来自SubmitTA；0x14未发出（离线fabricated） |
 | r347 | T1关闭：EnQueue纯入队不发桥命令；0x82静态普查18个、无0xC；T2锁定打0x14（离线） |
