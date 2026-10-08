@@ -309,3 +309,4 @@
 | r381 | 3D opcode 为 0x68 (RGXCompute, type 5→DM2)；0x66 在 DM2 仅对真实命令有效（mt_live_3d.c 实证），空 marker 被忽略（r380）；完成码预测为标准 0；Windows KMD 确认 RGXCompute | r381-3d-opcode-0x68-rgxcompute.md |
 | r382 | submit_3d_work 落地（第 6 op，0x68，门控关闭，离线）：mt_marker_ops 第 6 op，DM2/0x68，标准完成码 0；MT_3D_SUBMIT_GATE=0 默认关闭；0x82:0x14 dispatch 未切换；零硬件触碰；门禁 430+299 全绿，反向验证通过 | r382-submit-3d-work-offline.md |
 | r383 | probe dead code cleanup offline: removed mt_probe_ta_vm.h (29 lines) + 122 lines in mt_guest_probe.c; bridge comment updated; kernel W=1 zero warnings; zero HW touch; gate 430+299 green | r383-probe-dead-code-removed.md |
+| r384 | R6 DDK2 context statefulness 调研（离线）：0x82:0x12/0x88:0x5/0x89:0x8 皆为 handle token，无 firmware 状态；真实 context 需 11 BO+CSW+执行上下文（mt_live_3d.c 实证）；R5 per-file VM 非 per-context；marker 不阻塞、真实 UMD 渲染阻塞；缺口清单 R6-1~R6-6 | r384-ddk2-context-statefulness-gaps.md |

@@ -1,0 +1,92 @@
+r384 evidence: DDK2 context handlers are handle tokens (source excerpts, 2026-10-08)
+================================================================================
+
+[1] pvr_cmd_render2_create (0x82:0x12) — mints token, discards IN
+File: mt-vgpu-guest/kernel/recovery/mt_pvr_bridge.c:3229
+---
+static int pvr_cmd_render2_create(struct mt_pvr_file *file,
+				  struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_render2_create_in in;
+	struct mt_pvr_render2_create_out out = { 0 };
+	struct mt_pvr_object *obj;
+	int ret;
+
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	obj = pvr_object_new(file, MT_PVR_KIND_CONTEXT);
+	if (!obj)
+		return -ENOMEM;
+	out.handle = obj->handle;
+	(void)in;
+	return pvr_out(cmd, &out, sizeof(out));
+}
+---
+IN struct (mt_pvr_wire.h:301): { u64 priv_data; u32 priority; } = 12B
+OUT struct: { u64 handle; u32 error; } = 12B (r142 live-confirmed)
+
+[2] pvr_cmd_kicksyncctx2_create (0x88:0x5) — mints token, IN opaque
+File: mt-vgpu-guest/kernel/recovery/mt_pvr_bridge.c:2710
+---
+/* 0x88:0x5 BridgeRGXCreateKickSyncContext2 (DDK2 CCB create, r141/r143).
+ * 8-byte IN, 12-byte OUT {handle, error}. Same object model as legacy
+ * 0x88:0x0: mint a KIND_KICKSYNC object; the IN payload stays opaque.
+ */
+	obj = pvr_object_new(file, MT_PVR_KIND_KICKSYNC);
+	...
+	(void)in;
+---
+
+[3] pvr_cmd_tdm_context2_create (0x89:0x8) — mints token, stores 2 args
+File: mt-vgpu-guest/kernel/recovery/mt_pvr_bridge.c:3385
+---
+	obj = pvr_object_new(file, MT_PVR_KIND_TDM_CONTEXT);
+	if (!obj)
+		return -ENOMEM;
+	obj->arg0 = in.device_mem_context;
+	obj->arg1 = in.context_type;
+	out.transfer_context = obj->handle;
+---
+
+[4] TA kick ignores h_render_context (r367)
+File: mt-vgpu-guest/kernel/recovery/mt_pvr_bridge.c:3995 (pvr_cmd_musakickgfx2)
+- Line ~4018: only logs (unsigned long long)in.h_render_context in dmesg
+- No pvr_object_find() on the handle; no context state used
+
+[5] 3D kick observer only validates handle existence (r215)
+File: mt-vgpu-guest/kernel/recovery/mt_pvr_bridge.c:4170
+---
+	obj = pvr_object_find(file, in.render_context, MT_PVR_KIND_CONTEXT);
+---
+- Handle validated, but obj state never dereferenced for submission
+
+[6] R5 per-file VM mount point (NOT per-context)
+File: mt-vgpu-guest/kernel/recovery/mt_pvr_bridge.c:352
+---
+	struct mt_bridge_ta_vm *ta_vm_ctx;
+---
+- Member of struct mt_pvr_file (per-fd), created at :4035 on first TA kick,
+  destroyed at :902 on file close. No per-render-context VM exists.
+
+[7] Real 3D context reference implementation (mt_live_3d.c)
+File: mt-vgpu-guest/kernel/recovery/mt_live_3d.c
+- Line 3: "Allocates and maps 11 3D context BOs (86,300 bytes, 29 pages)"
+- Line 58: struct mt_bo context_bos[MT_GFX_CONTEXT_BO_COUNT]
+- Line 203-225: per-BO mt_bo_create + init-data write + address-space bind
+- Line 234: mt_gfx_context_build_csw() — 0xf8 bytes context-switch words
+- Line 296: mt_execution_context_create(&st->context, &st->process, 5, 0)
+            (node_type=5 → DM2, Universal Queue)
+- Line 342: submit_context() with the firmware context
+
+[8] GFX context BO spec (mt_gfx_context.h)
+- MT_GFX_CONTEXT_BO_COUNT 11, TOTAL_BO_BYTES 86300
+- Includes "TA state" (468B, BO#4), PDS/USC, VDM/DDM uniforms, raster state
+
+[9] 0x82:0xC wire HAS h_render_context (mt_pvr_wire.h:367)
+- struct mt_pvr_musakickgfx2_in.h_render_context at offset 32 (static_assert :887)
+- TA path also takes a render context; r367 ignores it.
+
+[10] Destroy path is bookkeeping-only
+- pvr_cmd_handle_release(): pvr_object_find → list_del → kfree
+- No BO/VA/firmware teardown (nothing was allocated)

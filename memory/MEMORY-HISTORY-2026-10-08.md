@@ -663,3 +663,16 @@
 - Trial 需冷重启恢复（warm reboot 不重置 firmware）。3D opcode 需从 Windows KMD 或完整 `submit_context` 路径研究，不宜在 trial 会话上试探。
 - 报告 `reports/r380-dm2-opcode66-ignored.md`，门禁全绿，本地提交（未 push）。
 
+## r381 (2026-10-08): 3D opcode 为 0x68 (RGXCompute)，0x66 在 DM2 仅对真实命令有效
+
+**结论**：3D (DM2) 的 firmware opcode 是 **0x68** (RGXCompute, type 5)。0x66 在 DM2 上仅对真实命令包有效（mt_live_3d.c 实证，r37–r41），空 marker 被忽略（r380）。
+
+**证据**：
+- mt_work_opcode(): type 5 → 0x68 (RGXCompute), DM 2
+- mt_live_3d.c: node_type=5 → DM2, req.type=3 → 0x66，真实命令成功
+- Windows KMD (mtkm64.sys): 含 RGXCompute 字符串
+- 完成码预测：标准 0（无 3D 特殊码定义）
+
+**建议**：0x82:0x14 实现用 0x68；必须构造完整命令包，不得用空 marker；首次活体验证等真实 UMD 调用。
+
+报告：mt-vgpu-guest/reports/r381-3d-opcode-0x68-rgxcompute.md

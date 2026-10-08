@@ -24,11 +24,31 @@
 > r380 轮按 §4 清理：r378 节已移入归档。
 > r382 轮按 §4 清理：r379 节已移入归档。
 > r383 轮按 §4 清理：r380 节已移入归档。
+> r384 轮按 §4 清理：r381 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
+
+## r384 (2026-10-08): R6 DDK2 context statefulness 缺口分析（离线，零硬件触碰）
+
+**R6 定义**（r355）：`0x82:0x12`/`0x88:0x5` 从 handle token 到 server 侧状态（firmware context、CCB 管理）。
+
+**现状**（实测源码）：三命令皆为 bookkeeping token，无 firmware 状态——
+- `0x82:0x12`：`pvr_cmd_render2_create` mint `MT_PVR_KIND_CONTEXT`，IN（`priv_data`/`priority`）被 `(void)in` 丢弃
+- `0x88:0x5`：`pvr_cmd_kicksyncctx2_create` mint `MT_PVR_KIND_KICKSYNC`，IN 8B opaque
+- `0x89:0x8/0x9`：mint `MT_PVR_KIND_TDM_CONTEXT` 仅存 2 arg；destroy 仅 kfree token
+
+**真实状态参照**（`mt_live_3d.c` 实证）：11 BO（86,300B，含 TA state）+ init data + GPU VA 绑定 + CSW（0xf8B）+ `mt_execution_context_create(node_type=5)`。
+
+**关键张力**：R5 VM 是 per-**FILE**（`mt_pvr_file.ta_vm_ctx`），非 per-**CONTEXT**；真实 UMD 单 fd 可多 context，需决策路线（A: context 对象挂载状态 / B: per-file 扩展）。
+
+**是否阻塞真实 UMD**：marker 级不阻塞（TA 忽略 handle，R5 够用）；真实 TA/3D 渲染**阻塞**（firmware 需 context BO+执行上下文）；多 context **阻塞**（状态串扰）。
+
+**缺口清单**：R6-1 对象模型扩展 → R6-2 create 真实化（复用 `mt_live_3d.c`）→ R6-3 destroy 真实化 → R6-4 kick 侧解析 → R6-5 CCB（`0x88:0x5`）→ R6-6 TDM 调研。
+
+报告 `reports/r384-ddk2-context-statefulness-gaps.md`，证据 `reports/r384-evidence.txt`。门禁全绿。
 
 ## r383 (2026-10-08): probe 侧 r376 死代码清理（离线，零警告）
 
@@ -57,17 +77,3 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 
 **诚实边界**：未活体验证；dispatch 未切换；VM 映射未实现；门控开启待 r381 TO-VALIDATE。
 见 reports/r382-submit-3d-work-offline.md。
-## r381 (2026-10-08): 3D opcode 为 0x68 (RGXCompute)，0x66 在 DM2 仅对真实命令有效
-
-**结论**：3D (DM2) 的 firmware opcode 是 **0x68** (RGXCompute, type 5)。0x66 在 DM2 上仅对真实命令包有效（mt_live_3d.c 实证，r37–r41），空 marker 被忽略（r380）。
-
-**证据**：
-- mt_work_opcode(): type 5 → 0x68 (RGXCompute), DM 2
-- mt_live_3d.c: node_type=5 → DM2, req.type=3 → 0x66，真实命令成功
-- Windows KMD (mtkm64.sys): 含 RGXCompute 字符串
-- 完成码预测：标准 0（无 3D 特殊码定义）
-
-**建议**：0x82:0x14 实现用 0x68；必须构造完整命令包，不得用空 marker；首次活体验证等真实 UMD 调用。
-
-报告：mt-vgpu-guest/reports/r381-3d-opcode-0x68-rgxcompute.md
-
