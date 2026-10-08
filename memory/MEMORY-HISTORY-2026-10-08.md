@@ -714,3 +714,11 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 **缺口清单**：R7-1（0xC 常量定义）→ R7-2（dispatch handler）→ R7-3（IN/OUT 结构入库）→ R7-4（FD 导入语义设计）。
 
 报告 `reports/r385-sync-prim-import-gaps.md`，证据 `reports/r385-evidence.txt`。门禁全绿。
+
+## r383 (2026-10-08): probe 侧 r376 死代码清理（离线，零警告）
+
+- 删除 kernel/mt_probe_ta_vm.h（29 行，git rm）+ mt_guest_probe.c 中 122 行（struct mt_probe_ta_vm、4 函数、4x EXPORT_SYMBOL_GPL）；bridge 过时注释更新。
+- grep 零引用（头文件无 include，函数无调用者）；nm 确认 ko 无残留符号；test_probe_ta_vm.py 保留作回归 guard。
+- make kernel W=1 零警告（r376 的 4 个 pre-existing 警告消除）；check-offline 430+299 全绿。
+- 未重载 probe/bridge，未重启；零硬件触碰。报告 reports/r383-probe-dead-code-removed.md。
+
