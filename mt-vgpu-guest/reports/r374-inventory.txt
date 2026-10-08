@@ -1,0 +1,34 @@
+r374 现状盘点表（R5 per-file GPU VM/BO 后端设计输入，2026-10-08）
+
+== 内存管理现状 ==
+1. mt_bo_system_borrow() @ kernel/mt_bo_vram.h:149 [MEASURED]
+   - 输入: mt_system_memory {cpu, page_pa[], bytes}
+   - 输出: 设备 BO store 中的 borrowed BO (borrowed=true)
+   - 约束: 持 s->lock; s->ops==&mt_bo_vram_ops; bytes 4K 对齐;
+           page_pa 4K 对齐且 < 2^MT_GPU_VA_BITS
+   - 生命周期: memory descriptor 不短于 borrowed BO
+
+2. vm->sealed / vm->uploaded @ kernel/mt_gpu_vm.h:48 [MEASURED]
+   - sealed: VM 不再接受新绑定; uploaded: 页表已发布给 firmware
+   - TQX 校验门 @ mt_marker_fence.h:246:
+     if (!s->work_ready || !vm->sealed || !vm->uploaded) return -EOPNOTSUPP;
+
+3. store=file facade 不可用 (r208) [MEASURED]
+   - pvr_gpu_plan_bo_ops 仅 free no-op; CPU-side planning domain
+   - R5 必须用真实设备 store + 真实页表 + 真实 VM
+
+4. submit_ta_work 现状 [MEASURED]
+   - mt_ta_submit_params 有 ta_cmd_va/ta_cmd_size (r363: 360B)
+   - mt_marker_submit_ta_work() 零引用 -> 当前空 marker, 无命令执行
+
+5. Per-file 模式 [MEASURED]
+   - TQX: c->process->vm (execution context -> process -> VM)
+   - TA 沿用: 每个 renderD128 fd 独立 GPU VA 空间
+
+== 设计输出 (本轮) ==
+- kernel/mt_ta_vm.h: struct mt_ta_vm_context, struct mt_ta_cmd_mapping,
+  MT_TA_CMD_VA_BASE=0x70000000, MT_TA_CMD_VA_SIZE=0x1000,
+  MT_TA_VM_READY() 宏, 静态断言
+- 映射流程 8 步 (pin -> borrow -> bind -> seal/upload -> 填包 -> 清理)
+- 校验门接入点: mt_marker_submit_ta_work() (照抄 TQX 模式)
+- 待活体 V1-V4: VA 接受性 / 页表正确性 / 双上下文隔离 / 关闭清理

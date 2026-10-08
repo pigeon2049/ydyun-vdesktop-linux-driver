@@ -569,3 +569,14 @@
 - **wire 6 根因**——生产事件路径（probe `mt_runtime_event` → 通用 `mt_marker_complete`）拒收 `0x100`；`mt_marker_complete_ta` 生产零调用（仅 r366 测试模块）；**无超时机制** → 永久悬挂。次生风险：`0x100` 事件可毒化 DM3 事件队列（drain 在 -EOPNOTSUPP 处 break 不推进 tail）。
 - **恢复方案**（待确认后执行）——`mt_drain_pending.ko`（已构建，vermagic 匹配）清 wire 6 → refcnt 归 0 → `rmmod` → **回退 kfree 删除**（恢复干净释放）→ 按 r360 流程重载 → L3 复绿。r369+ 需补齐生产 TA 完成路径，否则后续 TA marker 重演悬挂。
 - 见 `reports/r368-wire6-uaf-reassessment.md` + 双证据（0600）；门禁 `check-offline` 全绿。
+
+## 本轮进展（r369：wire 6 已清除、kfree 回退上机，bridge 恢复 freeze）
+
+- **恢复执行**——`mt_drain_pending.ko`（vermagic 匹配）insmod → `dm[3] count=1` → `drained=1 remaining_total=0`，bridge refcnt 1→0；确认后 rmmod drain 模块，无残留。
+- **rmmod 桥**——回滚件 `build/traces/r369-recovery/mt_pvr_bridge.rollback-4a78b331.ko`（sha256 `1cc3d47f…`）；`rmmod mt_pvr_bridge` "unloaded cleanly"；probe ref=1 全程未动。
+- **kfree 回退**——`pvr_cmd_musakickgfx2()` 成功路径恢复 `kfree(ctx)`，注释修正（r368 证伪 UAF：op 无 context ownership，释放为干净释放）；`make kernel` W=1 零警告；新桥（sha256 `4f5b08af…`）一次 insmod 成功，kallsyms 见导出，`/dev/dri/card1`+`renderD128` 正常。
+- **门禁**——`check-offline` 411 Python + 299 C 全绿；新测试 `tests/test_ta_kick_ctx_release.py`（3 tests，反向验证：删 kfree→红，恢复→绿）。
+- **健康**——dmesg 零 WARN/BUG/Oops；refs probe=1/bridge=0；freeze 恢复。见 `reports/r369-wire6-drained-kfree-restored.md` + 双证据（0600）。
+
+
+---

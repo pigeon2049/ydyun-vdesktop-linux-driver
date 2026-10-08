@@ -18,11 +18,21 @@
 > r370 轮按 §4 清理：r366 节已移入归档。
 > r372 轮按 §4 清理：r367 节已移入归档。
 > r373 轮按 §4 清理：r368 节已移入归档。
+> r374 轮按 §4 清理：r369 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
+
+## 本轮进展（r374：R5 per-file GPU VM/BO 后端设计定稿）
+
+- **设计**：TA 真实渲染 payload 的内存路径——per-file GPU VM（真实设备 store，非 `store=file` facade）+ `mt_bo_system_borrow()` 借入 TA 命令缓冲 + 预留 VA（`0x70000000`）绑定 + `sealed`/`uploaded` 校验门（`MT_TA_VM_READY`，照抄 TQX）。
+- **映射流程 8 步**：pin userspace 页 → 构造 `mt_system_memory` → borrow 进设备 store → bind 进 per-file VM → seal/upload 页表 → `gpu_va` 填包 → 完成时 unpin+释放 BO（VM 保留复用）。
+- **接口**：`kernel/mt_ta_vm.h`（`struct mt_ta_vm_context`、`struct mt_ta_cmd_mapping`、静态断言，无实现）；门禁测试 `tests/test_ta_vm_layout.py`（6 tests，反向验证通过）。
+- **状态标注**：borrow/sealed 门/facade 不可用均为 [MEASURED]；VA base 与流程为 [INFERRED]；V1–V4（VA 接受性/页表正确性/双上下文隔离/关闭清理）待活体。
+- **门禁**：`check-offline` 425 Python + 299 C 全绿；纯设计轮，未跑 `make kernel`（无实现代码）。
+- 报告：`reports/r374-perfile-gpu-vm-design.md`；证据 `r374-inventory.txt`（0600）。
 
 ## 本轮进展（r373：OUT.update_fence 回填验证通过）
 
@@ -46,13 +56,3 @@
 - **重载**：一次计划内重载成功（r360 流程），refs probe=1/bridge=0，dmesg 干净，freeze 完好。
 - **阻塞**：TA kick dispatch 到达，但 `submit_ta_work` 返 `-EHOSTDOWN`——`mt_runtime_can_submit`（probe 内）拒绝，`pvr_session_acquire` 成功故 trial.pinned/connected 为真，卡点在余下条件之一。**环境/trial 状态问题，非 r370 代码所致**。新代码未被活体执行。
 - 报告：`mt-vgpu-guest/reports/r370-ta-completion-path-live-blocked.md`；证据 `r370-dmesg.txt`（0600）。
-## 本轮进展（r369：wire 6 已清除、kfree 回退上机，bridge 恢复 freeze）
-
-- **恢复执行**——`mt_drain_pending.ko`（vermagic 匹配）insmod → `dm[3] count=1` → `drained=1 remaining_total=0`，bridge refcnt 1→0；确认后 rmmod drain 模块，无残留。
-- **rmmod 桥**——回滚件 `build/traces/r369-recovery/mt_pvr_bridge.rollback-4a78b331.ko`（sha256 `1cc3d47f…`）；`rmmod mt_pvr_bridge` "unloaded cleanly"；probe ref=1 全程未动。
-- **kfree 回退**——`pvr_cmd_musakickgfx2()` 成功路径恢复 `kfree(ctx)`，注释修正（r368 证伪 UAF：op 无 context ownership，释放为干净释放）；`make kernel` W=1 零警告；新桥（sha256 `4f5b08af…`）一次 insmod 成功，kallsyms 见导出，`/dev/dri/card1`+`renderD128` 正常。
-- **门禁**——`check-offline` 411 Python + 299 C 全绿；新测试 `tests/test_ta_kick_ctx_release.py`（3 tests，反向验证：删 kfree→红，恢复→绿）。
-- **健康**——dmesg 零 WARN/BUG/Oops；refs probe=1/bridge=0；freeze 恢复。见 `reports/r369-wire6-drained-kfree-restored.md` + 双证据（0600）。
-
-
----
