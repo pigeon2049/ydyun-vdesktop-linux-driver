@@ -536,3 +536,12 @@
 - 新发现：GDB 内直接 `open()` 的 fd 必须再做 `ioctl(0x40046445)`（INIT），否则 dispatch 卡在 `srv_handle==0` → `-ENOTCONN`，observer 永不触发。
 - freeze 完好（bridge ref 0、probe ref 1），dmesg 无新增 WARN/BUG/Oops；门禁 400+299 全绿。
 ---
+
+## 本轮进展（r364：TA firmware 提交通道设计）
+
+- R4 设计：`mt_marker_ops` 新增独立 op `submit_ta_work`（与 `submit_tqx_work` 并列，不碰 TQX 路径）；TA 分配 DM3（dm=1 TQX、dm=2 3D 已占用）；firmware 命令 opcode 候选 `0x66`；`0x82:0xC` IN 解码为 `struct mt_ta_submit_params`（104B）。
+- 接口头文件 `kernel/mt_ta_submit.h`（只含接口定义与静态断言，无实现逻辑）；DM/opcode 为推断、须活体验证（V1–V6 清单见报告）；`kick_pr` 语义未编造，标 TO-VALIDATE。
+- 门禁：新增 `tests/test_ta_submit_layout.py`（尺寸/偏移/DM 不碰撞），反向验证通过；`check-offline` 402+299 全绿，`make kernel` W=1 零警告。
+- 全程离线：未加载模块、未提交 GPU 工作、freeze 完好。见 `reports/r364-ta-submit-channel-design.md` + 盘点表证据（0600）。
+---
+
