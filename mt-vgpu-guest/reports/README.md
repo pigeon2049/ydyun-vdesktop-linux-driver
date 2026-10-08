@@ -284,6 +284,7 @@
 | r353 | T2-f：回填b10真描述子到槽0后SyncPrimRef端到端返回0（两次）；SubmitTA越过检查；下游0x929ce处新SIGSEGV（离线fabricated） |
 | r354 | T2-g：0x929ce处SIGSEGV定性为fabricated artifact——GetSrvHandle返回0x6000句柄值被当作指针解引用（ioctl fd获取）；修正pending断点落在RGXKickTA+17致base误算的教训（离线fabricated） |
 | r355 | 真实DDK2 render backend缺口盘点：0x82:0xC(MUSAKICKGFX2)是UMD TA路径内实际发出的调用、桥侧未实现；STATUS口径修正；R1-R7需求清单与r356+分轮分解（离线盘点） |
+| r356 | 0x82:0xC(MUSAKICKGFX2)wire结构入库(268/12)+dispatch接observer占位(明确非执行,返-ENOTTY)；门禁钉尺寸/偏移+反向验证；make kernel W=1零警告（离线） |
 | r352 | T2-e：b10描述子直接验证通过（SyncPrimRef返回0 vs NULL返回3）；r14+0x18链静态定位到PrepareTA写入（离线fabricated） |
 | r351 | T2-d：SubmitTA内描述子选中步骤定位：*(rbx+208*i+0x48)，i=*(rbx+0x24)；fabricated下i=0取NULL（离线fabricated） |
 | r350 | T2-c：SyncPrimRef要非空描述子(8∈{1,2})，传入NULL；真handle已落b10，未闭合（离线fabricated） |

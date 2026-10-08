@@ -343,6 +343,76 @@ struct MT_PVR_PACKED mt_pvr_rgxkickta3d5_out {
 	u32 error;
 };
 
+/* 0x82:0xC MUSAKickGFX2 / 5.2 MUSA:MUSAKICKGFX2 -- 268-byte IN, 12-byte OUT.
+ * Wire layout follows the hash-verified 5.2.0 DKMS server headers
+ * (usr/src/mtgpu-5.2.0-server/inc/mt/generated/common_musagfx_bridge.h from
+ * downloads/mthreads-dkms_5.2.0_amd64.deb, SHA-256 e3f684b1...;
+ * MTGPU_FENCE/MTGPU_TIMELINE are int32_t per mt/include/mt/mtgpu_sync_ext.h,
+ * MT_BOOL is a 4-byte enum per img_types.h, MT_HANDLE is void*).
+ * The 5.2 names are mapped to kernel wire names 1:1 in field order; see
+ * reports/r356-musakickgfx2-wire.md for the offset table.
+ *
+ * This type only describes the packet. The bridge does NOT execute the
+ * submission: pvr_cmd_musakickgfx2_observe() records the decoded header
+ * fields and returns -ENOTTY (explicitly not implemented). This is an
+ * observer placeholder, not an accept-and-log: the UMD is told the call
+ * failed instead of being led to believe the kick succeeded (r356;
+ * STATUS.md forbids substituting execution with accept-and-log).
+ */
+struct MT_PVR_PACKED mt_pvr_musakickgfx2_in {
+	u64 deadline;			/* MT_UINT64 ui64Deadline */
+	u64 h_km_hwrt_dataset;		/* MT_HANDLE hKMHWRTDataSet */
+	u64 h_msaa_scratch;		/* MT_HANDLE hMSAAScratchBuffer */
+	u64 h_pr_fence_ufo_block;		/* MT_HANDLE hPRFenceUFOSyncPrimBlock */
+	u64 h_render_context;		/* MT_HANDLE hRenderContext */
+	u64 h_zs_buffer;			/* MT_HANDLE hZSBuffer */
+	u64 p_client_3d_upd_sync_off;	/* MT_UINT32 *pui32Client3DUpdateSyncOffset */
+	u64 p_client_3d_upd_val;		/* MT_UINT32 *pui32Client3DUpdateValue */
+	u64 p_client_ta_fence_sync_off;	/* MT_UINT32 *pui32ClientTAFenceSyncOffset */
+	u64 p_client_ta_fence_val;	/* MT_UINT32 *pui32ClientTAFenceValue */
+	u64 p_client_ta_upd_sync_off;	/* MT_UINT32 *pui32ClientTAUpdateSyncOffset */
+	u64 p_client_ta_upd_val;		/* MT_UINT32 *pui32ClientTAUpdateValue */
+	u64 p_sync_pmr_flags;		/* MT_UINT32 *pui32SyncPMRFlags */
+	u64 p_3d_cmd;			/* MT_BYTE *pui83DCmd */
+	u64 p_3dpr_cmd;			/* MT_BYTE *pui83DPRCmd */
+	u64 p_ta_cmd;			/* MT_BYTE *pui8TACmd */
+	u64 p_upd_fence_name;		/* MT_CHAR *puiUpdateFenceName */
+	u64 p_upd_fence_name_3d;		/* MT_CHAR *puiUpdateFenceName3D */
+	u64 ph_client_3d_upd_block;	/* MT_HANDLE *phClient3DUpdateSyncPrimBlock */
+	u64 ph_client_ta_fence_block;	/* MT_HANDLE *phClientTAFenceSyncPrimBlock */
+	u64 ph_client_ta_upd_block;	/* MT_HANDLE *phClientTAUpdateSyncPrimBlock */
+	u64 ph_sync_pmrs;		/* MT_HANDLE *phSyncPMRs */
+	u32 abort;			/* MT_BOOL bbAbort */
+	u32 kick_3d;			/* MT_BOOL bbKick3D */
+	u32 kick_pr;			/* MT_BOOL bbKickPR */
+	u32 kick_ta;			/* MT_BOOL bbKickTA */
+	int check_fence;		/* MTGPU_FENCE hCheckFence (int32_t) */
+	int check_fence_3d;		/* MTGPU_FENCE hCheckFence3D (int32_t) */
+	int update_timeline;		/* MTGPU_TIMELINE hUpdateTimeline (int32_t) */
+	int update_timeline_3d;		/* MTGPU_TIMELINE hUpdateTimeline3D (int32_t) */
+	u32 cmd_3d_size;			/* MT_UINT32 ui323DCmdSize */
+	u32 cmd_3dpr_size;		/* MT_UINT32 ui323DPRCmdSize */
+	u32 client_3d_upd_count;		/* MT_UINT32 ui32Client3DUpdateCount */
+	u32 client_ta_fence_count;	/* MT_UINT32 ui32ClientTAFenceCount */
+	u32 client_ta_upd_count;		/* MT_UINT32 ui32ClientTAUpdateCount */
+	u32 ext_job_ref;			/* MT_UINT32 ui32ExtJobRef */
+	u32 num_draw_calls;		/* MT_UINT32 ui32NumberOfDrawCalls */
+	u32 num_indices;			/* MT_UINT32 ui32NumberOfIndices */
+	u32 num_mrts;			/* MT_UINT32 ui32NumberOfMRTs */
+	u32 pdump_flags;			/* MT_UINT32 ui32PDumpFlags */
+	u32 pr_fence_ufo_sync_offset;	/* MT_UINT32 ui32PRFenceUFOSyncOffset */
+	u32 pr_fence_value;		/* MT_UINT32 ui32PRFenceValue */
+	u32 render_target_size;		/* MT_UINT32 ui32RenderTargetSize */
+	u32 sync_pmr_count;		/* MT_UINT32 ui32SyncPMRCount */
+	u32 ta_cmd_size;			/* MT_UINT32 ui32TACmdSize */
+};
+
+struct MT_PVR_PACKED mt_pvr_musakickgfx2_out {
+	u32 error;			/* MTGPU_ERROR eError (4-byte enum) */
+	int update_fence;		/* MTGPU_FENCE hUpdateFence (int32_t) */
+	int update_fence_3d;		/* MTGPU_FENCE hUpdateFence3D (int32_t) */
+};
+
 /* 0x88:0x0 RGXCreateKickSyncContext -- 16-byte IN, 12-byte OUT.
  * 0x88:0x1 RGXDestroyKickSyncContext -- 8-byte IN, 4-byte OUT.
  *
@@ -438,6 +508,7 @@ struct MT_PVR_PACKED mt_pvr_kicksyncctx2_create_out {
 #define MT_PVR_FN_RGXCREATERENDERCONTEXT2 0x12U
 #define MT_PVR_FN_RGXDESTROYRENDERCONTEXT2 0x13U
 #define MT_PVR_FN_RGXKICKTA3D5 0x14U
+#define MT_PVR_FN_MUSAKICKGFX2 0xCU
 #define MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT 0x0U
 #define MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT 0x1U
 #define MT_PVR_FN_RGXKICKSYNC2 0x2U
@@ -811,6 +882,22 @@ static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, update_count) ==
 	      "0x82:0x14 update count offset");
 static_assert(__builtin_offsetof(struct mt_pvr_rgxkickta3d5_in, sync_pmr_count) == 104,
 	      "0x82:0x14 PMR count offset");
+static_assert(sizeof(struct mt_pvr_musakickgfx2_in) == 268, "0x82:0xC in");
+static_assert(sizeof(struct mt_pvr_musakickgfx2_out) == 12, "0x82:0xC out");
+static_assert(__builtin_offsetof(struct mt_pvr_musakickgfx2_in, h_render_context) == 32,
+	      "0x82:0xC render context offset");
+static_assert(__builtin_offsetof(struct mt_pvr_musakickgfx2_in, p_ta_cmd) == 120,
+	      "0x82:0xC TA cmd pointer offset");
+static_assert(__builtin_offsetof(struct mt_pvr_musakickgfx2_in, kick_ta) == 188,
+	      "0x82:0xC kick TA flag offset");
+static_assert(__builtin_offsetof(struct mt_pvr_musakickgfx2_in, kick_3d) == 180,
+	      "0x82:0xC kick 3D flag offset");
+static_assert(__builtin_offsetof(struct mt_pvr_musakickgfx2_in, ta_cmd_size) == 264,
+	      "0x82:0xC TA cmd size offset");
+static_assert(__builtin_offsetof(struct mt_pvr_musakickgfx2_in, client_ta_upd_count) == 224,
+	      "0x82:0xC TA update count offset");
+static_assert(__builtin_offsetof(struct mt_pvr_musakickgfx2_in, sync_pmr_count) == 260,
+	      "0x82:0xC PMR count offset");
 static_assert(sizeof(struct mt_pvr_compute_create_in) == 60, "0x81:0x0 in");
 static_assert(sizeof(struct mt_pvr_compute_create_out) == 12, "0x81:0x0 out");
 static_assert(sizeof(struct mt_pvr_compute_destroy_in) == 8, "0x81:0x1 in");

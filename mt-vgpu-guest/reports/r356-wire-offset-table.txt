@@ -1,0 +1,65 @@
+r356: 0x82:0xC MUSAKICKGFX2 wire offset table
+Source: 5.2 DKMS common_musagfx_bridge.h (MTGPU_BRIDGE_IN_MUSAKICKGFX2)
+Type sizes verified from 5.2 DKMS headers (deb SHA e3f684b1...):
+  MT_HANDLE=void* (8), pointers (8), MT_UINT64 (8), MT_UINT32 (4),
+  MT_BOOL=4-byte enum (img_types.h IMG_FORCE_ALIGN),
+  MTGPU_FENCE=int32_t (4, mtgpu_sync_ext.h:54),
+  MTGPU_TIMELINE=int32_t (4, mtgpu_sync_ext.h:54),
+  MTGPU_ERROR=4-byte enum (mtgpu_error.h FORCE_I32)
+Struct is __packed: no padding. Total IN = 268, OUT = 12.
+Cross-check: reports/stage-b-bridge-requirements.json 0x82:0xC RGXKICKTA3D2 = 268/12 (match).
+
+off  sz  wire field                  5.2 field
+--- --- --------------------------- --------------------------------
+  0   8  deadline                    ui64Deadline
+  8   8  h_km_hwrt_dataset           hKMHWRTDataSet
+ 16   8  h_msaa_scratch              hMSAAScratchBuffer
+ 24   8  h_pr_fence_ufo_block        hPRFenceUFOSyncPrimBlock
+ 32   8  h_render_context            hRenderContext
+ 40   8  h_zs_buffer                 hZSBuffer
+ 48   8  p_client_3d_upd_sync_off    pui32Client3DUpdateSyncOffset
+ 56   8  p_client_3d_upd_val         pui32Client3DUpdateValue
+ 64   8  p_client_ta_fence_sync_off  pui32ClientTAFenceSyncOffset
+ 72   8  p_client_ta_fence_val       pui32ClientTAFenceValue
+ 80   8  p_client_ta_upd_sync_off    pui32ClientTAUpdateSyncOffset
+ 88   8  p_client_ta_upd_val         pui32ClientTAUpdateValue
+ 96   8  p_sync_pmr_flags            pui32SyncPMRFlags
+104   8  p_3d_cmd                    pui83DCmd
+112   8  p_3dpr_cmd                  pui83DPRCmd
+120   8  p_ta_cmd                    pui8TACmd
+128   8  p_upd_fence_name            puiUpdateFenceName
+136   8  p_upd_fence_name_3d         puiUpdateFenceName3D
+144   8  ph_client_3d_upd_block      phClient3DUpdateSyncPrimBlock
+152   8  ph_client_ta_fence_block    phClientTAFenceSyncPrimBlock
+160   8  ph_client_ta_upd_block      phClientTAUpdateSyncPrimBlock
+168   8  ph_sync_pmrs                phSyncPMRs
+176   4  abort                       bbAbort
+180   4  kick_3d                     bbKick3D
+184   4  kick_pr                     bbKickPR
+188   4  kick_ta                     bbKickTA
+192   4  check_fence                 hCheckFence
+196   4  check_fence_3d              hCheckFence3D
+200   4  update_timeline             hUpdateTimeline
+204   4  update_timeline_3d          hUpdateTimeline3D
+208   4  cmd_3d_size                 ui323DCmdSize
+212   4  cmd_3dpr_size               ui323DPRCmdSize
+216   4  client_3d_upd_count         ui32Client3DUpdateCount
+220   4  client_ta_fence_count       ui32ClientTAFenceCount
+224   4  client_ta_upd_count         ui32ClientTAUpdateCount
+228   4  ext_job_ref                 ui32ExtJobRef
+232   4  num_draw_calls              ui32NumberOfDrawCalls
+236   4  num_indices                 ui32NumberOfIndices
+240   4  num_mrts                    ui32NumberOfMRTs
+244   4  pdump_flags                 ui32PDumpFlags
+248   4  pr_fence_ufo_sync_offset    ui32PRFenceUFOSyncOffset
+252   4  pr_fence_value              ui32PRFenceValue
+256   4  render_target_size          ui32RenderTargetSize
+260   4  sync_pmr_count              ui32SyncPMRCount
+264   4  ta_cmd_size                 ui32TACmdSize
+--- --- --------------------------- --------------------------------
+268 total IN
+
+OUT (12):
+  0   4  error                       eError
+  4   4  update_fence                hUpdateFence
+  8   4  update_fence_3d             hUpdateFence3D

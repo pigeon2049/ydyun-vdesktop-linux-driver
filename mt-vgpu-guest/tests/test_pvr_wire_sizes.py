@@ -117,6 +117,11 @@ MAPPING = {
     # and nested-array handle resolution path is implemented.
     "mt_pvr_rgxkickta3d5_in": (0x82, 0x14),
     "mt_pvr_rgxkickta3d5_out": (0x82, 0x14),
+    # 0x82:0xC is the 5.2 MUSA:MUSAKICKGFX2 schema (268/12, r356). The wire
+    # type is pinned here; dispatch has an observer placeholder that records
+    # the decoded fields and returns -ENOTTY (explicitly not executed, S4).
+    "mt_pvr_musakickgfx2_in": (0x82, 0xC),
+    "mt_pvr_musakickgfx2_out": (0x82, 0xC),
     # 0x88:0x5 BridgeRGXCreateKickSyncContext2 (DDK2, r141/r143): 8-byte IN,
     # 12-byte OUT, header and live wire agree.
     # 0x88:0x6 reuses the 8-in/4-out destroy shape, no new structs.
@@ -173,6 +178,7 @@ DIRECTION = {
     "mt_pvr_kicksync_destroy_in": "in", "mt_pvr_kicksync_destroy_out": "out",
     "mt_pvr_render2_create_in": "in", "mt_pvr_render2_create_out": "out",
     "mt_pvr_rgxkickta3d5_in": "in", "mt_pvr_rgxkickta3d5_out": "out",
+    "mt_pvr_musakickgfx2_in": "in", "mt_pvr_musakickgfx2_out": "out",
     "mt_pvr_kicksyncctx2_create_in": "in",
     "mt_pvr_kicksyncctx2_create_out": "out",
     "mt_pvr_unmap_pmr_in": "in", "mt_pvr_unmap_out": "out",

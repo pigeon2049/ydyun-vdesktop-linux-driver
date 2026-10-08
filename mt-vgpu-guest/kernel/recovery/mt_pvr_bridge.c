@@ -3775,6 +3775,42 @@ static int pvr_cmd_tdm_submit3_observe(struct mt_pvr_file *file,
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
+/* 0x82:0xC MUSAKickGFX2 (r356): observer placeholder, explicitly NOT
+ * executing. Unlike the 0x82:0x14 accept-and-log observer above (r215),
+ * this handler returns -ENOTTY after recording the decoded header fields:
+ * MUSAKICKGFX2 is an S4 real TA/3D/PR submission, and returning 0 would
+ * falsely tell the UMD the kick succeeded. STATUS.md forbids substituting
+ * execution with accept-and-log; this placeholder only observes so a live
+ * run can capture the wire image (r358), and execution stays unimplemented
+ * until the DDK2 render backend exists (r359/r360). No userspace pointer
+ * is dereferenced here -- only scalar header fields are logged.
+ */
+static int pvr_cmd_musakickgfx2_observe(struct mt_pvr_file *file,
+				       struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_musakickgfx2_in in;
+	int ret;
+
+	(void)file;
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		return ret;
+	pr_info("mt_pvr_bridge: musakickgfx2 observe (NOT EXECUTED, -ENOTTY): "
+		"ctx=%#llx abort=%u kick_ta=%u kick_3d=%u kick_pr=%u "
+		"ta_size=%u 3d_size=%u 3dpr_size=%u draws=%u indices=%u mrt=%u "
+		"ta_upd=%u ta_fence=%u 3d_upd=%u pmr_sync=%u "
+		"check_fence=%d check_fence_3d=%d rt_size=%u\n",
+		(unsigned long long)in.h_render_context,
+		in.abort, in.kick_ta, in.kick_3d, in.kick_pr,
+		in.ta_cmd_size, in.cmd_3d_size, in.cmd_3dpr_size,
+		in.num_draw_calls, in.num_indices, in.num_mrts,
+		in.client_ta_upd_count, in.client_ta_fence_count,
+		in.client_3d_upd_count, in.sync_pmr_count,
+		in.check_fence, in.check_fence_3d,
+		in.render_target_size);
+	return -ENOTTY;
+}
+
 /* 0x82:0x14 RGXKICKTA3D5 (r215): accept-and-log observer, mirroring the
  * 0x89:0xa handler (r174). Reports the named CCB window plus the scalar
  * check/update/sync-PMR counts and returns 0 without executing anything:
@@ -4496,6 +4532,8 @@ static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			 */
 			return pvr_cmd_handle_release(file, cmd,
 						      MT_PVR_KIND_CONTEXT);
+		case MT_PVR_FN_MUSAKICKGFX2:	/* MUSAKickGFX2 (observer, not executed, r356) */
+			return pvr_cmd_musakickgfx2_observe(file, cmd);
 		case MT_PVR_FN_RGXCREATERENDERCONTEXT2:			/* BridgeRGXCreateRenderContext2 (DDK2) */
 			return pvr_cmd_render2_create(file, cmd);
 		case MT_PVR_FN_RGXDESTROYRENDERCONTEXT2:			/* BridgeRGXDestroyRenderContext2 (DDK2) */
