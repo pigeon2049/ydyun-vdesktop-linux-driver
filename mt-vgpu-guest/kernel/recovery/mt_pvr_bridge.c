@@ -3288,6 +3288,10 @@ static int pvr_cmd_handle_only(struct mt_pvr_file *file,
  * Called with file->lock already held by pvr_bridge_dispatch(), so it must not
  * take it again.
  */
+/* r389: forward decl (defined after mt_bridge_ta_vm, needs full struct). */
+static int mt_render_context_create(struct mt_pvr_file *file,
+				    struct mt_pvr_render_context *ctx);
+
 static int pvr_cmd_render2_create(struct mt_pvr_file *file,
 				  struct mt_pvr_cmd *cmd)
 {
@@ -3302,8 +3306,26 @@ static int pvr_cmd_render2_create(struct mt_pvr_file *file,
 	obj = pvr_object_new(file, MT_PVR_KIND_CONTEXT);
 	if (!obj)
 		return -ENOMEM;
-	out.handle = obj->handle;
+	/* r389 R6-2: Allocate per-context real state (Route A). */
+	obj->render_ctx = kzalloc(sizeof(*obj->render_ctx), GFP_KERNEL);
+	if (!obj->render_ctx) {
+		list_del(&obj->link);
+		kfree(obj);
+		return -ENOMEM;
+	}
+	/* IN fields (priv_data, priority) preserved for future use. */
 	(void)in;
+	ret = mt_render_context_create(file, obj->render_ctx);
+	if (ret) {
+		pr_err("mt_pvr_bridge: r389: render context create failed: %d\n",
+		       ret);
+		kfree(obj->render_ctx);
+		obj->render_ctx = NULL;
+		list_del(&obj->link);
+		kfree(obj);
+		return ret;
+	}
+	out.handle = obj->handle;
 	return pvr_out(cmd, &out, sizeof(out));
 }
 
@@ -4041,6 +4063,218 @@ static void mt_bridge_ta_vm_destroy(struct mt_bridge_ta_vm *tvm)
 		   get_order(MT_BRIDGE_TA_VM_PT_BYTES));
 	kfree(tvm);
 }
+
+/* r389: Per-context VM with d->buffers-backed page tables (R6 Route A).
+ * Unlike mt_bridge_ta_vm_create() (synthetic tables BO with pvr_gpu_plan_bo_ops),
+ * this allocates the page-table BO from d->buffers so that mt_gpu_vm_bind_many()
+ * accepts real BOs (store+ops must match: bo->store == vm->tables->store).
+ * The caller must keep pt_bo alive (stored in ctx) until VM destroy.
+ */
+/* 64KB page tables: comfortably holds 11 BO ranges + headroom (r389 V1). */
+#define MT_RENDER_CTX_PT_BYTES (64U * 1024U)
+
+static struct mt_bridge_ta_vm *mt_render_context_vm_create(struct mt_guest_device *d,
+							   struct mt_bo *pt_bo)
+{
+	struct mt_bridge_ta_vm *tvm;
+	void *image, *scratch;
+	int ret;
+
+	tvm = kzalloc(sizeof(*tvm), GFP_KERNEL);
+	if (!tvm)
+		return NULL;
+
+	/* Page-table BO from d->buffers (matches the 11 BOs' store/ops). */
+	ret = mt_bo_create(pt_bo, d->buffers.ops, &d->buffers,
+			   MT_RENDER_CTX_PT_BYTES, PAGE_SIZE);
+	if (ret)
+		goto fail_tvm;
+
+	image = kvzalloc(MT_RENDER_CTX_PT_BYTES, GFP_KERNEL);
+	if (!image)
+		goto fail_pt;
+	scratch = kvzalloc(MT_RENDER_CTX_PT_BYTES, GFP_KERNEL);
+	if (!scratch)
+		goto fail_image;
+
+	/* Reuse the tvm struct layout: pt_pages/image/scratch/tables/vm.
+	 * We store pt_bo separately (caller-owned); tvm->tables is unused. */
+	tvm->image = image;
+	tvm->scratch = scratch;
+	/* Stash pt_bo pointer in pt_pages field (void *). */
+	tvm->pt_pages = (void *)pt_bo;
+
+	ret = mt_gpu_vm_init(&tvm->vm, pt_bo, image, scratch,
+			     MT_RENDER_CTX_PT_BYTES);
+	if (ret)
+		goto fail_scratch;
+
+	/* VM holds a reference via mt_bo_get; caller keeps pt_bo for cleanup. */
+	return tvm;
+
+fail_scratch:
+	kvfree(scratch);
+fail_image:
+	kvfree(image);
+fail_pt:
+	mt_bo_put(pt_bo);
+fail_tvm:
+	kfree(tvm);
+	return NULL;
+}
+
+static void mt_render_context_vm_destroy(struct mt_bridge_ta_vm *tvm)
+{
+	struct mt_bo *pt_bo;
+	if (!tvm)
+		return;
+	pt_bo = (struct mt_bo *)tvm->pt_pages;
+	mt_gpu_vm_fini(&tvm->vm);
+	kvfree(tvm->scratch);
+	kvfree(tvm->image);
+	/* Release the caller's pt_bo reference (VM's ref already dropped by fini). */
+	if (pt_bo)
+		mt_bo_put(pt_bo);
+	kfree(tvm);
+}
+
+/* r389: R6-2 Create realization (Route A per-context).
+ * Allocates 11 BOs (mt_gfx_context_bo_specs, 86,300B), writes initial data,
+ * binds to per-context VM, builds CSW, creates exec process/context.
+ * Any failure rolls back in reverse order; resources_ready only on full success.
+ */
+#define MT_RENDER_CONTEXT_VA_BASE 0x70000000ULL
+
+static int mt_render_context_create(struct mt_pvr_file *file,
+				    struct mt_pvr_render_context *ctx)
+{
+	struct mt_guest *g;
+	struct mt_guest_device *d;
+	struct module *owner = NULL;
+	struct mt_bridge_ta_vm *tvm;
+	u32 i;
+	int ret;
+
+	g = pvr_session_acquire(&owner);
+	if (!g)
+		return -ENODEV;
+	d = container_of(g, struct mt_guest_device, state);
+
+	/* 1. Per-context VM with d->buffers-backed page tables (r389). */
+	tvm = mt_render_context_vm_create(d, &ctx->pt_bo);
+	if (!tvm) {
+		ret = -ENOMEM;
+		goto out_release;
+	}
+	ctx->vm = tvm;
+	ctx->vm_base_va = MT_RENDER_CONTEXT_VA_BASE;
+	pr_info("mt_pvr_bridge: r389: render ctx VM created, base_va=%#llx\n",
+		(unsigned long long)ctx->vm_base_va);
+
+	/* 2-4. Allocate 11 BOs, write initial data, bind to VM. */
+	for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++) {
+		u32 bytes = mt_gfx_context_bo_specs[i].bytes;
+		u32 alloc_size = PAGE_ALIGN(bytes);
+		u64 va = ctx->vm_base_va + (u64)i * MT_RENDER_CONTEXT_VA_STRIDE;
+		struct mt_vm_binding binding;
+
+		ret = mt_bo_create(&ctx->bos[i], d->buffers.ops, &d->buffers,
+				   alloc_size, PAGE_SIZE);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r389: BO %u create failed: %d\n",
+			       i, ret);
+			goto out_rollback;
+		}
+
+		ret = pvr_translator_bo_write(d, &ctx->bos[i], 0,
+					      mt_gfx_bo_init_metas[i].data,
+					      bytes);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r389: BO %u write failed: %d\n",
+			       i, ret);
+			mt_bo_put(&ctx->bos[i]);
+			goto out_rollback;
+		}
+
+		binding.bo = &ctx->bos[i];
+		binding.va = va;
+		binding.offset = 0;
+		binding.bytes = alloc_size;
+		binding.flags = MT_GPU_MAP_DEFAULT;
+		ret = mt_gpu_vm_bind_many(&tvm->vm, &binding, 1);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r389: BO %u bind failed: %d\n",
+			       i, ret);
+			mt_bo_put(&ctx->bos[i]);
+			goto out_rollback;
+		}
+		ctx->vas[i] = va;
+		ctx->bos_ready[i] = true;
+		pr_info("mt_pvr_bridge: r389: BO %u bound va=%#llx bytes=%u\n",
+			i, (unsigned long long)va, alloc_size);
+	}
+
+	/* 5. Build CSW from bound VAs. */
+	{
+		struct mt_gfx_context_bo_addresses addrs;
+		for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++)
+			addrs.va[i] = ctx->vas[i];
+		ret = mt_gfx_context_build_csw(ctx->csw, sizeof(ctx->csw),
+					       &addrs);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r389: CSW build failed: %d\n",
+			       ret);
+			goto out_rollback;
+		}
+		pr_info("mt_pvr_bridge: r389: CSW built\n");
+	}
+
+	/* 6-7. Execution process/context (node_type=5 -> DM2). */
+	ret = mt_execution_process_create(&d->execution, &ctx->process,
+					  &tvm->vm, task_tgid_nr(current));
+	if (ret) {
+		pr_err("mt_pvr_bridge: r389: exec process create failed: %d\n",
+		       ret);
+		goto out_rollback;
+	}
+	ret = mt_execution_context_create(&ctx->exec_ctx, &ctx->process, 5, 0);
+	if (ret) {
+		pr_err("mt_pvr_bridge: r389: exec context create failed: %d\n",
+		       ret);
+		mt_execution_process_destroy(&ctx->process);
+		goto out_rollback;
+	}
+	ctx->exec_ready = true;
+	pr_info("mt_pvr_bridge: r389: exec process/context created (node_type=5)\n");
+
+	/* 8. Full success. */
+	ctx->resources_ready = true;
+	pr_info("mt_pvr_bridge: r389: render context READY (11 BOs, CSW, exec)\n");
+	ret = 0;
+	goto out_release;
+
+out_rollback:
+	if (ctx->exec_ready) {
+		mt_execution_context_destroy(&ctx->exec_ctx);
+		mt_execution_process_destroy(&ctx->process);
+		ctx->exec_ready = false;
+	}
+	for (i = 0; i < MT_GFX_CONTEXT_BO_COUNT; i++) {
+		if (ctx->bos_ready[i]) {
+			mt_bo_put(&ctx->bos[i]);
+			ctx->bos_ready[i] = false;
+		}
+	}
+	if (ctx->vm) {
+		mt_render_context_vm_destroy(ctx->vm);
+		ctx->vm = NULL;
+	}
+out_release:
+	if (owner)
+		module_put(owner);
+	return ret;
+}
+
 
 
 /* r376/r383: R5 TA VM via bridge-side self-contained init.

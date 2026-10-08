@@ -37,6 +37,8 @@ struct mt_pvr_render_context {
 	/* Per-context VM (R5 evolution, r387 §3). */
 	struct mt_bridge_ta_vm *vm;
 	u64 vm_base_va;
+	/* Page-table BO for the VM (d->buffers-backed, r389). Must outlive vm. */
+	struct mt_bo pt_bo;
 
 	/* State flag: set true once all resources are ready (R6-2). */
 	bool resources_ready;

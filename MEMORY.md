@@ -36,6 +36,18 @@
 
 
 
+## r389 (2026-10-08): R6-2 Create 真实化活体验证通过（11 BO，无 oops）
+
+**实现**：`mt_render_context_create()`（`kernel/recovery/mt_pvr_bridge.c`，~200 行）——8 步流程：per-context VM（`d->buffers`-backed 64KB 页表，解决 r376 synthetic VM 的 store/ops 不匹配）→ 11×（`mt_bo_create` + `pvr_translator_bo_write` 写初始数据 + `mt_gpu_vm_bind_many` 到 `0x70000000+i*16MB`）→ `mt_gfx_context_build_csw()` → `mt_execution_process_create` + `mt_execution_context_create(5,0)` → `resources_ready=true`；任一步失败逆序回滚。`pvr_cmd_render2_create`（`0x82:0x12`）改调它，不再 mint 空 token。`struct mt_pvr_render_context` 加 `pt_bo` 字段（1544B）。
+
+**活体 V1**：单次 `0x82:0x12` → 11/11 BO 绑定成功、CSW built、exec created、`resources_ready=true`，dmesg 零 WARN/BUG/Oops；bridge 重载一次（r360 流程），probe 未动。实现中修正：16KB 页表仅容 2 ranges（ENOSPC）→ 增至 64KB。
+
+**门禁**：450 Python + 299 C 全绿（+9 新测试 `test_render_context_create.py`）；`make kernel` W=1 零警告；反向验证通过。
+
+**诚实边界**：仅 V1；R6-3（destroy）、R6-4（kick 解析）、V3/V4 待后续；probe ref 1→13（R6-3 释放）。
+
+报告 `reports/r389-render-context-create-live-verified.md`，证据 `reports/r389-dmesg-v1.txt`。
+
 ## r388 (2026-10-08): R6-1 per-context 对象模型扩展落地（离线，纯结构，零硬件触碰）
 
 **结构定义**：`kernel/mt_render_context.h` 新（45 行）——`struct mt_pvr_render_context` 1456B：11 BO（`struct mt_bo bos[11]`，968B）+ `vas[11]` + `bos_ready[11]` + `mt_execution_process`（32B）+ `mt_execution_context`（72B）+ `exec_ready` + `csw[248]` + `mt_bridge_ta_vm *vm`（前向声明）+ `vm_base_va` + `resources_ready`。`MT_RENDER_CONTEXT_VA_STRIDE` 16MB（r387 §3.3，TO-VALIDATE）。

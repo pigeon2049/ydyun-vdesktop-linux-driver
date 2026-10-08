@@ -42,6 +42,8 @@ int main(void)
            __builtin_offsetof(struct mt_pvr_render_context, vm));
     printf("off_vm_base_va=%zu\n",
            __builtin_offsetof(struct mt_pvr_render_context, vm_base_va));
+    printf("off_pt_bo=%zu\n",
+           __builtin_offsetof(struct mt_pvr_render_context, pt_bo));
     printf("off_resources_ready=%zu\n",
            __builtin_offsetof(struct mt_pvr_render_context, resources_ready));
     printf("stride=%u\n", MT_RENDER_CONTEXT_VA_STRIDE);
@@ -56,9 +58,9 @@ int main(void)
 # Layout: bos[11]=968 @0; vas[11]=88 @968; bos_ready[11]=11 @1056;
 #   pad to 1072; process=32 @1072; exec_ctx=72 @1104; exec_ready @1176;
 #   csw[248] @1177; pad to 1432; vm @1432; vm_base_va @1440;
-#   resources_ready @1448; total 1456 (8-aligned).
+#   pt_bo=88 @1448 (r389); resources_ready @1536; total 1544 (8-aligned).
 EXPECTED = {
-    "sizeof_ctx": 1456,
+    "sizeof_ctx": 1544,
     "off_bos": 0,
     "off_vas": 968,
     "off_bos_ready": 1056,
@@ -67,7 +69,8 @@ EXPECTED = {
     "off_csw": 1177,
     "off_vm": 1432,
     "off_vm_base_va": 1440,
-    "off_resources_ready": 1448,
+    "off_pt_bo": 1448,
+    "off_resources_ready": 1536,
     "stride": 16 << 20,
     "bo_count": 11,
     "csw_bytes": 248,

@@ -972,3 +972,12 @@ as-built 机制（`da3df8b`，r45–r63）：
 - r386 (2026-10-08): SyncPrimImportFD (0x2:0xC) implemented (offline, zero HW touch): MT_PVR_FN_SYNCPRIMIMPORTFD 0xcU + 24B IN/12B OUT structs from KMD 5.2.0 header in mt_pvr_wire.h; pvr_cmd_syncprim_importfd() validates hSyncBlock via translator_resolve + FD via fdget/fd_empty, returns current u32 value; FD payload interpretation TO-VALIDATE (needs ExportFD producer + live UMD); gate 438+299 green, kernel W=1 zero warnings, reverse validation passed.
 - r387 (2026-10-08): R6 Route A per-context design (offline, zero HW touch): user decided Route A (per-context state, not per-file); struct mt_pvr_render_context carries 11 BOs (86KB) + CSW + exec process/ctx + per-context VM (VA partitioned); create/destroy/kick lifecycle designed; R5 gradual migration (Phase 1 coexist with fallback, Phase 2 switch after validation); R6-1~R6-6 broken down (R6-5/R6-6 need research first); 6 open validation points recorded.
 - r388 (2026-10-08): R6-1 per-context struct defined (offline, zero HW touch): kernel/mt_render_context.h new (struct mt_pvr_render_context 1456B: 11 BOs + vas/bos_ready + exec process/ctx + 248B CSW + per-context VM ptr + vm_base_va); mt_pvr_object += render_ctx pointer (kzalloc NULL default, pvr_object_new unchanged); 3 layout gate tests (sizeof/offsets/kzalloc); gate 441+299 green, kernel W=1 zero warnings, reverse validation passed.
+
+### r389 (2026-10-08): R6-2 Create realized, live V1 verified
+- `mt_render_context_create()` in `kernel/recovery/mt_pvr_bridge.c`: 11 BOs + init data + per-context VM bind + CSW + exec (node_type=5), rollback on failure.
+- `mt_render_context_vm_create()`: d->buffers-backed 64KB page tables (fixes store/ops mismatch vs r376 synthetic VM).
+- `pvr_cmd_render2_create` (0x82:0x12) calls it; no longer empty token.
+- Live V1: single create → 11/11 BOs bound, CSW built, exec created, READY, zero oops. Bridge reloaded once.
+- Gate: 450+299 green, kernel W=1 zero warnings, reverse validation passed.
+- Honest: V1 only; R6-3 (destroy), R6-4 (kick parse), V3/V4 future.
+
