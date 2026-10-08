@@ -3997,8 +3997,18 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	out.error = 0;
 	out.update_fence = (int)wire_id;
 	out.update_fence_3d = 0;
+	/* r373: report writeback failures instead of logging a misleading
+	 * "submitted" line. If userspace passes out_size < 12 (or a bad
+	 * out_ptr), pvr_out fails and the OUT buffer is left untouched --
+	 * previously dmesg still claimed success, hiding the harness bug. */
+	ret = pvr_out(cmd, &out, sizeof(out));
+	if (ret) {
+		pr_warn("mt_pvr_bridge: musakickgfx2: OUT writeback failed rc=%d wire=%u\n",
+			ret, wire_id);
+		return ret;
+	}
 	pr_info("mt_pvr_bridge: musakickgfx2: submitted wire=%u\n", wire_id);
-	return pvr_out(cmd, &out, sizeof(out));
+	return 0;
 
 out_unlock:
 	mutex_unlock(&g->trial_lock);

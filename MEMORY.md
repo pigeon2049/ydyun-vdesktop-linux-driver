@@ -17,11 +17,20 @@
 > r369 轮按 §4 清理：r365 节已移入归档。
 > r370 轮按 §4 清理：r366 节已移入归档。
 > r372 轮按 §4 清理：r367 节已移入归档。
+> r373 轮按 §4 清理：r368 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
+
+## 本轮进展（r373：OUT.update_fence 回填验证通过）
+
+- **根因**：`OUT.update_fence` 内核回填路径一直正常——`pvr_cmd_musakickgfx2()` 的 `out.update_fence=(int)wire_id`、`pvr_out()` 的 `copy_to_user`、12B OUT 结构体（`error@0`/`update_fence@4`/`update_fence_3d@8`）与 KMD 5.2.0 生成头完全一致。r372 的 "userspace 读到 0" 系其一次性 harness 传参 bug（`out_ptr`/`out_size` 未正确设置）。
+- **活体验证**（bridge 未重载）：自写 Python harness 直调 ioctl，两次 TA-only kick 均精确匹配——`OUT.update_fence=3` vs dmesg `wire=3`，`OUT.update_fence=4` vs dmesg `wire=4`。
+- **修复**：`pvr_out` 失败时改记 `pr_warn`（"OUT writeback failed rc=%d wire=%u"）并返回错误码，不再先记误导性的 "submitted wire" info 日志。此前 dmesg 看似成功、userspace 实际拿错误码，正是 r372 被误导的根因。
+- **门禁**：`check-offline` 425 Python + 299 C 全绿（新增 `tests/test_ta_kick_out_writeback.py` 4 tests）；`make kernel` W=1 零警告；反向验证通过（回退→3/4 红，恢复→绿）。
+- 报告：`reports/r373-ta-kick-out-writeback-verified.md`；证据 `r373-live-out-writeback.txt`（0600）。
 
 ## 本轮进展（r371：端到端 TA 验证被固件 trial 状态阻塞）
 
@@ -45,12 +54,5 @@
 - **门禁**——`check-offline` 411 Python + 299 C 全绿；新测试 `tests/test_ta_kick_ctx_release.py`（3 tests，反向验证：删 kfree→红，恢复→绿）。
 - **健康**——dmesg 零 WARN/BUG/Oops；refs probe=1/bridge=0；freeze 恢复。见 `reports/r369-wire6-drained-kfree-restored.md` + 双证据（0600）。
 
-## 本轮进展（r368：wire 6 悬挂只读诊断；r367 所述 UAF 经代码证伪）
 
-- **只读诊断**——wire 6 自 dmesg `[26595.505338]` 悬挂 ~940s 无完成事件；桥 refcnt=1（marker pinning，by design），probe ref=1；在载桥 build `4a78b331`；dmesg 零 oops/WARN。本轮零硬件碰触。
-- **UAF 证伪**——TA op（`mt_marker_submit_ta_work`，r366 起未变）从未写 `m->context`（`m->context = c` 只存在于 TQX/context 两个无关 op）；`m` 为 kzalloc，`m->context` 恒为 NULL；`mt_marker_complete_ta` 的 `if (m->context)` 恒为假——**在载桥 `kfree(ctx)` 为干净释放，无 UAF 风险**（r367 系误将 TQX op 模式套用于 TA op）。
-- **r367修复实引入泄漏**——去 kfree 后 `ctx` 无人接管（op 明确 "no context ownership"），每成功 dispatch 泄漏约 64B；所谓"`m->context` 未释放"不存在（恒 NULL）。
-- **wire 6 根因**——生产事件路径（probe `mt_runtime_event` → 通用 `mt_marker_complete`）拒收 `0x100`；`mt_marker_complete_ta` 生产零调用（仅 r366 测试模块）；**无超时机制** → 永久悬挂。次生风险：`0x100` 事件可毒化 DM3 事件队列（drain 在 -EOPNOTSUPP 处 break 不推进 tail）。
-- **恢复方案**（待确认后执行）——`mt_drain_pending.ko`（已构建，vermagic 匹配）清 wire 6 → refcnt 归 0 → `rmmod` → **回退 kfree 删除**（恢复干净释放）→ 按 r360 流程重载 → L3 复绿。r369+ 需补齐生产 TA 完成路径，否则后续 TA marker 重演悬挂。
-- 见 `reports/r368-wire6-uaf-reassessment.md` + 双证据（0600）；门禁 `check-offline` 全绿。
 ---

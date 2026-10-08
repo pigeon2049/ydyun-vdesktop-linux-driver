@@ -559,3 +559,13 @@
 - 但 trial 无法启动：`mt_trial_start` 要求 `0x890==0`，`connect_result=-61`，`pinned=0`；固件 MMIO `0x890=2` vs RPC `fw_state=1` 不一致。
 - TA kick dispatch 到达桥侧（dmesg 解码日志），但 `pvr_session_acquire` 返 `-ENODEV`（trial 未 pinned）；r370 完成路径未被活体执行。
 - 门禁 417+299 全绿，`make kernel` W=1 零警告；报告 `r371-ta-e2e-blocked-by-trial.md` 入库。
+
+
+## 本轮进展（r368：wire 6 悬挂只读诊断；r367 所述 UAF 经代码证伪）
+
+- **只读诊断**——wire 6 自 dmesg `[26595.505338]` 悬挂 ~940s 无完成事件；桥 refcnt=1（marker pinning，by design），probe ref=1；在载桥 build `4a78b331`；dmesg 零 oops/WARN。本轮零硬件碰触。
+- **UAF 证伪**——TA op（`mt_marker_submit_ta_work`，r366 起未变）从未写 `m->context`（`m->context = c` 只存在于 TQX/context 两个无关 op）；`m` 为 kzalloc，`m->context` 恒为 NULL；`mt_marker_complete_ta` 的 `if (m->context)` 恒为假——**在载桥 `kfree(ctx)` 为干净释放，无 UAF 风险**（r367 系误将 TQX op 模式套用于 TA op）。
+- **r367修复实引入泄漏**——去 kfree 后 `ctx` 无人接管（op 明确 "no context ownership"），每成功 dispatch 泄漏约 64B；所谓"`m->context` 未释放"不存在（恒 NULL）。
+- **wire 6 根因**——生产事件路径（probe `mt_runtime_event` → 通用 `mt_marker_complete`）拒收 `0x100`；`mt_marker_complete_ta` 生产零调用（仅 r366 测试模块）；**无超时机制** → 永久悬挂。次生风险：`0x100` 事件可毒化 DM3 事件队列（drain 在 -EOPNOTSUPP 处 break 不推进 tail）。
+- **恢复方案**（待确认后执行）——`mt_drain_pending.ko`（已构建，vermagic 匹配）清 wire 6 → refcnt 归 0 → `rmmod` → **回退 kfree 删除**（恢复干净释放）→ 按 r360 流程重载 → L3 复绿。r369+ 需补齐生产 TA 完成路径，否则后续 TA marker 重演悬挂。
+- 见 `reports/r368-wire6-uaf-reassessment.md` + 双证据（0600）；门禁 `check-offline` 全绿。
