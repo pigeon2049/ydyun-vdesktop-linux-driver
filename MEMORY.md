@@ -25,11 +25,28 @@
 > r382 轮按 §4 清理：r379 节已移入归档。
 > r383 轮按 §4 清理：r380 节已移入归档。
 > r384 轮按 §4 清理：r381 节已移入归档。
+> r385 轮按 §4 清理：r382 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
+
+## r385 (2026-10-08): R7 Sync prim import 缺口分析（离线，零硬件触碰）
+
+**R7 定义**（r355）：`ZeusSyncPrimImportFD` 下游在真实建连后应走通；桥侧 SYNC 命令多已实现。
+
+**核心发现**（实测源码）：`ZeusSyncPrimImportFD` = SYNC:0xC（`BridgeSyncPrimImportFD`，IN 24B），但 Linux 桥侧**未实现**——`mt_pvr_wire.h` 无 0xC 的 `MT_PVR_FN_*` 定义，dispatch `default:` 返 `-ENOTTY`。
+
+**SYNC 组现状**：0x0 Alloc（真实，`pvr_cmd_sync_block`）/ 0xA CpuSignal（真实，r222）/ 0x1/0x2/0x7/0x8 空桩（`pvr_stub_ok`）/ **0xC 缺失**。
+
+**是否阻塞真实 UMD**：很可能阻塞 TA 路径——r361 证实 UMD 路径为 `...→ZeusSyncPrimImportFD→0x92930(0x82:0xC)`；`-ENOTTY` 可能致中止。但尚无活体证据（r361 在 `SyncPrimRef` 被阻塞）。
+
+**与 R6 关系**：独立。R6=context 对象（firmware 状态），R7=sync prim 对象（FD 导入）；无依赖，但真实 UMD 渲染同时需要。
+
+**缺口清单**：R7-1（0xC 常量定义）→ R7-2（dispatch handler）→ R7-3（IN/OUT 结构入库）→ R7-4（FD 导入语义设计）。
+
+报告 `reports/r385-sync-prim-import-gaps.md`，证据 `reports/r385-evidence.txt`。门禁全绿。
 
 ## r384 (2026-10-08): R6 DDK2 context statefulness 缺口分析（离线，零硬件触碰）
 
@@ -57,23 +74,3 @@
 - make kernel W=1 零警告（r376 的 4 个 pre-existing 警告消除）；check-offline 430+299 全绿。
 - 未重载 probe/bridge，未重启；零硬件触碰。报告 reports/r383-probe-dead-code-removed.md。
 
-## r382 (2026-10-08): submit_3d_work 落地（第 6 op，0x68，门控关闭，离线）
-
-**结论**：submit_3d_work 作为 mt_marker_ops 第 6 个 op 落地（仿 r366 模式），
-DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 默认关闭；
-0x82:0x14 dispatch 保持 r215 observer。零硬件触碰。
-
-**实现**：
-- kernel/mt_3d_submit.h (新，108 行): MT_FW_DM_3D=2, MT_FW_3D_OPCODE=0x68,
-  MT_FW_3D_COMPLETE_CODE=0, MT_3D_SUBMIT_GATE=0; struct mt_3d_submit_params (56B)
-  含 vm_map_hook (R5 预留); mt_3d_params_from_rgxkickta3d5() 映射函数
-- kernel/mt_marker_fence.h (+163): mt_3d_work, d3_params, 第 6 op (+ABI WARNING),
-  mt_fw_3d_command() (0x68@0x0c, va@0x28, size@0x30), mt_marker_submit_3d_work()
-  (门控关闭→-EOPNOTSUPP; 非空校验 r380 教训), ops 表, mt_bridge_submit_3d_work 声明
-- kernel/recovery/mt_pvr_bridge.c (+9): mt_bridge_submit_3d_work + EXPORT_SYMBOL_GPL
-
-**门禁**：check-offline 430+299 全绿 (+2 新测试); make kernel W=1 零新增警告
-(4 pre-existing 来自 r376); 反向验证通过 (0x99→fail, 恢复→pass)。
-
-**诚实边界**：未活体验证；dispatch 未切换；VM 映射未实现；门控开启待 r381 TO-VALIDATE。
-见 reports/r382-submit-3d-work-offline.md。

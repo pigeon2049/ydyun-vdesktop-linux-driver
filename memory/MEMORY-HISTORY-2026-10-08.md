@@ -676,3 +676,25 @@
 **建议**：0x82:0x14 实现用 0x68；必须构造完整命令包，不得用空 marker；首次活体验证等真实 UMD 调用。
 
 报告：mt-vgpu-guest/reports/r381-3d-opcode-0x68-rgxcompute.md
+
+
+## r382 (2026-10-08): submit_3d_work 落地（第 6 op，0x68，门控关闭，离线）
+
+**结论**：submit_3d_work 作为 mt_marker_ops 第 6 个 op 落地（仿 r366 模式），
+DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 默认关闭；
+0x82:0x14 dispatch 保持 r215 observer。零硬件触碰。
+
+**实现**：
+- kernel/mt_3d_submit.h (新，108 行): MT_FW_DM_3D=2, MT_FW_3D_OPCODE=0x68,
+  MT_FW_3D_COMPLETE_CODE=0, MT_3D_SUBMIT_GATE=0; struct mt_3d_submit_params (56B)
+  含 vm_map_hook (R5 预留); mt_3d_params_from_rgxkickta3d5() 映射函数
+- kernel/mt_marker_fence.h (+163): mt_3d_work, d3_params, 第 6 op (+ABI WARNING),
+  mt_fw_3d_command() (0x68@0x0c, va@0x28, size@0x30), mt_marker_submit_3d_work()
+  (门控关闭→-EOPNOTSUPP; 非空校验 r380 教训), ops 表, mt_bridge_submit_3d_work 声明
+- kernel/recovery/mt_pvr_bridge.c (+9): mt_bridge_submit_3d_work + EXPORT_SYMBOL_GPL
+
+**门禁**：check-offline 430+299 全绿 (+2 新测试); make kernel W=1 零新增警告
+(4 pre-existing 来自 r376); 反向验证通过 (0x99→fail, 恢复→pass)。
+
+**诚实边界**：未活体验证；dispatch 未切换；VM 映射未实现；门控开启待 r381 TO-VALIDATE。
+见 reports/r382-submit-3d-work-offline.md。

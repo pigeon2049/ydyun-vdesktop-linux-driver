@@ -310,3 +310,4 @@
 | r382 | submit_3d_work 落地（第 6 op，0x68，门控关闭，离线）：mt_marker_ops 第 6 op，DM2/0x68，标准完成码 0；MT_3D_SUBMIT_GATE=0 默认关闭；0x82:0x14 dispatch 未切换；零硬件触碰；门禁 430+299 全绿，反向验证通过 | r382-submit-3d-work-offline.md |
 | r383 | probe dead code cleanup offline: removed mt_probe_ta_vm.h (29 lines) + 122 lines in mt_guest_probe.c; bridge comment updated; kernel W=1 zero warnings; zero HW touch; gate 430+299 green | r383-probe-dead-code-removed.md |
 | r384 | R6 DDK2 context statefulness 调研（离线）：0x82:0x12/0x88:0x5/0x89:0x8 皆为 handle token，无 firmware 状态；真实 context 需 11 BO+CSW+执行上下文（mt_live_3d.c 实证）；R5 per-file VM 非 per-context；marker 不阻塞、真实 UMD 渲染阻塞；缺口清单 R6-1~R6-6 | r384-ddk2-context-statefulness-gaps.md |
+| r385 | R7 Sync prim import 调研（离线）：ZeusSyncPrimImportFD=SYNC:0xC 未实现（无 MT_PVR_FN 定义，dispatch 返 -ENOTTY）；SYNC 0x0/0xA 真实、0x1/0x2/0x7/0x8 空桩；UMD TA 路径含 ImportFD→0x82:0xC，很可能阻塞真实 UMD；与 R6 独立 | r385-sync-prim-import-gaps.md |
