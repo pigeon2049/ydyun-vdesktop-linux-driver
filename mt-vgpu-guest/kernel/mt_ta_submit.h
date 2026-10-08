@@ -49,6 +49,12 @@ typedef int32_t s32;
  * firmware NAKs it, capture the Windows KMD's TA opcode as follow-up. */
 #define MT_FW_TA_OPCODE 0x66U
 
+/* r365 [MEASURED -> TO-VALIDATE fine semantics]: 0x66-class firmware
+ * completion code (vs standard COMPLETE=0). The frozen probe's
+ * mt_fw_event_matches() rejects it; TA fences complete via the TA-aware
+ * path (r366, kernel/mt_marker_fence.h). */
+#define MT_FW_TA_COMPLETE_CODE 0x100U
+
 /* Kick flag bits for mt_ta_submit_params.kick_flags, from IN bbKickTA /
  * bbKickPR (r363 live: kick_ta=1, kick_pr=1, kick_3d=0). */
 #define MT_TA_KICK_TA (1U << 0)

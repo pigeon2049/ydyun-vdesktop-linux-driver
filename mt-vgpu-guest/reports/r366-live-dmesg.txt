@@ -1,0 +1,52 @@
+[ 3624.257952] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 3939.416489] mt_pvr_bridge: unloaded cleanly
+[ 3939.475471] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 3940.683740] mt_pvr_bridge: unloaded cleanly
+[ 3940.775985] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 3956.604689] mt_pvr_bridge: unloaded cleanly
+[ 3956.679880] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 3957.819484] mt_pvr_bridge: unloaded cleanly
+[ 3957.893978] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 4168.929123] mt_pvr_bridge: unloaded cleanly
+[ 4169.022593] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 4170.165147] mt_pvr_bridge: unloaded cleanly
+[ 4170.248604] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 4424.279020] mt_pvr_bridge: unloaded cleanly
+[ 4424.333598] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 4425.515451] mt_pvr_bridge: unloaded cleanly
+[ 4425.585723] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 4572.813554] mt_pvr_bridge: unloaded cleanly
+[ 4572.883660] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 4574.016167] mt_pvr_bridge: unloaded cleanly
+[ 4574.091882] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 4773.062640] mt_pvr_bridge: unloaded cleanly
+[ 4773.130303] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 4774.280979] mt_pvr_bridge: unloaded cleanly
+[ 4774.346958] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 5238.760750] mt_pvr_bridge: unloaded cleanly
+[ 5238.845679] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 5239.995847] mt_pvr_bridge: unloaded cleanly
+[ 5240.090448] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 5370.110788] mt_pvr_bridge: unloaded cleanly
+[ 5370.201335] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 5371.352327] mt_pvr_bridge: unloaded cleanly
+[ 5371.434027] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 5634.312962] mt_pvr_bridge: unloaded cleanly
+[ 5634.375333] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[ 5635.527507] mt_pvr_bridge: unloaded cleanly
+[ 5635.621209] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[19388.454054] mt_pvr_bridge: unloaded cleanly
+[19399.429704] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[25367.019183] mt_pvr_bridge: unloaded cleanly
+[25367.103396] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)
+[25404.819536] mt_live_ta_work: T1 wire=1 code=0x100 signaled=1
+[25404.819783] mt_live_ta_work: T2 check_fence=1 satisfied, wire=2 done
+[25404.819795] mt_live_ta_work: T3 invalid check_fence -> -22 (want -EINVAL)
+[25404.819814] mt_live_ta_work: T4 TA submit failed -112
+[25404.820082] mt_live_ta_work: result=-61 T1(0/0/0x100) T2(0) T3(-22) T4(-112/0x0)
+[25456.791897] mt_live_ta_work: T1 wire=3 code=0x100 signaled=1
+[25456.792143] mt_live_ta_work: T2 check_fence=3 satisfied, wire=4 done
+[25456.792154] mt_live_ta_work: T3 invalid check_fence -> -22 (want -EINVAL)
+[25456.792455] mt_live_ta_work: T4 waited on dm1 wire=2, TA wire=5 code=0x100 signaled=1
+[25456.792457] mt_live_ta_work: result=0 T1(0/0/0x100) T2(0) T3(-22) T4(0/0x100)
+[25469.666492] mt_live_ta_work: unloaded

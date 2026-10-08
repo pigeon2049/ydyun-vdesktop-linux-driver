@@ -4903,6 +4903,19 @@ static void __exit pvr_stop(void)
 	pr_info("mt_pvr_bridge: unloaded cleanly\n");
 }
 
+/* ---- r366: TA submission op export (R2b phase 1) ---- */
+/* Entry point for the real submit_ta_work op. Runs in the bridge's context
+ * (THIS_MODULE=mt_pvr_bridge) so pending TA fences pin the bridge, never a
+ * short-lived verifier. See the ABI WARNING on struct mt_marker_ops in
+ * kernel/mt_marker_fence.h: do not call s->ops->submit_ta_work on stores
+ * initialized by pre-r366 probe builds. */
+int mt_bridge_submit_ta_work(struct mt_marker_store *s, struct mt_ta_work *work,
+			     struct dma_fence **out)
+{
+	return mt_marker_submit_ta_work(s, work, out);
+}
+EXPORT_SYMBOL_GPL(mt_bridge_submit_ta_work);
+
 module_init(pvr_start);
 module_exit(pvr_stop);
 MODULE_LICENSE("GPL");
