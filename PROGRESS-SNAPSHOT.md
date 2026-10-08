@@ -489,6 +489,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r348 T2-a（离线 fabricated，零硬件触碰）**：`RGXKickTA` 双映射 `-> 3`；`PRET=0/SURET=3`；`0x82:0x14` 未发出。T2-b 为 SubmitTA 归因。会话未碰，freeze 继续。见 `reports/r348-ta-fabricated-3.md` + 三证据。
 - **r347 T1 关闭（离线，零硬件触碰）**：`EnQueue` 纯入队；0x82 静态 18 wrapper、无 `0xC`（S4 改述为无生产者）；T2 打 `0x14`。本轮两次 `/tmp` 中间产物违规已删。会话未碰，freeze 继续。见 `reports/r347-enqueue-no-bridge-cmd.md`。
 - **r346 TA 阶梯（离线，零硬件触碰）**：`RGXKickTA` 入口链定锤（`+0x30` 守卫 + `PrepareTA@0x78800` + `SubmitTA@0x796b0`）；缺 producer/桥口/执行；T1 为 `SubmitTADataEnQueue` 桥命令归属。会话未碰，freeze 继续。见 `reports/r346-ta-bringup-ladder.md`。
 - **r345 app 未描述 surface（离线，零硬件触碰）**：copy 提交序列无 surface 调用，`CreateCCB` 只做 calloc；r333–r345 因果链闭合，缺口在 vendor 测试程序 setup（开放项记报告）。copy 线关账，待拍板。会话未碰，freeze 继续。见 `reports/r345-app-never-describes-surface.md`。
