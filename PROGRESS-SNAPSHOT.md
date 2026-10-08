@@ -489,6 +489,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- **r342 app 入参（批准执行）**：`=2` 窗口断 app `0x4026`——rdx 缓冲 `+0x820/+0x828/+0x838` 非零（栈指针），计数槽未变；收回 r341 “清零后无回填”。默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r342-app-args-live.md` + 双证据。
 - **r341 尾跳调用方（批准执行）**：`=2` 窗口返回地址点名——app `0x4026` 调 QueueTransferNew，`+0x46` 尾跳进 JobSubmit；`bt` 静默根因亦明。默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r341-tailcall-caller.md` + 双证据。
 
 - **r340 bt 通用静默（批准执行）**：`=2` 窗口 JobSubmit 入口 `bt` 同样零输出，改走 `x/gx $rsp`；app 进 transfer API，TQ 经指针到达。默认回 + L3 双绿，窗口零新增 WARN。**Freeze 已恢复。**见 `reports/r340-bt-silent-caller-ptr.md` + 双证据。
