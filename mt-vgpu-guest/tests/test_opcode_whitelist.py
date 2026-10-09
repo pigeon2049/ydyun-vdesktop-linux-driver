@@ -152,6 +152,40 @@ class TestOpcodeWhitelist(unittest.TestCase):
                         "forbidden pair (%d, %#x) has a code path via %s (%s)"
                         % (dm, op, m.group(1), why))
 
+    def test_dual_exec_ctx_dm_pinning(self):
+        """r397: render_ctx carries two exec contexts pinned to their DMs.
+
+        exec_ctx_ta  (node_type=2) must route to DM3 (TA).
+        exec_ctx_3d  (node_type=5) must route to DM2 (3D).
+        The route table (mt_work_command.h) is the source of truth;
+        the create calls in mt_pvr_bridge.c must use the right node types.
+        Reverse validation: change node_type 2->5 in the TA create call
+        must FAIL this test.
+        """
+        bridge = _read("recovery/mt_pvr_bridge.c")
+        # TA context created with node_type=2
+        self.assertRegex(
+            bridge,
+            r"mt_execution_context_create\(&ctx->exec_ctx_ta,\s*&ctx->process,\s*2,\s*0\)",
+            "exec_ctx_ta must be created with node_type=2",
+        )
+        # 3D context created with node_type=5
+        self.assertRegex(
+            bridge,
+            r"mt_execution_context_create\(&ctx->exec_ctx_3d,\s*&ctx->process,\s*5,\s*0\)",
+            "exec_ctx_3d must be created with node_type=5",
+        )
+        # Route table: type 2 -> dm 3, type 5 -> dm 2
+        route = _read("mt_work_command.h")
+        self.assertRegex(route, r"case 2: r\.dm = 3;",
+                         "node_type 2 must route to DM3")
+        self.assertRegex(route, r"case 5: r\.dm = 2;",
+                         "node_type 5 must route to DM2")
+        # The TA kick gate requires dm==3; the real ctx satisfies it.
+        # (2,0x66) remains forbidden (r380); TA opcode only on DM3.
+        self.assertIn((3, 0x66), PROVEN)
+        self.assertIn((2, 0x66), FORBIDDEN)
+
 
 if __name__ == "__main__":
     unittest.main()

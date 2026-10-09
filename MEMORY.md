@@ -43,6 +43,28 @@
 
 
 
+## r397 (2026-10-09): render_ctx 双执行上下文落地，kick 传真实 ctx（活体验证）
+
+**实现**：`mt_render_context.h` 中 `exec_ctx`→`exec_ctx_3d` 改名，新增 `exec_ctx_ta`
+（node_type=2→DM3）+ `exec_ta_ready`（struct 1544B→1616B）；create 第 7b 步建 TA ctx
+（失败走统一 rollback）；destroy 先 TA 后 3D（顺序无关）；kick 有-context 传
+`&rctx->exec_ctx_ta`（file->lock 下借用，marker 不拿所有权故行为中性），无-context
+保留 throwaway + 条件 kfree。
+
+**活体**（一次 bridge 重载，safe_rmmod.sh）：V1 双 ctx 创建成功
+（`r397: exec process/contexts created (3D node_type=5, TA node_type=2)`）；marker 回归
+KICK[ctx]→fence=6（`kick with real exec_ctx_ta (dm=3)`）、KICK[no-ctx]→fence=7，
+OUT 与 wire 精确匹配；V3 双 context（0x1000/0x1001）各 kick→fence 8/9，
+独立 VM 正确路由，文件关闭 ref 25→13 无泄漏；dmesg 零 WARN/BUG/Oops。
+
+**门禁**：474+299 全绿（T2 新增 dual dm pinning：exec_ctx_ta node_type=2→DM3、
+exec_ctx_3d node_type=5→DM2；反向验证通过）；kernel W=1 零警告。
+
+**诚实边界**：marker 级；`exec_ctx_ta` 仅过门禁，未提交真实负载（Phase 3 远期）；
+node_type=2 固件语义、in-flight destroy 待验证。
+
+报告 reports/r397-dual-exec-ctx-live-verified.md。
+
 ## r396 (2026-10-08): exec_ctx 接入 kick 路径设计——render_ctx 双执行上下文（离线）
 
 **背景**：r391 诚实边界——TA marker 的 work->context 仍是 kick 内 kzalloc 的一次性 dm 标签（仅 route.dm=3），render_ctx 的 exec_ctx（node_type=5→DM2）只贡献了 VM，未参与提交。

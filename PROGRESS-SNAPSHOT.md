@@ -489,6 +489,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- r397（2026-10-09）：render_ctx 双执行上下文落地（活体）：exec_ctx_3d（node_type=5→DM2）+ exec_ctx_ta（node_type=2→DM3）共享 process；kick 有-context 传真实 ctx（dm=3 门禁通过，借用不 kfree），无-context throwaway 回退；活体 V1/marker 回归/V3 隔离全绿，dmesg 干净；门禁 474+299 全绿，kernel W=1 零警告，本地提交未 push。
 - **r369 wire 6 清除 + kfree 回退上机（真机恢复）**：`mt_drain_pending.ko` 清 wire 6（`drained=1`，DM3 悬挂 marker 安全释放：job.state=EMPTY、m->context=NULL、无 waiter → -ETIMEDOUT signal+put → `mt_marker_release` → refcnt 1→0），drain 模块即卸无残留；旧桥（build `4a78b331`）回滚件已存后干净 `rmmod`；源码回退 r367 的 kfree 删除（r368 证伪 UAF——TA op 从未写 `m->context`，释放为干净释放，消 ~64B/次泄漏），`make kernel` W=1 零警告后按 r360 流程上机新桥（sha256 `4f5b08af…`，一次成功，kallsyms 见 `mt_bridge_submit_ta_work` 导出，`/dev/dri` 正常）；dmesg 零 WARN/BUG/Oops，probe ref=1 未动、bridge ref=0，freeze 恢复。门禁：`check-offline` 411+299 全绿；新 `tests/test_ta_kick_ctx_release.py`（3 tests，反向验证通过）。见 `reports/r369-wire6-drained-kfree-restored.md` + 双证据（0600）。生产 TA 完成路径（r368 缺口）另立轮次。
 
 - **r368 wire 6 只读诊断（零硬件触碰）**：wire 6 悬挂 ~940s 无完成事件，根因为结构性——生产事件路径（probe `mt_runtime_event`→通用 `mt_marker_complete`）拒收 TA 完成码 `0x100`，`mt_marker_complete_ta` 生产零调用（仅 r366 测试模块），且无超时机制 → 永久悬挂；r367 所述 UAF 经代码证伪（TA op 自 r366 从未写 `m->context`，`if (m->context)` 恒假，在载桥 `kfree(ctx)` 为干净释放），r367“修复”实引入 ~64B/次泄漏；恢复方案（待确认）：`mt_drain_pending.ko` 清 wire 6→refcnt 归 0→`rmmod`→回退 kfree 删除→重载；r369+ 须补齐生产 TA 完成路径。桥 refcnt=1，dmesg 零 oops。见 `reports/r368-wire6-uaf-reassessment.md`。

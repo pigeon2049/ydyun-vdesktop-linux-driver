@@ -70,7 +70,10 @@ class TestRenderContextCreate(unittest.TestCase):
         src = read_bridge()
         self.assertIn("mt_execution_process_create(&d->execution, &ctx->process,",
                       src, "exec process create not found")
-        self.assertIn("mt_execution_context_create(&ctx->exec_ctx, &ctx->process, 5, 0)",
+        self.assertIn("mt_execution_context_create(&ctx->exec_ctx_3d, &ctx->process, 5, 0)",
+                      src)
+        # r397: TA exec context (node_type=2 -> DM3)
+        self.assertIn("mt_execution_context_create(&ctx->exec_ctx_ta, &ctx->process, 2, 0)",
                       src, "exec context create (node_type=5) not found")
 
     def test_rollback(self):

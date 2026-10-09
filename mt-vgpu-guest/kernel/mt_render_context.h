@@ -28,8 +28,10 @@ struct mt_pvr_render_context {
 
 	/* Firmware execution state (mt_live_3d.c:296). */
 	struct mt_execution_process process;
-	struct mt_execution_context exec_ctx;
-	bool exec_ready;
+	struct mt_execution_context exec_ctx_3d;  /* node_type=5 -> DM2 (r389) */
+	struct mt_execution_context exec_ctx_ta;  /* node_type=2 -> DM3 (r397) */
+	bool exec_ready;      /* exec_ctx_3d created */
+	bool exec_ta_ready;   /* exec_ctx_ta created */
 
 	/* CSW: 248B (mt_gfx_context_build_csw). */
 	u8 csw[MT_GFX_CONTEXT_CSW_BYTES];

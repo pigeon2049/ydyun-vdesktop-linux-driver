@@ -1,0 +1,15 @@
+[ 8481.107307] mt_pvr_bridge: R5 V1: TA VM context created
+[15324.675946] mt_pvr_bridge: r397: exec process/contexts created (3D node_type=5, TA node_type=2)
+[15324.675947] mt_pvr_bridge: r389: render context READY (11 BOs, CSW, exec)
+[15324.676022] mt_pvr_bridge: r397: kick with real exec_ctx_ta (dm=3)
+[15324.676295] mt_pvr_bridge: musakickgfx2: submitted wire=6
+[15324.676329] mt_pvr_bridge: R5 V1: TA VM context created
+[15324.676585] mt_pvr_bridge: musakickgfx2: submitted wire=7
+[15358.028821] mt_pvr_bridge: r397: exec process/contexts created (3D node_type=5, TA node_type=2)
+[15358.028823] mt_pvr_bridge: r389: render context READY (11 BOs, CSW, exec)
+[15358.033697] mt_pvr_bridge: r397: exec process/contexts created (3D node_type=5, TA node_type=2)
+[15358.033698] mt_pvr_bridge: r389: render context READY (11 BOs, CSW, exec)
+[15358.033810] mt_pvr_bridge: r397: kick with real exec_ctx_ta (dm=3)
+[15358.034092] mt_pvr_bridge: musakickgfx2: submitted wire=8
+[15358.034140] mt_pvr_bridge: r397: kick with real exec_ctx_ta (dm=3)
+[15358.034401] mt_pvr_bridge: musakickgfx2: submitted wire=9

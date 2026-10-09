@@ -4178,8 +4178,15 @@ static void mt_render_context_destroy(struct mt_pvr_render_context *ctx)
 	/* 1. Exec context, then process. Process destroy requires
 	 * contexts==0 and decrements vm->owners, so it must precede
 	 * VM fini (which returns -EBUSY while owners>0). */
+	/* r397 Phase 1: destroy TA context first (order vs 3D is irrelevant;
+	 * both only touch process.contexts). */
+	if (ctx->exec_ta_ready) {
+		if (WARN_ON(mt_execution_context_destroy(&ctx->exec_ctx_ta)))
+			pr_warn("mt_pvr_bridge: r397: TA exec context destroy failed\n");
+		ctx->exec_ta_ready = false;
+	}
 	if (ctx->exec_ready) {
-		if (WARN_ON(mt_execution_context_destroy(&ctx->exec_ctx)))
+		if (WARN_ON(mt_execution_context_destroy(&ctx->exec_ctx_3d)))
 			pr_warn("mt_pvr_bridge: r390: exec context destroy failed\n");
 		if (WARN_ON(mt_execution_process_destroy(&ctx->process)))
 			pr_warn("mt_pvr_bridge: r390: exec process destroy failed\n");
@@ -4305,7 +4312,7 @@ static int mt_render_context_create(struct mt_pvr_file *file,
 		       ret);
 		goto out_rollback;
 	}
-	ret = mt_execution_context_create(&ctx->exec_ctx, &ctx->process, 5, 0);
+	ret = mt_execution_context_create(&ctx->exec_ctx_3d, &ctx->process, 5, 0);
 	if (ret) {
 		pr_err("mt_pvr_bridge: r389: exec context create failed: %d\n",
 		       ret);
@@ -4313,7 +4320,17 @@ static int mt_render_context_create(struct mt_pvr_file *file,
 		goto out_rollback;
 	}
 	ctx->exec_ready = true;
-	pr_info("mt_pvr_bridge: r389: exec process/context created (node_type=5)\n");
+	/* r397 Phase 1: TA execution context (node_type=2 -> DM3, r396 D1).
+	 * Shares process/VM/11 BOs with the 3D context. Rollback via
+	 * mt_render_context_destroy (single path, r390). */
+	ret = mt_execution_context_create(&ctx->exec_ctx_ta, &ctx->process, 2, 0);
+	if (ret) {
+		pr_err("mt_pvr_bridge: r397: TA exec context create failed: %d\n",
+		       ret);
+		goto out_rollback;
+	}
+	ctx->exec_ta_ready = true;
+	pr_info("mt_pvr_bridge: r397: exec process/contexts created (3D node_type=5, TA node_type=2)\n");
 
 	/* 8. Full success. */
 	ctx->resources_ready = true;
@@ -4350,6 +4367,8 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	struct mt_pvr_musakickgfx2_out out = { 0 };
 	struct mt_ta_work work;
 	struct mt_execution_context *ctx;
+	struct mt_pvr_render_context *rctx = NULL;
+	bool use_real_ctx = false;
 	struct dma_fence *fence = NULL;
 	struct mt_guest *g;
 	struct mt_guest_device *d;
@@ -4387,11 +4406,10 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	 * resources_ready, the kick uses the per-context VM (V3 isolation);
 	 * otherwise it falls back to the per-file VM (Phase 1, protects the
 	 * marker path). The TA marker op requires route.dm == MT_FW_DM_TA,
-	 * while render_ctx->exec_ctx is node_type 5 (DM 3D); real exec_ctx
-	 * submission arrives with 3D kick enablement (R6-5). */
+	 * while render_ctx->exec_ctx_3d is node_type 5 (DM 3D); real TA exec_ctx
+	 * submission uses exec_ctx_ta (r397 Phase 2). */
 	{
 		struct mt_pvr_object *robj;
-		struct mt_pvr_render_context *rctx = NULL;
 		struct mt_bridge_ta_vm *kick_vm = NULL;
 
 		robj = pvr_object_find(file, in.h_render_context,
@@ -4441,12 +4459,24 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 		ret = -EBUSY;
 		goto out_unlock;
 	}
-	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
-	if (!ctx) {
-		ret = -ENOMEM;
-		goto out_unlock;
+	/* r397 Phase 2: with a live render context, submit under the
+	 * real TA execution context (node_type=2, route.dm==3). The
+	 * marker op takes no ownership (r368), so the kick borrows
+	 * the pointer; no kfree. Without a context, keep the
+	 * throwaway (r391 fallback). */
+	use_real_ctx = (rctx && rctx->resources_ready);
+	if (use_real_ctx) {
+		ctx = &rctx->exec_ctx_ta;
+		pr_info("mt_pvr_bridge: r397: kick with real exec_ctx_ta (dm=%u)\n",
+			ctx->route.dm);
+	} else {
+		ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
+		if (!ctx) {
+			ret = -ENOMEM;
+			goto out_unlock;
+		}
+		ctx->route.dm = MT_FW_DM_TA;
 	}
-	ctx->route.dm = MT_FW_DM_TA;
 	memset(&work, 0, sizeof(work));
 	work.job.state = MT_JOB_HELD;
 	work.context = ctx;
@@ -4468,7 +4498,8 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	if (ret) {
 		pr_info("mt_pvr_bridge: musakickgfx2: submit_ta_work -> %d\n",
 			ret);
-		kfree(ctx);
+		if (!use_real_ctx)
+			kfree(ctx);
 		return ret;
 	}
 
@@ -4480,7 +4511,8 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	 * r367 UAF claim). The dispatch-allocated ctx is therefore
 	 * unreferenced after the op returns; freeing it here is a clean
 	 * release, not a use-after-free. */
-	kfree(ctx);
+	if (!use_real_ctx)
+		kfree(ctx);
 
 	/* r370: production TA completion path (R2b). The frozen probe's
 	 * event drain rejects 0x100, so without this poll the marker hangs

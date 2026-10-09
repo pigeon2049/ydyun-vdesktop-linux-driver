@@ -34,8 +34,14 @@ int main(void)
            __builtin_offsetof(struct mt_pvr_render_context, bos_ready));
     printf("off_process=%zu\n",
            __builtin_offsetof(struct mt_pvr_render_context, process));
-    printf("off_exec_ctx=%zu\n",
-           __builtin_offsetof(struct mt_pvr_render_context, exec_ctx));
+    printf("off_exec_ctx_3d=%zu\n",
+           __builtin_offsetof(struct mt_pvr_render_context, exec_ctx_3d));
+    printf("off_exec_ctx_ta=%zu\n",
+           __builtin_offsetof(struct mt_pvr_render_context, exec_ctx_ta));
+    printf("off_exec_ready=%zu\n",
+           __builtin_offsetof(struct mt_pvr_render_context, exec_ready));
+    printf("off_exec_ta_ready=%zu\n",
+           __builtin_offsetof(struct mt_pvr_render_context, exec_ta_ready));
     printf("off_csw=%zu\n",
            __builtin_offsetof(struct mt_pvr_render_context, csw));
     printf("off_vm=%zu\n",
@@ -60,17 +66,20 @@ int main(void)
 #   csw[248] @1177; pad to 1432; vm @1432; vm_base_va @1440;
 #   pt_bo=88 @1448 (r389); resources_ready @1536; total 1544 (8-aligned).
 EXPECTED = {
-    "sizeof_ctx": 1544,
+    "sizeof_ctx": 1616,
     "off_bos": 0,
     "off_vas": 968,
     "off_bos_ready": 1056,
     "off_process": 1072,
-    "off_exec_ctx": 1104,
-    "off_csw": 1177,
-    "off_vm": 1432,
-    "off_vm_base_va": 1440,
-    "off_pt_bo": 1448,
-    "off_resources_ready": 1536,
+    "off_exec_ctx_3d": 1104,
+    "off_exec_ctx_ta": 1176,
+    "off_exec_ready": 1248,
+    "off_exec_ta_ready": 1249,
+    "off_csw": 1250,
+    "off_vm": 1504,
+    "off_vm_base_va": 1512,
+    "off_pt_bo": 1520,
+    "off_resources_ready": 1608,
     "stride": 16 << 20,
     "bo_count": 11,
     "csw_bytes": 248,
