@@ -5875,6 +5875,13 @@ __maybe_unused static int mt_ta_submit_real(struct mt_pvr_file *file,
 	work.params.ta_cmd_va = ta_va;
 	work.params.ta_cmd_size = MT_TA_CMD_BUFFER_BYTES;
 	/* kick_flags/ta_upd_count/ta_fence_count stay 0: pass validation. */
+	/* r458: TA DM packet needs GPU VM info (+0x18 root_pa, +0x20 token)
+	 * so firmware can translate TA/RgnHeader VAs. Same expressions as
+	 * mt_execution_context_inputs(). exec_ctx_ta.process is non-NULL
+	 * (validated by mt_execution_context_create when exec_ta_ready). */
+	work.params.vm_root_pa =
+		rctx->exec_ctx_ta.process->vm->tables->backing.gpu_pa;
+	work.params.vm_token = rctx->exec_ctx_ta.process->token;
 
 	mutex_lock(&g->trial_lock);
 	if (!s->can_submit) {

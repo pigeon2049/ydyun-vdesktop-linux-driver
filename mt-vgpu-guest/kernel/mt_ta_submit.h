@@ -83,6 +83,8 @@ struct mt_ta_submit_params {
 	u32 pr_fence_offset;	/* pr_fence_ufo_sync_offset */
 	u32 pr_fence_value;	/* pr_fence_value (1 in r363) */
 	s32 check_fence;	/* check_fence: input dma_fence dependency */
+	u64 vm_root_pa;	/* r458: GPU page-table root PA for TA VA translation (+0x18) */
+	u64 vm_token;	/* r458: process token identifying the GPU VM (+0x20) */
 };
 
 /* D5 [r367]: map a decoded 0x82:0xC (MUSAKickGFX2) IN to TA submit params.
@@ -138,14 +140,19 @@ mt_ta_params_from_musakickgfx2(struct mt_ta_submit_params *p,
  */
 
 /* ---- gate: layout pins (r364) ---- */
-static_assert(sizeof(struct mt_ta_submit_params) == 104,
-	      "mt_ta_submit_params size");
+static_assert(sizeof(struct mt_ta_submit_params) == 120,
+	      "mt_ta_submit_params size"); /* r458: +16 for vm_root_pa/vm_token */
 static_assert(__builtin_offsetof(struct mt_ta_submit_params, ta_cmd_va) == 0,
 	      "mt_ta_submit_params.ta_cmd_va");
 static_assert(__builtin_offsetof(struct mt_ta_submit_params, ta_upd_count) == 40,
 	      "mt_ta_submit_params.ta_upd_count");
 static_assert(__builtin_offsetof(struct mt_ta_submit_params, check_fence) == 96,
 	      "mt_ta_submit_params.check_fence");
+/* r458: VM info for TA packet (+0x18/+0x20), appended after check_fence. */
+static_assert(__builtin_offsetof(struct mt_ta_submit_params, vm_root_pa) == 104,
+	      "mt_ta_submit_params.vm_root_pa");
+static_assert(__builtin_offsetof(struct mt_ta_submit_params, vm_token) == 112,
+	      "mt_ta_submit_params.vm_token");
 static_assert(MT_FW_DM_TA == 3U, "MT_FW_DM_TA");
 static_assert(MT_FW_DM_TA > 2U, "TA DM must not collide with TQX(1)/3D(2)");
 

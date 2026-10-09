@@ -332,12 +332,17 @@ static inline void mt_fw_ta_marker_command(void *command, u32 fence, u32 pid)
  * Gated by MT_TA_REAL_PACKET (default 0 = disabled). */
 #if MT_TA_REAL_PACKET
 static inline void mt_fw_ta_real_command(void *command, u32 fence, u32 pid,
-				 u64 ta_va, u32 ta_size)
+				 u64 ta_va, u32 ta_size,
+				 u64 root_pa, u64 token)
 {
 	memset(command, 0, MT_FW_COMMAND_BYTES);
 	mt_fw_put32(command, 0x0c, MT_FW_TA_OPCODE);
 	mt_fw_put32(command, 0x48, fence);
 	mt_fw_put32(command, 0x4c, pid);
+	/* r458: GPU VM info for TA VA translation (+0x18 root_pa, +0x20 token).
+	 * Matches mt_work_command_encode() reference layout (r457). */
+	mt_fw_put64(command, 0x18, root_pa);
+	mt_fw_put64(command, 0x20, token);
 	/* 64-bit TA buffer VA at +0x28 (two u32 writes, little-endian). */
 	mt_fw_put32(command, MT_TA_DM_PKT_TA_VA_LO, (u32)(ta_va & 0xffffffffULL));
 	mt_fw_put32(command, MT_TA_DM_PKT_TA_VA_HI, (u32)(ta_va >> 32));
@@ -565,7 +570,8 @@ static void mt_ta_submit_build(void *packet, u32 wire_id, u32 pid,
 	 * TO-VALIDATE: DM packet layout inferred by 3D analogy. */
 	const struct mt_ta_submit_params *params = p;
 	mt_fw_ta_real_command(packet, wire_id, pid,
-			      params->ta_cmd_va, params->ta_cmd_size);
+			      params->ta_cmd_va, params->ta_cmd_size,
+			      params->vm_root_pa, params->vm_token);
 #else
 	(void)p;
 	/* D2/D4: DM3, opcode 0x66 marker; wire_id at +0x48 (r365 proven). */

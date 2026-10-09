@@ -32,6 +32,10 @@ int main(void)
            __builtin_offsetof(struct mt_ta_submit_params, ta_upd_count));
     printf("off_check_fence=%zu\n",
            __builtin_offsetof(struct mt_ta_submit_params, check_fence));
+    printf("off_vm_root_pa=%zu\n",
+           __builtin_offsetof(struct mt_ta_submit_params, vm_root_pa));
+    printf("off_vm_token=%zu\n",
+           __builtin_offsetof(struct mt_ta_submit_params, vm_token));
     printf("dm_ta=%u\n", MT_FW_DM_TA);
     printf("opcode=%u\n", MT_FW_TA_OPCODE);
     printf("kick_ta=%u\n", MT_TA_KICK_TA);
@@ -42,10 +46,12 @@ int main(void)
 
 # Design pins from kernel/mt_ta_submit.h (r364).
 EXPECTED = {
-    "sizeof_params": 104,
+    "sizeof_params": 120,  # r458: +16 for vm_root_pa/vm_token
     "off_ta_cmd_va": 0,
     "off_ta_upd_count": 40,
     "off_check_fence": 96,
+    "off_vm_root_pa": 104,  # r458
+    "off_vm_token": 112,  # r458
     "dm_ta": 3,
     "opcode": 0x66,
     "kick_ta": 1,
