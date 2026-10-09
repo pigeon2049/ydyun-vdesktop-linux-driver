@@ -431,3 +431,5 @@ r435-cold-reboot-not-done-stop.md |
 | r457-ta-packet-missing-vm-info.md |
 | r458 | TA 包 VM 信息修复实现（离线）：struct mt_ta_submit_params 新增 vm_root_pa/vm_token（sizeof 104→120，pins 更新）；mt_ta_submit_real 从 rctx->exec_ctx_ta.process 填写（同 mt_execution_context_inputs 表达式）；mt_fw_ta_real_command 新增 root_pa/token 参数写 +0x18/+0x20；mt_ta_submit_build 透传；0x82:0xC 路径保持 0；11 新测试，反向验证 10/11 精确 FAIL；门禁 609+851 全绿，W=1 零警告 |
 | r458-ta-packet-vm-info-implemented.md |
+| r459 | TA 包 VM 信息修复活体仍 5s 超时：r458 修复（三处代码）活体行为无变化，r457 MMU fault 假说被证伪；trial OK，13 BOs 绑定，context READY，固件无响应；Header/包内容方向已穷尽；bridge ref=1 pending reboot |
+| r459-vm-info-fix-still-timeout-falsified.md |

@@ -626,3 +626,27 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 纯离线轮，零硬件触碰。下一步 r456（待第 15 次冷重启）：trial + 128-dword RgnHeader 活体。
 - 报告：mt-vgpu-guest/reports/r455-rgnheader-double-init-implemented.md
 
+## r457 (2026-10-09): TA 包缺失 VM 信息（+0x18/+0x20）——最可能根因，opcode 0x66 低嫌疑（离线）
+
+- **核心发现** [MEASURED]：参考包构造器 `mt_work_command_encode()`（`kernel/mt_work_command.h`）
+  填写 +0x18 root_pa（`vm->tables->backing.gpu_pa`）与 +0x20 process_id（`process->token`）；
+  工作路径（TQX/3D）经 `mt_execution_context_inputs()` 填写。TA 路径的
+  `mt_fw_ta_real_command()`（`kernel/mt_marker_fence.h:334`）只写 +0x0c/+0x28/+0x30/+0x48/+0x4c，
+  **+0x18/+0x20 留零**。包构造钩子 `build_command(packet, wire_id, pid, params)` 签名无
+  context 参数，`work.context = &rctx->exec_ctx_ta` 只用于 dm 校验与 fence 归属。
+- **根因推断** [INFERRED 高]：TA VA 与 RgnHeader VA（0x7c000000）为 guest GPU 虚地址；
+  无 root_pa 则固件/host 无法翻译 → GPU MMU fault → hang。吻合零/非零行为差异
+  （r414 零 header 不解引用 VA → 219µs；r418+ 非零 → 解引用 → fault → 5s 超时）。
+- **opcode 0x66** [INFERRED 低嫌疑]：KCCB（0x2ABC0065）与 DM 队列是不同接口，直接对比是范畴错误；
+  proxy 对 0x66 包返回 TA 类完成码 0x100（`MT_FW_TA_COMPLETE_CODE`），识别为 TA；
+  错 opcode 应立即错误而非 5s 超时。D4 的 TO-VALIDATE 保留。
+- **Bridge 参数缺失** [INFERRED 中]：真实 `PVRSRVRGXKickTA3DKM` 约 40 参数
+  （psKMHWRTDataSet/ZSBuffer/sync prims/PR fence/draw counts），我方仅填 ta_cmd_va/size；
+  但属架构性绕行（直写 DM 队列），host 可能补足，无法从 guest 侧验证。
+- **r458 修复方案**：`struct mt_ta_submit_params` 新增 `vm_root_pa`/`vm_token`；
+  `mt_ta_submit_real` 从 `rctx->exec_ctx_ta.process` 填写（与 `mt_execution_context_inputs` 同表达式）；
+  `mt_fw_ta_real_command` 新增参数写 +0x18/+0x20；`mt_ta_submit_build` 透传；
+  0x82:0xC 路径保持 0。测试 + 反向验证 + 门禁。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r457-ta-packet-missing-vm-info.md
+
