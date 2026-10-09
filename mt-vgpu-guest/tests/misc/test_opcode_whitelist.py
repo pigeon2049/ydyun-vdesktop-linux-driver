@@ -81,6 +81,35 @@ def _strip_comments(src):
     return src
 
 
+def _function_span(src, name):
+    """(start, end) offsets of the body of `name(` ... matching close brace."""
+    i = src.index(name + "(")
+    i = src.index("{", i)
+    depth = 0
+    for j in range(i, len(src)):
+        if src[j] == "{":
+            depth += 1
+        elif src[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return (i, j + 1)
+    raise AssertionError("unbalanced braces in %s" % name)
+
+
+def _struct_init(src, name):
+    """Text of `name = { ... };` with balanced braces (r403 ops tables)."""
+    i = src.index(name + " = {")
+    depth = 0
+    for j in range(i, len(src)):
+        if src[j] == "{":
+            depth += 1
+        elif src[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return src[i:j + 1]
+    raise AssertionError("unbalanced braces in %s" % name)
+
+
 class TestOpcodeWhitelist(unittest.TestCase):
     def test_ta_opcode_pinned_to_dm3(self):
         # r380 regression: the TA opcode must only ever go out on DM3.
@@ -96,20 +125,23 @@ class TestOpcodeWhitelist(unittest.TestCase):
                        and "MT_FW_TA_OPCODE" in p.read_text())
         self.assertEqual(users, ["mt_marker_fence.h"],
                          "MT_FW_TA_OPCODE used outside TA path: %s" % users)
-        # The TA submit op pins dm to MT_FW_DM_TA (a const, not a variable).
+        # r403: dm pinning lives in the TA ops table, not a wrapper local.
         fence = _strip_comments(_read("mt_marker_fence.h"))
-        body = _function_body(fence, "mt_marker_submit_ta_work")
-        self.assertIn("const u32 dm = MT_FW_DM_TA;", body)
-        # mt_fw_ta_marker_command() is called only from the TA submit path
-        # (definition excluded).
-        ta_start = fence.index("static int mt_marker_submit_ta_work")
-        ta_end = fence.index("static int mt_marker_submit_3d_work")
+        ops = _struct_init(fence, "mt_ta_submit_ops")
+        self.assertIn(".dm = MT_FW_DM_TA", ops)
+        # mt_fw_ta_marker_command() is called only from the TA build hook
+        # (definition excluded); the hook is referenced only from the ops
+        # table, so the opcode cannot reach any other submit path.
+        bstart, bend = _function_span(fence, "mt_ta_submit_build")
         for m in re.finditer(r"mt_fw_ta_marker_command\(", fence):
             before = fence[max(0, m.start() - 80):m.start()]
             if re.search(r"\bvoid\s*$", before):
                 continue  # the definition itself: `static inline void <name>(`
-            self.assertTrue(ta_start < m.start() < ta_end,
-                            "mt_fw_ta_marker_command called outside TA submit path")
+            self.assertTrue(bstart <= m.start() < bend,
+                            "mt_fw_ta_marker_command called outside TA build hook")
+        refs = re.findall(r"\bmt_ta_submit_build\b", fence)
+        self.assertEqual(len(refs), 2,
+                         "mt_ta_submit_build referenced outside mt_ta_submit_ops")
 
     def test_3d_opcode_pinned_to_dm2(self):
         self.assertEqual(_define_value("mt_3d_submit.h", "MT_FW_3D_OPCODE"), 0x68)
@@ -123,9 +155,24 @@ class TestOpcodeWhitelist(unittest.TestCase):
         self.assertEqual(users, ["mt_marker_fence.h"],
                          "MT_FW_3D_OPCODE used outside 3D path: %s" % users)
         fence = _strip_comments(_read("mt_marker_fence.h"))
+        # r403: dm pinning lives in the 3D ops table.
+        ops = _struct_init(fence, "mt_3d_submit_ops")
+        self.assertIn(".dm = MT_FW_DM_3D", ops)
+        # r380 mirror: the DM2 ops table must never carry the TA opcode,
+        # neither directly nor through the hooks it names.
+        self.assertNotIn("MT_FW_TA_OPCODE", ops)
+        self.assertNotIn("mt_fw_ta_marker_command", ops)
+        self.assertNotIn("mt_ta_submit_build", ops)
+        for hm in re.finditer(r"\.\w+\s*=\s*(\w+)\s*,", ops):
+            hname = hm.group(1)
+            if hname.startswith("mt_3d_submit_"):
+                hbody = _function_body(fence, hname)
+                self.assertNotIn("MT_FW_TA_OPCODE", hbody,
+                                 "TA opcode reachable via 3D hook %s" % hname)
+                self.assertNotIn("mt_fw_ta_marker_command", hbody,
+                                 "TA builder reachable via 3D hook %s" % hname)
+        # The thin 3D wrapper itself must stay TA-free as well.
         body = _function_body(fence, "mt_marker_submit_3d_work")
-        self.assertIn("const u32 dm = MT_FW_DM_3D;", body)
-        # r380 mirror: the DM2 submit path must never carry the TA opcode.
         self.assertNotIn("MT_FW_TA_OPCODE", body)
         self.assertNotIn("mt_fw_ta_marker_command", body)
 
@@ -139,21 +186,36 @@ class TestOpcodeWhitelist(unittest.TestCase):
                          "mt_trial_send must submit on dm 0")
 
     def test_forbidden_pairs_have_no_symbolic_path(self):
-        # For each FORBIDDEN (dm, op): every function pinned to that dm must
-        # not reference the opcode's symbol. (Literal uses are covered
-        # because test_ta_opcode_pinned_to_dm3 confines the symbol's users.)
+        # For each FORBIDDEN (dm, op): no ops table pinned to that dm may
+        # reference the opcode's symbol, neither directly nor through the
+        # hooks it names. (r403: dm pinning moved from wrapper locals into
+        # per-engine ops tables. Literal uses are covered because
+        # test_ta_opcode_pinned_to_dm3 confines the symbol's users.)
         dm_defines = {0: None, 1: None, 2: "MT_FW_DM_3D", 3: "MT_FW_DM_TA"}
         fence = _strip_comments(_read("mt_marker_fence.h"))
         for (dm, op), why in FORBIDDEN.items():
             sym = OPCODE_SYMBOLS[op]
             marker = dm_defines[dm]
-            for m in re.finditer(r"static int (\w+)\(", fence):
-                body = _function_body(fence, m.group(1))
-                if marker and ("const u32 dm = %s;" % marker) in body:
+            for m in re.finditer(
+                    r"static const struct mt_marker_submit_ops (\w+)\s*=\s*\{",
+                    fence):
+                ops = _struct_init(fence, m.group(1))
+                if marker and (".dm = %s" % marker) in ops:
                     self.assertNotIn(
-                        sym, body,
+                        sym, ops,
                         "forbidden pair (%d, %#x) has a code path via %s (%s)"
                         % (dm, op, m.group(1), why))
+                    self.assertNotIn("mt_fw_ta_marker_command", ops)
+                    for hm in re.finditer(r"\.\w+\s*=\s*(\w+)\s*,", ops):
+                        hname = hm.group(1)
+                        if re.search(r"\b(static|inline)\b[^{};]*\b%s\s*\(" % hname,
+                                     fence):
+                            hbody = _function_body(fence, hname)
+                            self.assertNotIn(
+                                sym, hbody,
+                                "forbidden pair (%d, %#x) via hook %s (%s)"
+                                % (dm, op, hname, why))
+                            self.assertNotIn("mt_fw_ta_marker_command", hbody)
 
     def test_dual_exec_ctx_dm_pinning(self):
         """r397: render_ctx carries two exec contexts pinned to their DMs.

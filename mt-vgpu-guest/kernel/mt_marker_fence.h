@@ -400,41 +400,71 @@ static int mt_marker_ta_lookup_fence(struct mt_marker_store *s, s32 check_fence,
  * Marker-level (r366, r364 D8): payload is a 0x66 marker only; any real TA
  * payload (updates/fences/PR) is rejected with -EOPNOTSUPP until R2b/R5.
  */
-static int mt_marker_submit_ta_work(struct mt_marker_store *s,
-				    struct mt_ta_work *work,
-				    struct dma_fence **out)
+
+/* Per-engine submit operations (r403). The common submit framework
+ * (mt_marker_submit_engine_work, below) implements the submit pipeline
+ * once; TA and 3D differ only in these hooks. Adding a new engine is a
+ * new ops table, not a 100-line framework copy.
+ *
+ * T2 (tests/misc/test_opcode_whitelist.py) pins each table's .dm and
+ * verifies the opcode flows only through its own build hook (r380).
+ */
+struct mt_marker_submit_ops {
+	/* DM this engine submits to (MT_FW_DM_TA / MT_FW_DM_3D). */
+	u32 dm;
+	/* Engine-specific param validation; 0 or -errno. Runs before any
+	 * hardware write (D7). TA: D5/D8 marker gates. 3D: non-empty check. */
+	int (*validate_params)(const void *params);
+	/* Build the firmware command packet. */
+	void (*build_command)(void *packet, u32 wire_id, u32 pid,
+			      const void *params);
+	/* Copy params into the fence's per-engine slot. */
+	void (*store_params)(struct mt_marker_fence *m, const void *params);
+};
+
+/* Common engine submit framework (r403). Shared by submit_ta_work and
+ * submit_3d_work; behavior is identical to the pre-r403 copies.
+ *
+ * The caller (thin wrapper) has done the NULL check. Validation order
+ * mirrors the originals: job state, context/dm, family, engine params,
+ * ready/can_submit, fence wait (lockless), then the locked alloc/submit
+ * phase with the 63-entry cap, never-reused wire IDs, and full unwind
+ * on queue errors.
+ */
+static int mt_marker_submit_engine_work(struct mt_marker_store *s,
+					const struct mt_marker_submit_ops *ops,
+					struct mt_work_job *job,
+					struct mt_execution_context **pcontext,
+					struct mt_pool_slice **pool_slices,
+					s32 check_fence, const void *params,
+					struct dma_fence **out)
 {
 	struct mt_marker_fence *m;
 	struct mt_execution_context *c;
 	struct dma_fence *dep = NULL;
-	const u32 dm = MT_FW_DM_TA;
+	const u32 dm = ops->dm;
 	long waited;
 	int ret;
 
-	/* D7: validate everything before any hardware write. */
-	if (!s || !work || !out)
+	if (job->state != MT_JOB_HELD)
 		return -EINVAL;
-	if (work->job.state != MT_JOB_HELD)
-		return -EINVAL;
-	c = work->context;
+	c = *pcontext;
 	if (!c || c->route.dm != dm)
 		return -EOPNOTSUPP;
 	if (s->profile.family != 2)
 		return -EOPNOTSUPP;
-	/* D5: kick_pr semantics are TO-VALIDATE (r364 V3); do not fabricate. */
-	if (work->params.kick_flags & MT_TA_KICK_PR)
-		return -EOPNOTSUPP;
-	/* D8: R5 gate — marker level only. */
-	if (work->params.ta_upd_count > 0 || work->params.ta_fence_count > 0)
-		return -EOPNOTSUPP;
+	ret = ops->validate_params(params);
+	if (ret)
+		return ret;
 	if (!s->ready || !s->can_submit)
 		return -EHOSTDOWN;
 	ret = s->can_submit(s->opaque);
 	if (ret)
 		return ret;
 
-	/* D6: input dependency wait, without s->lock (see contract above). */
-	ret = mt_marker_ta_lookup_fence(s, work->params.check_fence, &dep);
+	/* Input dependency wait, without s->lock (see contract above).
+	 * The TA fence lookup is generic by wire_id; 3D reuses it. */
+	ret = mt_marker_ta_lookup_fence(s, check_fence, &dep);
 	if (ret)
 		return ret;
 	if (dep) {
@@ -466,9 +496,8 @@ static int mt_marker_submit_ta_work(struct mt_marker_store *s,
 	m->wire_id = s->next[dm]++;
 	dma_fence_init(&m->fence, &mt_marker_fence_ops, &m->lock,
 		       s->context[dm], m->wire_id);
-	/* D2/D4: DM3, opcode 0x66 marker; wire_id at +0x48 (r365 proven). */
-	mt_fw_ta_marker_command(m->job.packet, m->wire_id, (u32)current->pid);
-	m->ta_params = work->params;
+	ops->build_command(m->job.packet, m->wire_id, (u32)current->pid, params);
+	ops->store_params(m, params);
 	/* Marker-level: no context ownership (R2b binds the real context). */
 	list_add_tail(&m->link, &s->pending[dm]);
 	s->count[dm]++;
@@ -484,14 +513,57 @@ static int mt_marker_submit_ta_work(struct mt_marker_store *s,
 		goto out_unlock;
 	}
 	/* Success: consume the caller's prepared work. */
-	work->job.state = MT_JOB_EMPTY;
-	work->context = NULL;
-	memset(work->pool_slices, 0, sizeof(work->pool_slices));
+	job->state = MT_JOB_EMPTY;
+	*pcontext = NULL;
+	memset(pool_slices, 0, 3 * sizeof(*pool_slices));
 	*out = dma_fence_get(&m->fence);
 	ret = 0;
 out_unlock:
 	mutex_unlock(s->lock);
 	return ret;
+}
+
+/* TA engine hooks (r403). */
+static int mt_ta_submit_validate(const void *p)
+{
+	const struct mt_ta_submit_params *params = p;
+	/* D5: kick_pr semantics are TO-VALIDATE (r364 V3); do not fabricate. */
+	if (params->kick_flags & MT_TA_KICK_PR)
+		return -EOPNOTSUPP;
+	/* D8: R5 gate -- marker level only. */
+	if (params->ta_upd_count > 0 || params->ta_fence_count > 0)
+		return -EOPNOTSUPP;
+	return 0;
+}
+static void mt_ta_submit_build(void *packet, u32 wire_id, u32 pid,
+			       const void *p)
+{
+	(void)p;
+	/* D2/D4: DM3, opcode 0x66 marker; wire_id at +0x48 (r365 proven). */
+	mt_fw_ta_marker_command(packet, wire_id, pid);
+}
+static void mt_ta_submit_store(struct mt_marker_fence *m, const void *p)
+{
+	m->ta_params = *(const struct mt_ta_submit_params *)p;
+}
+static const struct mt_marker_submit_ops mt_ta_submit_ops = {
+	.dm = MT_FW_DM_TA,
+	.validate_params = mt_ta_submit_validate,
+	.build_command = mt_ta_submit_build,
+	.store_params = mt_ta_submit_store,
+};
+
+static int mt_marker_submit_ta_work(struct mt_marker_store *s,
+				    struct mt_ta_work *work,
+				    struct dma_fence **out)
+{
+	/* D7: validate everything before any hardware write. */
+	if (!s || !work || !out)
+		return -EINVAL;
+	return mt_marker_submit_engine_work(s, &mt_ta_submit_ops, &work->job,
+					    &work->context, work->pool_slices,
+					    work->params.check_fence,
+					    &work->params, out);
 }
 
 /* TA-aware completion (r366). Accepts the 0x66-class completion code
@@ -569,6 +641,38 @@ static inline void mt_fw_3d_command(void *command, u32 fence, u32 pid,
  * so the generic mt_marker_complete() path handles it; no TA-style
  * special matcher is needed.
  */
+
+#if MT_3D_SUBMIT_GATE
+/* 3D engine hooks (r403). */
+static int mt_3d_submit_validate(const void *p)
+{
+	const struct mt_3d_submit_params *params = p;
+	/* r381: DM2 ignores empty markers. Reject honestly (r380 lesson). */
+	if (!params->submission_va || !params->submission_size)
+		return -EINVAL;
+	return 0;
+}
+static void mt_3d_submit_build(void *packet, u32 wire_id, u32 pid,
+			       const void *p)
+{
+	const struct mt_3d_submit_params *params = p;
+	/* DM2, opcode 0x68; wire_id at +0x48, command_va at +0x28 (r381). */
+	mt_fw_3d_command(packet, wire_id, pid,
+			 params->submission_va, params->submission_size);
+}
+static void mt_3d_submit_store(struct mt_marker_fence *m, const void *p)
+{
+	m->d3_params = *(const struct mt_3d_submit_params *)p;
+}
+static const struct mt_marker_submit_ops mt_3d_submit_ops = {
+	.dm = MT_FW_DM_3D,
+	.validate_params = mt_3d_submit_validate,
+	.build_command = mt_3d_submit_build,
+	.store_params = mt_3d_submit_store,
+};
+
+#endif /* MT_3D_SUBMIT_GATE */
+
 static int mt_marker_submit_3d_work(struct mt_marker_store *s,
 				    struct mt_3d_work *work,
 				    struct dma_fence **out)
@@ -579,93 +683,13 @@ static int mt_marker_submit_3d_work(struct mt_marker_store *s,
 	(void)out;
 	return -EOPNOTSUPP;
 #else
-	struct mt_marker_fence *m;
-	struct mt_execution_context *c;
-	struct dma_fence *dep = NULL;
-	const u32 dm = MT_FW_DM_3D;
-	long waited;
-	int ret;
-
 	/* Validate everything before any hardware write. */
 	if (!s || !work || !out)
 		return -EINVAL;
-	if (work->job.state != MT_JOB_HELD)
-		return -EINVAL;
-	c = work->context;
-	if (!c || c->route.dm != dm)
-		return -EOPNOTSUPP;
-	if (s->profile.family != 2)
-		return -EOPNOTSUPP;
-	/* r381: DM2 ignores empty markers. Reject honestly. */
-	if (!work->params.submission_va || !work->params.submission_size)
-		return -EINVAL;
-	if (!s->ready || !s->can_submit)
-		return -EHOSTDOWN;
-	ret = s->can_submit(s->opaque);
-	if (ret)
-		return ret;
-
-	/* Input dependency wait, without s->lock (see contract above).
-	 * Reuses the TA fence lookup (generic by wire_id). */
-	ret = mt_marker_ta_lookup_fence(s, work->params.check_fence, &dep);
-	if (ret)
-		return ret;
-	if (dep) {
-		waited = dma_fence_wait_timeout(dep, false, msecs_to_jiffies(5000));
-		dma_fence_put(dep);
-		if (waited < 0)
-			return (int)waited;
-		if (waited == 0)
-			return -ETIMEDOUT;
-	}
-
-	mutex_lock(s->lock);
-	if (s->count[dm] >= 63) {
-		ret = -EAGAIN;
-		goto out_unlock;
-	}
-	/* Never reuse a 32-bit wire ID, including failure gaps. */
-	if (s->next[dm] > 0xffffffffULL) {
-		ret = -EOVERFLOW;
-		goto out_unlock;
-	}
-	m = kzalloc(sizeof(*m), GFP_KERNEL);
-	if (!m) {
-		ret = -ENOMEM;
-		goto out_unlock;
-	}
-	__module_get(THIS_MODULE);
-	spin_lock_init(&m->lock);
-	m->wire_id = s->next[dm]++;
-	dma_fence_init(&m->fence, &mt_marker_fence_ops, &m->lock,
-		       s->context[dm], m->wire_id);
-	/* DM2, opcode 0x68; wire_id at +0x48, command_va at +0x28 (r381). */
-	mt_fw_3d_command(m->job.packet, m->wire_id, (u32)current->pid,
-			 work->params.submission_va, work->params.submission_size);
-	m->d3_params = work->params;
-	/* No context ownership at this stage (R3 binds the real context). */
-	list_add_tail(&m->link, &s->pending[dm]);
-	s->count[dm]++;
-	s->total++;
-	ret = mt_fw_queue_try_submit(s->queue, dm, 0, m->job.packet);
-	if (ret) {
-		/* Queue errors precede hardware writes; unwind fully. */
-		list_del(&m->link);
-		s->count[dm]--;
-		s->total--;
-		/* wire_id is never reused. */
-		dma_fence_put(&m->fence);
-		goto out_unlock;
-	}
-	/* Success: consume the caller's prepared work. */
-	work->job.state = MT_JOB_EMPTY;
-	work->context = NULL;
-	memset(work->pool_slices, 0, sizeof(work->pool_slices));
-	*out = dma_fence_get(&m->fence);
-	ret = 0;
-out_unlock:
-	mutex_unlock(s->lock);
-	return ret;
+	return mt_marker_submit_engine_work(s, &mt_3d_submit_ops, &work->job,
+					    &work->context, work->pool_slices,
+					    work->params.check_fence,
+					    &work->params, out);
 #endif /* MT_3D_SUBMIT_GATE */
 }
 
