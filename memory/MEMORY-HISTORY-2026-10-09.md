@@ -372,3 +372,23 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
   P0 完成前不得活体。
 - 门禁 `check-offline` 全绿（554 Python + 1491 C）；无代码变更，未跑
   `make kernel`；零硬件触碰，纯离线。
+
+## r438 (2026-10-09): +0x68 布尔 + 单 RT 完整写入对照，新嫌疑 +0x50/+0x58（离线反汇编）
+
+- `+0x68` [MEASURED 表达式，UNKNOWN 取值]：`*(uint *)(TA_buf+0x68) =
+  (uint)((*param_2 & 3) == 3)`（`RGXPrepareTA:52136`，52357 同式）；
+  `param_2` = psKickTA（`RGXKickTA`/`RGXKickGfx` 透传，顶层导出函数），
+  `*param_2` 为其 flags dword；bit0+bit1 全置才写 1。flags 由 DDK 层设置，
+  UMD 语料无构造点——真实提交中取值无法确定；我方写 0。
+- 单 RT（`*(lVar6+0x18)==1`）完整写入清单 [MEASURED] vs 我方 Header-only：
+  +0x10 RgnHeader VA ✅；+0x28/+0x30 = 0 ✅（r437）；**+0x50/+0x58 =
+  `((psKickTA[3 or 4]+0x3f>>6)&0x3f)<<48`（FUN_00184220 tile 打包，
+  (x+63)/64 tile 数语义 [INFERRED]，公式/bit48-53 [MEASURED]）❌ 我方 0
+  = "0 tiles"（P0 嫌疑）**；+0x68 布尔 ⚠️ P1；+0x120 flags 位打包 ⚠️ P2；
+  +0x138–+0x160 feature 条件 ?；+0x78 起多 RT 块单 RT 跳过 ✅。
+- r439 前置（P0）：`mt_ta_real_buffer_build()` 新增 +0x50/+0x58 tile 打包
+  （w/h 近似，标 [INFERRED]），T5 白名单同步，新增 C/Python 测试；
+  +0x68/+0x120 暂保持 0；P0 实现+门禁全绿后方可活体。
+- 门禁 `check-offline` 全绿；无代码变更，未跑 `make kernel`；
+  零硬件触碰，纯离线。
+

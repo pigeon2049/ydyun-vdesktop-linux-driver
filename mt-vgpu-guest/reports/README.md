@@ -393,3 +393,6 @@ r435-cold-reboot-not-done-stop.md |
 | r438-plus68-tile-packing-suspects.md |
 | r439 | TA Header +0x50/+0x58 tile packing implemented (offline, r438 P0): mt_ta_tile_pack(x)=(((x+0x3f)>>6)&0x3f)<<48 [MEASURED] (FUN_00184220:58215); buffer_build writes tile-packed w/h to +0x50/+0x58 (w/h approx psKickTA[3]/[4] [INFERRED]); 64x64->0x0001000000000000; doc stale 0xFFFFFFFF fill note corrected to per-dword 0x1; T5 whitelist extended to {+0x10,+0x50,+0x58} + 3 new Python tests; new C test_ta_tile_pack (10 checks, incl 4096->0 6-bit wrap) + buffer_build test rewritten (dynamic 1491->783, coverage preserved); reverse verify tile=0->precise FAIL; gate 557+783 green, kernel W=1 zero warnings |
 | r439-tile-packing-plus50-58.md |
+| r440 | Tile 打包活体仍超时（+0x50/+0x58=0x0001000000000000 证伪 0-tiles 假说）：第 7 次冷重启后双门控活体，RgnHeader 填 1 + tile 打包，固件仍 5s 超时；当前 Header vs UMD 必写清单仅剩 +0x120/+0x138-+0x160 未填；桥 ref=1 待第 8 次冷重启；门禁 557+783 全绿，kernel 零警告 |
+| r440-tile-packing-live-still-timeout.md |
+
