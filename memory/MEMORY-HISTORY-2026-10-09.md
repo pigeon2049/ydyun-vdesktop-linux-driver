@@ -438,3 +438,19 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - r442 前置：P0=`+0x120` 写 `0x1`（bit0，低风险）；P1=`+0x68` 仍 UNKNOWN（r438）。
 - 门禁 `check-offline` 全绿；`make kernel` W=1 零警告；零硬件触碰，无代码变更。
 - 诚实边界：DDK flags 真实取值 [UNKNOWN]；bit0=1 系 [INFERRED 高置信]。
+
+## r442 (2026-10-09): +0x120 flags 写入实现（离线）
+
+- `mt_ta_real_buffer_build()` 追加 `*(u32 *)(buf + MT_TA_BUF_HDR_FLAGS) = MT_TA_BUF_HDR_FLAGS_MIN;`
+  （`0x1`，r441 [MEASURED] UMD 忠实最小值：`+0x120` 4B flags dword 初始化 0 后 OR 入 11-bit
+  打包；DDK flags 全零时仅 bit0=`(RTDataSet+0x00 & 2)==0` [INFERRED 高置信通常 1]）。
+- 新增 `MT_TA_BUF_HDR_FLAGS 0x120U` / `MT_TA_BUF_HDR_FLAGS_MIN 0x1U`（附 11-bit 表摘要）；
+  文档更新非零字段清单（`+0x10`、`+0x50`/`+0x58`、`+0x120`）。
+- T5：白名单扩展至 `{0x10, 0x50, 0x58, 0x120}`；新增 `test_header_flags_constants` /
+  `test_header_flags_value`；C `ta_hdr_written_byte` 加入 4B 范围，
+  `test_ta_real_buffer_build_target` 断言 `+0x120 == 0x1`。
+- 反向验证：`+0x120` 写回 0 → `test_header_flags_value` 精确 FAIL；还原 → 绿。
+- 门禁 `check-offline` 全绿；`make kernel` W=1 零警告；零硬件触碰。
+- 诚实边界：bit0=1 [INFERRED 高置信]；其余 10 bit DDK flags [UNKNOWN]——
+  若固件需要某 DDK bit，`0x1` 仍不足，待活体验收；`+0x68` 仍 0（r438 P1）。
+

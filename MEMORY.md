@@ -73,6 +73,20 @@ EXIT:0
 > r440 轮按 §4 清理：r438 节已移入归档。
 > r441 轮按 §4 清理：r439 节已移入归档。
 > r443 轮按 §4 清理：r441 节已移入归档。
+> r444 轮按 §4 清理：r442 节已移入归档。
+
+## r444 (2026-10-09): Trial 在第 9 次冷重启后仍被阻塞（reserve_memory -EINVAL 持续 + 新 -EBUSY）
+
+- 第 9 次冷重启确认（uptime 1 min，模块未加载）；`check-offline` 559+781 全绿；
+  `make kernel` W=1 零警告；无代码变更（本轮纯阻塞确认）。
+- **阻塞**：`mt_guest_probe` 在 `reserve_memory=1` 时仍 probe 失败 `-EINVAL`（-22），
+  r443 阻塞点持续；**新退化**：无 `reserve_memory` 的 probe 也持续报 `-16`（EBUSY，
+  r443 时曾成功）——3 条 -16 dmesg 记录，rmmod（refcount 0）重试后仍持续。
+- PCI 设备可见 [1ed5:0222]，BAR 0/1/2 正常，vgaarb `owns=io+mem`，无驱动绑定。
+- 安全：未执行任何 live 操作；失败 probe 模块已 `rmmod`（refcount 0），系统干净；
+  dmesg 零 WARN/BUG/Oops；证据 `build/traces/r444/dmesg-r444.txt`（0600）。
+- 下一步：用户确认第 9 次为断电级完整冷重启；否则需真正断电重启；
+  P1：离线深挖 `mt_reserve_memory()`（`kernel/mt_guest_probe.c:390`）-EINVAL 路径与 -16 来源。
 
 ## r443 (2026-10-09): Trial 重建被 reserve_memory 阻塞（第 8 次冷重启后设备异常）
 
@@ -87,19 +101,4 @@ EXIT:0
 - 安全：零 live 操作（未加载 bridge，未运行 readback）；源码已 revert；工作区干净；
   证据 `build/traces/r443/dmesg-r443.txt`（0600）。
 - 下一步：用户确认完整冷重启（或第 9 次）后重开 trial 重建。
-
-## r442 (2026-10-09): +0x120 flags 写入实现（离线）
-
-- `mt_ta_real_buffer_build()` 追加 `*(u32 *)(buf + MT_TA_BUF_HDR_FLAGS) = MT_TA_BUF_HDR_FLAGS_MIN;`
-  （`0x1`，r441 [MEASURED] UMD 忠实最小值：`+0x120` 4B flags dword 初始化 0 后 OR 入 11-bit
-  打包；DDK flags 全零时仅 bit0=`(RTDataSet+0x00 & 2)==0` [INFERRED 高置信通常 1]）。
-- 新增 `MT_TA_BUF_HDR_FLAGS 0x120U` / `MT_TA_BUF_HDR_FLAGS_MIN 0x1U`（附 11-bit 表摘要）；
-  文档更新非零字段清单（`+0x10`、`+0x50`/`+0x58`、`+0x120`）。
-- T5：白名单扩展至 `{0x10, 0x50, 0x58, 0x120}`；新增 `test_header_flags_constants` /
-  `test_header_flags_value`；C `ta_hdr_written_byte` 加入 4B 范围，
-  `test_ta_real_buffer_build_target` 断言 `+0x120 == 0x1`。
-- 反向验证：`+0x120` 写回 0 → `test_header_flags_value` 精确 FAIL；还原 → 绿。
-- 门禁 `check-offline` 全绿；`make kernel` W=1 零警告；零硬件触碰。
-- 诚实边界：bit0=1 [INFERRED 高置信]；其余 10 bit DDK flags [UNKNOWN]——
-  若固件需要某 DDK bit，`0x1` 仍不足，待活体验收；`+0x68` 仍 0（r438 P1）。
 

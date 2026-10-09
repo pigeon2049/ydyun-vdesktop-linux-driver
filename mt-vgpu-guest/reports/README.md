@@ -401,4 +401,6 @@ r435-cold-reboot-not-done-stop.md |
 | r442-plus120-flags-implemented.md |
 | r443 | Trial blocked by reserve_memory EINVAL after 8th cold reboot; gates 559+781 green; dual-gate build clean; no live ops executed; needs user confirm full cold reboot |
 | r443-trial-blocked-reserve-memory.md |
+| r444 | Trial 在第 9 次冷重启后仍被阻塞：`reserve_memory=1` 持续 -EINVAL，且无 reserve_memory 的 probe 新报持续性 -16（EBUSY，r443 时曾成功）；未执行活体；门禁 559+781 全绿，kernel 零警告 |
+| r444-trial-still-blocked-9th-reboot.md |
 
