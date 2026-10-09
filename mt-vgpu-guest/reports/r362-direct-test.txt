@@ -1,9 +1,0 @@
-CONNECT(0) -> 0 conn=0x55773a7d4c40
-BUF 7 -> 0x55773a7d5d10 (64 bytes)
-SYMBOL PVRSRVConnectionCreateDevice(...) -> 0
-BUF 14 -> 0x55773a7d8540 (8 bytes)
-BUF 10 -> 0x55773a7d85a0 (64 bytes)
-BUF 11 -> 0x55773a7d8e80 (32 bytes)
-SYMBOL CreateSyncPrim(...) -> 0
-BUF 30 -> 0x55773a7d9820 (8 bytes)
-SYMBOL SyncPrimRef(...) -> 0

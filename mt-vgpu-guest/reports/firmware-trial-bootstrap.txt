@@ -1,9 +1,0 @@
-prepared=1 table_pages=6 stage_bytes=1085440 uploaded=0 root_published=0
-name=dummy pool=0 gpu_pa=0x605807000 bar_offset=0xa07000 size=12288 planned_va=0x0 mapped=0
-name=pds pool=0 gpu_pa=0x60580a000 bar_offset=0xa0a000 size=1048576 planned_va=0x81ffc00000 mapped=0
-name=usc pool=0 gpu_pa=0x60590a000 bar_offset=0xb0a000 size=1048576 planned_va=0x0 mapped=0
-name=yuv pool=0 gpu_pa=0x605a0a000 bar_offset=0xc0a000 size=524288 planned_va=0x84ffe00000 mapped=0
-name=dm-kill pool=0 gpu_pa=0x605a8a000 bar_offset=0xc8a000 size=524288 planned_va=0x84ffe80000 mapped=0
-name=fence pool=0 gpu_pa=0x605b0a000 bar_offset=0xd0a000 size=4096 planned_va=0x81ffd00000 mapped=0
-name=paging-context pool=0 gpu_pa=0x605b0b000 bar_offset=0xd0b000 size=8192 planned_va=0x81ffd01000 mapped=0
-name=pb pool=1 gpu_pa=0x36000000 bar_offset=0x0 size=2097152 planned_va=0xa000e00000 mapped=0

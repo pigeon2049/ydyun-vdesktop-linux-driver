@@ -1,4 +1,0 @@
-[28909.586495] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=0 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
-[28909.586512] mt_pvr_bridge: musakickgfx2: submit_ta_work -> -112
-[28931.812952] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=0 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
-[28931.812969] mt_pvr_bridge: musakickgfx2: submit_ta_work -> -112

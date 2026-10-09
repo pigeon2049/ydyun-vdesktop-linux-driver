@@ -1,5 +1,0 @@
-Breakpoint 1 at 0x555555558624
-[Thread debugging using libthread_db enabled]
-Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
-
-Breakpoint 1, 0x0000555555558624 in ?? ()

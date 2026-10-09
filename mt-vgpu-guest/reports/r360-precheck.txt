@@ -1,7 +1,0 @@
-=== r360 precheck 2026-10-08 15:14 CST ===
-fuser /dev/dri/renderD128: no holders (no output)
-mt_pvr_bridge: Live refcnt 0
-mt_guest_probe: Live refcnt 1 (untouched throughout)
-on-disk: 1739856B 2026-10-08 14:34
-vermagic: 6.12.111+deb13-amd64 SMP preempt mod_unload modversions (matches uname -r)
-observer string musakickgfx2 observe: grep count = 1

@@ -1,1 +1,0 @@
-driver=0 firmware=1 info_queried=1 rpc_result=0 rpc_value=1 version_result=0 host_version=0x105000500070002 render_ready=0

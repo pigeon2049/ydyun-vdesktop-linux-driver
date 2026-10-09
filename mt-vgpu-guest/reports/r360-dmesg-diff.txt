@@ -1,8 +1,0 @@
-1,3d0
-< [13179.543406] mt_pvr_bridge: arena close: high_water=17/512 pages fallbacks=0
-< [13215.488481] umd_connect_har[40332]: segfault at 8 ip 00007f7d0987bcb5 sp 00007ffe49a42650 error 4 in libsrv_um_MUSA.so.1.0.0[7bcb5,7f7d0982c000+3de000] likely on CPU 2 (core 1, socket 0)
-< [13215.488502] Code: 88 84 24 99 01 00 00 e8 49 5c fd ff 48 8b 95 58 fe ff ff 48 8d 35 af f6 38 00 8b 40 54 41 89 84 24 08 02 00 00 49 8b 44 24 08 <48> 8b 78 08 e8 a2 8d 01 00 48 83 ec 08 4c 89 f7 49 8d 84 24 40 01
-25a23,25
-> [19388.454054] mt_pvr_bridge: unloaded cleanly
-> [19399.429697] [drm] Initialized pvr 0.1.0 for 0000:00:0e.0 on minor 1
-> [19399.429704] mt_pvr_bridge: registered 'pvr' node, bridge stage 1: main module still owns the device (no binding)

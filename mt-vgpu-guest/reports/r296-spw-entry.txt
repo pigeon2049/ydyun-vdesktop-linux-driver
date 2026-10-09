@@ -1,5 +1,0 @@
-Function "SyncPrimWait" not defined.
-Dprintf 1 (SyncPrimWait,"SPW-ENTRY rdi=%p rsi=%p rdx=0x%x\n",$rdi,$rsi,$rdx) pending.
-[Thread debugging using libthread_db enabled]
-Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
-SPW-ENTRY rdi=0x7fffffffd628 rsi=0x174876e800 rdx=0x186a0

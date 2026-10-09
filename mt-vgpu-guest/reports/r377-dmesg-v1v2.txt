@@ -1,8 +1,0 @@
-[ 1002.645186] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=0 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
-[ 1002.645237] mt_pvr_bridge: R5 V1: TA VM context created
-[ 1002.645244] mt_pvr_bridge: r376 V2: bind empty ret=-22 (expect -EINVAL, no oops)
-[ 1002.645561] mt_pvr_bridge: musakickgfx2: submitted wire=1
-[ 1013.749653] mt_pvr_bridge: musakickgfx2 dispatch: ctx=0x0 abort=0 kick_ta=1 kick_3d=0 kick_pr=0 ta_size=0 3d_size=0 3dpr_size=0 draws=0 indices=0 mrt=0 ta_upd=0 ta_fence=0 3d_upd=0 pmr_sync=0 check_fence=0 check_fence_3d=0 rt_size=0
-[ 1013.749679] mt_pvr_bridge: R5 V1: TA VM context created
-[ 1013.749683] mt_pvr_bridge: r376 V2: bind empty ret=-22 (expect -EINVAL, no oops)
-[ 1013.749998] mt_pvr_bridge: musakickgfx2: submitted wire=2

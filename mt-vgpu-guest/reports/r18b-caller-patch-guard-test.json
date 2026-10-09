@@ -1,6 +1,0 @@
-{
-  "core_calls_retargeted": 7,
-  "v1_fallback_retained": true,
-  "duplicate_patch_refused_without_mutation": true,
-  "hardware_accessed": false
-}

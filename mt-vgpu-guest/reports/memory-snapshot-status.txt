@@ -1,1 +1,0 @@
-driver=0 firmware=1 info_queried=1 rpc_result=-61 rpc_value=0 version_result=-61 host_version=0x0 memory_result=0 firmware_bar_offset=0x3f000000 shared_bar_offset=0x43000000 render_ready=0

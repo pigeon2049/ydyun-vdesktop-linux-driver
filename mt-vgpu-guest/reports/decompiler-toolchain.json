@@ -1,8 +1,0 @@
-{
-  "release": "Ghidra_12.1.4_build",
-  "asset": "ghidra_12.1.4_PUBLIC_20260921.zip",
-  "source": "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_12.1.4_build/ghidra_12.1.4_PUBLIC_20260921.zip",
-  "sha256": "ddac49f903da9d5bac833e5cc79395098b9c33cfd3279be5f31bd00387d2d4db",
-  "verified_against": "GitHub release asset digest",
-  "java": "Debian openjdk-21-jdk-headless"
-}
