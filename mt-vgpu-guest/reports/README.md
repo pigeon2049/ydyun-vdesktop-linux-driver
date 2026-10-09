@@ -415,5 +415,7 @@ r435-cold-reboot-not-done-stop.md |
 | r449-reg890-matrix-param-validation.md |
 | r450 | 4 处修复验证成功但状态污染（活体）：recover_channels=1 在 reg890==2 时成功（result=0 registered=15），r446/r448 修复生效；但验证测试将 reg890 2→1，mt_reserve_memory 不接受 1→-EBUSY，trial 构建阻塞；需第 13 次冷重启或修复 reserve_memory 接受 1；零 WARN/BUG/Oops |
 | r450-4th-fix-verified-state-polluted.md |
+| r451 | +0x120=0x1 活体仍 5s 超时（活体）：第 13 次冷重启后直接跑 fresh-trial.py 成功（修复审计 JSON 过期 + preflight 接受 (2,1)）；双门控构建零警告，T1-T5 通过；mt-ta-readback ETIMEDOUT；+0x120 最小值非根因，[INFERRED] 未证实；bridge ref=1 pending，需第 14 次冷重启；零 WARN/BUG/Oops |
+| r451-plus120-live-still-timeout.md |
 
 

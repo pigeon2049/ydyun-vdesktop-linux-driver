@@ -529,3 +529,13 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 报告：mt-vgpu-guest/reports/r447-probe-channels-4th-location-missed.md
 - 下一步（r448 P0）：修复 `mt_probe_channels:644` 接受 `reg890==2` + 测试 + 反向验证。
 
+
+## r450 (2026-10-09): 4 处修复验证成功，但验证测试污染硬件状态——需第 13 次冷重启
+
+- **4 处修复验证成功** ✅： 在  时成功（），r446/r448 修复生效；对比 r447 的 。
+- **状态污染**：验证测试将硬件  从 2 改为 1；（:401）只接受 0/2，不接受 1→-EBUSY； 不重置硬件寄存器。
+- **活体阻塞**： 需 ，在  时失败。需第 13 次冷重启（重置 reg890 为 2）或 r451 修复  接受 1。
+- 安全：验证后已 rmmod（refcount 0），系统干净；零 WARN/BUG/Oops；未执行 live。
+- 报告：mt-vgpu-guest/reports/r450-4th-fix-verified-state-polluted.md
+- 证据：mt-vgpu-guest/build/traces/r450/dmesg-r450.txt（0600）
+

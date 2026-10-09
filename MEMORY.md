@@ -77,14 +77,16 @@ EXIT:0
 > r448 轮按 §4 清理：r446 节已移入归档。
 > r450 轮按 §4 清理：r447 节已移入归档。
 
-## r450 (2026-10-09): 4 处修复验证成功，但验证测试污染硬件状态——需第 13 次冷重启
+> r451 轮按 §4 清理：r448 节已移入归档。
 
-- **4 处修复验证成功** ✅： 在  时成功（），r446/r448 修复生效；对比 r447 的 。
-- **状态污染**：验证测试将硬件  从 2 改为 1；（:401）只接受 0/2，不接受 1→-EBUSY； 不重置硬件寄存器。
-- **活体阻塞**： 需 ，在  时失败。需第 13 次冷重启（重置 reg890 为 2）或 r451 修复  接受 1。
-- 安全：验证后已 rmmod（refcount 0），系统干净；零 WARN/BUG/Oops；未执行 live。
-- 报告：mt-vgpu-guest/reports/r450-4th-fix-verified-state-polluted.md
-- 证据：mt-vgpu-guest/build/traces/r450/dmesg-r450.txt（0600）
+## r451 (2026-10-09): +0x120=0x1 活体仍 5s 超时——flags 最小值非根因
+
+- **Trial 重建成功** ✅：第 13 次冷重启后直接跑 fresh-trial.py；修复审计 JSON 过期（更新 module SHA，ABI 无漂移）+ preflight 接受 (2,1)（0x890=2 持久化）；--run 和 --run --runtime-context 均成功（pinned=1 registered=15）。
+- **活体 5s 超时** ❌：双门控构建零警告，T1-T5 通过；mt-ta-readback ETIMEDOUT（errno 110）；13 BO 全部绑定，render context READY，但固件无响应。
+- **+0x120=0x1 非根因**：[INFERRED] 保持未证实；+0x68 仍为主要 UNKNOWN。
+- **安全**：bridge ref=1 pending，按协议停止；双门控已 revert；零 WARN/BUG/Oops；需第 14 次冷重启。
+- 报告：mt-vgpu-guest/reports/r451-plus120-live-still-timeout.md
+- 证据：mt-vgpu-guest/build/traces/r451/dmesg-r451.txt（0600）
 
 ## r449 (2026-10-09): reg890/0x898 状态机完整矩阵 + 参数验证全覆盖（离线）
 

@@ -83,8 +83,8 @@ def preflight(runtime_context=False):
             errors.append('Could not read unbound device state')
         else:
             data = json.loads(state['stdout'])
-            if (data['driver_state'], data['firmware_state']) != (0, 1):
-                errors.append('Device must report Guest=0 and FW=READY(1)')
+            if (data['driver_state'], data['firmware_state']) not in ((0, 1), (2, 1)):
+                errors.append('Device must report Guest=0/2 and FW=READY(1)')
     report['errors'] = errors
     report['eligible_for_trial'] = not errors
     return report
