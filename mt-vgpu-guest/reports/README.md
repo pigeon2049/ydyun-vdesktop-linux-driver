@@ -363,3 +363,5 @@ r422-ta-buffer-header-vs-entries.md |
 r423-header-only-t5-gate.md |
 | r424 | Header-only 边界加固 + T5 门禁增强（离线）：C 扩展 test_ta_real_buffer_build_target（w/h 0x8000 边界、target_va 非对齐/超 48 位原样存储 [TO-VALIDATE]、memset 幂等）；T5 新增 test_header_write_whitelist（buffer_build 内仅 MT_TA_BUF_HDR_TARGET_VA 可写，<0x160 其他偏移→FAIL）+ test_submit_real_no_direct_buf_writes（submit 路径禁 ta_buf[] 直写）；T5 反向验证注入污染→FAIL；门禁 550+1416 全绿，kernel 零警告 |
 r424-header-only-hardening-t5-plus.md |
+| r425 | Header-only 首次活体（最高风险轮）：双门控测试构建（事后 revert），pre-live T1-T5 全过；冷重启后 trial 重建成功；mt-ta-readback 全链路执行（n_entries=0 被接受，12th target BO 0x7b000000 绑定成功）；0xFD 提交（Header-only：buf+0x10=target_va，其余零）→ fence 分配 → 固件 5s 超时（ETIMEDOUT）；结论：Header-only 不充分——r422 污染是真实 bug 但非完整解释，r414 全零=无工作快路径；固件或要求 +0x10 指向 render-target 元数据结构及/或其他 Header 字段；pending fence 致 bridge ref=1，safe_rmmod.sh 正确拒绝，待用户第 5 次冷重启；dmesg 干净；门禁 550+1416 全绿，kernel 零警告 |
+r425-header-only-live-still-timeout.md |

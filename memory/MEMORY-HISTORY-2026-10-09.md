@@ -184,3 +184,7 @@ r417（离线，零硬件）：用户指示"稳妥推进 先加测试"。`tests/
 ## r420 (2026-10-09): Q0/Q1 修正测试加固 + T4 纯净性门禁（离线）
 
 r420（离线，零硬件）：用户指示"继续 加更多测试和门禁"。新增 21 Python 测试：`tests/ta/test_q0_purity.py`（T4 门禁，3 tests：Q0 禁止 OR/address 源码扫描、常量仅 bits 39/42、Q1 必须接 VA）、`tests/ta/test_q0_q1_bitfields.py`（15 tests：Q0 flag 位独立、低 32 位禁区、Q1 48 位 mask 边界、三态历史 r414/r418/r419）、`tests/ta/test_ta_real.py::TestTaDmLayoutUsage`（3 tests：常量被使用、禁硬编码 0x28/0x30、注释 [MEASURED]）。修复 1 处 stale 文档：`mt_marker_fence.h` 的 [INFERRED] 注释更新为 [MEASURED]（r414）。T4 反向验证：注入 r418 污染 → FAIL（定位行号）；还原 → 绿。门禁 543+299 全绿（Python，1 skipped）、630 C 全绿；`make kernel` W=1 零警告。本地提交未 push。诚实边界：Q0 flag 语义（除 29/30/39/42）仍未知；Q1=target 待活体验。
+
+## r421 (2026-10-09): Q0 修正后活体——提交成功但固件仍超时（Q1 待深挖）
+
+r421（最高风险活体）：双门控测试构建（MT_TA_REAL_PACKET=1 + MT_TA_READBACK_DEBUG=1，static_assert 临时中和，事后 revert；W=1 零警告）。pre-live T1/T2/T3/T4 全过（13 tests）。冷重启后 probe 全参数链加载，trial 重建成功（connect=0 pinned=1）；双门控桥加载，/dev/dri/renderD128 就绪。mt-ta-readback 全链路执行：context 0x1000 创建，11 BO + 12th target BO（va=0x7b000000 bytes=16384）绑定成功；0xFD 提交（Q0=0x48000000000 flags-only [MEASURED]，Q1=0x7b000000 [INFERRED]）→ fence 分配 → 5s 无完成事件（-ETIMEDOUT，submitted-but-ignored）。对比 r414（Q0=0/Q1=0，219us 完成）：修正后的 Q0/Q1 编码仍未被固件接受。dmesg 零 WARN/BUG/Oops；pending fence 致 bridge ref=1，safe_rmmod.sh 正确拒绝（未用 -f），待用户冷重启。门禁 543+299 全绿；kernel W=1 零警告；源码已 revert（仅保留 committed 状态），工作区干净。诚实边界：Q1=target_va 仍 [INFERRED]，本次活体未能将其提升为 [MEASURED]——Q1 编码可能仍不对，或 TA 条目其他字段（Q2/Q3/Q4）/DM 包布局另有问题；T2 像素回读仍 open；下一步 P0：离线深挖 Q1/target 语义（RGXPrepareTA 回读偏移 0x10/0x18/.../0x60 的对应关系）。

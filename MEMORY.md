@@ -1,3 +1,4 @@
+EXIT:0
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
 > **本文件只保留最新过程记录。**
@@ -54,12 +55,13 @@
 > r419 轮按 §4 清理：r419 节补入（前轮遗漏）。
 > r420 轮按 §4 清理：r418、r417 节已移入归档。
 > r421 轮按 §4 清理：r419、r418、r417 节已移入归档。
+> r425 轮按 §4 清理：r421 节已移入归档。
+
+## r425 (2026-10-09): Header-only 活体——固件仍超时（Header-only 不充分）
+
+r425（最高风险活体）：r423 Header-only 方案首次活体验证。双门控测试构建（MT_TA_REAL_PACKET=1 + MT_TA_READBACK_DEBUG=1，static_assert 临时中和；userspace n_entries 1→0 临时；事后全部 revert；W=1 零警告）。pre-live T1-T5 全过（550+1416）。冷重启后 probe 全参数链加载，trial 重建成功（connect=0 pinned=1）；双门控桥加载，/dev/dri/renderD128 就绪。mt-ta-readback 全链路执行：context 0x1000，12th target BO（va=0x7b000000）绑定成功；0xFD 提交（Header-only：buf+0x10=target_va，其余零，n_entries=0 被接受）→ fence 分配 → 5s 无完成（-ETIMEDOUT）。结论：Header-only 不充分——r422 的"Entry 污染 Header"是真实 bug（T5 已拦截）但不是超时的完整解释；r414 全零="无工作"快路径。固件很可能要求 +0x10 指向 render-target 元数据结构（非原始像素 BO）及/或其他 Header 字段有效。pending fence 致 bridge ref=1，safe_rmmod.sh 正确拒绝（未用 -f），待用户冷重启（第 5 次）。dmesg 零 WARN/BUG/Oops。门禁 550+1416 全绿。诚实边界：Header-only 仍 [INFERRED] 未 [MEASURED]；下一步必须离线确定 +0x10 真实语义与必需 Header 字段；不再做无离线依据的活体试探。
 
 ## r422 (2026-10-09): TA 缓冲 Header+Entries 双区——Entry 写错位置致 r421 超时（离线反汇编）
 
 r422（纯离线，零硬件）：r421 超时根因定位。反汇编证实：RGXSubmitTA（FUN_001796b0，decompiled.c:54365）从 TA_buf+0x10/0x18/0x20/0x28/0x30/0x38/0x40/0x48/0x60 回读 9 qword 到 psKickTA [MEASURED]；RGXPrepareTA（FUN_00178800）向 TA_buf+0x10/0x28/0x30/0x68/0x120/0x140 写 Header，覆盖 0x00-0x160 [MEASURED]。我方 `mt_ta_real_buffer_build()` 把 40B Entry 写在 `buf+0x00`（mt_ta_real.h:178-179），Q2/Q3/Q4（0x10-0x27）恰好覆盖 Header 的 0x10/0x18/0x20 字段 → 固件经 psKickTA 读到垃圾 Header → 挂起超时。r414 全零缓冲=空 Header=无工作，故 219us 成功；r421 非零 Entry=污染 Header，故超时。Q1=target_va（Entry 内）未被证伪，但 Entry 位置错误是更直接原因。Entries 真实容器未知（544B 缓冲为推断）。r423 前置：P0 确定 Entries 容器或 Header-only 测试（仅设 TA_buf+0x10=target_va）；P1 改 `mt_ta_real_buffer_build()` 不再写 buf+0；门禁 T5（Header 完整性）待加。诚实边界：Ghidra 伪 C 或有 artifact；本轮无代码变更。
-
-## r421 (2026-10-09): Q0 修正后活体——提交成功但固件仍超时（Q1 待深挖）
-
-r421（最高风险活体）：双门控测试构建（MT_TA_REAL_PACKET=1 + MT_TA_READBACK_DEBUG=1，static_assert 临时中和，事后 revert；W=1 零警告）。pre-live T1/T2/T3/T4 全过（13 tests）。冷重启后 probe 全参数链加载，trial 重建成功（connect=0 pinned=1）；双门控桥加载，/dev/dri/renderD128 就绪。mt-ta-readback 全链路执行：context 0x1000 创建，11 BO + 12th target BO（va=0x7b000000 bytes=16384）绑定成功；0xFD 提交（Q0=0x48000000000 flags-only [MEASURED]，Q1=0x7b000000 [INFERRED]）→ fence 分配 → 5s 无完成事件（-ETIMEDOUT，submitted-but-ignored）。对比 r414（Q0=0/Q1=0，219us 完成）：修正后的 Q0/Q1 编码仍未被固件接受。dmesg 零 WARN/BUG/Oops；pending fence 致 bridge ref=1，safe_rmmod.sh 正确拒绝（未用 -f），待用户冷重启。门禁 543+299 全绿；kernel W=1 零警告；源码已 revert（仅保留 committed 状态），工作区干净。诚实边界：Q1=target_va 仍 [INFERRED]，本次活体未能将其提升为 [MEASURED]——Q1 编码可能仍不对，或 TA 条目其他字段（Q2/Q3/Q4）/DM 包布局另有问题；T2 像素回读仍 open；下一步 P0：离线深挖 Q1/target 语义（RGXPrepareTA 回读偏移 0x10/0x18/.../0x60 的对应关系）。
 
