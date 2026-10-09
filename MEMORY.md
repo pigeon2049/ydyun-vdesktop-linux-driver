@@ -63,6 +63,25 @@ EXIT:0
 > r427 轮按 §4 清理：r425 节已移入归档。
 > r431 轮按 §4 清理：r429 节已移入归档。
 > r432 轮按 §4 清理：r430 节已移入归档。
+> r433 轮按 §4 清理：r431 节已移入归档。
+
+## r433 (2026-10-09): RgnHeader 填充是 0x00000001 非 0xFFFFFFFF;+0x28/+0x30 链条追踪（离线）
+
+- **核心纠正**：`InitRegionHeaderBuffer` 逐 dword 写整数 `1` (`*local_690[0] = 1`,
+  `undefined4*` [MEASURED])，**不是** `0xFFFFFFFF`。r430/r431 的 "0xFFFFFFFF"
+  结论错误；r431 `MT_TA_RGNHEADER_INIT_DWORD 0xFFFFFFFFU` + `memset(0xFF)` 与 UMD
+  行为不符。**r434 P0: 改为逐 dword 写 `0x00000001`。**
+- **+0x28/+0x30 链条** [MEASURED, 终端 UNKNOWN]：
+  `TA_buf+0x28/+0x30` ← `TA_state+0x1cc/+0x1ce` ← `RTDataSet+0x440/+0x448`
+  ← `*(local_5b0+0x68)`/`*(local_5b0+0x80)` (RGXAddRenderTarget)。
+  终端值因 Ghidra 数组定界 [UNKNOWN]；MLIST VA 为首要候选 [INFERRED]。
+- **MLIST** [MEASURED]：0x4a000B (64x64)，firmware-written，UMD 不预填；
+  VA (`local_558`) 分配后未见引用；未出现在 TA Header/psKickTA 中。
+  TA kick 可能不需要 MLIST VA，或经 +0x28/+0x30 传递。
+- **Mcg patching**：多 RT 时填充后 patch `[2]/[3]` (VA 低/高 32 位，stride 0x40 dwords)；
+  单 RT (我方) 无 patching，仅 fill。
+- 门禁 `check-offline` 全绿；`make kernel` 未跑（无代码变更）。
+  零硬件触碰，纯离线。
 
 ## r432 (2026-10-09): RgnHeader 活体——固件仍超时，RgnHeader 非充分条件（最高风险）
 
@@ -78,19 +97,3 @@ EXIT:0
   r432 +0x10=RgnHeader→仍超时。RgnHeader [INFERRED] 未升 [MEASURED]（证伪性证据）。
 - 下一步必须离线：+0x28/+0x30 语义与 RgnHeader per-dword 要求；
   不再做无依据活体试探。零 rmmod -f、零自行重启。
-
-
-## r431 (2026-10-09): RgnHeader 13th BO 实现——TA Header +0x10 指向 RgnHeader（离线）
-
-- **核心结论**：render context 新增第 13 个 BO（RgnHeader）：64×64 → 0x100B，
-  预填全 `0xFFFFFFFF`（[MEASURED] r430，InitRegionHeaderBuffer），绑定 VA slot 12
- （0x7c000000）。`TA_buf+0x10` 改取 `rgnheader_va`（不再是 16KB 像素 BO）；
-  r425 超时（像素当 region header 解析）此路径不再重演。
-- **实现**：`mt_ta_real.h` 新增常量 + `mt_ta_rgnheader_size(w,h)`（round_up(tiles×0x40,64)）；
-  `mt_render_context.h` struct += 3 字段（sizeof 1720→1824）；`mt_pvr_bridge.c`：
-  create 分配+0xFF 初始化+slot 12 绑定，destroy 释放，0x82:0xFD 要求 rgnheader_ready。
-- **测试**：C 新增 size 公式（64×64→0x100、128×128→0x400、65×65→0x240）+
-  全 1 初始化验证；Python layout 测试更新偏移。
-- 门禁 `check-offline` **550 Python + 1490 C 全绿**；`make kernel` W=1 **零警告**。
-- `+0x28`/`+0x30` 仍 [UNKNOWN]（置零）；活体验收延至 r432。零硬件触碰，纯离线。
-

@@ -254,3 +254,17 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
   +0x68=0；其余 0。r431 P0：Linux guest 实现 RgnHeader 分配+初始化。
 - 门禁 `check-offline` 全绿；零硬件触碰，纯离线，无代码变更。
 
+
+## r431 (2026-10-09): RgnHeader 13th BO 实现——TA Header +0x10 指向 RgnHeader（离线）
+
+- **核心结论**：render context 新增第 13 个 BO（RgnHeader）：64×64 → 0x100B，
+  预填全 `0xFFFFFFFF`（[MEASURED] r430，InitRegionHeaderBuffer），绑定 VA slot 12
+ （0x7c000000）。`TA_buf+0x10` 改取 `rgnheader_va`（不再是 16KB 像素 BO）；
+  r425 超时（像素当 region header 解析）此路径不再重演。
+- **实现**：`mt_ta_real.h` 新增常量 + `mt_ta_rgnheader_size(w,h)`（round_up(tiles×0x40,64)）；
+  `mt_render_context.h` struct += 3 字段（sizeof 1720→1824）；`mt_pvr_bridge.c`：
+  create 分配+0xFF 初始化+slot 12 绑定，destroy 释放，0x82:0xFD 要求 rgnheader_ready。
+- **测试**：C 新增 size 公式（64×64→0x100、128×128→0x400、65×65→0x240）+
+  全 1 初始化验证；Python layout 测试更新偏移。
+- 门禁 `check-offline` **550 Python + 1490 C 全绿**；`make kernel` W=1 **零警告**。
+- `+0x28`/`+0x30` 仍 [UNKNOWN]（置零）；活体验收延至 r432。零硬件触碰，纯离线。

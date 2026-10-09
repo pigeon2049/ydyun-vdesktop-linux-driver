@@ -379,3 +379,5 @@ r428-umd-env-ta-header-capture.md |
 | r431-rgnheader-alloc-init.md |
 | r432 | RgnHeader live (highest-risk): dual-gate build, T1-T5 pass, trial rebuilt post-5th-cold-reboot; 13th RgnHeader BO bound va=0x7c000000 (0xFF fill), TA Header +0x10=RgnHeader VA, n_entries=0; firmware 5s timeout (-ETIMEDOUT) — RgnHeader necessary but not sufficient; +0x28/+0x30 still [UNKNOWN]; safe_rmmod correctly refused (ref=1); dmesg clean; gate 554+1490 green |
 | r432-rgnheader-live-still-timeout.md |
+| r433 | RgnHeader fill is 0x00000001 not 0xFFFFFFFF (offline disasm, CORRECTS r430/r431): InitRegionHeaderBuffer writes dword value 1 per dword [MEASURED]; r431 memset(0xFF) wrong, r434 must fix to dword-fill 1; +0x28/+0x30 chain fully traced (TA_state+0x1cc/+0x1ce <- RTDataSet+0x440/+0x448 <- local_5b0+0x68/+0x80), terminal [UNKNOWN] (Ghidra bounds), MLIST VA leading candidate; MLIST (0x4a000B, firmware-written) not in kick path; Mcg per-dword patching single-RT N/A; gate green |
+| r433-rgnheader-fill-is-one-plus28-30-chain.md |
