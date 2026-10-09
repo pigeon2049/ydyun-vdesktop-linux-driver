@@ -78,6 +78,30 @@ static inline u64 mt_ta_tile_pack(u32 x)
 	return (((u64)(((x + 0x3fU) >> 6) & 0x3fU)) << 48);
 }
 
+/* r442 [MEASURED] (r441, RGXPrepareTA, FUN_00178800:52118 init 0,
+ * :52194-52234 11-bit pack, linux-legacy-umd-5.2.0/decompiled.c):
+ * UMD writes a 4B flags dword at TA_buf+0x120 (init 0, then ORs 11 bits).
+ *   bit0  = (RTDataSet+0x00 & 2) == 0   [UMD-internal; RTDataSet is
+ *            PVRSRVCallocUserModeMem'd (zero) and +0x00 is never written
+ *            by SetupRTDataSet/SetupRTDataSetMemSize -> usually 1
+ *            [INFERRED high-confidence]]
+ *   bit1  = psKickTA.flags bit0|bit3    [DDK, UNKNOWN]
+ *   bit4  = psKickTA.flags bit19        [DDK, UNKNOWN]
+ *   bit8  = psKickTA.flags bit3         [DDK, UNKNOWN]
+ *   bit9  = psKickTA.flags bit12        [DDK, UNKNOWN]
+ *   bit10 = psKickTA.flags bit13        [DDK, UNKNOWN]
+ *   bit13 = psKickTA.flags bit17        [DDK, UNKNOWN]
+ *   bit20 = psKickTA.flags bit24        [DDK, UNKNOWN]
+ *   bit21 = RTDataSet+0x20 != 0 && RTDataSet+0x20 == psKickTA+8  [mixed]
+ *   bit22 = RTDataSet+0x20 != 0 && psKickTA+8 == RTDataSet+0x24  [mixed]
+ *   bit23 = psKickTA.flags bit25        [DDK, UNKNOWN]
+ * UMD-faithful minimum (DDK flags all zero, RTDataSet+0x20 == 0):
+ *   +0x120 = 0x1 (bit0 only). We wrote 0 before r442; bit0 difference.
+ * Feature fields +0x138-+0x160 are zero on QuYuan1/S3000 (r441 [MEASURED]),
+ * matching our all-zero rest. */
+#define MT_TA_BUF_HDR_FLAGS 0x120U
+#define MT_TA_BUF_HDR_FLAGS_MIN 0x1U /* UMD-faithful minimum: bit0 only */
+
 /* [MEASURED] (r430, RGXAddRenderTarget:49312, SetupRTDataSet:48867,
  * RGXPrepareTA:52144 -- linux-legacy-umd-5.2.0/decompiled.c, 3-hop chain):
  * TA Header +0x10 = RgnHeader device VA (NOT a raw pixel BO).
@@ -227,12 +251,15 @@ struct mt_ta_real_request {
  * Header-only: zero the buffer, set TA_buf+0x10 = target_va
  * (-> psKickTA[1] = RgnHeader device VA, [MEASURED] r430 3-hop chain),
  * and TA_buf+0x50/+0x58 = tile-packed w/h (r439 [MEASURED] formula,
- * [INFERRED] semantics; 0 = "0 tiles" may hang firmware).
+ * [INFERRED] semantics; 0 = "0 tiles" may hang firmware),
+ * and TA_buf+0x120 = 0x1 (r442 [MEASURED] UMD-faithful flags minimum:
+ * 4B flags dword, bit0 = (RTDataSet+0x00 & 2) == 0, usually 1).
  * target_va MUST be a RgnHeader VA (13th BO, per-dword 0x00000001
  * pre-fill [MEASURED] r433/r434);
  * r425 proved a raw pixel BO here hangs firmware (parses pixels as
- * region headers). All other Header fields stay zero; r414 proved
- * all-zero Header completes ("no work").
+ * region headers). All other Header fields stay zero (r414 proved
+ * all-zero Header completes ("no work")); the only non-zero fields are
+ * +0x10 (RgnHeader VA), +0x50/+0x58 (tile packing) and +0x120 (0x1 flags).
  *
  * n_entries must be 0 (Header-only). Non-zero is rejected: the Entries
  * container is unknown (r422), and T5 forbids Entry writes in buf+0x00-0x68.
@@ -255,6 +282,10 @@ static inline int mt_ta_real_buffer_build(unsigned char *buf, u32 w, u32 h,
 	 * 0 = "0 tiles" may hang firmware; pack from w/h. */
 	*(u64 *)(buf + MT_TA_BUF_HDR_TILE_PACK_X) = mt_ta_tile_pack(w);
 	*(u64 *)(buf + MT_TA_BUF_HDR_TILE_PACK_Y) = mt_ta_tile_pack(h);
+	/* r442 [MEASURED] (r441, RGXPrepareTA): UMD writes a 4B flags dword at
+	 * Header+0x120 (bit0 = (RTDataSet+0x00 & 2) == 0, usually 1).
+	 * UMD-faithful minimum = 0x1; we wrote 0 before r442. */
+	*(u32 *)(buf + MT_TA_BUF_HDR_FLAGS) = MT_TA_BUF_HDR_FLAGS_MIN;
 	return 0;
 }
 

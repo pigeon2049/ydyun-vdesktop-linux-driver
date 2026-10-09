@@ -150,15 +150,16 @@ class TestHeaderIntegrity(unittest.TestCase):
         self.assertIn("<< 48", text)
 
     def test_header_write_whitelist(self):
-        """T5 (r424, extended r439): only whitelisted Header offsets may be
-        written in buffer_build.
+        """T5 (r424, extended r439, r442): only whitelisted Header offsets
+        may be written in buffer_build.
 
         The 360B buffer is Header (0x00-0x160). Header-only mode (r423)
         permits writes only through named constants: MT_TA_BUF_HDR_TARGET_VA
-        (+0x10, r423) and MT_TA_BUF_HDR_TILE_PACK_X/_Y (+0x50/+0x58, r439
-        [MEASURED] UMD tile packing). Any other buf+offset write with a
-        numeric offset below 0x160 risks Header pollution (r422 root-cause).
-        Symbolic memset of the whole buffer is allowed.
+        (+0x10, r423), MT_TA_BUF_HDR_TILE_PACK_X/_Y (+0x50/+0x58, r439
+        [MEASURED] UMD tile packing) and MT_TA_BUF_HDR_FLAGS (+0x120, r442
+        [MEASURED] UMD-faithful flags minimum 0x1). Any other buf+offset
+        write with a numeric offset below 0x160 risks Header pollution
+        (r422 root-cause). Symbolic memset of the whole buffer is allowed.
         """
         body = _get_buffer_build_body()
         # Find writes of the form *(...) (buf + <something>) = ...
@@ -169,11 +170,13 @@ class TestHeaderIntegrity(unittest.TestCase):
         )
         writes += re.findall(r"\bbuf\s*\[\s*([^\]]+)\s*\]\s*=", body)
         bad = []
-        # Approved: the named Header constants (r423: +0x10; r439: +0x50/+0x58).
+        # Approved: the named Header constants (r423: +0x10; r439: +0x50/+0x58;
+        # r442: +0x120).
         approved = {
             "MT_TA_BUF_HDR_TARGET_VA",
             "MT_TA_BUF_HDR_TILE_PACK_X",
             "MT_TA_BUF_HDR_TILE_PACK_Y",
+            "MT_TA_BUF_HDR_FLAGS",
         }
         for w in writes:
             w = w.strip()
@@ -192,6 +195,31 @@ class TestHeaderIntegrity(unittest.TestCase):
             [],
             "T5 FAIL: non-whitelisted Header write in buffer_build (r422): "
             + str(bad),
+        )
+
+    def test_header_flags_constants(self):
+        """T5 (r442): +0x120 flags offset/value constants [MEASURED] (r441)."""
+        text = (KERNEL / "mt_ta_real.h").read_text()
+        for name, want in (
+            ("MT_TA_BUF_HDR_FLAGS", 0x120),
+            ("MT_TA_BUF_HDR_FLAGS_MIN", 0x1),
+        ):
+            m = re.search(r"#define\s+" + name + r"\s+(0x[0-9a-fA-F]+)U", text)
+            self.assertIsNotNone(m, name + " not defined")
+            self.assertEqual(int(m.group(1), 16), want)
+
+    def test_header_flags_value(self):
+        """T5 (r442): Header+0x120 must carry MT_TA_BUF_HDR_FLAGS_MIN (0x1).
+
+        UMD (RGXPrepareTA, r441 [MEASURED]) inits +0x120 to 0 then ORs an
+        11-bit pack; the UMD-faithful minimum (DDK flags zero,
+        RTDataSet+0x20 == 0) is 0x1 (bit0 only). Writing 0 misses bit0 (r441).
+        """
+        body = _get_buffer_build_body()
+        self.assertRegex(
+            body,
+            r"\*\(u32 \*\)\(buf \+ MT_TA_BUF_HDR_FLAGS\)\s*=\s*MT_TA_BUF_HDR_FLAGS_MIN",
+            "T5 FAIL: Header+0x120 not written as MT_TA_BUF_HDR_FLAGS_MIN (r442)",
         )
 
     def test_submit_real_no_direct_buf_writes(self):

@@ -73,6 +73,21 @@ EXIT:0
 > r440 轮按 §4 清理：r438 节已移入归档。
 > r441 轮按 §4 清理：r439 节已移入归档。
 
+## r442 (2026-10-09): +0x120 flags 写入实现（离线）
+
+- `mt_ta_real_buffer_build()` 追加 `*(u32 *)(buf + MT_TA_BUF_HDR_FLAGS) = MT_TA_BUF_HDR_FLAGS_MIN;`
+  （`0x1`，r441 [MEASURED] UMD 忠实最小值：`+0x120` 4B flags dword 初始化 0 后 OR 入 11-bit
+  打包；DDK flags 全零时仅 bit0=`(RTDataSet+0x00 & 2)==0` [INFERRED 高置信通常 1]）。
+- 新增 `MT_TA_BUF_HDR_FLAGS 0x120U` / `MT_TA_BUF_HDR_FLAGS_MIN 0x1U`（附 11-bit 表摘要）；
+  文档更新非零字段清单（`+0x10`、`+0x50`/`+0x58`、`+0x120`）。
+- T5：白名单扩展至 `{0x10, 0x50, 0x58, 0x120}`；新增 `test_header_flags_constants` /
+  `test_header_flags_value`；C `ta_hdr_written_byte` 加入 4B 范围，
+  `test_ta_real_buffer_build_target` 断言 `+0x120 == 0x1`。
+- 反向验证：`+0x120` 写回 0 → `test_header_flags_value` 精确 FAIL；还原 → 绿。
+- 门禁 `check-offline` 全绿；`make kernel` W=1 零警告；零硬件触碰。
+- 诚实边界：bit0=1 [INFERRED 高置信]；其余 10 bit DDK flags [UNKNOWN]——
+  若固件需要某 DDK bit，`0x1` 仍不足，待活体验收；`+0x68` 仍 0（r438 P1）。
+
 ## r441 (2026-10-09): +0x120 flags 位表 + QuYuan1 feature 恒零（离线）
 
 - `+0x120` 完整 11-bit 打包表 [MEASURED]（`FUN_00178800`:52118 初始化 0，:52194–52234）：
@@ -90,16 +105,3 @@ EXIT:0
 - r442 前置：P0=`+0x120` 写 `0x1`（bit0，低风险）；P1=`+0x68` 仍 UNKNOWN（r438）。
 - 门禁 `check-offline` 全绿；`make kernel` W=1 零警告；零硬件触碰，无代码变更。
 - 诚实边界：DDK flags 真实取值 [UNKNOWN]；bit0=1 系 [INFERRED 高置信]。
-
-## r440 (2026-10-09): Tile 打包活体仍超时（第 7 次冷重启后）
-
-- 双门控活体（`MT_TA_REAL_PACKET=1`+`MT_TA_READBACK_DEBUG=1`）：第 7 次冷重启确认干净，
-  trial 重建（`runtime_context=1` pinned），`mt-ta-readback` 全链路（`+0x10`=RgnHeader VA 0x7c000000，
-  `+0x50`/`+0x58`=`0x0001000000000000` tile 打包，`n_entries`=0）→ **5s 超时**（errno=110）。
-- **证伪**：r438 "0 tiles 或致固件挂起"假说被活体证伪；tile 打包 [INFERRED]→仍未 [MEASURED]。
-- 当前 Header vs UMD 单 RT 必写清单：`+0x10`✅ `+0x50`/`+0x58`✅ `+0x68`=0✅ `+0x28`/`+0x30`=0✅；
-  仅剩 `+0x120`（flags 位打包）、`+0x138`–`+0x160`（feature 条件）未填——下轮嫌疑。
-- Teardown：pending fence → bridge ref=1，`safe_rmmod.sh` 正确拒绝；**待第 8 次冷重启**。
-- 门禁 `check-offline` 557+783 全绿；`make kernel` W=1 零警告；dmesg 零 WARN/BUG/Oops。
-- 诚实边界：T2 仍 open；生产代码零变更；不再做无离线依据的活体试探。
-

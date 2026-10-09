@@ -407,3 +407,16 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 反向验证：tile 写改 0→`test_header_tile_pack_writes` 精确 FAIL；还原→绿。
 - 门禁 `check-offline` 557+783 全绿；`make kernel` W=1 零警告；零硬件触碰。
 - 诚实边界：tile 语义 [INFERRED]；`+0x68`/`+0x120` 仍 0（r438 P1/P2）；活体待定。
+
+## r440 (2026-10-09): Tile 打包活体仍超时（第 7 次冷重启后）
+
+- 双门控活体（`MT_TA_REAL_PACKET=1`+`MT_TA_READBACK_DEBUG=1`）：第 7 次冷重启确认干净，
+  trial 重建（`runtime_context=1` pinned），`mt-ta-readback` 全链路（`+0x10`=RgnHeader VA 0x7c000000，
+  `+0x50`/`+0x58`=`0x0001000000000000` tile 打包，`n_entries`=0）→ **5s 超时**（errno=110）。
+- **证伪**：r438 "0 tiles 或致固件挂起"假说被活体证伪；tile 打包 [INFERRED]→仍未 [MEASURED]。
+- 当前 Header vs UMD 单 RT 必写清单：`+0x10`✅ `+0x50`/`+0x58`✅ `+0x68`=0✅ `+0x28`/`+0x30`=0✅；
+  仅剩 `+0x120`（flags 位打包）、`+0x138`–`+0x160`（feature 条件）未填——下轮嫌疑。
+- Teardown：pending fence → bridge ref=1，`safe_rmmod.sh` 正确拒绝；**待第 8 次冷重启**。
+- 门禁 `check-offline` 557+783 全绿；`make kernel` W=1 零警告；dmesg 零 WARN/BUG/Oops。
+- 诚实边界：T2 仍 open；生产代码零变更；不再做无离线依据的活体试探。
+

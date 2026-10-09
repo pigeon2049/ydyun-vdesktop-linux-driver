@@ -595,8 +595,8 @@ static int test_ta_entry_q0_flag_or(void)
 	return 0;
 }
 
-/* r439: byte ranges written by mt_ta_real_buffer_build (Header-only):
- * +0x10 (target_va), +0x50/+0x58 (tile packing). */
+/* r439/r442: byte ranges written by mt_ta_real_buffer_build (Header-only):
+ * +0x10 (target_va), +0x50/+0x58 (tile packing), +0x120 (4B flags, r442). */
 static int ta_hdr_written_byte(unsigned int i)
 {
 	if (i >= MT_TA_BUF_HDR_TARGET_VA && i < MT_TA_BUF_HDR_TARGET_VA + 8)
@@ -604,6 +604,8 @@ static int ta_hdr_written_byte(unsigned int i)
 	if (i >= MT_TA_BUF_HDR_TILE_PACK_X && i < MT_TA_BUF_HDR_TILE_PACK_X + 8)
 		return 1;
 	if (i >= MT_TA_BUF_HDR_TILE_PACK_Y && i < MT_TA_BUF_HDR_TILE_PACK_Y + 8)
+		return 1;
+	if (i >= MT_TA_BUF_HDR_FLAGS && i < MT_TA_BUF_HDR_FLAGS + 4)
 		return 1;
 	return 0;
 }
@@ -642,11 +644,13 @@ static int test_ta_real_buffer_build_target(void)
 	 * in the 360B buffer (r422: writing them at buf+0 pollutes Header
 	 * at 0x10/0x18/0x20 -> firmware timeout). TA_buf+0x10
 	 * (target_va -> psKickTA[1]) is set; r439 adds TA_buf+0x50/+0x58
-	 * tile packing (FUN_00184220 [MEASURED]); rest stays zero. */
+	 * tile packing (FUN_00184220 [MEASURED]); r442 adds TA_buf+0x120
+	 * = 0x1 (UMD-faithful flags minimum [MEASURED] r441); rest zero. */
 	static unsigned char buf[MT_TA_CMD_BUFFER_BYTES];
 	unsigned int i;
 	u64 hdr_va;
 	u64 tile_q;
+	u32 flags_dw;
 
 	CHECK(mt_ta_real_buffer_build(NULL, 64, 64, 0, 0) == -EINVAL);
 	CHECK(mt_ta_real_buffer_build(buf, 0, 64, 0, 0) == -EINVAL);
@@ -666,6 +670,10 @@ static int test_ta_real_buffer_build_target(void)
 	CHECK(tile_q == (1ULL << 48));
 	memcpy(&tile_q, buf + MT_TA_BUF_HDR_TILE_PACK_Y, sizeof(tile_q));
 	CHECK(tile_q == mt_ta_tile_pack(64));
+	/* r442: +0x120 = 0x1 (UMD-faithful flags minimum, [MEASURED] r441). */
+	memcpy(&flags_dw, buf + MT_TA_BUF_HDR_FLAGS, sizeof(flags_dw));
+	CHECK(flags_dw == MT_TA_BUF_HDR_FLAGS_MIN);
+	CHECK(flags_dw == 0x1U);
 
 	/* Header-only: target_va set at +0x10; tiles follow w/h. */
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x7a001000ULL) == 0);
@@ -697,7 +705,7 @@ static int test_ta_real_buffer_build_target(void)
 
 	/* r424: idempotent -- rebuild fully overwrites (memset), no residue.
 	 * r439: all bytes zero except +0x10 (target_va) and +0x50/+0x58
-	 * (tile packing). */
+	 * (tile packing); r442: +0x120 (0x1 flags) also non-zero. */
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0xAAAAAAAAAAAAAAAAULL) == 0);
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x5555555555555555ULL) == 0);
 	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
@@ -706,7 +714,7 @@ static int test_ta_real_buffer_build_target(void)
 	CHECK(tile_q == (1ULL << 48));
 	for (i = 0; i < MT_TA_CMD_BUFFER_BYTES; i++) {
 		if (ta_hdr_written_byte(i))
-			continue; /* +0x10 / +0x50 / +0x58 bytes */
+			continue; /* +0x10 / +0x50 / +0x58 / +0x120 bytes */
 		CHECK(buf[i] == 0);
 	}
 	return 0;

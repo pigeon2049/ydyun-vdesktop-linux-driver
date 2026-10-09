@@ -397,4 +397,6 @@ r435-cold-reboot-not-done-stop.md |
 | r440-tile-packing-live-still-timeout.md |
 | r441 | +0x120 完整位表 + QuYuan1 feature 恒零（离线反汇编）[MEASURED]：+0x120 11-bit 打包（FUN_00178800:52118 初始化 0，:52194-52234；bit0=(RTDataSet+0&2)==0 [INFERRED 通常 1]，其余 10 bit 源自 DDK psKickTA flags [UNKNOWN]）；S3000 0x0222→quyuan1_drvdata（官方源码 [MEASURED]），QuYuan1 表 byte+2=0x43 bit2=0→feature 条件恒假→+0x138-+0x160 恒零，与我方 Header-only 一致，r438 P3 关闭；GetFeatures() 实为 GetFeatures(param_1)（objdump 0x78850 RDI 未改写）；r442 P0：+0x120 写 0x1；门禁全绿，零硬件触碰，无代码变更 |
 | r441-plus120-flags-quyuan1-features-zero.md |
+| r442 | +0x120 flags 写入实现（离线）：`mt_ta_real_buffer_build()` 追加 `*(u32*)(buf+0x120)=0x1`（r441 [MEASURED] UMD 忠实最小值，bit0；11-bit 表摘要入库）；T5 白名单扩展至 {0x10,0x50,0x58,0x120} + 2 新测试；C 断言 `+0x120==0x1`；反向验证写 0→精确 FAIL；门禁全绿，kernel 零警告，零硬件触碰 |
+| r442-plus120-flags-implemented.md |
 
