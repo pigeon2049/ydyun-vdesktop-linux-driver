@@ -101,3 +101,15 @@ wire=10 精确匹配；V3：destroy 后 probe ref 13->25->13，delta 归零无�
 
 报告 mt-vgpu-guest/reports/r408-tasubmitta-no-construction.md。
 
+
+## r409 (2026-10-09): 真实 TA 路径缺口确认（离线+实测）
+
+**标准程序实测**：egltri_x11 运行 8s（0 次 musakickgfx2 dispatch）；glxinfo 显示 llvmpipe 软件渲染。Mesa 无 DDK2 UMD 后端，标准程序不走 0x82 桥，不可达。
+
+**TA 缓冲结构**（离线反汇编 FUN_00169240）：40B（5 qwords）/72B（9 qwords）条目序列；render_ctx+0xb6 指针推进填充；TA state buffer；调用链 FUN_00169240→RGXKickTA→PrepareTA→SubmitTA（透传）。
+
+**缺口**：当前 mt_ta_submit_build 仅发 80B marker（ta_params 存不发）；真实 TA 需 r410 扩展包构建器（含 360B VA）+ DMA VA 映射 + 条目语义。
+
+**诚实边界**：360B 各 qword 语义未知（只知结构）；未做 TA 真实包活体；反汇编或有 decompiler artifact。
+
+报告 mt-vgpu-guest/reports/r409-ta-path-gap-confirmed.md。

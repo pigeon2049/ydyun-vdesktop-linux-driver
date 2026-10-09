@@ -337,3 +337,5 @@
 | r409 | 真实 TA 路径缺口确认（离线+实测）：标准程序（egltri_x11/glxinfo）实测走 Mesa llvmpipe，0 次 musakickgfx2 dispatch，不可达 DDK2 桥；离线反汇编 FUN_00169240 解析 TA 缓冲结构——40B（5 qwords）/72B（9 qwords）条目序列，render_ctx+0xb6 指针推进填充，"TA state buffer"；调用链 FUN_00169240→RGXKickTA→PrepareTA→SubmitTA（透传）；当前 mt_ta_submit_build 仅发 80B marker（ta_params 存不发）；r410 需扩展包构建器+DMA VA 映射+条目语义；门禁全绿零警告 |
 r409-ta-path-gap-confirmed.md |
 | r410 | Windows 驱动挖掘——TA ISA 字段语义（离线）：/opt/MTT-driver-only/ 为纯二进制（无头文件/文档），语义来自 Linux UMD 反汇编 FUN_00169240；TA 缓冲条目 40B（5 qwords）/72B（9 qwords），render_ctx+0xb6 指针推进；Q0 地址/标志、Q1 param_1+0x10、Q2 打包维度 (w-1)<<0x29\|(h-1)<<0x1a、Q3 lVar29+8、Q4 维度乘积；复杂条目 Q5-Q8 为 scissor/viewport；RGXPrepareTA 回读验证布局；Linux 桥缺 360B VA/size/DMA 映射/条目构造；真实 TA 包前置 4 项；门禁待跑 | r410-windows-ta-isa.md |
+| r411 | 真实 TA 包构造基础设施（离线）：新 kernel/mt_ta_real.h（MT_TA_REAL_PACKET 门控默认 0、MT_TA_CMD_BUFFER_BYTES=0x168、40B 条目结构、mt_ta_entry_simple_build Q2 打包）；mt_marker_fence.h 集成 mt_fw_ta_real_command（#if 门控，VA @+0x28/size @+0x30 系 3D 类比推断 TO-VALIDATE）；mt_ta_submit_build 门控分发；新 tests/ta/test_ta_real.py（6 tests）；360B DMA/VA 映射未做（独立前置）；门禁 480+299 全绿，kernel 零警告，反向验证通过 |
+r411-ta-real-packet-infra.md |

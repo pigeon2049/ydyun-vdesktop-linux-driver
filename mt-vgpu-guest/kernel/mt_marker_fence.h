@@ -13,6 +13,7 @@
 #include "mt_execution_context.h"
 #include "mt_tqx_work.h"
 #include "mt_ta_submit.h"
+#include "mt_ta_real.h"
 #include "mt_3d_submit.h"
 
 /* Pending work owns its VM/BO resources independently of external fence
@@ -323,6 +324,26 @@ static inline void mt_fw_ta_marker_command(void *command, u32 fence, u32 pid)
 	mt_fw_put32(command, 0x4c, pid);
 }
 
+/* Real TA command packet (r411).
+ * [MEASURED]: opcode 0x66 @+0x0c, wire_id @+0x48, pid @+0x4c (r365).
+ * [INFERRED]: TA buffer VA @+0x28/+0x2c, size @+0x30, by 3D analogy
+ *             (mt_fw_3d_command, r381). TO-VALIDATE on live hardware.
+ * Gated by MT_TA_REAL_PACKET (default 0 = disabled). */
+#if MT_TA_REAL_PACKET
+static inline void mt_fw_ta_real_command(void *command, u32 fence, u32 pid,
+				 u64 ta_va, u32 ta_size)
+{
+	memset(command, 0, MT_FW_COMMAND_BYTES);
+	mt_fw_put32(command, 0x0c, MT_FW_TA_OPCODE);
+	mt_fw_put32(command, 0x48, fence);
+	mt_fw_put32(command, 0x4c, pid);
+	/* 64-bit TA buffer VA at +0x28 (two u32 writes, little-endian). */
+	mt_fw_put32(command, MT_TA_DM_PKT_TA_VA_LO, (u32)(ta_va & 0xffffffffULL));
+	mt_fw_put32(command, MT_TA_DM_PKT_TA_VA_HI, (u32)(ta_va >> 32));
+	mt_fw_put32(command, MT_TA_DM_PKT_TA_SIZE, ta_size);
+}
+#endif /* MT_TA_REAL_PACKET */
+
 /* TA completion matching (r365): 0x66-class commands complete with
  * words[1]==MT_FW_TA_COMPLETE_CODE, not the standard COMPLETE (0). */
 static inline int mt_fw_event_matches_ta(const struct mt_fw_event *e,
@@ -538,9 +559,17 @@ static int mt_ta_submit_validate(const void *p)
 static void mt_ta_submit_build(void *packet, u32 wire_id, u32 pid,
 			       const void *p)
 {
+#if MT_TA_REAL_PACKET
+	/* Real TA packet (r411): carry TA buffer VA/size from params.
+	 * TO-VALIDATE: DM packet layout inferred by 3D analogy. */
+	const struct mt_ta_submit_params *params = p;
+	mt_fw_ta_real_command(packet, wire_id, pid,
+			      params->ta_cmd_va, params->ta_cmd_size);
+#else
 	(void)p;
 	/* D2/D4: DM3, opcode 0x66 marker; wire_id at +0x48 (r365 proven). */
 	mt_fw_ta_marker_command(packet, wire_id, pid);
+#endif
 }
 static void mt_ta_submit_store(struct mt_marker_fence *m, const void *p)
 {

@@ -489,6 +489,7 @@ as-built 机制（`da3df8b`，r45–r63）：
 
 ## 12. 运行态（2026-10-08 更新；本节是活页）
 
+- r411 (2026-10-09): Real TA packet infra (offline): new kernel/mt_ta_real.h (MT_TA_REAL_PACKET gate default 0, MT_TA_CMD_BUFFER_BYTES=0x168, 40B entry struct, mt_ta_entry_simple_build with Q2 dim packing [MEASURED]); mt_marker_fence.h integrated mt_fw_ta_real_command (#if-gated, VA @+0x28/size @+0x30 [INFERRED] by 3D analogy, TO-VALIDATE); mt_ta_submit_build dispatches on gate; new tests/ta/test_ta_real.py (6 tests); 360B DMA/VA mapping deferred (separate prereq); gate 480+299 green, kernel W=1 zero warnings, reverse validation passed, local commit not pushed.
 - r404 (2026-10-09): Dispatch split (offline): pvr_bridge_dispatch (168 lines) split into 8 per-group helpers, main keeps ENOTCONN + outer routing; pvr_translator_prepare_locked (294 lines) analyzed and kept as-is (clear 6-phase linear structure, centralized teardown); 13 text-scan tests updated for helper locations; reverse validation passed; gate 474+299 green, kernel W=1 zero warnings, local commit not pushed.
 - r397（2026-10-09）：render_ctx 双执行上下文落地（活体）：exec_ctx_3d（node_type=5→DM2）+ exec_ctx_ta（node_type=2→DM3）共享 process；kick 有-context 传真实 ctx（dm=3 门禁通过，借用不 kfree），无-context throwaway 回退；活体 V1/marker 回归/V3 隔离全绿，dmesg 干净；门禁 474+299 全绿，kernel W=1 零警告，本地提交未 push。
 - r398（2026-10-09）：R5 Phase 2 完成（离线）：删除 per-file VM（ta_vm_ctx 字段/create/destroy/kick fallback/mt_ta_vm.h/两死亡测试）；无有效 render_ctx 时 kick 直接 -EINVAL；exec_ctx throwaway 删除（ctx 恒借用）；4 测试文件更新；门禁 474+299 全绿，kernel W=1 零警告，反向验证通过，本地提交未 push。
