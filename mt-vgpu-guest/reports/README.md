@@ -349,3 +349,5 @@ r416-t2-readback-verification.md |
 r415-ta-real-path-productized.md |
 | r417 | 回读路径测试加固（离线）：tests/ta/test_ta_readback.py +19（12th BO 生命周期 6、0xFD 参数校验 6、target_va 4、像素分析 3）、tests/c/pvr_bridge_core_test.c +4 函数（+326 checks）；发现并修复两处 latent build break——0xFD dispatch case 门控补 `&& MT_TA_REAL_PACKET`（(1,0) 曾报 implicit declaration）、补 `mt_ta_submit_real` 前向声明（(1,1) 组合历史从未编译成功）；新建 userspace/ta_readback_analyze.h（像素校验可单元测试，行为锁定 r416）；tests/ta/test_ta_real.py 2 测试改锚定定义；门禁 522+625 全绿，kernel 零警告，反向验证 4 项通过 |
 r417-readback-test-hardening.md |
+| r418 | 双门控回读活体（最高风险轮）：`mt-ta-readback` 真机单发——路径机械打通但暴露真实 ABI bug（`mt_pvr_ta_readback_in` 内核侧未 packed，24B vs userspace 20B，`pvr_in` 报 EINVAL；r416/r417 离线测试未捕获）；修复 1 行后 0xFD 全路径执行，`mt_ta_submit_real` 成功、fence 分配，但固件 5s 超时（ETIMEDOUT，submitted-but-ignored）；r414 同结构 TA（Q0=0）219µs 完成，本轮 Q0=`va\|0x48000000000`（[INFERRED]）后超时，Q0 编码很可能不对，不做盲探；12th target BO 活体绑定确认（0x7b000000）；pending TA fence 致 bridge ref=1，`safe_rmmod.sh` 正确拒绝，未强卸，待用户冷重启；门禁 522+625 全绿，kernel 零警告 |
+r418-ta-readback-live.md |

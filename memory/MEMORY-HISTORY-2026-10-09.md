@@ -161,3 +161,7 @@ wire=10 精确匹配；V3：destroy 后 probe ref 13->25->13，delta 归零无�
 - DM 布局验证：VA @+0x28/size @+0x30 由 r411 [INFERRED] 转 **[MEASURED]**；40B 简单条目（64×64 dummy）被固件接受。
 - 无 oops/WARN/hang；测试钩子未提交（工作区 UNCOMMITTED）；门禁 480+299 全绿。
 - 诚实边界：dummy 构造语义未深挖；T2 回读仍缺；生产路径仍 marker。
+
+## r415 (2026-10-09): 真实 TA 路径产品化——DM 布局固化 + mt_ta_submit_real() 落地
+
+r415（离线）：DM 布局 VA @+0x28/size @+0x30 由 [INFERRED] 转 [MEASURED]（r414 活体 0x100/219us）；80B 包布局文档化。新生产函数 `mt_ta_submit_real()`（`kernel/recovery/mt_pvr_bridge.c`，`#if MT_TA_REAL_PACKET` 内）：r414 测试钩子重构为参数化 API（`struct mt_ta_real_request`{h_render_context,width,height,n_entries}），固定 64x64 hardcode 已移除，异步返 fence（调用方自行等待）；`mt_ta_real_buffer_build()` 纯函数（n 个 40B 条目）。BO[10]@4096 复用评估通过（VM seal 后无法新增绑定，r414 已验证；长期 fix 为 create 时专用 BO）。门控开启流程文档化（5 前置+开启步骤+回滚，marker 路径不受影响）。`0x82:0xFE` 钩子确认不在生产代码（从未提交）。`tests/ta/test_ta_real.py` +8（共 14）。门禁 488+299 全绿，`make kernel` W=1 零警告（门控开/关双路径），反向验证通过（门控置 1 → FAIL）。T2 白名单曾因注释引用宏名告警，已改为裸 0x66。本地提交未 push。

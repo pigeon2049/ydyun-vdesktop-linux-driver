@@ -216,7 +216,7 @@ struct mt_pvr_ta_readback_in {
 	u32 width;
 	u32 height;
 	u32 n_entries;
-};
+} __attribute__((packed));
 struct mt_pvr_ta_readback_out {
 	u32 status;		/* 0 = success */
 	u32 completion_code;	/* firmware completion (0x100 expected) */
