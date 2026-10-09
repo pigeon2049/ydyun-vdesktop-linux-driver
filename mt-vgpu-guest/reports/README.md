@@ -326,3 +326,4 @@
 | r398 | R5 Phase 2 完成（离线）：删除 per-file VM 回退（file->ta_vm_ctx 字段、前向声明、create/destroy、kick fallback、mt_ta_vm.h 引入与头文件、两死亡测试）；无有效 render_ctx 时 kick 直接 -EINVAL；exec_ctx throwaway 分支删除（ctx 恒为借用，无 kfree）；4 个测试文件更新语义；门禁 474+299 全绿，kernel W=1 零警告，反向验证通过 | r398-per-file-vm-removed.md |
 | r399 | R5 Phase 2 活体验证（活体）：pre-live 门禁 T1/T2/T3 全绿后重载 bridge 到 r398 构建；V1 无 ctx kick 返回 -EINVAL（errno 22，dmesg 有 r398 Phase 2 标记）；V2 有 ctx kick 成功（OUT.update_fence=10 对应 wire=10）；V3 destroy 后 probe ref 13->25->13 无泄漏；dmesg 零 WARN/BUG/Oops；门禁 474+299 全绿 | r399-perfile-removed-live-verified.md |
 | r400 | 代码目录重构（离线）：Phase A 清理构建产物；Phase B tests 重组为子包（474+299 全绿）；Phase C 暂缓；Phase D 更新文档 | r400-code-restructure.md |
+| r401 | 代码重构机会分析（离线）：7 个机优先级排序——P0 测试 helper 提取（47 文件重复 ROOT，2 种不一致写法）、P1 TA/3D submit 统一（~70% 重复，可提公共 ops）、P2 长函数拆分（prepare_locked 294 行、dispatch 168 行）、P3 魔法超时值命名；死代码零（r383/r398 清理彻底）；ENOTTY/EOPNOTSUPP 为有意区分非问题；kernel 头文件重组暂缓 | r401-code-refactor-opportunities.md |
