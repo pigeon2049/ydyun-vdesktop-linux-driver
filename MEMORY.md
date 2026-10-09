@@ -43,7 +43,20 @@
 > r405 轮按 §4 清理：无（仅 r404、r405 两节，保留）。
 > r407 轮按 §4 清理：r405 节已移入归档。
 > r408 轮按 §4 清理：r406 节已移入归档。
+> r409 轮按 §4 清理：r407 节已移入归档。
 
+
+## r409 (2026-10-09): 真实 TA 路径缺口确认（离线+实测）
+
+**标准程序实测**：egltri_x11 运行 8s（0 次 musakickgfx2 dispatch）；glxinfo 显示 llvmpipe 软件渲染。Mesa 无 DDK2 UMD 后端，标准程序不走 0x82 桥，不可达。
+
+**TA 缓冲结构**（离线反汇编 FUN_00169240）：40B（5 qwords）/72B（9 qwords）条目序列；render_ctx+0xb6 指针推进填充；TA state buffer；调用链 FUN_00169240→RGXKickTA→PrepareTA→SubmitTA（透传）。
+
+**缺口**：当前 mt_ta_submit_build 仅发 80B marker（ta_params 存不发）；真实 TA 需 r410 扩展包构建器（含 360B VA）+ DMA VA 映射 + 条目语义。
+
+**诚实边界**：360B 各 qword 语义未知（只知结构）；未做 TA 真实包活体；反汇编或有 decompiler artifact。
+
+报告 mt-vgpu-guest/reports/r409-ta-path-gap-confirmed.md。
 
 ## r408 (2026-10-09): RGXSubmitTA 不构造 TA 缓冲（离线反汇编）
 
@@ -56,14 +69,4 @@
 **诚实边界**：已确认=调用链/VA透传/PrepareTA回填；推断=psKickTA+0x08/+0x10语义、DM包@+0x28为TA VA；未知=360B TA ISA编码、544B缓冲内容、固件真实负载最低条件。
 
 报告 mt-vgpu-guest/reports/r408-tasubmitta-no-construction.md。
-
-## r407 (2026-10-09): TA 命令缓冲捕获机制验证（活体观察）
-
-**活体观察**：冷重启后系统干净（probe trial restored，bridge ref=0）；pre-live T1/T2/T3 全过；桥侧临时 hook（`copy_from_user` + `print_hex_dump`）在 `0x82:0xC` 入口成功捕获 TA 命令缓冲前 64 字节（`ta_size=360` 与 r363 一致）；捕获为 fabricated 测试模式，机制已验证；hook 已移除，源码恢复，桥重载干净构建；dmesg 无 WARN/BUG/Oops。
-
-**TA 包布局（已知）**：DM 包 80B（`MT_FW_COMMAND_BYTES`，opcode 0x66 @+0x0c，wire_id @+0x48，pid @+0x4c，r365 活体验证）；TA 命令缓冲 360B（r363 实测，内容为 TA 指令流，布局待反汇编 `RGXSubmitTA` 解析）；0x82:0xC IN 268B（p_ta_cmd @120，kick_ta @188，ta_cmd_size @264）。
-
-**诚实边界**：捕获的是 fabricated 模式，非真实 UMD 负载（无 3D 应用）；真实 TA 指令流布局未解析；本轮未提交 GPU 工作。
-
-**下一步**：r408 TA 包解析（离线，反汇编分析）。
 
