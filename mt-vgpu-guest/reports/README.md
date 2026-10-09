@@ -373,3 +373,5 @@ r427-rendertarget-metadata-reverse.md |
 r428-umd-env-ta-header-capture.md |
 | r429 | Windows TA kick extract (offline disasm): mtdxum64.dll (DX10/11 UMD) builds 0x78B kick entries via FUN_180224220/FUN_1802411e0, magic 0x3089705f3089705f at [1] (Linux UMD at [4]), via D3DDDIEscapeCb; 0x168 151 hits are vtable/object-size noise, no Windows TA Header alloc; 360B Header is Linux-UMD-specific; firmware accepts multiple formats; r430: Linux RGXAddRenderTargetDDK2 MLIST/RgnHeader layout |
 | r429-windows-kick-vs-linux-header.md |
+| r430 | TA Header +0x10 = RgnHeader device VA, 3-hop chain measured (offline disasm): RGXAddRenderTarget:49312 local_5b0[1]=RgnHeader VA -> SetupRTDataSet:48867 RTData entry+0x00 -> RGXPrepareTA:52144 TA_buf+0x10; RgnHeader size=numRT*round_up(tiles*0x40,64) (0x100B for 64x64), UMD pre-fills 0xFFFFFFFF via InitRegionHeaderBuffer; MLIST size=numRT*0x4a000 (firmware-written); CORRECTS r428: RGXAddRenderTargetDDK2 is linux-legacy-umd-5.2.0/decompiled.c:50203, not mtdxum64.dll (MLIST/RgnHeader strings only in Linux UMD corpus); minimal valid TA Header table; r431 prereqs |
+| r430-rgnheader-va-at-plus0x10.md |

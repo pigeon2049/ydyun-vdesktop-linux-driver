@@ -40,6 +40,7 @@ EXIT:0
 > r398 轮按 §4 清理：r395 节已移入归档。
 > r428 轮按 §4 清理：r426 节已移入归档。
 > r429 轮按 §4 清理：r427 节已移入归档。
+> r430 轮按 §4 清理：r428 节已移入归档。
 > r402 轮按 §4 清理：r400、r399 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 > r404 轮按 \u00a74 清理：r402、r401 节已移入归档。
@@ -61,6 +62,22 @@ EXIT:0
 
 > r427 轮按 §4 清理：r425 节已移入归档。
 
+## r430 (2026-10-09): TA Header +0x10 = RgnHeader device VA——3-hop 链实证；纠正 r428 文件归属（离线反汇编）
+
+- **核心结论**：TA Header `+0x10` = **RgnHeader device VA**（[MEASURED] 三跳链）：
+  1. `RGXAddRenderTarget:49312`：`local_5b0[1] = local_6d8`（RgnHeader dev VA → VA 表）
+  2. `SetupRTDataSet:48867`：`*(RTDataSet+0x38) = *(param_4+8)` = local_5b0[1] → RTData entry+0x00
+  3. `RGXPrepareTA:52144`：`*(TA_buf+0x10) = RTData entry+0x00`
+  → `psKickTA[1]` = RgnHeader VA；固件解析 RgnHeader 获 tile 布局。r425 超时（+0x10=原始像素 BO）彻底解释。
+- **RgnHeader** [MEASURED]：size = `numRT × round_up(tiles×0x40,64)`（64×64 → 0x100B）；
+  UMD 经 `InitRegionHeaderBuffer` 预填全 `0xFFFFFFFF`（heap=0x133 路径）；`DevmemAllocateAndMap` 设备可见。
+- **MLIST** [MEASURED]：size = `numRT × 0x4a000`（config+0x5c，另有 0x72000 变体）；固件写入，不预填。
+- **纠正 r428**：`RGXAddRenderTargetDDK2` = `linux-legacy-umd-5.2.0/decompiled.c:50203`（270 行），
+  非 mtdxum64.dll（全语料库 grep：MLIST/RgnHeader 仅 Linux UMD 有；mtdxum64.dll:50202 是 C++ 容器初始化函数）。
+- **最小有效 TA Header**：+0x10=RgnHeader VA（分配 0x100B 填 0xFF）；+0x28/+0x30=[UNKNOWN]；
+  +0x68=0；其余 0。r431 P0：Linux guest 实现 RgnHeader 分配+初始化。
+- 门禁 `check-offline` 全绿；零硬件触碰，纯离线，无代码变更。
+
 ## r429 (2026-10-09): Windows 驱动 TA 提交结构提取——D3D11 UMD 用 0x78 字节 kick，非 360B Header（离线反汇编）
 
 - mtdxum64.dll（DX10/11 UMD）构建 0x78 字节 kick 条目（FUN_180224220 @392802、FUN_1802411e0 @412745），magic 0x3089705f3089705f 在 **[1]**（Linux UMD psKickTA[4]），经 D3DDDIEscapeCb 提交；调用者在 FUN_18021cf50（0x78 步长数组，清零 15 qword 后逐条填充）。
@@ -69,15 +86,5 @@ EXIT:0
 - MTT 特有 delta：kick 布局与 Linux 不同，但 render-target 元数据仍为固件私有（r427 结论不受影响）。
 - 结论：**360B TA Header 为 Linux UMD 特有**；同一固件接受 D3D11 kick 与 Linux TA Header——提交格式由 UMD/KMD 协商。
 - r430 前置：Linux 侧 RGXAddRenderTargetDDK2 的 MLIST/RgnHeader 布局（render-target 元数据最佳线索）。
-- 零硬件触碰，纯离线；无代码改动。
-
-## r428 (2026-10-09): UMD 环境取证——无可运行 Linux vguest，真实 TA Header 走 Windows 驱动静态提取（离线调查）
-
-- 用户澄清：Linux 端没有 vguest；`/opt/MTT-driver-only/` 为真实可工作的 Windows guest 驱动。全 deb/src 取证：mtgpu-1.0.0=固件+dkms 源码、mtml-1.8.2 仅 `libmtml.so`、dkms 包无 .so——**无 Linux 图形 UMD .so**（[MEASURED]）。
-- `decompiled/linux-legacy-umd-5.2.0/` = Ghidra 反汇编 `libsrv_um_MUSA.so.1.0.0`（host-side 服务库，SHA-256 `b3058c02…34237b0`），非 vguest。
-- `mtdxum64.dll` 实证为 DX10/11 UMD：导出 `OpenAdapter`/`OpenAdapter10`/`OpenAdapter10_2`/`MtDxExtGetInterfaceImpl`（MT 特有）；经 `D3DDDIEscapeCb` 提交；TA 命名函数无（本地名 strip）。
-- 可行性：Wine 不可行（UMD 需 KMD .sys，vGPU 被占用）；Windows VM 不可行（需 host 配合）；**选项 A 落点=静态提取**（语料完备，Ghidra 工程可重开）。
-- 弹药：`0x168` 在 mtdxum64.dll 出现 151 次（行为锚点）；`RGXAddRenderTargetDDK2`（decompiled.c:50202）分配 `"MLIST"`/`"RgnHeader"` 固件可见结构；修正 r427"UMD 只透传"为过于绝对。
-- r429 工作包：mtdxum64.dll 以 0x168 定位 TA Header builder → 对比 `RGXPrepareTA` → `RGXAddRenderTargetDDK2` 全量 → mtkm64.sys KMD 侧逻辑。
 - 零硬件触碰，纯离线；无代码改动。
 

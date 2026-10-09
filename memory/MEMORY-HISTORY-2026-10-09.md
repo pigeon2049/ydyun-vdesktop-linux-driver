@@ -215,3 +215,14 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - RGXAddRenderTarget 创建流程：RGX_RT_ALLOCS、parameter memory、MLIST、VHEAP；RTDataSet 分配者在 UMD 之外（未找到）。
 - 结论：psKickTA[1] 指向的结构本体为固件私有——UMD 只透传 VA，布局无法从 UMD 反汇编确定；方案 B 已达边界。r428 前置：选项 A（捕获真实 UMD Header）或选项 C（3D 路径验证 T2）；P0 完成前不得活体。
 - 纯离线零硬件；门禁 550+1416 全绿；无代码变更。
+
+## r428 (2026-10-09): UMD 环境取证——无可运行 Linux vguest，真实 TA Header 走 Windows 驱动静态提取（离线调查）
+
+- 用户澄清：Linux 端没有 vguest；`/opt/MTT-driver-only/` 为真实可工作的 Windows guest 驱动。全 deb/src 取证：mtgpu-1.0.0=固件+dkms 源码、mtml-1.8.2 仅 `libmtml.so`、dkms 包无 .so——**无 Linux 图形 UMD .so**（[MEASURED]）。
+- `decompiled/linux-legacy-umd-5.2.0/` = Ghidra 反汇编 `libsrv_um_MUSA.so.1.0.0`（host-side 服务库，SHA-256 `b3058c02…34237b0`），非 vguest。
+- `mtdxum64.dll` 实证为 DX10/11 UMD：导出 `OpenAdapter`/`OpenAdapter10`/`OpenAdapter10_2`/`MtDxExtGetInterfaceImpl`（MT 特有）；经 `D3DDDIEscapeCb` 提交；TA 命名函数无（本地名 strip）。
+- 可行性：Wine 不可行（UMD 需 KMD .sys，vGPU 被占用）；Windows VM 不可行（需 host 配合）；**选项 A 落点=静态提取**（语料完备，Ghidra 工程可重开）。
+- 弹药：`0x168` 在 mtdxum64.dll 出现 151 次（行为锚点）；`RGXAddRenderTargetDDK2`（decompiled.c:50202）分配 `"MLIST"`/`"RgnHeader"` 固件可见结构；修正 r427"UMD 只透传"为过于绝对。
+- r429 工作包：mtdxum64.dll 以 0x168 定位 TA Header builder → 对比 `RGXPrepareTA` → `RGXAddRenderTargetDDK2` 全量 → mtkm64.sys KMD 侧逻辑。
+- 零硬件触碰，纯离线；无代码改动。
+
