@@ -44,7 +44,28 @@
 > r407 轮按 §4 清理：r405 节已移入归档。
 > r408 轮按 §4 清理：r406 节已移入归档。
 > r409 轮按 §4 清理：r407 节已移入归档。
+> r410 轮按 §4 清理：r408 节已移入归档。
 
+
+## r410 (2026-10-09): Windows 驱动挖掘——TA ISA 字段语义（离线）
+
+**Windows 驱动**：/opt/MTT-driver-only/ 为纯二进制（24 DLL/SYS，无头文件/文档）；TA ISA 语义来自 Linux UMD 反汇编。
+
+**TA 缓冲字段语义**（FUN_00169240，decompiled.c:43159）：40B（5 qwords）简单条目 / 72B（9 qwords）复杂条目；render_ctx+0xb6 指针推进。
+- Q0 (local_90)：地址/标志，uVar16 位打包；或 0x48000000000 标志
+- Q1 (uStack_88)：*(param_1+0x10)；byte7 标志位
+- Q2 (local_80)：打包维度 ((w-1)&0x7fff)<<0x29 | ((h-1)&0x7fff)<<0x1a
+- Q3 (uStack_78)：*(lVar29+8)；byte6 标志位
+- Q4 (local_70)：维度乘积或打包维度
+- Q5-Q8（复杂）：scissor/viewport 坐标打包
+
+**RGXPrepareTA 回读验证**：psKickTA 字段从缓冲偏移 0x10/0x18/0x20/0x28/0x30/0x38/0x40/0x48/0x60 读取，确认布局。
+
+**Linux 桥差异**：当前仅发 80B marker；缺 360B VA/size/DMA 映射/条目构造/psKickTA 结构。
+
+**前置条件**：P1 确认固件包布局 + DMA 映射；P2 最小条目构造；P3 回读验证（可选）。
+
+报告 mt-vgpu-guest/reports/r410-windows-ta-isa.md。
 
 ## r409 (2026-10-09): 真实 TA 路径缺口确认（离线+实测）
 
@@ -57,16 +78,4 @@
 **诚实边界**：360B 各 qword 语义未知（只知结构）；未做 TA 真实包活体；反汇编或有 decompiler artifact。
 
 报告 mt-vgpu-guest/reports/r409-ta-path-gap-confirmed.md。
-
-## r408 (2026-10-09): RGXSubmitTA 不构造 TA 缓冲（离线反汇编）
-
-**反汇编**（MUSA DDK 5.2.0 UMD，零硬件）：调用链 RGXKickTA(0x17afd0)→RGXPrepareTA(FUN_00178800,218行)→RGXSubmitTA(FUN_001796b0,709行)→BridgeRGXKickTA3D3(FUN_00137180)→SubmitTADataEnQueue；SubmitTA内0x168=360为立即数尺寸参数、VA取自psKickTA[0]，全函数无缓冲写入/模板填充；PrepareTA只做指针搬运(psKickTA[0..2]=render_ctx+0xb6/b8/ba)+0x1c8-0x1d4状态回填；psKickTA无UMD侧构造函数(r193 corroborate)。
-
-**结论**：360B TA缓冲内容(TA指令流)由客户端3D状态机在调用前生成，RGXSubmitTA只透传VA；r409的最小真实TA包不能从本反汇编直接得到。
-
-**r409方案**(按推荐序)：真实应用trace(用r407 hook捕获真实360B，前置：有3D应用能走到RGXKickTA) > KMD/固件文档找TA命令格式 > 盲探(不推荐，r380教训)。
-
-**诚实边界**：已确认=调用链/VA透传/PrepareTA回填；推断=psKickTA+0x08/+0x10语义、DM包@+0x28为TA VA；未知=360B TA ISA编码、544B缓冲内容、固件真实负载最低条件。
-
-报告 mt-vgpu-guest/reports/r408-tasubmitta-no-construction.md。
 
