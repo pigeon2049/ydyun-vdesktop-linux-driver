@@ -341,3 +341,5 @@ r409-ta-path-gap-confirmed.md |
 r411-ta-real-packet-infra.md |
 | r412 | 真实 TA 活体实现完成、trial 阻塞：测试钩子 pvr_cmd_ta_real_test（桥 0x82:0xFE，未提交；360B→BO[10]@4096→真实 TA 路径→等固件完成）；门控 MT_TA_REAL_PACKET=1 测试构建；用户态 ta_real_test3（INIT→Connect→Create→Test）；活体被 trial 未建立阻塞（pvr_session_acquire NULL；原版桥同样失败，非本轮所致）；实现编译零警告；待 trial 恢复后重跑 | r412-real-ta-blocked-trial.md |
 
+| r414 | 真实 TA 首次活体执行成功（最高风险轮）：补加 `case 0xFE` 分发（r404 后空白字符 exact-match）+ `pvr_cmd_ta_real_test` 钩子（r412 hook.c 原样）；`make kernel` W=1 零警告；pre-live T1/T2/T3 全过；活体单发 `status=0`——固件 `COMPLETED (0x100)`，提交到完成 219µs；DM 布局验证：VA @+0x28/size @+0x30 由 [INFERRED] 转 [MEASURED]；40B 条目（64×64 dummy）被固件接受；`safe_rmmod.sh` 干净卸载，无 oops/WARN/hang；测试钩子未提交 |
+r414-real-ta-first-live-success.md |

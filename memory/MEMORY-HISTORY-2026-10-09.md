@@ -134,3 +134,12 @@ wire=10 精确匹配；V3：destroy 后 probe ref 13->25->13，delta 归零无�
 
 报告 mt-vgpu-guest/reports/r410-windows-ta-isa.md。
 
+
+## r411 (2026-10-09): 真实 TA 包构造基础设施（离线）
+
+- 新 `kernel/mt_ta_real.h`（99 行）：`MT_TA_REAL_PACKET` 门控默认 0、`MT_TA_CMD_BUFFER_BYTES=0x168`、40B 条目结构、`mt_ta_entry_simple_build()`（Q2 维度打包 [MEASURED] r410）。
+- `mt_marker_fence.h` 集成：`mt_fw_ta_real_command()`（#if 门控内，VA @+0x28/size @+0x30 系 3D 类比 [INFERRED] TO-VALIDATE）；`mt_ta_submit_build` 门控分发 marker vs real。
+- 新 `tests/ta/test_ta_real.py`（6 tests）：门控默认关、尺寸常量、条目构建器、real 命令被门控、marker 保留。
+- 360B DMA/VA 映射未实现（需生产路径改动，独立前置）。
+- 门禁 480+299 全绿，`make kernel` W=1 零警告（门控开/关双验证）；反向验证通过（门控篡改→FAIL）。
+- 纯离线，零硬件触碰；门控关闭零行为变更。本地提交未 push。
