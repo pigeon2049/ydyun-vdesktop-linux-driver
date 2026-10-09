@@ -392,3 +392,18 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 门禁 `check-offline` 全绿；无代码变更，未跑 `make kernel`；
   零硬件触碰，纯离线。
 
+
+## r439 (2026-10-09): TA Header +0x50/+0x58 tile 打包实现（离线）
+
+- r438 P0 落地：`mt_ta_tile_pack(x) = (((x+0x3f)>>6)&0x3f)<<48`（[MEASURED] 公式，
+  tile 语义 [INFERRED]）；`mt_ta_real_buffer_build()` 新增 `+0x50=w` 打包、
+  `+0x58=h` 打包（w/h 近似 psKickTA[3]/[4] [INFERRED]）；64×64→`0x0001000000000000`。
+- T5 白名单扩展：仅 `MT_TA_BUF_HDR_TARGET_VA`/`_TILE_PACK_X`/`_Y` 可写；
+  新增 `test_header_tile_pack_writes`/`test_tile_pack_constants`/
+  `test_tile_pack_helper_defined`。
+- C：新增 `test_ta_tile_pack`（10 checks，含 4096→0 的 6-bit 回绕）；
+  `test_ta_real_buffer_build_target` 同步（+0x50/+0x58 非零断言、幂等循环
+  跳过三处写入区；动态 1491→783 系冗余循环合并，覆盖未减）。
+- 反向验证：tile 写改 0→`test_header_tile_pack_writes` 精确 FAIL；还原→绿。
+- 门禁 `check-offline` 557+783 全绿；`make kernel` W=1 零警告；零硬件触碰。
+- 诚实边界：tile 语义 [INFERRED]；`+0x68`/`+0x120` 仍 0（r438 P1/P2）；活体待定。

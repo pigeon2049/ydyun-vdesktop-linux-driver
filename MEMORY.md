@@ -71,6 +71,25 @@ EXIT:0
 > r438 轮按 §4 清理：r436 节已移入归档。
 > r439 轮按 §4 清理：r437 节已移入归档。
 > r440 轮按 §4 清理：r438 节已移入归档。
+> r441 轮按 §4 清理：r439 节已移入归档。
+
+## r441 (2026-10-09): +0x120 flags 位表 + QuYuan1 feature 恒零（离线）
+
+- `+0x120` 完整 11-bit 打包表 [MEASURED]（`FUN_00178800`:52118 初始化 0，:52194–52234）：
+  bit0=`(RTDataSet+0x00 & 2)==0`（UMD 内部；RTDataSet 经 calloc 分配、`+0x00` 未写入→通常为 1 [INFERRED]）；
+  bit1=flags bit0|bit3；bit4=bit19；bit8=bit3；bit9=bit12；bit10=bit13；
+  bit13=bit17；bit20=bit24；bit21/22=`RTDataSet+0x20`/`+0x24` vs `psKickTA+8` 混合；
+  bit23=bit25。DDK flags（`*param_2`）取值 [UNKNOWN]；UMD 忠实最小值 `0x1`。
+- Feature 字段在目标机恒零 [MEASURED]：官方源码把 S3000 PCI ID `0x0222` 映射到
+  `quyuan1_drvdata`；QuYuan1 表（.data 0xb57560）byte+2=`0x43`（bit2=0）→
+  写入条件 `((*(byte *)(lVar6+2) & 4) == 0)` 恒真→FALSE 分支：`+0x140`/`+0x150` 显式 0，
+  `+0x138`/`+0x148`/`+0x158`/`+0x160` 不写入（零缓冲中为 0）。
+  **我方 Header-only 全零与 UMD 一致** ✅；r438 P3 嫌疑关闭。
+- 纠正：反编译 `lVar6 = GetFeatures();` 无参为误导——objdump 0x78850 显示调用前
+  RDI（=param_1）未被改写，实际为 `GetFeatures(param_1)`，返回 `*(param_1+0xa0)+0x620`。
+- r442 前置：P0=`+0x120` 写 `0x1`（bit0，低风险）；P1=`+0x68` 仍 UNKNOWN（r438）。
+- 门禁 `check-offline` 全绿；`make kernel` W=1 零警告；零硬件触碰，无代码变更。
+- 诚实边界：DDK flags 真实取值 [UNKNOWN]；bit0=1 系 [INFERRED 高置信]。
 
 ## r440 (2026-10-09): Tile 打包活体仍超时（第 7 次冷重启后）
 
@@ -83,19 +102,4 @@ EXIT:0
 - Teardown：pending fence → bridge ref=1，`safe_rmmod.sh` 正确拒绝；**待第 8 次冷重启**。
 - 门禁 `check-offline` 557+783 全绿；`make kernel` W=1 零警告；dmesg 零 WARN/BUG/Oops。
 - 诚实边界：T2 仍 open；生产代码零变更；不再做无离线依据的活体试探。
-
-## r439 (2026-10-09): TA Header +0x50/+0x58 tile 打包实现（离线）
-
-- r438 P0 落地：`mt_ta_tile_pack(x) = (((x+0x3f)>>6)&0x3f)<<48`（[MEASURED] 公式，
-  tile 语义 [INFERRED]）；`mt_ta_real_buffer_build()` 新增 `+0x50=w` 打包、
-  `+0x58=h` 打包（w/h 近似 psKickTA[3]/[4] [INFERRED]）；64×64→`0x0001000000000000`。
-- T5 白名单扩展：仅 `MT_TA_BUF_HDR_TARGET_VA`/`_TILE_PACK_X`/`_Y` 可写；
-  新增 `test_header_tile_pack_writes`/`test_tile_pack_constants`/
-  `test_tile_pack_helper_defined`。
-- C：新增 `test_ta_tile_pack`（10 checks，含 4096→0 的 6-bit 回绕）；
-  `test_ta_real_buffer_build_target` 同步（+0x50/+0x58 非零断言、幂等循环
-  跳过三处写入区；动态 1491→783 系冗余循环合并，覆盖未减）。
-- 反向验证：tile 写改 0→`test_header_tile_pack_writes` 精确 FAIL；还原→绿。
-- 门禁 `check-offline` 557+783 全绿；`make kernel` W=1 零警告；零硬件触碰。
-- 诚实边界：tile 语义 [INFERRED]；`+0x68`/`+0x120` 仍 0（r438 P1/P2）；活体待定。
 
