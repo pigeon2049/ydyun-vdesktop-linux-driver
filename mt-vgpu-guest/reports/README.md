@@ -421,5 +421,5 @@ r435-cold-reboot-not-done-stop.md |
 | r452-pskickta-flags-plus68-plus120.md |
 | r453 | TA 命令流与 Bridge 参数检查（离线）：UMD TA 命令即 360B 本体、无追加命令 [MEASURED]，我方 header-only 与 UMD 一致；真实 KCCB KICK=0x2ABC0065，我方 0x66 来自 work-queue 命名空间 [MEASURED]；"MEASURED" 包布局证据 r414 已被证伪；最可能根因 [INFERRED 高置信]：RgnHeader 仅 dword 1s 初始化、从未填有效 region 数据，固件解析垃圾 hang |
 | r453-ta-cmd-bridge-params-rgnheader-root-cause.md |
-
-
+| r454 | UMD RgnHeader 双循环初始化（离线）：UMD 做两次循环写 1s（2xlocal_700 dwords），我方只做一次（64 dwords），初始化量仅 UMD 一半 [MEASURED]；r453"未填真实数据"假说被证伪——1s 即完整初始化；0x100B 系 r430 笔误，0x100 定义正确 |
+| r454-rgnheader-double-init-half-filled.md |

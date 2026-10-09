@@ -81,6 +81,23 @@ EXIT:0
 > r451 轮按 §4 清理：r448 节已移入归档。
 > r453 轮按 §4 清理：r449 节已移入归档。
 
+## r454 (2026-10-09): UMD RgnHeader 双循环初始化——我方只写了一半（离线）
+
+- **UMD 初始化 [MEASURED]**：`InitRegionHeaderBuffer` 做**两次**循环，每次写 `local_700` 个 dword 的 `1`，
+  总计 2xlocal_700 dwords（反汇编 decompiled.c:49330-49338、49560-49568）。
+- **我方初始化 [MEASURED]**：`mt_pvr_bridge.c:4271-4272` 只做一次循环，写 64 dwords。
+- **差异**：我方初始化量仅为 UMD 的 **50%**。
+- **r453 假说被证伪**：`InitRegionHeaderBuffer` 的两个 1s 循环后直接 unmap，
+  **没有任何额外的数据写入**——1s 就是完整的初始化，不存在"未填充的真实数据"。
+  修正后根因：**初始化量不足**，不是"未填充"。
+- **0x100B 澄清**：r430 的 "0x100B" 系笔误；`mt_ta_real.h:120` 注释 "4 tiles * 0x40 = 0x100"
+  数学正确，`MT_TA_RGNHEADER_BYTES = 0x100U` 定义正确。
+- **双循环用途 [UNKNOWN]**：可能是双缓冲（ping-pong）或单个大 buffer，需进一步确认，
+  但"量不足"结论不受影响。
+- 下一步 r455 P0：将填充量从 64 dwords 增加到 128 dwords。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r454-rgnheader-double-init-half-filled.md
+
 ## r453 (2026-10-09): TA 命令流与 Bridge 参数检查——最可能根因是未填充的 RgnHeader（离线）
 
 - **TA 命令流 [MEASURED]**：UMD 的 TA 命令就是 360B header 本体，无追加命令
