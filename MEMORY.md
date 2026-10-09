@@ -44,6 +44,14 @@
 
 
 
+## r400 (2026-10-09): 代码目录重构完成（离线）
+
+**重构**：Phase A 清理 kernel/ 三目录构建产物（gitignored）；Phase B tests 重组为 c/pvr/ta/guest/render/misc 子包（130 文件 git mv，修复 parents/include/Makefile 路径）；Phase C（80 头文件）评估暂缓；Phase D 更新 README 目录表。
+
+**门禁**：474+299 全绿；make kernel W=1 零警告（28 模块）。
+
+报告 mt-vgpu-guest/reports/r400-code-restructure.md。
+
 ## r399 (2026-10-09): R5 Phase 2 活体验证--无 ctx kick 返回 -EINVAL（活体）
 
 **验证**：pre-live 门禁 T1/T2/T3 全绿后，bridge 重载到 r398 构建
@@ -56,47 +64,4 @@ wire=10 精确匹配；V3：destroy 后 probe ref 13->25->13，delta 归零无�
 本轮无代码改动（纯活体验证）。
 
 报告 reports/r399-perfile-removed-live-verified.md。
-
-## r398 (2026-10-09): R5 Phase 2 完成——per-file VM 回退删除（离线）
-
-**删除**：`file->ta_vm_ctx` 字段、前向声明、`pvr_file_release` 销毁块、r376
-注释+defines、`mt_bridge_ta_vm_create/destroy`（synthetic BO）、`mt_ta_vm.h`
-引入与头文件、两死亡测试。保留 `struct mt_bridge_ta_vm`（per-context 载体）。
-
-**Kick 变更**：无有效 render_ctx（`resources_ready`+`vm`）时直接 `-EINVAL`
-（`pvr_session_acquire` 之前，无锁）；有则对 `&rctx->vm->vm` 做 V2 空绑定。
-删除 throwaway `kzalloc` 分支与 `use_real_ctx`；`ctx=&rctx->exec_ctx_ta`
-恒为借用，删除两处条件 `kfree`。
-
-**测试**：`test_kick_render_ctx`（fallback→`test_rejects_without_live_render_ctx`
-断言 `-EINVAL`）、`test_probe_ta_vm`（Phase 2 语义）、`test_ta_kick_ctx_release`
-（语义反转：借用 ctx 不得 kfree）、`test_ta_completion_path`（锚点改
-`dma_fence_put`）。删除两死亡测试文件。
-
-**门禁**：474+299 全绿；`make kernel` W=1 零警告；反向验证（注入旧引用→FAIL，
-还原→全绿）。零硬件触碰；运行中 bridge 仍为 r397 构建，下次重载生效。
-
-报告 reports/r398-per-file-vm-removed.md。
-
-## r397 (2026-10-09): render_ctx 双执行上下文落地，kick 传真实 ctx（活体验证）
-
-**实现**：`mt_render_context.h` 中 `exec_ctx`→`exec_ctx_3d` 改名，新增 `exec_ctx_ta`
-（node_type=2→DM3）+ `exec_ta_ready`（struct 1544B→1616B）；create 第 7b 步建 TA ctx
-（失败走统一 rollback）；destroy 先 TA 后 3D（顺序无关）；kick 有-context 传
-`&rctx->exec_ctx_ta`（file->lock 下借用，marker 不拿所有权故行为中性），无-context
-保留 throwaway + 条件 kfree。
-
-**活体**（一次 bridge 重载，safe_rmmod.sh）：V1 双 ctx 创建成功
-（`r397: exec process/contexts created (3D node_type=5, TA node_type=2)`）；marker 回归
-KICK[ctx]→fence=6（`kick with real exec_ctx_ta (dm=3)`）、KICK[no-ctx]→fence=7，
-OUT 与 wire 精确匹配；V3 双 context（0x1000/0x1001）各 kick→fence 8/9，
-独立 VM 正确路由，文件关闭 ref 25→13 无泄漏；dmesg 零 WARN/BUG/Oops。
-
-**门禁**：474+299 全绿（T2 新增 dual dm pinning：exec_ctx_ta node_type=2→DM3、
-exec_ctx_3d node_type=5→DM2；反向验证通过）；kernel W=1 零警告。
-
-**诚实边界**：marker 级；`exec_ctx_ta` 仅过门禁，未提交真实负载（Phase 3 远期）；
-node_type=2 固件语义、in-flight destroy 待验证。
-
-报告 reports/r397-dual-exec-ctx-live-verified.md。
 

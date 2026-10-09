@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""Gate the SubmitTransfer3 accept-and-log handler (r174).
+
+0x89:0xa must reach pvr_cmd_tdm_submit3_observe, which reports the named
+CCB window and returns 0 without executing anything: bounded scan, context
+handle validated, nested check/update/PMR-sync arrays untouched, no
+firmware/DMA/translator path reachable.
+"""
+import re
+import unittest
+from pathlib import Path
+
+SOURCE = Path(__file__).resolve().parents[2] / 'kernel/recovery/mt_pvr_bridge.c'
+
+
+def code():
+    text = SOURCE.read_text()
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+    return re.sub(r'//[^\n]*', '', text)
+
+
+def fn_body(src, name):
+    m = re.search(r'static (?:int|void) %s\([^;]*\)\s*\{(.*?)^}' % re.escape(name),
+                  src, re.S | re.M)
+    assert m, '%s definition not found' % name
+    return m.group(0)
+
+
+class TdmSubmit3Observe(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.src = code()
+        m = re.search(r'case MT_PVR_BRIDGE_RGXTDM:(.*?)default:',
+                      cls.src, re.S)
+        assert m, 'RGXTDM dispatch block not found'
+        cls.dispatch = m.group(1)
+        cls.body = fn_body(cls.src, 'pvr_cmd_tdm_submit3_observe')
+
+    def test_submit3_routed(self):
+        self.assertRegex(self.dispatch,
+                         r'case MT_PVR_FN_RGXTDMSUBMITTRANSFER3:[\s\S]*?pvr_cmd_tdm_submit3_observe',
+                         '0x89:0xa must reach the observe handler, not -ENOTTY')
+
+    def test_window_bounded(self):
+        self.assertIn('MT_PVR_SUBMIT3_LOG_MAX', self.body)
+        self.assertIn('ccb_bytes > MT_PVR_SUBMIT3_LOG_MAX', self.body)
+
+    def test_context_validated(self):
+        self.assertIn('MT_PVR_KIND_TDM_CONTEXT', self.body)
+        self.assertIn('-ENOENT', self.body)
+
+    def test_nested_arrays_untouched(self):
+        for field in ('check_devvar_offset', 'check_value', 'check_ufo_block',
+                      'update_devvar_offset', 'update_value', 'update_ufo_block',
+                      'pmr_sync_handles', 'pmr_sync_access_flags'):
+            self.assertNotIn(field, self.body,
+                             'observe path must not read nested %s' % field)
+
+    def test_no_execution_path(self):
+        # r182 added a bring-up hook (prepare only); submission stays out.
+        for token in ('dma_submit', 'mt_fw_event',
+                      'mt_system_submit', 'doorbell', 'submit_tqx_work',
+                      'submit_context', 'dma_fence'):
+            self.assertNotIn(token, self.body,
+                             'observe path must not reach %s' % token)
+        self.assertIn('pvr_translator_prepare_locked', self.body)
+
+    def test_dry_run_gated_default_off(self):
+        m = re.search(r'static bool translate_transfer;', self.src)
+        self.assertIsNotNone(m, 'translate_transfer switch must exist')
+        self.assertRegex(self.src,
+                         r'module_param\(translate_transfer, bool, 0400\)')
+
+    def test_observe_calls_dry_run_only_when_on(self):
+        self.assertRegex(self.body,
+                         r'if \(translate_transfer\)[\s\S]*?'
+                         r'pvr_submit3_transfer_dry_run')
+
+    def test_dry_run_builds_but_never_submits(self):
+        # r267: locate+build live in the shared helper; dry-run only
+        # digests.
+        body = fn_body(self.src, 'pvr_submit3_locate_dst')
+        for token in ('mt_transfer_pool_parse', 'mt_transfer_fill_rect',
+                      'mt_tqx_fill_build'):
+            self.assertIn(token, body)
+        self.assertIn('-EOPNOTSUPP', body)
+        for token in ('submit_tqx_work', 'submit_context', 'dma_fence',
+                      'mt_bo_create'):
+            self.assertNotIn(token, body,
+                             'dry-run must not reach %s' % token)
+
+    def test_fill_destination_zero_initialized(self):
+        # r181: stack-uninitialized destination block made builds depend on
+        # frame garbage (live only survived on fresh zero stacks).
+        fill_h = Path(__file__).resolve().parents[2] / 'kernel/mt_tqx_fill.h'
+        src = re.sub(r'/\*.*?\*/', '', fill_h.read_text(), flags=re.S)
+        m = re.search(r'struct mt_tqx_destination_input dest(.*?);',
+                      src, re.S)
+        self.assertIsNotNone(m)
+        self.assertIn('= {0}', m.group(0))
+
+    def test_tqx_ctx_gated_default_off(self):
+        m = re.search(r'static bool translate_tqx_ctx;', self.src)
+        self.assertIsNotNone(m, 'translate_tqx_ctx switch must exist')
+        self.assertRegex(self.src,
+                         r'module_param\(translate_tqx_ctx, bool, 0400\)')
+
+    def test_tqx_bringup_split_around_process(self):
+        # Bos must bind before the seal (sealed space refuses binds);
+        # the flavor-1 context needs the process, which only exists after
+        # it (r182: creating it pre-process was the -22, !p->store).
+        body = fn_body(self.src, 'pvr_translator_prepare_locked')
+        self.assertIn('mt_execution_context_create(&translator.tqx_context',
+                      body)
+        seal_at = body.find('ops->seal(translator.space)')
+        bind_at = body.find('tqx_bo[k], tqx_va[k]')
+        proc_at = body.find('mt_execution_process_create(&d->execution, '
+                            '&translator.process')
+        ready_at = body.find('translator.tqx_ready = true;')
+        self.assertTrue(0 < bind_at < seal_at,
+                        'TQX Bos must bind before the seal')
+        self.assertTrue(0 < proc_at < ready_at,
+                        'TQX context must come after the process exists')
+
+    def test_tqx_teardown_wired(self):
+        body = fn_body(self.src, 'pvr_translator_teardown_locked')
+        for tok in ('mt_execution_context_destroy(&translator.tqx_context)',
+                    'mt_bo_put(&translator.tqx_cmd)',
+                    'mt_bo_put(&translator.tqx_dma)',
+                    'mt_bo_put(&translator.tqx_state)'):
+            self.assertIn(tok, body)
+
+    def test_tqx_no_submit_in_bringup(self):
+        body = fn_body(self.src, 'pvr_translator_prepare_locked')
+        for tok in ('submit_tqx_work', 'submit_context', 'dma_fence'):
+            self.assertNotIn(tok, body,
+                             'bring-up must not submit (r182)')
+
+    def test_pool_inventory_logged_per_candidate(self):
+        # r302: locate logs every >=1MB pool candidate (handle/bytes/
+        # pixels/nz/color) plus the chosen one, so pool attribution is
+        # decidable from dmesg alone.
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('submit3 pool: pmr=', locate)
+        self.assertIn('submit3 dst: pool=', locate)
+
+    def test_pool_shape_logged(self):
+        # r310: per-pool distinct-pixel count tells solid fills (==1,
+        # reproducible) from patterns (>1, not reproducible by fills).
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('submit3 poolshape:', locate)
+        self.assertIn('MT_TRANSFER_POOL_HEAD', locate)
+
+    def test_pool_bounds_logged(self):
+        # r312: first/last nonzero word offsets + value for deriving
+        # a fill rect from a reference pattern.
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('submit3 poolbox:', locate)
+
+    def test_ccb_derived_destination(self):
+        # r304: the CCB window names the destination VA (anchored
+        # 4B-destination-block scan); fire honors it over the
+        # best-heuristic, dry-run keeps 0 (comparability).
+        self.assertIn('submit3 ccbdst: va=', self.body)
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('force_pmr', locate)
+        self.assertIn('-ENODATA', locate)
+        self.assertIn('ccbdst_pmr', self.body)
+
+    def test_ccb_va_census(self):
+        # r306: VA references in the CCB are mapped against bindings
+        # (self-refs calibrate); layout recovery aid.
+        self.assertIn('submit3 ccbref:', self.src)
+        self.assertIn('pvr_ccb_va_census', self.body)
+
+    def test_pristine_override(self):
+        # r306: a fill target starts unwritten; a pristine pool of the
+        # same geometry wins over the patterned best pool, taking the
+        # fill colour from the patterned (source) pool (solid only).
+        locate = fn_body(self.src, 'pvr_submit3_locate_dst')
+        self.assertIn('pristine override', locate)
+        self.assertIn('best_color', locate)
+        self.assertIn('surf.color = best_color', locate)
+
+    def test_ccb_magic_census(self):
+        # r305: the real CCB has no anchored block, so the observe
+        # handler reports known-magic hit offsets for layout recovery.
+        self.assertIn('submit3 ccbmagic:', self.src)
+        self.assertIn('pvr_ccb_magic_census', self.body)
+
+
+if __name__ == '__main__':
+    unittest.main()

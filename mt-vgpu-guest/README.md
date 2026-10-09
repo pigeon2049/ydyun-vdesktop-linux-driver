@@ -33,7 +33,7 @@
 | `kernel/` | `mt_guest_probe` 主会话模块 + 共享头（`mt_pvr_session.h` 为桥—会话契约） |
 | `kernel/recovery/` | `mt_pvr_bridge`（Stage B S1，UMD 桥）与 live 实验模块 |
 | `probe/` | 用户态探针与 harness（`pvr_node_probe`、`pvr_dma_smoke`、`pvr_cover_probe`、`pvr_kick_probe`、`umd_connect_harness` + `umd_bridge_shim.so`） |
-| `tests/` | Python 门禁 + C RAM 模型测试 |
+| `tests/` | Python 门禁 (pvr/ta/guest/render/misc 子包) + C 测试 (c/) |
 | `userspace/` | `mt-3d-check` 等用户态验证程序 |
 | `reports/r*.md` | 逐轮实测证据链（r66 首次 RGX 执行、r70 像素读回、r71 批量压测；不要改名） |
 | `HISTORY-2026-09.md` | 09-22–09-30 横幅堆栈归档，只读 |

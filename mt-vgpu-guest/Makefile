@@ -43,9 +43,9 @@ help:
 	@echo 'make clean          remove in-tree kernel build products'
 
 check-offline:
-	python3 -m unittest discover -s tests
+	python3 -m unittest discover -s tests -t .
 	cc -std=gnu11 -Wall -Wextra -Werror -O2 -I$(BUILD)/runtime-test \
-		tests/pvr_bridge_core_test.c -o $(BUILD)/pvr_bridge_core_test
+		tests/c/pvr_bridge_core_test.c -o $(BUILD)/pvr_bridge_core_test
 	$(BUILD)/pvr_bridge_core_test
 
 check: check-offline
