@@ -237,3 +237,20 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - r430 前置：Linux 侧 RGXAddRenderTargetDDK2 的 MLIST/RgnHeader 布局（render-target 元数据最佳线索）。
 - 零硬件触碰，纯离线；无代码改动。
 
+
+## r430 (2026-10-09): TA Header +0x10 = RgnHeader device VA——3-hop 链实证；纠正 r428 文件归属（离线反汇编）
+
+- **核心结论**：TA Header `+0x10` = **RgnHeader device VA**（[MEASURED] 三跳链）：
+  1. `RGXAddRenderTarget:49312`：`local_5b0[1] = local_6d8`（RgnHeader dev VA → VA 表）
+  2. `SetupRTDataSet:48867`：`*(RTDataSet+0x38) = *(param_4+8)` = local_5b0[1] → RTData entry+0x00
+  3. `RGXPrepareTA:52144`：`*(TA_buf+0x10) = RTData entry+0x00`
+  → `psKickTA[1]` = RgnHeader VA；固件解析 RgnHeader 获 tile 布局。r425 超时（+0x10=原始像素 BO）彻底解释。
+- **RgnHeader** [MEASURED]：size = `numRT × round_up(tiles×0x40,64)`（64×64 → 0x100B）；
+  UMD 经 `InitRegionHeaderBuffer` 预填全 `0xFFFFFFFF`（heap=0x133 路径）；`DevmemAllocateAndMap` 设备可见。
+- **MLIST** [MEASURED]：size = `numRT × 0x4a000`（config+0x5c，另有 0x72000 变体）；固件写入，不预填。
+- **纠正 r428**：`RGXAddRenderTargetDDK2` = `linux-legacy-umd-5.2.0/decompiled.c:50203`（270 行），
+  非 mtdxum64.dll（全语料库 grep：MLIST/RgnHeader 仅 Linux UMD 有；mtdxum64.dll:50202 是 C++ 容器初始化函数）。
+- **最小有效 TA Header**：+0x10=RgnHeader VA（分配 0x100B 填 0xFF）；+0x28/+0x30=[UNKNOWN]；
+  +0x68=0；其余 0。r431 P0：Linux guest 实现 RgnHeader 分配+初始化。
+- 门禁 `check-offline` 全绿；零硬件触碰，纯离线，无代码变更。
+

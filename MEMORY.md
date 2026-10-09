@@ -62,6 +62,23 @@ EXIT:0
 
 > r427 轮按 §4 清理：r425 节已移入归档。
 > r431 轮按 §4 清理：r429 节已移入归档。
+> r432 轮按 §4 清理：r430 节已移入归档。
+
+## r432 (2026-10-09): RgnHeader 活体——固件仍超时，RgnHeader 非充分条件（最高风险）
+
+- 核心结论：RgnHeader BO 正常创建绑定（va=0x7c000000 bytes=4096，0xFF 预填），
+  TA Header +0x10 正确指向 RgnHeader，但固件 5s 内仍无完成（-ETIMEDOUT）。
+  RgnHeader 是必要非充分条件；+0x28/+0x30 或 RgnHeader 内容语义仍有缺失。
+- 活体：双门控测试构建（W=1 零警告）；T1-T5 全过（554 Python + 1490 C）；
+  第 5 次冷重启后 trial 重建（connect=0 pinned=1）；0xFD 提交走通（fence 已分配）；
+  仅完成事件缺失。dmesg 零 WARN/BUG/Oops。
+- Teardown：pending fence 导致 bridge ref=1，safe_rmmod.sh 正确拒绝（未用 -f）；
+  待用户第 6 次冷重启。源码已 revert，默认门控重建零警告，工作区干净。
+- 对比表：r414 全零→219us（无工作快路径）；r425 +0x10=像素 BO→超时；
+  r432 +0x10=RgnHeader→仍超时。RgnHeader [INFERRED] 未升 [MEASURED]（证伪性证据）。
+- 下一步必须离线：+0x28/+0x30 语义与 RgnHeader per-dword 要求；
+  不再做无依据活体试探。零 rmmod -f、零自行重启。
+
 
 ## r431 (2026-10-09): RgnHeader 13th BO 实现——TA Header +0x10 指向 RgnHeader（离线）
 
@@ -76,20 +93,4 @@ EXIT:0
   全 1 初始化验证；Python layout 测试更新偏移。
 - 门禁 `check-offline` **550 Python + 1490 C 全绿**；`make kernel` W=1 **零警告**。
 - `+0x28`/`+0x30` 仍 [UNKNOWN]（置零）；活体验收延至 r432。零硬件触碰，纯离线。
-
-## r430 (2026-10-09): TA Header +0x10 = RgnHeader device VA——3-hop 链实证；纠正 r428 文件归属（离线反汇编）
-
-- **核心结论**：TA Header `+0x10` = **RgnHeader device VA**（[MEASURED] 三跳链）：
-  1. `RGXAddRenderTarget:49312`：`local_5b0[1] = local_6d8`（RgnHeader dev VA → VA 表）
-  2. `SetupRTDataSet:48867`：`*(RTDataSet+0x38) = *(param_4+8)` = local_5b0[1] → RTData entry+0x00
-  3. `RGXPrepareTA:52144`：`*(TA_buf+0x10) = RTData entry+0x00`
-  → `psKickTA[1]` = RgnHeader VA；固件解析 RgnHeader 获 tile 布局。r425 超时（+0x10=原始像素 BO）彻底解释。
-- **RgnHeader** [MEASURED]：size = `numRT × round_up(tiles×0x40,64)`（64×64 → 0x100B）；
-  UMD 经 `InitRegionHeaderBuffer` 预填全 `0xFFFFFFFF`（heap=0x133 路径）；`DevmemAllocateAndMap` 设备可见。
-- **MLIST** [MEASURED]：size = `numRT × 0x4a000`（config+0x5c，另有 0x72000 变体）；固件写入，不预填。
-- **纠正 r428**：`RGXAddRenderTargetDDK2` = `linux-legacy-umd-5.2.0/decompiled.c:50203`（270 行），
-  非 mtdxum64.dll（全语料库 grep：MLIST/RgnHeader 仅 Linux UMD 有；mtdxum64.dll:50202 是 C++ 容器初始化函数）。
-- **最小有效 TA Header**：+0x10=RgnHeader VA（分配 0x100B 填 0xFF）；+0x28/+0x30=[UNKNOWN]；
-  +0x68=0；其余 0。r431 P0：Linux guest 实现 RgnHeader 分配+初始化。
-- 门禁 `check-offline` 全绿；零硬件触碰，纯离线，无代码变更。
 

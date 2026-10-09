@@ -377,3 +377,5 @@ r428-umd-env-ta-header-capture.md |
 | r430-rgnheader-va-at-plus0x10.md |
 | r431 | RgnHeader 13th BO implemented (offline): 0x100B for 64x64 pre-filled 0xFFFFFFFF ([MEASURED] r430 InitRegionHeaderBuffer), bound at VA slot 12 (0x7c000000); TA Header +0x10 now = RgnHeader VA (was raw pixel BO, r425 timeout cause); mt_ta_rgnheader_size() formula round_up(tiles*0x40,64) with C tests (64x64->0x100, 128x128->0x400, 65x65->0x240); struct grows 1720->1824 (layout test updated); 0x82:0xFD requires rgnheader_ready; gate 550+1490 green, kernel W=1 zero warnings |
 | r431-rgnheader-alloc-init.md |
+| r432 | RgnHeader live (highest-risk): dual-gate build, T1-T5 pass, trial rebuilt post-5th-cold-reboot; 13th RgnHeader BO bound va=0x7c000000 (0xFF fill), TA Header +0x10=RgnHeader VA, n_entries=0; firmware 5s timeout (-ETIMEDOUT) — RgnHeader necessary but not sufficient; +0x28/+0x30 still [UNKNOWN]; safe_rmmod correctly refused (ref=1); dmesg clean; gate 554+1490 green |
+| r432-rgnheader-live-still-timeout.md |
