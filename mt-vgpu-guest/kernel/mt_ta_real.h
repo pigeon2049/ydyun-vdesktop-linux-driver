@@ -116,6 +116,32 @@ static inline int mt_ta_entry_simple_build(struct mt_ta_entry_simple *e,
 /* Maximum 40B entries that fit in the 360B buffer (9*40=360). */
 #define MT_TA_REAL_MAX_ENTRIES 9U
 
+/* [INFERRED] (r410, FUN_00169240:44293): Q0 flag bits ORed with the target
+ * address: `uVar15 | uVar17 & 0xfff8001f9fffffff | 0x48000000000`.
+ * The constant 0x48000000000 is the stable flag component.
+ * TO-VALIDATE on live hardware (r416 T2). */
+#define MT_TA_ENTRY_Q0_FLAG_BITS 0x48000000000ULL
+
+/* Set TA entry Q0 to render target VA + flag bits (r416 T2).
+ * [INFERRED]: address masking unknown; simple OR. TO-VALIDATE. */
+static inline void mt_ta_entry_simple_set_target(struct mt_ta_entry_simple *e,
+						 u64 target_va)
+{
+	if (e)
+		e->q0_addr_flags = target_va | MT_TA_ENTRY_Q0_FLAG_BITS;
+}
+
+/* r416: T2 render target (12th BO, outside the 11-BO spec array).
+ * 64x64 RGBA8. VA slot 11: vm_base_va + 11 * MT_RENDER_CONTEXT_VA_STRIDE. */
+#define MT_T2_TARGET_WIDTH 64U
+#define MT_T2_TARGET_HEIGHT 64U
+#define MT_T2_TARGET_BYTES 16384U  /* 64*64*4 RGBA8 */
+#define MT_T2_TARGET_BO_SLOT 11U
+
+/* r416: T2 readback debug gate (default 0). Enables the 0x82:0xFD debug
+ * ioctl (submit real TA + read back target pixels). Zero impact when off. */
+#define MT_TA_READBACK_DEBUG 0
+
 /* r415: Production real-TA submit request (parameterized).
  * Replaces the r414 test hook's hardcoded 64x64 single entry. */
 struct mt_ta_real_request {
@@ -123,15 +149,17 @@ struct mt_ta_real_request {
 	u32 width;		/* TA entry render-target width (1..0x8000) */
 	u32 height;		/* TA entry render-target height (1..0x8000) */
 	u32 n_entries;		/* number of 40B entries, 1..MT_TA_REAL_MAX_ENTRIES */
+	u64 target_va;		/* r416: render target GPU VA for Q0, 0 = none */
 };
 
-/* Build a 360B TA command buffer from (w, h, n_entries).
+/* Build a 360B TA command buffer from (w, h, n_entries, target_va).
  * [MEASURED]: entry format from r410/r414; Q2 packing verified live.
  * Fills n_entries 40B simple entries, zeroes the remainder.
+ * target_va != 0 sets Q0 on each entry ([INFERRED] flags, r416 T2).
  * Returns 0 on success, -EINVAL on bad input.
  */
 static inline int mt_ta_real_buffer_build(unsigned char *buf, u32 w, u32 h,
-					  u32 n_entries)
+					  u32 n_entries, u64 target_va)
 {
 	u32 i;
 	int ret;
@@ -143,11 +171,13 @@ static inline int mt_ta_real_buffer_build(unsigned char *buf, u32 w, u32 h,
 
 	memset(buf, 0, MT_TA_CMD_BUFFER_BYTES);
 	for (i = 0; i < n_entries; i++) {
-		ret = mt_ta_entry_simple_build(
-			(struct mt_ta_entry_simple *)(buf + i * MT_TA_ENTRY_SIMPLE_BYTES),
-			w, h);
+		struct mt_ta_entry_simple *e =
+			(struct mt_ta_entry_simple *)(buf + i * MT_TA_ENTRY_SIMPLE_BYTES);
+		ret = mt_ta_entry_simple_build(e, w, h);
 		if (ret)
 			return ret;
+		if (target_va)
+			mt_ta_entry_simple_set_target(e, target_va);
 	}
 	return 0;
 }
@@ -175,5 +205,23 @@ static_assert(MT_TA_CMD_BUFFER_BYTES == 0x168U, "MT_TA_CMD_BUFFER_BYTES");
 static_assert(MT_TA_REAL_PACKET == 0, "MT_TA_REAL_PACKET default off");
 static_assert(MT_TA_REAL_MAX_ENTRIES * MT_TA_ENTRY_SIMPLE_BYTES ==
 	      MT_TA_CMD_BUFFER_BYTES, "max entries fill buffer");
+static_assert(MT_TA_READBACK_DEBUG == 0, "MT_TA_READBACK_DEBUG default off");
+
+#if MT_TA_READBACK_DEBUG
+/* r416: 0x82:0xFD DebugTAReadback — submit real TA, wait, read target.
+ * Debug-only ABI (gated, never in production). IN: request; OUT: status +
+ * completion code + raw RGBA8 pixels of the 64x64 target. */
+struct mt_pvr_ta_readback_in {
+	u64 h_render_context;
+	u32 width;
+	u32 height;
+	u32 n_entries;
+};
+struct mt_pvr_ta_readback_out {
+	u32 status;		/* 0 = success */
+	u32 completion_code;	/* firmware completion (0x100 expected) */
+	u8 pixels[MT_T2_TARGET_BYTES];
+};
+#endif
 
 #endif /* MT_GUEST_TA_REAL_H */

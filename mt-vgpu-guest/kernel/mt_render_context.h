@@ -39,6 +39,12 @@ struct mt_pvr_render_context {
 	/* Per-context VM (R5 evolution, r387 §3). */
 	struct mt_bridge_ta_vm *vm;
 	u64 vm_base_va;
+	/* r416: T2 render target (12th BO, RGBA8 64x64). Created+bound at
+	 * create (before exec process; VM refuses binds once active_uses>0),
+	 * released at destroy. target_va feeds TA entry Q0. */
+	struct mt_bo target_bo;
+	u64 target_va;
+	bool target_ready;
 	/* Page-table BO for the VM (d->buffers-backed, r389). Must outlive vm. */
 	struct mt_bo pt_bo;
 

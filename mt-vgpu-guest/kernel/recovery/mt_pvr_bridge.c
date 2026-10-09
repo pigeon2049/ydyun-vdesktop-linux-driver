@@ -4118,6 +4118,13 @@ static void mt_render_context_destroy(struct mt_pvr_render_context *ctx)
 		}
 	}
 
+	/* r416: T2 render target (12th BO). */
+	if (ctx->target_ready) {
+		mt_bo_put(&ctx->target_bo);
+		ctx->target_ready = false;
+		ctx->target_va = 0;
+	}
+
 	/* 3. Per-context VM (fini tears down bindings, puts tables BO). */
 	if (ctx->vm) {
 		mt_render_context_vm_destroy(ctx->vm);
@@ -4202,6 +4209,38 @@ static int mt_render_context_create(struct mt_pvr_file *file,
 		ctx->bos_ready[i] = true;
 		pr_info("mt_pvr_bridge: r389: BO %u bound va=%#llx bytes=%u\n",
 			i, (unsigned long long)va, alloc_size);
+	}
+
+	/* r416: T2 render target (12th BO). Bound here — before exec process
+	 * creation, while the VM still accepts binds (active_uses==0). */
+	{
+		u64 tva = ctx->vm_base_va +
+			(u64)MT_T2_TARGET_BO_SLOT * MT_RENDER_CONTEXT_VA_STRIDE;
+		struct mt_vm_binding tbinding;
+
+		ret = mt_bo_create(&ctx->target_bo, d->buffers.ops, &d->buffers,
+				     MT_T2_TARGET_BYTES, PAGE_SIZE);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r416: target BO create failed: %d\n",
+			       ret);
+			goto out_rollback;
+		}
+		tbinding.bo = &ctx->target_bo;
+		tbinding.va = tva;
+		tbinding.offset = 0;
+		tbinding.bytes = MT_T2_TARGET_BYTES;
+		tbinding.flags = MT_GPU_MAP_DEFAULT;
+		ret = mt_gpu_vm_bind_many(&tvm->vm, &tbinding, 1);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r416: target BO bind failed: %d\n",
+			       ret);
+			mt_bo_put(&ctx->target_bo);
+			goto out_rollback;
+		}
+		ctx->target_va = tva;
+		ctx->target_ready = true;
+		pr_info("mt_pvr_bridge: r416: target BO bound va=%#llx bytes=%u\n",
+			(unsigned long long)tva, MT_T2_TARGET_BYTES);
 	}
 
 	/* 5. Build CSW from bound VAs. */
@@ -5158,6 +5197,75 @@ static int pvr_dispatch_rgxcompute(struct mt_pvr_file *file, u32 function,
 }
 }
 
+#if MT_TA_READBACK_DEBUG && MT_TA_REAL_PACKET
+/* r416: T2 debug ioctl 0x82:0xFD — submit real TA, wait for fence,
+ * read back the render target pixels. Debug-only (gated, never production).
+ * Requires both MT_TA_READBACK_DEBUG and MT_TA_REAL_PACKET. */
+static int pvr_cmd_ta_readback(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
+{
+	struct mt_pvr_ta_readback_in in;
+	struct mt_pvr_ta_readback_out *out;
+	struct mt_pvr_object *robj;
+	struct mt_pvr_render_context *rctx;
+	struct mt_ta_real_request req;
+	struct dma_fence *fence = NULL;
+	struct mt_guest *g;
+	struct mt_guest_device *d;
+	struct module *owner = NULL;
+	long waited;
+	int ret;
+
+	out = kzalloc(sizeof(*out), GFP_KERNEL);
+	if (!out)
+		return -ENOMEM;
+	ret = pvr_in(cmd, &in, sizeof(in));
+	if (ret)
+		goto out_free;
+	robj = pvr_object_find(file, in.h_render_context, MT_PVR_KIND_CONTEXT);
+	if (!robj || !robj->render_ctx) {
+		ret = -EINVAL;
+		goto out_free;
+	}
+	rctx = robj->render_ctx;
+	if (!rctx->target_ready) {
+		ret = -ENODEV;
+		goto out_free;
+	}
+	req.h_render_context = in.h_render_context;
+	req.width = in.width;
+	req.height = in.height;
+	req.n_entries = in.n_entries;
+	req.target_va = rctx->target_va;
+	ret = mt_ta_submit_real(file, &req, &fence);
+	if (ret)
+		goto out_free;
+	waited = dma_fence_wait_timeout(fence, false, msecs_to_jiffies(5000));
+	dma_fence_put(fence);
+	if (waited <= 0) {
+		ret = waited ? (int)waited : -ETIMEDOUT;
+		goto out_free;
+	}
+	g = pvr_session_acquire(&owner);
+	if (!g) {
+		ret = -ENODEV;
+		goto out_free;
+	}
+	d = container_of(g, struct mt_guest_device, state);
+	ret = pvr_translator_bo_read(d, &rctx->target_bo, 0,
+				     out->pixels, MT_T2_TARGET_BYTES);
+	if (owner)
+		module_put(owner);
+	if (ret)
+		goto out_free;
+	out->status = 0;
+	out->completion_code = MT_FW_TA_COMPLETE_CODE;
+	ret = pvr_out(cmd, out, sizeof(*out));
+out_free:
+	kfree(out);
+	return ret;
+}
+#endif
+
 static int pvr_dispatch_rgxta3d(struct mt_pvr_file *file, u32 function,
 			 struct mt_pvr_cmd *cmd)
 {
@@ -5185,6 +5293,10 @@ static int pvr_dispatch_rgxta3d(struct mt_pvr_file *file, u32 function,
 					      MT_PVR_KIND_CONTEXT);
 	case MT_PVR_FN_RGXKICKTA3D5:			/* RGXKickTA3D5 (accept-and-log, r215) */
 		return pvr_cmd_kickta3d5_observe(file, cmd);
+#if MT_TA_READBACK_DEBUG
+	case MT_PVR_FN_DEBUGTAREADBACK:	/* DebugTAReadback (r416, gated) */
+		return pvr_cmd_ta_readback(file, cmd);
+#endif
 	default:
 		return -ENOTTY;
 }
@@ -5659,7 +5771,7 @@ __maybe_unused static int mt_ta_submit_real(struct mt_pvr_file *file,
 	if (!ta_buf)
 		return -ENOMEM;
 	ret = mt_ta_real_buffer_build(ta_buf, req->width, req->height,
-				      req->n_entries);
+				      req->n_entries, req->target_va);
 	if (ret)
 		goto out_free;
 

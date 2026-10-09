@@ -343,5 +343,7 @@ r411-ta-real-packet-infra.md |
 
 | r414 | 真实 TA 首次活体执行成功（最高风险轮）：补加 `case 0xFE` 分发（r404 后空白字符 exact-match）+ `pvr_cmd_ta_real_test` 钩子（r412 hook.c 原样）；`make kernel` W=1 零警告；pre-live T1/T2/T3 全过；活体单发 `status=0`——固件 `COMPLETED (0x100)`，提交到完成 219µs；DM 布局验证：VA @+0x28/size @+0x30 由 [INFERRED] 转 [MEASURED]；40B 条目（64×64 dummy）被固件接受；`safe_rmmod.sh` 干净卸载，无 oops/WARN/hang；测试钩子未提交 |
 r414-real-ta-first-live-success.md |
+| r416 | T2 回读验证设计与实现（离线）：第 12 个 context BO（64×64 RGBA8，create 时绑定、destroy 释放，VM active_uses 前）；`mt_ta_real_request.target_va`（0=无）→ TA 条目 Q0=`va\|0x48000000000`（[INFERRED]）；调试 ioctl `0x82:0xFD`（`MT_TA_READBACK_DEBUG` 门控默认 0）：submit→等 fence→`pvr_translator_bo_read()`→16KB 像素；userspace `mt-ta-readback.c`（PPM P6+像素校验）；tests/ta/test_ta_readback.py +15；门禁 503+299 全绿，kernel 零警告，反向验证通过 |
+r416-t2-readback-verification.md |
 | r415 | 真实 TA 路径产品化（离线）：DM 布局 VA @+0x28/size @+0x30 由 [INFERRED] 转 [MEASURED]（r414）；新 `mt_ta_submit_real()` 生产函数（`mt_pvr_bridge.c`，`#if` 门控内，参数化 `mt_ta_real_request`，异步返 fence）；`mt_ta_real_buffer_build()` 纯函数；BO[10]@4096 复用评估采用（VM 已 seal）；门控开启流程文档化（含回滚）；`0x82:0xFE` 钩子确认不在生产代码；tests/ta/test_ta_real.py +8（共 14）；门禁 488+299 全绿，kernel 零警告，反向验证通过 |
 r415-ta-real-path-productized.md |
