@@ -67,6 +67,25 @@ EXIT:0
 > r434 轮按 §4 清理：r432 节已移入归档。
 > r435 轮按 §4 清理：r433 节已移入归档。
 > r436 轮按 §4 清理：r434 节已移入归档。
+> r437 轮按 §4 清理：r435 节已移入归档。
+
+## r437 (2026-10-09): +0x28/+0x30 单 RT 恒为 0，MLIST VA 不进 kick 路径（离线反汇编）
+
+- 终局结论 [MEASURED]：`TA_buf+0x28`/`+0x30` 在单 RT 下恒为 0——
+  `local_5b0+0x68`/`+0x80` 即栈局部 `local_548`/`local_530`
+  （rbp 偏移恒等式：rbp-0x5b0+0x68=rbp-0x548），在
+  `RGXAddRenderTarget:49349-49350`（`local_62c < 2` 单 RT 分支）赋 0，
+  全函数 49000–50000 无其他赋值点；我方置零与 UMD 完全一致，
+  r432/r436 超时与此二字段无关。
+- MLIST VA（`local_558`，decompiled.c:49222 唯一赋值）在 49000–49900
+  零读取——分配后即丢弃，不进 TA Header/psKickTA 构建；
+  r433 的"MLIST VA 首要候选 [INFERRED]"被证伪。
+- psKickTA[3]/[10] = 0（单 RT）。
+- r438 前置（离线）：+0x68 布尔（UMD 写 `(*param_2&3)==3`，我方写 0）、
+  单 RT 下 RGXPrepareTA 完整写入清单逐项对照、RgnHeader 内容、DM 包本身；
+  P0 完成前不得活体。
+- 门禁 `check-offline` 全绿（554 Python + 1491 C）；无代码变更，未跑
+  `make kernel`；零硬件触碰，纯离线。
 
 ## r436 (2026-10-09): RgnHeader fill-1 live -- firmware still 5s timeout (highest-risk)
 
@@ -89,17 +108,3 @@ EXIT:0
 - Honest boundary: RgnHeader still INFERRED; next MUST be offline on
   +0x28/+0x30 (MLIST VA candidate). No more live probing without basis.
 
-## r435 (2026-10-09): 第 6 次冷重启未发生，停止活体（只读检查）
-
-- 只读核查 [MEASURED]：启动 ~16:20:46 CST（dmesg -T 反推：17:43:24 − 4958s）；
-  r432 活体 17:45:43（render context READY，13th rgnheader BO bound）在启动之后——
-  **第 6 次冷重启未发生**。
-- `mt_pvr_bridge` ref=1（r432 pending fence 遗留，safe_rmmod 已拒绝）；
-  `mt_guest_probe` ref=1（正常）；残留完整 render context 未 teardown。
-- 任务停止条件命中，**未执行任何活体操作**：未构建双门控、未重载 bridge、
-  未跑 `mt-ta-readback`；未触碰残留会话。
-- 门禁 `check-offline` **554 Python + 1491 C 全绿**；`make kernel` W=1 零警告。
-- 证据 `mt-vgpu-guest/build/traces/r435/dmesg-r435.txt`（0600）。
-- 下一步：用户执行第 6 次冷重启后重验（uptime/lsmod/dmesg），方可 r436 活体。
-- 诚实边界：启动时间反推 ±2s；残留会话归属 r432 为 [INFERRED] 高置信；
-  零硬件触碰；生产代码零变更。

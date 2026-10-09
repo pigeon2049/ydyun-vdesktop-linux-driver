@@ -316,3 +316,20 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
   `make kernel` W=1 **零警告**。
 - 诚实边界：RgnHeader 语义仍 [INFERRED]；0x00000001 填充尚未活体验收
   （r435+，待用户冷重启）。零硬件触碰，纯离线。
+
+---
+
+## r435 (2026-10-09): 第 6 次冷重启未发生，停止活体（只读检查）
+
+- 只读核查 [MEASURED]：启动 ~16:20:46 CST（dmesg -T 反推：17:43:24 − 4958s）；
+  r432 活体 17:45:43（render context READY，13th rgnheader BO bound）在启动之后——
+  **第 6 次冷重启未发生**。
+- `mt_pvr_bridge` ref=1（r432 pending fence 遗留，safe_rmmod 已拒绝）；
+  `mt_guest_probe` ref=1（正常）；残留完整 render context 未 teardown。
+- 任务停止条件命中，**未执行任何活体操作**：未构建双门控、未重载 bridge、
+  未跑 `mt-ta-readback`；未触碰残留会话。
+- 门禁 `check-offline` **554 Python + 1491 C 全绿**；`make kernel` W=1 零警告。
+- 证据 `mt-vgpu-guest/build/traces/r435/dmesg-r435.txt`（0600）。
+- 下一步：用户执行第 6 次冷重启后重验（uptime/lsmod/dmesg），方可 r436 活体。
+- 诚实边界：启动时间反推 ±2s；残留会话归属 r432 为 [INFERRED] 高置信；
+  零硬件触碰；生产代码零变更。

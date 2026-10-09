@@ -387,3 +387,5 @@ r428-umd-env-ta-header-capture.md |
 r435-cold-reboot-not-done-stop.md |
 | r436 | RgnHeader fill-1 live (highest-risk, 6th cold reboot): dual-gate build, T1-T5 pass; trial rebuild needed runtime_context=1 (clean trial pinned=0 fails pvr_session_acquire which requires pinned+connected; reloaded probe, pinned=1 connected=1 Guest/FW 2/2); 13th RgnHeader BO bound va=0x7c000000 (per-dword fill 1, r434), TA Header +0x10=RgnHeader VA, n_entries=0; firmware 5s timeout (-ETIMEDOUT, errno=110) -- fill correction (0xFF->1) falsified as root cause; +0x28/+0x30 still [UNKNOWN]; safe_rmmod correctly refused (ref=1); dmesg clean; gate 554+1491 green; awaiting 7th cold reboot |
 | r436-rgnheader-fill1-live-timeout.md |
+| r437 | +0x28/+0x30 单 RT 恒为 0 [MEASURED]：local_5b0+0x68/+0x80 == 栈局部 local_548/local_530，RGXAddRenderTarget:49349-49350 赋 0，全函数无其他赋值点；我方置零与 UMD 一致，超时与此无关；MLIST VA（local_558）分配后零读取，不进 kick 路径——r433 候选证伪；psKickTA[3]/[10]=0；r438 前置：+0x68 布尔、RGXPrepareTA 完整写入对照、RgnHeader 内容、DM 包 |
+| r437-plus28-30-are-zero-mlist-not-in-kick.md |
