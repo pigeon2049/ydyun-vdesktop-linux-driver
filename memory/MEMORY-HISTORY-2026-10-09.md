@@ -608,3 +608,21 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 纯离线轮，零硬件触碰，无生产代码变更。
 - 报告：mt-vgpu-guest/reports/r454-rgnheader-double-init-half-filled.md
 
+
+## r455 (2026-10-09): RgnHeader 双循环初始化已实现——128 dwords 对齐 UMD（离线）
+
+- **选项决策**：采用"选项 A 精炼版"——保留 `MT_TA_RGNHEADER_BYTES=0x100U`（逻辑尺寸，
+  `mt_ta_rgnheader_size(64,64)==MT_TA_RGNHEADER_BYTES` 不变量不受影响），新增
+  `MT_TA_RGNHEADER_INIT_BYTES=(2U*MT_TA_RGNHEADER_BYTES)`（0x200U）。UMD 两次循环写向
+  同一 advancing pointer（连续内存），单循环写 128 dwords 功能等价。
+- **实现**：`kernel/mt_ta_real.h` 新增 INIT_BYTES define（附 r454 注释）；
+  `kernel/recovery/mt_pvr_bridge.c` 四处改用 INIT_BYTES（alloc/栈缓冲/填充循环/BO 写，
+  64→128 dwords）；附带修复 `"0x100B"` 注释笔误。
+- **测试**：C 新增 `test_ta_rgnheader_init_bytes` + 更新 `test_ta_rgnheader_init_pattern`；
+  Python 新增 `tests/guest/test_rgnheader_double_init.py`（9 tests：define 关系/bridge 四处/旧模式清除）。
+- **反向验证**：回退 kernel 后 8/9 精确 FAIL（第 9 个验证逻辑尺寸不变，旧代码本就通过）；
+  恢复后 9/9 通过。
+- **门禁**：`check-offline` 598 Python + C 全绿（851 checks）；`make kernel` W=1 零警告。
+- 纯离线轮，零硬件触碰。下一步 r456（待第 15 次冷重启）：trial + 128-dword RgnHeader 活体。
+- 报告：mt-vgpu-guest/reports/r455-rgnheader-double-init-implemented.md
+

@@ -427,3 +427,5 @@ r435-cold-reboot-not-done-stop.md |
 | r455-rgnheader-double-init-implemented.md |
 | r456 | 128dwords RgnHeader live still 5s timeout: r455 double-loop init aligned to UMD, trial OK, 13 BOs bound, context READY, firmware unresponsive; r454 quantity hypothesis falsified by live; RgnHeader direction exhausted; bridge ref=1 pending reboot |
 | r456-128dwords-still-timeout-falsified.md |
+| r457 | TA 包缺失 VM 信息（离线）：参考包构造器 mt_work_command_encode 填写 +0x18 root_pa/+0x20 process_id，TA 路径 mt_fw_ta_real_command 绕过不填；工作路径经 mt_execution_context_inputs 填写；缺失 VM 信息→固件无法翻译 TA VA→MMU fault→hang [INFERRED 高]；opcode 0x66 被 proxy 识别（返回 TA 类完成码 0x100）低嫌疑；Bridge 参数缺失（psContext/RT dataset）为架构绕行中嫌疑；r458 修复方案：params 新增 vm_root_pa/vm_token，包写 +0x18/+0x20 |
+| r457-ta-packet-missing-vm-info.md |

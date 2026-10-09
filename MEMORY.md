@@ -79,6 +79,31 @@
 > r451 轮按 §4 清理：r448 节已移入归档。
 > r453 轮按 §4 清理：r449 节已移入归档。
 > r456 轮按 §4 清理：r454 节已移入归档。
+> r457 轮按 §4 清理：r455 节已移入归档。
+
+## r457 (2026-10-09): TA 包缺失 VM 信息（+0x18/+0x20）——最可能根因，opcode 0x66 低嫌疑（离线）
+
+- **核心发现** [MEASURED]：参考包构造器 `mt_work_command_encode()`（`kernel/mt_work_command.h`）
+  填写 +0x18 root_pa（`vm->tables->backing.gpu_pa`）与 +0x20 process_id（`process->token`）；
+  工作路径（TQX/3D）经 `mt_execution_context_inputs()` 填写。TA 路径的
+  `mt_fw_ta_real_command()`（`kernel/mt_marker_fence.h:334`）只写 +0x0c/+0x28/+0x30/+0x48/+0x4c，
+  **+0x18/+0x20 留零**。包构造钩子 `build_command(packet, wire_id, pid, params)` 签名无
+  context 参数，`work.context = &rctx->exec_ctx_ta` 只用于 dm 校验与 fence 归属。
+- **根因推断** [INFERRED 高]：TA VA 与 RgnHeader VA（0x7c000000）为 guest GPU 虚地址；
+  无 root_pa 则固件/host 无法翻译 → GPU MMU fault → hang。吻合零/非零行为差异
+  （r414 零 header 不解引用 VA → 219µs；r418+ 非零 → 解引用 → fault → 5s 超时）。
+- **opcode 0x66** [INFERRED 低嫌疑]：KCCB（0x2ABC0065）与 DM 队列是不同接口，直接对比是范畴错误；
+  proxy 对 0x66 包返回 TA 类完成码 0x100（`MT_FW_TA_COMPLETE_CODE`），识别为 TA；
+  错 opcode 应立即错误而非 5s 超时。D4 的 TO-VALIDATE 保留。
+- **Bridge 参数缺失** [INFERRED 中]：真实 `PVRSRVRGXKickTA3DKM` 约 40 参数
+  （psKMHWRTDataSet/ZSBuffer/sync prims/PR fence/draw counts），我方仅填 ta_cmd_va/size；
+  但属架构性绕行（直写 DM 队列），host 可能补足，无法从 guest 侧验证。
+- **r458 修复方案**：`struct mt_ta_submit_params` 新增 `vm_root_pa`/`vm_token`；
+  `mt_ta_submit_real` 从 `rctx->exec_ctx_ta.process` 填写（与 `mt_execution_context_inputs` 同表达式）；
+  `mt_fw_ta_real_command` 新增参数写 +0x18/+0x20；`mt_ta_submit_build` 透传；
+  0x82:0xC 路径保持 0。测试 + 反向验证 + 门禁。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r457-ta-packet-missing-vm-info.md
 
 ## r456 (2026-10-09): 128 dwords RgnHeader 活体仍 5s 超时——r454"量不足"假说被证伪（第 15 次冷重启）
 
@@ -90,21 +115,4 @@
 - **安全**：bridge ref=1（pending TA fence，r440/r451 同模式），按协议停止未卸载；dmesg 零 WARN/BUG/Oops；未用 `rmmod -f`；未自行重启。
 - 下一步：P0 用户第 16 次冷重启；P1 候选方向为 0x50B 包 opcode（0x66 vs 0x2ABC0065）[TO-VALIDATE] 或 Bridge 参数缺失；不建议继续 RgnHeader。
 - 报告：mt-vgpu-guest/reports/r456-128dwords-still-timeout-falsified.md
-
-## r455 (2026-10-09): RgnHeader 双循环初始化已实现——128 dwords 对齐 UMD（离线）
-
-- **选项决策**：采用"选项 A 精炼版"——保留 `MT_TA_RGNHEADER_BYTES=0x100U`（逻辑尺寸，
-  `mt_ta_rgnheader_size(64,64)==MT_TA_RGNHEADER_BYTES` 不变量不受影响），新增
-  `MT_TA_RGNHEADER_INIT_BYTES=(2U*MT_TA_RGNHEADER_BYTES)`（0x200U）。UMD 两次循环写向
-  同一 advancing pointer（连续内存），单循环写 128 dwords 功能等价。
-- **实现**：`kernel/mt_ta_real.h` 新增 INIT_BYTES define（附 r454 注释）；
-  `kernel/recovery/mt_pvr_bridge.c` 四处改用 INIT_BYTES（alloc/栈缓冲/填充循环/BO 写，
-  64→128 dwords）；附带修复 `"0x100B"` 注释笔误。
-- **测试**：C 新增 `test_ta_rgnheader_init_bytes` + 更新 `test_ta_rgnheader_init_pattern`；
-  Python 新增 `tests/guest/test_rgnheader_double_init.py`（9 tests：define 关系/bridge 四处/旧模式清除）。
-- **反向验证**：回退 kernel 后 8/9 精确 FAIL（第 9 个验证逻辑尺寸不变，旧代码本就通过）；
-  恢复后 9/9 通过。
-- **门禁**：`check-offline` 598 Python + C 全绿（851 checks）；`make kernel` W=1 零警告。
-- 纯离线轮，零硬件触碰。下一步 r456（待第 15 次冷重启）：trial + 128-dword RgnHeader 活体。
-- 报告：mt-vgpu-guest/reports/r455-rgnheader-double-init-implemented.md
 
