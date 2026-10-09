@@ -454,3 +454,18 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 诚实边界：bit0=1 [INFERRED 高置信]；其余 10 bit DDK flags [UNKNOWN]——
   若固件需要某 DDK bit，`0x1` 仍不足，待活体验收；`+0x68` 仍 0（r438 P1）。
 
+
+## r443 (2026-10-09): Trial 重建被 reserve_memory 阻塞（第 8 次冷重启后设备异常）
+
+- 第 8 次冷重启确认（uptime 0 min，模块未加载）；`check-offline` 559+781 全绿；
+  双门控测试构建 `make kernel` W=1 零警告（事后 revert）。
+- **阻塞**：`mt_guest_probe` 在 `reserve_memory=1` 时 probe 失败 `-EINVAL`（-22）；
+  `enable_probe/query_info/probe_rpc` 均成功，`reserve_memory` 为失败点（4 次复现）。
+  `reserve_memory` 是 trial 链前置依赖 → 无 trial → 活体无法执行。
+- 排查：双门控仅改 `mt_ta_real.h` defines + userspace；probe 源码未动；
+  旧版 .ko 内核版本不匹配；设备 PCI 可见 [1ed5:0222]。
+- 推测：第 8 次冷重启未完全重置固件/BAR 状态，或 VRAM 分配器遇设备侧异常。
+- 安全：零 live 操作（未加载 bridge，未运行 readback）；源码已 revert；工作区干净；
+  证据 `build/traces/r443/dmesg-r443.txt`（0600）。
+- 下一步：用户确认完整冷重启（或第 9 次）后重开 trial 重建。
+

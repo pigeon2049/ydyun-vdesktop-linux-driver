@@ -75,6 +75,15 @@ EXIT:0
 > r443 轮按 §4 清理：r441 节已移入归档。
 > r444 轮按 §4 清理：r442 节已移入归档。
 
+## r445 (2026-10-09): 断电级冷重启后仍阻塞——确认为代码问题（参数组合非法 + reg890 状态机缺陷）
+
+- 第 10 次断电级冷重启（关机几分钟后开机，uptime 0 min）后，recover_channels=1 的 probe 仍报 -16（EBUSY）。
+- 缺陷 1（-EINVAL）：mt_guest_probe.c:1258-1261 明确拒绝 recover_channels=1 + reserve_memory=1 组合。r443/r444 测试程序错误。
+- 缺陷 2（-EBUSY）：mt_guest_probe.c:1333-1338，recover_channels=1 路径期望 reg890==1，但代码注释承认冷重启不清除 reg890==2。只有 trial_connect 路径接受 reg890==2。
+- 未执行活体，未修改代码（纯诊断）。门禁 559+781 全绿，kernel 零警告。
+- 报告：reports/r445-poweroff-reboot-still-blocked-code-issue.md
+- 下一步（P0）：修复缺陷 2（recover_channels 接受 reg890==2）；修正测试程序（reserve_memory 不带 recover_channels）。
+
 ## r444 (2026-10-09): Trial 在第 9 次冷重启后仍被阻塞（reserve_memory -EINVAL 持续 + 新 -EBUSY）
 
 - 第 9 次冷重启确认（uptime 1 min，模块未加载）；`check-offline` 559+781 全绿；
@@ -87,18 +96,4 @@ EXIT:0
   dmesg 零 WARN/BUG/Oops；证据 `build/traces/r444/dmesg-r444.txt`（0600）。
 - 下一步：用户确认第 9 次为断电级完整冷重启；否则需真正断电重启；
   P1：离线深挖 `mt_reserve_memory()`（`kernel/mt_guest_probe.c:390`）-EINVAL 路径与 -16 来源。
-
-## r443 (2026-10-09): Trial 重建被 reserve_memory 阻塞（第 8 次冷重启后设备异常）
-
-- 第 8 次冷重启确认（uptime 0 min，模块未加载）；`check-offline` 559+781 全绿；
-  双门控测试构建 `make kernel` W=1 零警告（事后 revert）。
-- **阻塞**：`mt_guest_probe` 在 `reserve_memory=1` 时 probe 失败 `-EINVAL`（-22）；
-  `enable_probe/query_info/probe_rpc` 均成功，`reserve_memory` 为失败点（4 次复现）。
-  `reserve_memory` 是 trial 链前置依赖 → 无 trial → 活体无法执行。
-- 排查：双门控仅改 `mt_ta_real.h` defines + userspace；probe 源码未动；
-  旧版 .ko 内核版本不匹配；设备 PCI 可见 [1ed5:0222]。
-- 推测：第 8 次冷重启未完全重置固件/BAR 状态，或 VRAM 分配器遇设备侧异常。
-- 安全：零 live 操作（未加载 bridge，未运行 readback）；源码已 revert；工作区干净；
-  证据 `build/traces/r443/dmesg-r443.txt`（0600）。
-- 下一步：用户确认完整冷重启（或第 9 次）后重开 trial 重建。
 

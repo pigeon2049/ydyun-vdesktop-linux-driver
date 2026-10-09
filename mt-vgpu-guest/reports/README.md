@@ -403,4 +403,6 @@ r435-cold-reboot-not-done-stop.md |
 | r443-trial-blocked-reserve-memory.md |
 | r444 | Trial 在第 9 次冷重启后仍被阻塞：`reserve_memory=1` 持续 -EINVAL，且无 reserve_memory 的 probe 新报持续性 -16（EBUSY，r443 时曾成功）；未执行活体；门禁 559+781 全绿，kernel 零警告 |
 | r444-trial-still-blocked-9th-reboot.md |
+| r445 | 断电级冷重启后仍阻塞，确认为代码问题：缺陷1（recover_channels+reserve_memory 互斥，r443/r444 测试程序错误）+ 缺陷2（recover_channels 路径不接受持久化 reg890==2，代码注释承认冷重启不清除）；未执行活体，未修改代码；门禁 559+781 全绿，kernel 零警告 |
+| r445-poweroff-reboot-still-blocked-code-issue.md |
 
