@@ -595,15 +595,58 @@ static int test_ta_entry_q0_flag_or(void)
 	return 0;
 }
 
+/* r439: byte ranges written by mt_ta_real_buffer_build (Header-only):
+ * +0x10 (target_va), +0x50/+0x58 (tile packing). */
+static int ta_hdr_written_byte(unsigned int i)
+{
+	if (i >= MT_TA_BUF_HDR_TARGET_VA && i < MT_TA_BUF_HDR_TARGET_VA + 8)
+		return 1;
+	if (i >= MT_TA_BUF_HDR_TILE_PACK_X && i < MT_TA_BUF_HDR_TILE_PACK_X + 8)
+		return 1;
+	if (i >= MT_TA_BUF_HDR_TILE_PACK_Y && i < MT_TA_BUF_HDR_TILE_PACK_Y + 8)
+		return 1;
+	return 0;
+}
+
+static int test_ta_tile_pack(void)
+{
+	/* r439: tile packing [MEASURED] formula (r438, FUN_00184220):
+	 * packed = ((((x + 0x3f) >> 6) & 0x3f) << 48); tile count = ceil(x/64)
+	 * lands in bits 48-53. Tile-count semantics [INFERRED]. */
+	/* 64 -> 1 tile. */
+	CHECK(mt_ta_tile_pack(64) == (1ULL << 48));
+	/* 128 -> 2 tiles. */
+	CHECK(mt_ta_tile_pack(128) == (2ULL << 48));
+	/* 1 -> 1 tile (ceil). */
+	CHECK(mt_ta_tile_pack(1) == (1ULL << 48));
+	/* 0 -> 0 tiles. */
+	CHECK(mt_ta_tile_pack(0) == 0ULL);
+	/* 65 -> 2 tiles. */
+	CHECK(mt_ta_tile_pack(65) == (2ULL << 48));
+	/* 3840 -> 60 tiles. */
+	CHECK(mt_ta_tile_pack(3840) == (60ULL << 48));
+	/* 6-bit field wraps: 4096 -> 64 tiles -> 64 & 0x3f = 0. */
+	CHECK(mt_ta_tile_pack(4096) == 0ULL);
+	/* 4097 -> 65 tiles -> 65 & 0x3f = 1. */
+	CHECK(mt_ta_tile_pack(4097) == (1ULL << 48));
+	/* Only bits 48-53 may be set, even at max w. */
+	CHECK((mt_ta_tile_pack(0x8000) & ~(0x3fULL << 48)) == 0ULL);
+	/* 0x8000 -> 512 tiles -> 512 & 0x3f = 0 (wrap). */
+	CHECK(mt_ta_tile_pack(0x8000) == 0ULL);
+	return 0;
+}
+
 static int test_ta_real_buffer_build_target(void)
 {
 	/* r423: Header-only. n_entries must be 0; Entries do NOT belong
 	 * in the 360B buffer (r422: writing them at buf+0 pollutes Header
-	 * at 0x10/0x18/0x20 -> firmware timeout). Only TA_buf+0x10
-	 * (target_va -> psKickTA[1]) is set; rest stays zero. */
+	 * at 0x10/0x18/0x20 -> firmware timeout). TA_buf+0x10
+	 * (target_va -> psKickTA[1]) is set; r439 adds TA_buf+0x50/+0x58
+	 * tile packing (FUN_00184220 [MEASURED]); rest stays zero. */
 	static unsigned char buf[MT_TA_CMD_BUFFER_BYTES];
 	unsigned int i;
 	u64 hdr_va;
+	u64 tile_q;
 
 	CHECK(mt_ta_real_buffer_build(NULL, 64, 64, 0, 0) == -EINVAL);
 	CHECK(mt_ta_real_buffer_build(buf, 0, 64, 0, 0) == -EINVAL);
@@ -613,17 +656,26 @@ static int test_ta_real_buffer_build_target(void)
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 9, 0) == -EINVAL);
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 10, 0) == -EINVAL);
 
-	/* Header-only: n_entries=0, target_va=0 -> all zero. */
+	/* r439: n_entries=0, target_va=0 -> +0x10 zero, but +0x50/+0x58
+	 * carry tile packing (64 -> 1 tile -> 1<<48), not zero. */
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0) == 0);
-	for (i = 0; i < MT_TA_CMD_BUFFER_BYTES; i++)
-		CHECK(buf[i] == 0);
+	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
+	CHECK(hdr_va == 0ULL);
+	memcpy(&tile_q, buf + MT_TA_BUF_HDR_TILE_PACK_X, sizeof(tile_q));
+	CHECK(tile_q == mt_ta_tile_pack(64));
+	CHECK(tile_q == (1ULL << 48));
+	memcpy(&tile_q, buf + MT_TA_BUF_HDR_TILE_PACK_Y, sizeof(tile_q));
+	CHECK(tile_q == mt_ta_tile_pack(64));
 
-	/* Header-only: target_va set at +0x10, rest zero. */
+	/* Header-only: target_va set at +0x10; tiles follow w/h. */
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x7a001000ULL) == 0);
 	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
 	CHECK(hdr_va == 0x7a001000ULL);
 	/* r424: w/h boundary (matches mt_ta_entry_simple_build limits). */
 	CHECK(mt_ta_real_buffer_build(buf, 0x8000, 0x8000, 0, 0) == 0);
+	/* r439: 0x8000 -> 512 tiles -> 512 & 0x3f = 0 (6-bit wrap). */
+	memcpy(&tile_q, buf + MT_TA_BUF_HDR_TILE_PACK_X, sizeof(tile_q));
+	CHECK(tile_q == 0ULL);
 	CHECK(mt_ta_real_buffer_build(buf, 0x8001, 64, 0, 0) == -EINVAL);
 	CHECK(mt_ta_real_buffer_build(buf, 64, 0x8001, 0, 0) == -EINVAL);
 
@@ -636,21 +688,25 @@ static int test_ta_real_buffer_build_target(void)
 	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
 	CHECK(hdr_va == 0x1000000000000ULL);
 
-	/* r424: idempotent -- rebuild fully overwrites (memset), no residue. */
+	/* r439: tile packing tracks w/h (128x64 -> 2 x-tiles, 1 y-tile). */
+	CHECK(mt_ta_real_buffer_build(buf, 128, 64, 0, 0) == 0);
+	memcpy(&tile_q, buf + MT_TA_BUF_HDR_TILE_PACK_X, sizeof(tile_q));
+	CHECK(tile_q == (2ULL << 48));
+	memcpy(&tile_q, buf + MT_TA_BUF_HDR_TILE_PACK_Y, sizeof(tile_q));
+	CHECK(tile_q == (1ULL << 48));
+
+	/* r424: idempotent -- rebuild fully overwrites (memset), no residue.
+	 * r439: all bytes zero except +0x10 (target_va) and +0x50/+0x58
+	 * (tile packing). */
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0xAAAAAAAAAAAAAAAAULL) == 0);
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x5555555555555555ULL) == 0);
 	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
 	CHECK(hdr_va == 0x5555555555555555ULL);
+	memcpy(&tile_q, buf + MT_TA_BUF_HDR_TILE_PACK_X, sizeof(tile_q));
+	CHECK(tile_q == (1ULL << 48));
 	for (i = 0; i < MT_TA_CMD_BUFFER_BYTES; i++) {
-		if (i >= MT_TA_BUF_HDR_TARGET_VA &&
-		    i < MT_TA_BUF_HDR_TARGET_VA + 8)
-			continue; /* target_va bytes */
-		CHECK(buf[i] == 0);
-	}
-	for (i = 0; i < MT_TA_CMD_BUFFER_BYTES; i++) {
-		if (i >= MT_TA_BUF_HDR_TARGET_VA &&
-		    i < MT_TA_BUF_HDR_TARGET_VA + 8)
-			continue; /* target_va bytes */
+		if (ta_hdr_written_byte(i))
+			continue; /* +0x10 / +0x50 / +0x58 bytes */
 		CHECK(buf[i] == 0);
 	}
 	return 0;
@@ -776,6 +832,7 @@ int main(void)
 	CHECK(test_ta_real_buffer_build_target() == 0);
 	CHECK(test_ta_rgnheader_size() == 0);
 	CHECK(test_ta_rgnheader_init_pattern() == 0);
+	CHECK(test_ta_tile_pack() == 0);
 	CHECK(test_ta_readback_analyze() == 0);
 	printf("pvr_bridge_core_test OK (%d checks)\n", checks);
 	return 0;

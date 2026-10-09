@@ -69,6 +69,22 @@ EXIT:0
 > r436 轮按 §4 清理：r434 节已移入归档。
 > r437 轮按 §4 清理：r435 节已移入归档。
 > r438 轮按 §4 清理：r436 节已移入归档。
+> r439 轮按 §4 清理：r437 节已移入归档。
+
+## r439 (2026-10-09): TA Header +0x50/+0x58 tile 打包实现（离线）
+
+- r438 P0 落地：`mt_ta_tile_pack(x) = (((x+0x3f)>>6)&0x3f)<<48`（[MEASURED] 公式，
+  tile 语义 [INFERRED]）；`mt_ta_real_buffer_build()` 新增 `+0x50=w` 打包、
+  `+0x58=h` 打包（w/h 近似 psKickTA[3]/[4] [INFERRED]）；64×64→`0x0001000000000000`。
+- T5 白名单扩展：仅 `MT_TA_BUF_HDR_TARGET_VA`/`_TILE_PACK_X`/`_Y` 可写；
+  新增 `test_header_tile_pack_writes`/`test_tile_pack_constants`/
+  `test_tile_pack_helper_defined`。
+- C：新增 `test_ta_tile_pack`（10 checks，含 4096→0 的 6-bit 回绕）；
+  `test_ta_real_buffer_build_target` 同步（+0x50/+0x58 非零断言、幂等循环
+  跳过三处写入区；动态 1491→783 系冗余循环合并，覆盖未减）。
+- 反向验证：tile 写改 0→`test_header_tile_pack_writes` 精确 FAIL；还原→绿。
+- 门禁 `check-offline` 557+783 全绿；`make kernel` W=1 零警告；零硬件触碰。
+- 诚实边界：tile 语义 [INFERRED]；`+0x68`/`+0x120` 仍 0（r438 P1/P2）；活体待定。
 
 ## r438 (2026-10-09): +0x68 布尔 + 单 RT 完整写入对照，新嫌疑 +0x50/+0x58（离线反汇编）
 
@@ -89,20 +105,3 @@ EXIT:0
 - 门禁 `check-offline` 全绿；无代码变更，未跑 `make kernel`；
   零硬件触碰，纯离线。
 
-## r437 (2026-10-09): +0x28/+0x30 单 RT 恒为 0，MLIST VA 不进 kick 路径（离线反汇编）
-
-- 终局结论 [MEASURED]：`TA_buf+0x28`/`+0x30` 在单 RT 下恒为 0——
-  `local_5b0+0x68`/`+0x80` 即栈局部 `local_548`/`local_530`
-  （rbp 偏移恒等式：rbp-0x5b0+0x68=rbp-0x548），在
-  `RGXAddRenderTarget:49349-49350`（`local_62c < 2` 单 RT 分支）赋 0，
-  全函数 49000–50000 无其他赋值点；我方置零与 UMD 完全一致，
-  r432/r436 超时与此二字段无关。
-- MLIST VA（`local_558`，decompiled.c:49222 唯一赋值）在 49000–49900
-  零读取——分配后即丢弃，不进 TA Header/psKickTA 构建；
-  r433 的"MLIST VA 首要候选 [INFERRED]"被证伪。
-- psKickTA[3]/[10] = 0（单 RT）。
-- r438 前置（离线）：+0x68 布尔（UMD 写 `(*param_2&3)==3`，我方写 0）、
-  单 RT 下 RGXPrepareTA 完整写入清单逐项对照、RgnHeader 内容、DM 包本身；
-  P0 完成前不得活体。
-- 门禁 `check-offline` 全绿（554 Python + 1491 C）；无代码变更，未跑
-  `make kernel`；零硬件触碰，纯离线。

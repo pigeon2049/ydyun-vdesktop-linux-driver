@@ -60,6 +60,23 @@ typedef uint64_t u64;
  * - r414 proved all-zero Header completes ("no work", 219us).
  */
 #define MT_TA_BUF_HDR_TARGET_VA 0x10U /* Header+0x10 -> psKickTA[1] render target VA */
+/* r439 [MEASURED] (r438, FUN_00184220, linux-legacy-umd-5.2.0/decompiled.c:58215):
+ * UMD packs tile counts into Header+0x50/+0x58, bits 48-53:
+ *   ((psKickTA[3 or 4] + 0x3f) >> 6) & 0x3f, then << 48.
+ * Tile-count semantics ((x+63)/64) [INFERRED]; formula and bit48-53 [MEASURED].
+ * We approximate psKickTA[3]/[4] with the request w/h ([INFERRED], r438):
+ * writing 0 = "0 tiles", which firmware may treat as an illegal render
+ * area and hang on. */
+#define MT_TA_BUF_HDR_TILE_PACK_X 0x50U
+#define MT_TA_BUF_HDR_TILE_PACK_Y 0x58U
+
+/* r439: tile packing for TA Header+0x50/+0x58.
+ * [MEASURED] formula (r438, FUN_00184220); tile-count semantics [INFERRED].
+ * 64x64 -> 1 tile -> 0x0001000000000000. */
+static inline u64 mt_ta_tile_pack(u32 x)
+{
+	return (((u64)(((x + 0x3fU) >> 6) & 0x3fU)) << 48);
+}
 
 /* [MEASURED] (r430, RGXAddRenderTarget:49312, SetupRTDataSet:48867,
  * RGXPrepareTA:52144 -- linux-legacy-umd-5.2.0/decompiled.c, 3-hop chain):
@@ -208,15 +225,18 @@ struct mt_ta_real_request {
  * Header fields at 0x10/0x18/0x20 and hangs firmware (r421).
  *
  * Header-only: zero the buffer, set TA_buf+0x10 = target_va
- * (-> psKickTA[1] = RgnHeader device VA, [MEASURED] r430 3-hop chain).
- * target_va MUST be a RgnHeader VA (13th BO, pre-filled 0xFFFFFFFF);
+ * (-> psKickTA[1] = RgnHeader device VA, [MEASURED] r430 3-hop chain),
+ * and TA_buf+0x50/+0x58 = tile-packed w/h (r439 [MEASURED] formula,
+ * [INFERRED] semantics; 0 = "0 tiles" may hang firmware).
+ * target_va MUST be a RgnHeader VA (13th BO, per-dword 0x00000001
+ * pre-fill [MEASURED] r433/r434);
  * r425 proved a raw pixel BO here hangs firmware (parses pixels as
  * region headers). All other Header fields stay zero; r414 proved
  * all-zero Header completes ("no work").
  *
  * n_entries must be 0 (Header-only). Non-zero is rejected: the Entries
  * container is unknown (r422), and T5 forbids Entry writes in buf+0x00-0x68.
- * w/h are validated for API stability (unused in Header-only mode).
+ * w/h are validated (1..0x8000) and feed the +0x50/+0x58 tile packing (r439).
  * Returns 0 on success, -EINVAL on bad input.
  */
 static inline int mt_ta_real_buffer_build(unsigned char *buf, u32 w, u32 h,
@@ -230,6 +250,11 @@ static inline int mt_ta_real_buffer_build(unsigned char *buf, u32 w, u32 h,
 	memset(buf, 0, MT_TA_CMD_BUFFER_BYTES);
 	/* [MEASURED] (r422): TA_buf+0x10 -> psKickTA[1] render target VA. */
 	*(u64 *)(buf + MT_TA_BUF_HDR_TARGET_VA) = target_va;
+	/* r439 [MEASURED formula / INFERRED semantics] (r438, FUN_00184220):
+	 * UMD packs tile counts into Header+0x50/+0x58 bits 48-53.
+	 * 0 = "0 tiles" may hang firmware; pack from w/h. */
+	*(u64 *)(buf + MT_TA_BUF_HDR_TILE_PACK_X) = mt_ta_tile_pack(w);
+	*(u64 *)(buf + MT_TA_BUF_HDR_TILE_PACK_Y) = mt_ta_tile_pack(h);
 	return 0;
 }
 

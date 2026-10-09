@@ -354,3 +354,21 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - Source reverted, default rebuild W=1 zero warnings, tree clean.
 - Honest boundary: RgnHeader still INFERRED; next MUST be offline on
   +0x28/+0x30 (MLIST VA candidate). No more live probing without basis.
+
+## r437 (2026-10-09): +0x28/+0x30 单 RT 恒为 0，MLIST VA 不进 kick 路径（离线反汇编）
+
+- 终局结论 [MEASURED]：`TA_buf+0x28`/`+0x30` 在单 RT 下恒为 0——
+  `local_5b0+0x68`/`+0x80` 即栈局部 `local_548`/`local_530`
+  （rbp 偏移恒等式：rbp-0x5b0+0x68=rbp-0x548），在
+  `RGXAddRenderTarget:49349-49350`（`local_62c < 2` 单 RT 分支）赋 0，
+  全函数 49000–50000 无其他赋值点；我方置零与 UMD 完全一致，
+  r432/r436 超时与此二字段无关。
+- MLIST VA（`local_558`，decompiled.c:49222 唯一赋值）在 49000–49900
+  零读取——分配后即丢弃，不进 TA Header/psKickTA 构建；
+  r433 的"MLIST VA 首要候选 [INFERRED]"被证伪。
+- psKickTA[3]/[10] = 0（单 RT）。
+- r438 前置（离线）：+0x68 布尔（UMD 写 `(*param_2&3)==3`，我方写 0）、
+  单 RT 下 RGXPrepareTA 完整写入清单逐项对照、RgnHeader 内容、DM 包本身；
+  P0 完成前不得活体。
+- 门禁 `check-offline` 全绿（554 Python + 1491 C）；无代码变更，未跑
+  `make kernel`；零硬件触碰，纯离线。

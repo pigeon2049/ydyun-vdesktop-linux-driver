@@ -105,14 +105,60 @@ class TestHeaderIntegrity(unittest.TestCase):
 
 
 
+    def test_tile_pack_constants(self):
+        """T5 (r439): tile-pack offsets must be 0x50/0x58 (r438 [MEASURED])."""
+        text = (KERNEL / "mt_ta_real.h").read_text()
+        for name, want in (
+            ("MT_TA_BUF_HDR_TILE_PACK_X", 0x50),
+            ("MT_TA_BUF_HDR_TILE_PACK_Y", 0x58),
+        ):
+            m = re.search(r"#define\s+" + name + r"\s+(0x[0-9a-fA-F]+)U", text)
+            self.assertIsNotNone(m, name + " not defined")
+            self.assertEqual(int(m.group(1), 16), want)
+
+    def test_header_tile_pack_writes(self):
+        """T5 (r439): Header+0x50/+0x58 must carry mt_ta_tile_pack(w/h).
+
+        UMD (FUN_00184220, r438 [MEASURED]) packs tile counts into bits
+        48-53 of the Header qwords at +0x50/+0x58; writing 0 = "0 tiles"
+        may hang firmware. buffer_build must write mt_ta_tile_pack(w)
+        to +0x50 and mt_ta_tile_pack(h) to +0x58 (w/h approximate
+        psKickTA[3]/[4] [INFERRED]).
+        """
+        body = _get_buffer_build_body()
+        self.assertRegex(
+            body,
+            r"buf\s*\+\s*MT_TA_BUF_HDR_TILE_PACK_X\s*\)\s*=\s*mt_ta_tile_pack\s*\(\s*w\s*\)",
+            "T5 FAIL: Header+0x50 not written from mt_ta_tile_pack(w) (r439)",
+        )
+        self.assertRegex(
+            body,
+            r"buf\s*\+\s*MT_TA_BUF_HDR_TILE_PACK_Y\s*\)\s*=\s*mt_ta_tile_pack\s*\(\s*h\s*\)",
+            "T5 FAIL: Header+0x58 not written from mt_ta_tile_pack(h) (r439)",
+        )
+
+    def test_tile_pack_helper_defined(self):
+        """T5 (r439): mt_ta_tile_pack must implement the UMD formula."""
+        text = (KERNEL / "mt_ta_real.h").read_text()
+        self.assertRegex(
+            text,
+            r"static inline u64 mt_ta_tile_pack\(u32 x\)",
+            "mt_ta_tile_pack helper missing",
+        )
+        # Formula [MEASURED] (r438): (((x + 0x3f) >> 6) & 0x3f) << 48.
+        self.assertIn("0x3fU", text)
+        self.assertIn("<< 48", text)
+
     def test_header_write_whitelist(self):
-        """T5 (r424): only MT_TA_BUF_HDR_TARGET_VA may be written in buffer_build.
+        """T5 (r424, extended r439): only whitelisted Header offsets may be
+        written in buffer_build.
 
         The 360B buffer is Header (0x00-0x160). Header-only mode (r423)
-        permits exactly one write: *(u64*)(buf + MT_TA_BUF_HDR_TARGET_VA).
-        Any other buf+offset write with a numeric offset below 0x160
-        risks Header pollution (r422 root-cause). Symbolic memset of the
-        whole buffer is allowed.
+        permits writes only through named constants: MT_TA_BUF_HDR_TARGET_VA
+        (+0x10, r423) and MT_TA_BUF_HDR_TILE_PACK_X/_Y (+0x50/+0x58, r439
+        [MEASURED] UMD tile packing). Any other buf+offset write with a
+        numeric offset below 0x160 risks Header pollution (r422 root-cause).
+        Symbolic memset of the whole buffer is allowed.
         """
         body = _get_buffer_build_body()
         # Find writes of the form *(...) (buf + <something>) = ...
@@ -123,10 +169,15 @@ class TestHeaderIntegrity(unittest.TestCase):
         )
         writes += re.findall(r"\bbuf\s*\[\s*([^\]]+)\s*\]\s*=", body)
         bad = []
+        # Approved: the named Header constants (r423: +0x10; r439: +0x50/+0x58).
+        approved = {
+            "MT_TA_BUF_HDR_TARGET_VA",
+            "MT_TA_BUF_HDR_TILE_PACK_X",
+            "MT_TA_BUF_HDR_TILE_PACK_Y",
+        }
         for w in writes:
             w = w.strip()
-            # Approved: the named Header constant.
-            if w == "MT_TA_BUF_HDR_TARGET_VA":
+            if w in approved:
                 continue
             # Numeric literal offset: must be >= 0x160 (outside Header).
             m = re.fullmatch(r"0[xX][0-9a-fA-F]+|\d+", w)
