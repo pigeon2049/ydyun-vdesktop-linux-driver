@@ -433,3 +433,5 @@ r435-cold-reboot-not-done-stop.md |
 | r458-ta-packet-vm-info-implemented.md |
 | r459 | TA 包 VM 信息修复活体仍 5s 超时：r458 修复（三处代码）活体行为无变化，r457 MMU fault 假说被证伪；trial OK，13 BOs 绑定，context READY，固件无响应；Header/包内容方向已穷尽；bridge ref=1 pending reboot |
 | r459-vm-info-fix-still-timeout-falsified.md |
+| r460 | Windows TA flowchart/ER (offline): mtdxum64.dll D3D11 DDI via D3DDDI cbs, 0x78B kick array magic at [1]; Mermaid diagrams built |
+| r460-windows-ta-flowchart-er-diagram.md |

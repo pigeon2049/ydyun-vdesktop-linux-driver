@@ -81,6 +81,22 @@
 > r456 轮按 §4 清理：r454 节已移入归档。
 > r457 轮按 §4 清理：r455 节已移入归档。
 > r459 轮按 §4 清理：r457 节已移入归档。
+> r460 轮按 §4 清理：r458 节已移入归档。
+
+## r460 (2026-10-09): Windows 驱动 TA 提交流程图/ER 图——D3D11 0x78B kick 路径基准（离线）
+
+- **反编译源**：`mt-vgpu-guest/decompiled/mtdxum64.dll/decompiled.c`（7911 函数）；
+  导出：`MtDxExtGetInterfaceImpl`、`OpenAdapter`、`OpenAdapter10`、`OpenAdapter10_2`。
+- **流程**：D3D11 App → UMD DDI → `FUN_18021cf50` kick 数组构建器 →
+  `FUN_180224220` 0x78B 条目构建器（magic `0x3089705f3089705f` at [1]）→
+  D3DDDI 回调（`D3DDDIRenderCb` +0x78 / `D3DDDIEscapeCb` +0x90）→ KMD → 固件。
+- **关键差异**：Windows 走 D3D11 DDI 三层模型（UMD→KMD→固件），Linux 走直连
+  （UMD→Bridge→固件）；0x78B kick 与 360B Header 是不同抽象层，不可直接复制。
+- **启示**：Windows 成功可能部分归功于 KMD 处理；我方直连模型需自己实现
+  KMD 等效功能；D3DDDI Sync Object 语义值得对比研究。
+- Mermaid 流程图 + ER 图已建立（见报告 §2/§4）。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r460-windows-ta-flowchart-er-diagram.md
 
 ## r459 (2026-10-09): TA 包 VM 信息修复活体仍 5s 超时——MMU fault 假说被证伪（第 17 次冷重启）
 
@@ -100,26 +116,6 @@
 - **门禁**：609 Python OK + pvr_bridge_core_test OK (851 checks)；W=1 零警告。
 - 报告：mt-vgpu-guest/reports/r459-vm-info-fix-still-timeout-falsified.md
 - 证据：mt-vgpu-guest/build/traces/r459/dmesg-r459.txt（0600）
-
-## r458 (2026-10-09): TA 包 VM 信息修复实现（+0x18 root_pa、+0x20 token）（离线）
-
-- **实现**：`struct mt_ta_submit_params` 新增 `u64 vm_root_pa`/`u64 vm_token`
-  （`kernel/mt_ta_submit.h`，sizeof 104→120，pins 更新，ABI append）；
-  `mt_ta_submit_real` 从 `rctx->exec_ctx_ta.process` 填写
-  （`vm->tables->backing.gpu_pa` / `token`，同 `mt_execution_context_inputs` 表达式）；
-  `mt_fw_ta_real_command` 新增 `root_pa`/`token` 参数，写包 `+0x18`/`+0x20`
-  （`mt_fw_put64`，对齐 `mt_work_command_encode` 参考布局）；
-  `mt_ta_submit_build` 透传；0x82:0xC 观察者路径（`mt_ta_params_from_musakickgfx2`）保持 0。
-- **测试**：`tests/ta/test_ta_vm_info.py` 新增 11 tests（字段/赋值点/包写入/透传/观察者路径）；
-  `tests/ta/test_ta_submit_layout.py` 扩展（sizeof 120，新增 offsets 104/112）。
-- **反向验证**：新代码 11/11；回退 kernel 改动 10/11 精确 FAIL
-  （第 11 个验证观察者路径保持 0，旧代码本就满足，符合预期）；恢复后 11/11。
-- **门禁**：`check-offline` 609 Python OK（598+11）+ pvr_bridge_core_test OK (851 checks)；
-  `kernel` W=1 零警告。
-- **诚实边界**：[INFERRED 高] 缺失 VM 信息→MMU fault→hang 待 r459 活体验；
-  若为根因，应看到行为变化（完成或新错误码，非 5s 超时）。
-- 纯离线轮，零硬件触碰；**未链入下一轮**。
-- 报告：mt-vgpu-guest/reports/r458-ta-packet-vm-info-implemented.md
 
 ## r456 (2026-10-09): 128 dwords RgnHeader 活体仍 5s 超时——r454"量不足"假说被证伪（第 15 次冷重启）
 
