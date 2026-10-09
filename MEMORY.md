@@ -75,6 +75,16 @@ EXIT:0
 > r443 轮按 §4 清理：r441 节已移入归档。
 > r444 轮按 §4 清理：r442 节已移入归档。
 > r448 轮按 §4 清理：r446 节已移入归档。
+> r450 轮按 §4 清理：r447 节已移入归档。
+
+## r450 (2026-10-09): 4 处修复验证成功，但验证测试污染硬件状态——需第 13 次冷重启
+
+- **4 处修复验证成功** ✅： 在  时成功（），r446/r448 修复生效；对比 r447 的 。
+- **状态污染**：验证测试将硬件  从 2 改为 1；（:401）只接受 0/2，不接受 1→-EBUSY； 不重置硬件寄存器。
+- **活体阻塞**： 需 ，在  时失败。需第 13 次冷重启（重置 reg890 为 2）或 r451 修复  接受 1。
+- 安全：验证后已 rmmod（refcount 0），系统干净；零 WARN/BUG/Oops；未执行 live。
+- 报告：mt-vgpu-guest/reports/r450-4th-fix-verified-state-polluted.md
+- 证据：mt-vgpu-guest/build/traces/r450/dmesg-r450.txt（0600）
 
 ## r449 (2026-10-09): reg890/0x898 状态机完整矩阵 + 参数验证全覆盖（离线）
 
@@ -92,11 +102,3 @@ EXIT:0
 - 纯离线轮，零硬件触碰，无生产代码变更。
 - 报告：mt-vgpu-guest/reports/r449-reg890-matrix-param-validation.md
 
-## r447 (2026-10-09): r446 修复不完整——mt_probe_channels 第 4 处遗漏，trial 仍阻塞
-
-- 第 11 次冷重启（uptime 1 min）后，`recover_channels=1`（不带 `reserve_memory`）的 probe 仍失败。
-- r446 修复在 `mt_probe` 等 3 处生效（不再是 -16 来源），但遗漏第 4 处：`mt_probe_channels:644` 同样要求 `reg890==1`，冷启动持久化的 `reg890==2` 在此被拒。
-- dmesg：`shared channel round-trip result=-16 registered=0` → `-EPROTO`；通道注册前即失败。
-- 未执行活体，未改代码（纯验证）。失败 probe 已 safe_rmmod。门禁 566+781 全绿，kernel 零警告。
-- 报告：mt-vgpu-guest/reports/r447-probe-channels-4th-location-missed.md
-- 下一步（r448 P0）：修复 `mt_probe_channels:644` 接受 `reg890==2` + 测试 + 反向验证。

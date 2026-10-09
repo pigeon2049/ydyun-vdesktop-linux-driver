@@ -413,4 +413,7 @@ r435-cold-reboot-not-done-stop.md |
 | r448-probe-channels-4th-fixed.md |
 | r449 | reg890/0x898 状态机完整矩阵 + 参数验证全覆盖（离线）：新增 20 测试（8 状态矩阵 + 6 参数验证 + 3 0x898 + 3 回归）；反向验证 r445 上 6/20 精确 FAIL；[TO-VALIDATE] 0x898 持久性未知已记录；门禁 589+781 全绿，kernel 零警告；零硬件触碰 |
 | r449-reg890-matrix-param-validation.md |
+| r450 | 4 处修复验证成功但状态污染（活体）：recover_channels=1 在 reg890==2 时成功（result=0 registered=15），r446/r448 修复生效；但验证测试将 reg890 2→1，mt_reserve_memory 不接受 1→-EBUSY，trial 构建阻塞；需第 13 次冷重启或修复 reserve_memory 接受 1；零 WARN/BUG/Oops |
+| r450-4th-fix-verified-state-polluted.md |
+
 

@@ -519,3 +519,13 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 纯离线轮，零硬件触碰。待用户确认 → r449 trial 重建。
 - 报告：mt-vgpu-guest/reports/r448-probe-channels-4th-fixed.md
 
+
+## r447 (2026-10-09): r446 修复不完整——mt_probe_channels 第 4 处遗漏，trial 仍阻塞
+
+- 第 11 次冷重启（uptime 1 min）后，`recover_channels=1`（不带 `reserve_memory`）的 probe 仍失败。
+- r446 修复在 `mt_probe` 等 3 处生效（不再是 -16 来源），但遗漏第 4 处：`mt_probe_channels:644` 同样要求 `reg890==1`，冷启动持久化的 `reg890==2` 在此被拒。
+- dmesg：`shared channel round-trip result=-16 registered=0` → `-EPROTO`；通道注册前即失败。
+- 未执行活体，未改代码（纯验证）。失败 probe 已 safe_rmmod。门禁 566+781 全绿，kernel 零警告。
+- 报告：mt-vgpu-guest/reports/r447-probe-channels-4th-location-missed.md
+- 下一步（r448 P0）：修复 `mt_probe_channels:644` 接受 `reg890==2` + 测试 + 反向验证。
+
