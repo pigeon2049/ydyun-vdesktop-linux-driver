@@ -399,4 +399,6 @@ r435-cold-reboot-not-done-stop.md |
 | r441-plus120-flags-quyuan1-features-zero.md |
 | r442 | +0x120 flags 写入实现（离线）：`mt_ta_real_buffer_build()` 追加 `*(u32*)(buf+0x120)=0x1`（r441 [MEASURED] UMD 忠实最小值，bit0；11-bit 表摘要入库）；T5 白名单扩展至 {0x10,0x50,0x58,0x120} + 2 新测试；C 断言 `+0x120==0x1`；反向验证写 0→精确 FAIL；门禁全绿，kernel 零警告，零硬件触碰 |
 | r442-plus120-flags-implemented.md |
+| r443 | Trial blocked by reserve_memory EINVAL after 8th cold reboot; gates 559+781 green; dual-gate build clean; no live ops executed; needs user confirm full cold reboot |
+| r443-trial-blocked-reserve-memory.md |
 

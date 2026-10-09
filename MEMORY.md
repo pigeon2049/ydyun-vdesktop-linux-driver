@@ -72,6 +72,21 @@ EXIT:0
 > r439 轮按 §4 清理：r437 节已移入归档。
 > r440 轮按 §4 清理：r438 节已移入归档。
 > r441 轮按 §4 清理：r439 节已移入归档。
+> r443 轮按 §4 清理：r441 节已移入归档。
+
+## r443 (2026-10-09): Trial 重建被 reserve_memory 阻塞（第 8 次冷重启后设备异常）
+
+- 第 8 次冷重启确认（uptime 0 min，模块未加载）；`check-offline` 559+781 全绿；
+  双门控测试构建 `make kernel` W=1 零警告（事后 revert）。
+- **阻塞**：`mt_guest_probe` 在 `reserve_memory=1` 时 probe 失败 `-EINVAL`（-22）；
+  `enable_probe/query_info/probe_rpc` 均成功，`reserve_memory` 为失败点（4 次复现）。
+  `reserve_memory` 是 trial 链前置依赖 → 无 trial → 活体无法执行。
+- 排查：双门控仅改 `mt_ta_real.h` defines + userspace；probe 源码未动；
+  旧版 .ko 内核版本不匹配；设备 PCI 可见 [1ed5:0222]。
+- 推测：第 8 次冷重启未完全重置固件/BAR 状态，或 VRAM 分配器遇设备侧异常。
+- 安全：零 live 操作（未加载 bridge，未运行 readback）；源码已 revert；工作区干净；
+  证据 `build/traces/r443/dmesg-r443.txt`（0600）。
+- 下一步：用户确认完整冷重启（或第 9 次）后重开 trial 重建。
 
 ## r442 (2026-10-09): +0x120 flags 写入实现（离线）
 
@@ -88,20 +103,3 @@ EXIT:0
 - 诚实边界：bit0=1 [INFERRED 高置信]；其余 10 bit DDK flags [UNKNOWN]——
   若固件需要某 DDK bit，`0x1` 仍不足，待活体验收；`+0x68` 仍 0（r438 P1）。
 
-## r441 (2026-10-09): +0x120 flags 位表 + QuYuan1 feature 恒零（离线）
-
-- `+0x120` 完整 11-bit 打包表 [MEASURED]（`FUN_00178800`:52118 初始化 0，:52194–52234）：
-  bit0=`(RTDataSet+0x00 & 2)==0`（UMD 内部；RTDataSet 经 calloc 分配、`+0x00` 未写入→通常为 1 [INFERRED]）；
-  bit1=flags bit0|bit3；bit4=bit19；bit8=bit3；bit9=bit12；bit10=bit13；
-  bit13=bit17；bit20=bit24；bit21/22=`RTDataSet+0x20`/`+0x24` vs `psKickTA+8` 混合；
-  bit23=bit25。DDK flags（`*param_2`）取值 [UNKNOWN]；UMD 忠实最小值 `0x1`。
-- Feature 字段在目标机恒零 [MEASURED]：官方源码把 S3000 PCI ID `0x0222` 映射到
-  `quyuan1_drvdata`；QuYuan1 表（.data 0xb57560）byte+2=`0x43`（bit2=0）→
-  写入条件 `((*(byte *)(lVar6+2) & 4) == 0)` 恒真→FALSE 分支：`+0x140`/`+0x150` 显式 0，
-  `+0x138`/`+0x148`/`+0x158`/`+0x160` 不写入（零缓冲中为 0）。
-  **我方 Header-only 全零与 UMD 一致** ✅；r438 P3 嫌疑关闭。
-- 纠正：反编译 `lVar6 = GetFeatures();` 无参为误导——objdump 0x78850 显示调用前
-  RDI（=param_1）未被改写，实际为 `GetFeatures(param_1)`，返回 `*(param_1+0xa0)+0x620`。
-- r442 前置：P0=`+0x120` 写 `0x1`（bit0，低风险）；P1=`+0x68` 仍 UNKNOWN（r438）。
-- 门禁 `check-offline` 全绿；`make kernel` W=1 零警告；零硬件触碰，无代码变更。
-- 诚实边界：DDK flags 真实取值 [UNKNOWN]；bit0=1 系 [INFERRED 高置信]。
