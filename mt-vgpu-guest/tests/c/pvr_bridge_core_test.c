@@ -622,6 +622,31 @@ static int test_ta_real_buffer_build_target(void)
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x7a001000ULL) == 0);
 	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
 	CHECK(hdr_va == 0x7a001000ULL);
+	/* r424: w/h boundary (matches mt_ta_entry_simple_build limits). */
+	CHECK(mt_ta_real_buffer_build(buf, 0x8000, 0x8000, 0, 0) == 0);
+	CHECK(mt_ta_real_buffer_build(buf, 0x8001, 64, 0, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 0x8001, 0, 0) == -EINVAL);
+
+	/* r424: target_va stored verbatim in Header-only mode (no alignment
+	 * or 48-bit mask enforcement; firmware semantics [TO-VALIDATE]). */
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x7b000001ULL) == 0);
+	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
+	CHECK(hdr_va == 0x7b000001ULL);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x1000000000000ULL) == 0);
+	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
+	CHECK(hdr_va == 0x1000000000000ULL);
+
+	/* r424: idempotent -- rebuild fully overwrites (memset), no residue. */
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0xAAAAAAAAAAAAAAAAULL) == 0);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x5555555555555555ULL) == 0);
+	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
+	CHECK(hdr_va == 0x5555555555555555ULL);
+	for (i = 0; i < MT_TA_CMD_BUFFER_BYTES; i++) {
+		if (i >= MT_TA_BUF_HDR_TARGET_VA &&
+		    i < MT_TA_BUF_HDR_TARGET_VA + 8)
+			continue; /* target_va bytes */
+		CHECK(buf[i] == 0);
+	}
 	for (i = 0; i < MT_TA_CMD_BUFFER_BYTES; i++) {
 		if (i >= MT_TA_BUF_HDR_TARGET_VA &&
 		    i < MT_TA_BUF_HDR_TARGET_VA + 8)

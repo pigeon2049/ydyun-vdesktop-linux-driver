@@ -1037,3 +1037,5 @@ as-built 机制（`da3df8b`，r45–r63）：
 - r420（2026-10-09）：Q0/Q1 修正测试加固 + T4 纯净性门禁（离线）：新增 21 Python 测试（tests/ta/test_q0_purity.py T4 门禁 3 tests：Q0 源码扫描禁 OR/address；tests/ta/test_q0_q1_bitfields.py 15 tests：flag 位/Q1 mask/三态历史；tests/ta/test_ta_real.py DM 布局回归 3 tests）；修复 mt_marker_fence.h stale [INFERRED]→[MEASURED] 注释；T4 反向验证（注入 r418 污染→FAIL）；门禁 543 Python + 630 C 全绿，make kernel W=1 零警告；本地提交未 push。
 
 - r423（2026-10-09，离线）：Header-only 方案——`mt_ta_real_buffer_build()` 改写：n_entries 必须为 0，仅 `TA_buf+0x10=target_va`，其余零；`mt_ta_submit_real()` 验证同步；新增 T5 Header 完整性门禁（5 tests）；存量 C/Python 测试更新；门禁 548 Python + 1054 C 全绿，kernel W=1 零警告；反向验证通过。
+
+- r424（2026-10-09，离线）：Header-only 边界加固 + T5 门禁增强——C 扩展 `test_ta_real_buffer_build_target`（w/h 0x8000 边界拒收 0x8001、target_va 非对齐/超 48 位原样存储 [TO-VALIDATE] 不加新拒收、memset 幂等）；T5 新增 `test_header_write_whitelist`（buffer_build 内仅 `MT_TA_BUF_HDR_TARGET_VA` 可写，<0x160 其他偏移→FAIL，白名单制）+ `test_submit_real_no_direct_buf_writes`（submit 路径禁 `ta_buf[]` 直写，必须经 buffer_build）；T5 反向验证注入 `buf+0x28` 污染→精确 FAIL；门禁 550 Python + 1416 C 全绿，kernel W=1 零警告。

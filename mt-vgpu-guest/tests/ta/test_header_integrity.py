@@ -104,5 +104,76 @@ class TestHeaderIntegrity(unittest.TestCase):
         self.assertEqual(int(m.group(1), 16), 0x10)
 
 
+
+    def test_header_write_whitelist(self):
+        """T5 (r424): only MT_TA_BUF_HDR_TARGET_VA may be written in buffer_build.
+
+        The 360B buffer is Header (0x00-0x160). Header-only mode (r423)
+        permits exactly one write: *(u64*)(buf + MT_TA_BUF_HDR_TARGET_VA).
+        Any other buf+offset write with a numeric offset below 0x160
+        risks Header pollution (r422 root-cause). Symbolic memset of the
+        whole buffer is allowed.
+        """
+        body = _get_buffer_build_body()
+        # Find writes of the form *(...) (buf + <something>) = ...
+        # or buf[<something>] = ...
+        writes = re.findall(
+            r"(?:\*\(u(?:8|16|32|64) \*\)\s*)?\(\s*buf\s*\+\s*([^)]+)\)\s*=",
+            body,
+        )
+        writes += re.findall(r"\bbuf\s*\[\s*([^\]]+)\s*\]\s*=", body)
+        bad = []
+        for w in writes:
+            w = w.strip()
+            # Approved: the named Header constant.
+            if w == "MT_TA_BUF_HDR_TARGET_VA":
+                continue
+            # Numeric literal offset: must be >= 0x160 (outside Header).
+            m = re.fullmatch(r"0[xX][0-9a-fA-F]+|\d+", w)
+            if m:
+                if int(w, 0) < 0x160:
+                    bad.append(w)
+            else:
+                # Non-constant, non-approved expression: suspicious.
+                bad.append(w)
+        self.assertEqual(
+            bad,
+            [],
+            "T5 FAIL: non-whitelisted Header write in buffer_build (r422): "
+            + str(bad),
+        )
+
+    def test_submit_real_no_direct_buf_writes(self):
+        """T5 (r424): mt_ta_submit_real must not write ta_buf directly.
+
+        All Header bytes must come from mt_ta_real_buffer_build(); the
+        submit path may only copy the built buffer via
+        pvr_translator_bo_write. Direct ta_buf[...] writes would bypass
+        the Header-only invariant.
+        """
+        text = (KERNEL / "recovery" / "mt_pvr_bridge.c").read_text()
+        m = re.search(
+            r"static int mt_ta_submit_real\(.*?\{", text, re.DOTALL
+        )
+        assert m, "mt_ta_submit_real not found"
+        start = m.end()
+        depth = 1
+        i = start
+        while depth > 0 and i < len(text):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+            i += 1
+        body = text[start:i]
+        hits = re.findall(r"\bta_buf\s*\[", body)
+        self.assertEqual(
+            hits,
+            [],
+            "T5 FAIL: direct ta_buf[] write in mt_ta_submit_real "
+            "(must go via buffer_build):\n" + body,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

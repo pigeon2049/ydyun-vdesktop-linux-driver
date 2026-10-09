@@ -361,3 +361,5 @@ r421-q0-corrected-still-timeout.md |
 r422-ta-buffer-header-vs-entries.md |
 | r423 | Header-only 方案落地（离线）：mt_ta_real_buffer_build() 不再写 Entry 到 buf+0（r422 污染源），仅置 TA_buf+0x10=target_va（→psKickTA[1]，[MEASURED]），其余全零；n_entries 必须为 0（Entries 容器未知）；新增 T5 Header 完整性门禁（test_header_integrity.py 5 tests：ban Entry struct/offset 算术，要求 +0x10 设置与 n_entries==0）；C/Python 存量测试同步更新；T5 反向验证注入污染→FAIL；门禁 548+1054 全绿，kernel 零警告 |
 r423-header-only-t5-gate.md |
+| r424 | Header-only 边界加固 + T5 门禁增强（离线）：C 扩展 test_ta_real_buffer_build_target（w/h 0x8000 边界、target_va 非对齐/超 48 位原样存储 [TO-VALIDATE]、memset 幂等）；T5 新增 test_header_write_whitelist（buffer_build 内仅 MT_TA_BUF_HDR_TARGET_VA 可写，<0x160 其他偏移→FAIL）+ test_submit_real_no_direct_buf_writes（submit 路径禁 ta_buf[] 直写）；T5 反向验证注入污染→FAIL；门禁 550+1416 全绿，kernel 零警告 |
+r424-header-only-hardening-t5-plus.md |
