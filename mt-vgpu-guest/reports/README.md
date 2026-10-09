@@ -355,3 +355,5 @@ r418-ta-readback-live.md |
 r419-q0-is-flags-address-in-q1.md |
 | r420 | Q0/Q1 修正测试加固 + T4 纯净性门禁（离线）：新增 21 Python 测试（test_q0_purity.py T4 门禁 3：Q0 禁 OR/address 源码扫描；test_q0_q1_bitfields.py 15：flag 位独立/低 32 位禁区/Q1 48 位 mask/三态历史；test_ta_real.py DM 布局回归 3）；修复 mt_marker_fence.h stale [INFERRED]→[MEASURED]；T4 反向验证注入污染→FAIL；门禁 543+299 全绿，kernel 零警告 |
 r420-q0-q1-test-hardening-t4-gate.md |
+| r421 | Q0 修正后活体（最高风险轮）：双门控测试构建（事后 revert），pre-live T1-T4 全过；冷重启后 trial 重建成功；mt-ta-readback 全链路执行，12th target BO（0x7b000000）绑定成功；0xFD 提交（Q0=0x48000000000 flags-only [MEASURED]，Q1=0x7b000000 [INFERRED]）→ fence 分配 → 固件 5s 超时（ETIMEDOUT，submitted-but-ignored）；对比 r414（Q0=0/Q1=0，219us 完成）：Q0 污染不是唯一超时原因，Q1=target_va 未能提升为 [MEASURED]；pending fence 致 bridge ref=1，safe_rmmod.sh 正确拒绝，待用户冷重启；dmesg 干净；门禁 543+630 全绿，kernel 零警告 |
+r421-q0-corrected-still-timeout.md |
