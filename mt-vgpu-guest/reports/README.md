@@ -369,3 +369,5 @@ r425-header-only-live-still-timeout.md |
 r426-plus0x10-render-target-metadata.md |
 | r427 | Render Target 元数据结构逆向（离线反汇编）：FUN_0017d890 的 psKickTA 完整 18-qword 布局 [MEASURED]（[1]=TA_buf+0x10=RTData entry+0x00，[4]=magic 0x3089705f3089705f，[12]=0x10）；RTData 条目 0xD0 字节字段表 [MEASURED]（+0x00/+0x08/+0x48/+0x50/+0xC8/+0x118/+0x120）；render context state 关键偏移 [MEASURED]；RGXAddRenderTarget 创建流程；结论：psKickTA[1] 指向的结构本体为固件私有，UMD 只透传 VA，布局无法从 UMD 确定——方案 B 已达边界；r428 前置：选项 A（捕获真实 UMD Header）或选项 C（3D 路径验证 T2）；门禁 550+1416 全绿 |
 r427-rendertarget-metadata-reverse.md |
+| r428 | 无可运行 Linux vguest UMD（全 deb/src 取证：mtgpu=固件+dkms 源码、mtml 仅 libmtml.so）；mtdxum64.dll 实证为 DX10/11 UMD（导出 OpenAdapter/OpenAdapter10_2/MtDxExtGetInterfaceImpl）；Wine/VM 活体捕获不可行；选项 A 落点为静态提取：0x168 在 mtdxum64.dll 出现 151 次（行为锚点），RGXAddRenderTargetDDK2 分配 MLIST/RgnHeader 固件可见结构；r429 工作包：定位 TA Header builder + 对比 RGXPrepareTA + KMD 侧逻辑 |
+r428-umd-env-ta-header-capture.md |
