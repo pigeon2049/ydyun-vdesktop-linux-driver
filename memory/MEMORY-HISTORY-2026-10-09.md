@@ -481,3 +481,14 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
   dmesg 零 WARN/BUG/Oops；证据 `build/traces/r444/dmesg-r444.txt`（0600）。
 - 下一步：用户确认第 9 次为断电级完整冷重启；否则需真正断电重启；
   P1：离线深挖 `mt_reserve_memory()`（`kernel/mt_guest_probe.c:390`）-EINVAL 路径与 -16 来源。
+
+## r445 (2026-10-09): 断电级冷重启后仍阻塞——确认为代码问题（参数组合非法 + reg890 状态机缺陷）
+
+- 第 10 次断电级冷重启（关机几分钟后开机，uptime 0 min）后，recover_channels=1 的 probe 仍报 -16（EBUSY）。
+- 缺陷 1（-EINVAL）：mt_guest_probe.c:1258-1261 明确拒绝 recover_channels=1 + reserve_memory=1 组合。r443/r444 测试程序错误。
+- 缺陷 2（-EBUSY）：mt_guest_probe.c:1333-1338，recover_channels=1 路径期望 reg890==1，但代码注释承认冷重启不清除 reg890==2。只有 trial_connect 路径接受 reg890==2。
+- 未执行活体，未修改代码（纯诊断）。门禁 559+781 全绿，kernel 零警告。
+- 报告：reports/r445-poweroff-reboot-still-blocked-code-issue.md
+- 下一步（P0）：修复缺陷 2（recover_channels 接受 reg890==2）；修正测试程序（reserve_memory 不带 recover_channels）。
+
+

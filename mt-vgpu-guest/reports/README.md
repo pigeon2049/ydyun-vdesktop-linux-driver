@@ -407,4 +407,6 @@ r435-cold-reboot-not-done-stop.md |
 | r445-poweroff-reboot-still-blocked-code-issue.md |
 | r446 | 修复 r445 两个缺陷（离线）：mt_guest_probe.c 三处 reg890 检查接受 recover_channels=1 + reg890==2（与 trial_connect 一致）；新增 7 测试（5 缺陷2 + 2 非法组合 -EINVAL）；反向验证 5/7 在旧代码 FAIL；门禁 566+781 全绿，kernel 零警告；零硬件触碰 |
 | r446-fix-reg890-recover-channels.md |
+| r447 | r446 修复不完整：mt_probe_channels:644（第 4 处）同样拒绝 reg890==2，recover_channels=1 在通道注册前返 -EBUSY（registered=0）转 -EPROTO；mt_probe 等 3 处修复已生效；未执行活体，未改代码；门禁 566+781 全绿，kernel 零警告；r448 P0 补修复该处 |
+| r447-probe-channels-4th-location-missed.md |
 
