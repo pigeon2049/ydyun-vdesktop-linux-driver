@@ -359,3 +359,5 @@ r420-q0-q1-test-hardening-t4-gate.md |
 r421-q0-corrected-still-timeout.md |
 | r422 | TA 缓冲 Header+Entries 双区结构定位 r421 超时根因（离线反汇编）：RGXSubmitTA 从 TA_buf+0x10/0x18/0x20/0x28/0x30/0x38/0x40/0x48/0x60 回读 9 qword 到 psKickTA（decompiled.c:54365 [MEASURED]）；RGXPrepareTA 写 Header 覆盖 0x00-0x160；我方代码把 40B Entry 写在 buf+0x00，Q2/Q3/Q4 恰好覆盖 Header 的 0x10/0x18/0x20，导致固件解析垃圾 Header 挂起；r414 全零=空工作故成功；Q1=target_va 未被证伪但 Entry 位置错误是更直接原因；r423 前置：确定 Entries 真实容器（544B 缓冲？）或 Header-only 测试方案 |
 r422-ta-buffer-header-vs-entries.md |
+| r423 | Header-only 方案落地（离线）：mt_ta_real_buffer_build() 不再写 Entry 到 buf+0（r422 污染源），仅置 TA_buf+0x10=target_va（→psKickTA[1]，[MEASURED]），其余全零；n_entries 必须为 0（Entries 容器未知）；新增 T5 Header 完整性门禁（test_header_integrity.py 5 tests：ban Entry struct/offset 算术，要求 +0x10 设置与 n_entries==0）；C/Python 存量测试同步更新；T5 反向验证注入污染→FAIL；门禁 548+1054 全绿，kernel 零警告 |
+r423-header-only-t5-gate.md |

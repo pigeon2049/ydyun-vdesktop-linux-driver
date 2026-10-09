@@ -48,6 +48,19 @@ typedef uint64_t u64;
 #define MT_TA_DM_PKT_TA_VA_HI 0x2cU
 #define MT_TA_DM_PKT_TA_SIZE  0x30U
 
+/* [MEASURED] (r422, FUN_001796b0:54365-54374): 360B TA buffer is a
+ * Header + Entries dual-zone structure (NOT a flat entry array).
+ * - Header covers 0x00-0x160. RGXSubmitTA reads 9 qwords from
+ *   +0x10/+0x18/+0x20/+0x28/+0x30/+0x38/+0x40/+0x48/+0x60 into psKickTA.
+ * - RGXPrepareTA writes Header at +0x10/+0x28/+0x30/+0x68/+0x78/+0xb0/+0xe8
+ *   (8B VA/pointer) and +0x120/+0x140/+0x150/+0x160 (4B flags).
+ * - Entries do NOT live in this 360B buffer (544B buffer inferred, r422).
+ * - r422 root-cause: writing 40B Entries at buf+0 polluted Header fields
+ *   at 0x10/0x18/0x20 (Entry Q2/Q3/Q4 overlap) -> firmware timeout (r421).
+ * - r414 proved all-zero Header completes ("no work", 219us).
+ */
+#define MT_TA_BUF_HDR_TARGET_VA 0x10U /* Header+0x10 -> psKickTA[1] render target VA */
+
 /* [MEASURED] (r414): Complete 80B TA DM packet layout (MT_FW_COMMAND_BYTES).
  * +0x0c: opcode = 0x66 (r365)
  * +0x28: TA buffer VA, low 32 bits (little-endian)
@@ -156,33 +169,31 @@ struct mt_ta_real_request {
 	u64 target_va;		/* r416: render target GPU VA for Q0, 0 = none */
 };
 
-/* Build a 360B TA command buffer from (w, h, n_entries, target_va).
- * [MEASURED]: entry format from r410/r414; Q2 packing verified live.
- * Fills n_entries 40B simple entries, zeroes the remainder.
- * target_va != 0 sets Q0 on each entry ([INFERRED] flags, r416 T2).
+/* Build a 360B TA command buffer, Header-only (r423).
+ * [MEASURED] (r422): 360B = Header (0x00-0x160) + Entries dual-zone.
+ * Entries do NOT belong in this buffer; writing them at buf+0 pollutes
+ * Header fields at 0x10/0x18/0x20 and hangs firmware (r421).
+ *
+ * Header-only: zero the buffer, set TA_buf+0x10 = target_va
+ * (-> psKickTA[1] render target VA, [MEASURED] r422). All other Header
+ * fields stay zero; r414 proved all-zero Header completes ("no work").
+ *
+ * n_entries must be 0 (Header-only). Non-zero is rejected: the Entries
+ * container is unknown (r422), and T5 forbids Entry writes in buf+0x00-0x68.
+ * w/h are validated for API stability (unused in Header-only mode).
  * Returns 0 on success, -EINVAL on bad input.
  */
 static inline int mt_ta_real_buffer_build(unsigned char *buf, u32 w, u32 h,
 					  u32 n_entries, u64 target_va)
 {
-	u32 i;
-	int ret;
-
 	if (!buf || w == 0 || h == 0 || w > 0x8000 || h > 0x8000)
 		return -22; /* -EINVAL */
-	if (n_entries == 0 || n_entries > MT_TA_REAL_MAX_ENTRIES)
-		return -22; /* -EINVAL */
+	if (n_entries != 0)
+		return -22; /* -EINVAL: Header-only; Entries container unknown (r423) */
 
 	memset(buf, 0, MT_TA_CMD_BUFFER_BYTES);
-	for (i = 0; i < n_entries; i++) {
-		struct mt_ta_entry_simple *e =
-			(struct mt_ta_entry_simple *)(buf + i * MT_TA_ENTRY_SIMPLE_BYTES);
-		ret = mt_ta_entry_simple_build(e, w, h);
-		if (ret)
-			return ret;
-		if (target_va)
-			mt_ta_entry_simple_set_target(e, target_va);
-	}
+	/* [MEASURED] (r422): TA_buf+0x10 -> psKickTA[1] render target VA. */
+	*(u64 *)(buf + MT_TA_BUF_HDR_TARGET_VA) = target_va;
 	return 0;
 }
 

@@ -5755,9 +5755,8 @@ __maybe_unused static int mt_ta_submit_real(struct mt_pvr_file *file,
 
 	if (!file || !req || !out_fence)
 		return -EINVAL;
-	if (req->n_entries == 0 ||
-	    req->n_entries > MT_TA_REAL_MAX_ENTRIES)
-		return -EINVAL;
+	if (req->n_entries != 0)
+		return -EINVAL; /* r423: Header-only; Entries container unknown */
 	/* width/height range checked by mt_ta_real_buffer_build. */
 	*out_fence = NULL;
 

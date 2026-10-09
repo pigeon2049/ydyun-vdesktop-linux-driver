@@ -319,9 +319,9 @@ class TestTaSubmitRealTargetVa(unittest.TestCase):
         self.assertIn("-EINVAL", body[idx:idx + 80])
 
     def test_submit_real_validates_n_entries(self):
+        # r423: Header-only; n_entries must be 0 (Entries container unknown).
         body = self._fn()
-        self.assertIn("req->n_entries == 0", body)
-        self.assertIn("req->n_entries > MT_TA_REAL_MAX_ENTRIES", body)
+        self.assertIn("req->n_entries != 0", body)
 
     def test_submit_real_forwards_target_va(self):
         body = self._fn()

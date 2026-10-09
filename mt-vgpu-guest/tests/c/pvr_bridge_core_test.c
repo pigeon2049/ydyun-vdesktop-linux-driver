@@ -597,43 +597,37 @@ static int test_ta_entry_q0_flag_or(void)
 
 static int test_ta_real_buffer_build_target(void)
 {
-	/* r417: target_va forwarding. 0 keeps the legacy zero Q0
-	 * (pre-r416 compatibility); nonzero ORs va|flag into every
-	 * entry; the buffer tail stays zeroed. */
+	/* r423: Header-only. n_entries must be 0; Entries do NOT belong
+	 * in the 360B buffer (r422: writing them at buf+0 pollutes Header
+	 * at 0x10/0x18/0x20 -> firmware timeout). Only TA_buf+0x10
+	 * (target_va -> psKickTA[1]) is set; rest stays zero. */
 	static unsigned char buf[MT_TA_CMD_BUFFER_BYTES];
-	struct mt_ta_entry_simple *e0, *e1;
 	unsigned int i;
+	u64 hdr_va;
 
-	CHECK(mt_ta_real_buffer_build(NULL, 64, 64, 1, 0) == -EINVAL);
-	CHECK(mt_ta_real_buffer_build(buf, 0, 64, 1, 0) == -EINVAL);
-	CHECK(mt_ta_real_buffer_build(buf, 64, 0, 1, 0) == -EINVAL);
-	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(NULL, 64, 64, 0, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 0, 64, 0, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 0, 0, 0) == -EINVAL);
+	/* n_entries != 0 rejected: Entries container unknown (r423). */
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 1, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 9, 0) == -EINVAL);
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 10, 0) == -EINVAL);
-	CHECK(mt_ta_real_buffer_build(buf, 64, 64,
-				      MT_TA_REAL_MAX_ENTRIES, 0) == 0);
 
-	/* target_va = 0: Q0 stays zero. */
-	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 1, 0) == 0);
-	e0 = (struct mt_ta_entry_simple *)buf;
-	CHECK(e0->q0_addr_flags == 0);
-	CHECK(e0->q2_dims == (((u64)63 << 0x29) | ((u64)63 << 0x1a)));
-
-	/* r419: target_va set: Q0=flags-only, Q1=va on every entry; tail zeroed. */
-	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 2, 0x7a001000ULL) == 0);
-	e0 = (struct mt_ta_entry_simple *)(buf + 0);
-	e1 = (struct mt_ta_entry_simple *)(buf + MT_TA_ENTRY_SIMPLE_BYTES);
-	CHECK(e0->q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
-	CHECK(e0->q1 == 0x7a001000ULL);
-	CHECK(e1->q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
-	CHECK(e1->q1 == 0x7a001000ULL);
-	for (i = 2 * MT_TA_ENTRY_SIMPLE_BYTES; i < MT_TA_CMD_BUFFER_BYTES; i++)
+	/* Header-only: n_entries=0, target_va=0 -> all zero. */
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0) == 0);
+	for (i = 0; i < MT_TA_CMD_BUFFER_BYTES; i++)
 		CHECK(buf[i] == 0);
 
-	/* 9 entries exactly fill the 360B buffer. */
-	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 9, 0x1000ULL) == 0);
-	e0 = (struct mt_ta_entry_simple *)(buf + 8 * MT_TA_ENTRY_SIMPLE_BYTES);
-	CHECK(e0->q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
-	CHECK(e0->q1 == 0x1000ULL);
+	/* Header-only: target_va set at +0x10, rest zero. */
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0x7a001000ULL) == 0);
+	memcpy(&hdr_va, buf + MT_TA_BUF_HDR_TARGET_VA, sizeof(hdr_va));
+	CHECK(hdr_va == 0x7a001000ULL);
+	for (i = 0; i < MT_TA_CMD_BUFFER_BYTES; i++) {
+		if (i >= MT_TA_BUF_HDR_TARGET_VA &&
+		    i < MT_TA_BUF_HDR_TARGET_VA + 8)
+			continue; /* target_va bytes */
+		CHECK(buf[i] == 0);
+	}
 	return 0;
 }
 
