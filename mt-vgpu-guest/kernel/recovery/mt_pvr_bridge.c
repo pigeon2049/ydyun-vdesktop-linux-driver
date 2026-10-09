@@ -4253,16 +4253,22 @@ static int mt_render_context_create(struct mt_pvr_file *file,
 	/* r431: RgnHeader (13th BO). TA Header +0x10 = RgnHeader device VA
 	 * ([MEASURED] r430, 3-hop chain). Bound here -- before exec process
 	 * creation, while the VM still accepts binds (active_uses==0).
-	 * Pre-filled with 0xFFFFFFFF (InitRegionHeaderBuffer, [MEASURED] r430). */
+	 * Pre-filled per-dword with 0x00000001 (InitRegionHeaderBuffer writes
+	 * integer 1 per dword, [MEASURED] r433, corrects r430/r431). */
 	{
 		u64 rva = ctx->vm_base_va +
 			(u64)MT_TA_RGNHEADER_BO_SLOT * MT_RENDER_CONTEXT_VA_STRIDE;
 		struct mt_vm_binding rbinding;
 		u32 rgn_alloc = PAGE_ALIGN(MT_TA_RGNHEADER_BYTES);
-		/* Stack init pattern: 0x100B all-ones (InitRegionHeaderBuffer). */
+		/* Stack init pattern: 0x100B, each dword = 0x00000001
+		 * (InitRegionHeaderBuffer writes integer 1 per dword,
+		 * [MEASURED] r433, corrects r431). */
 		u8 rgn_init[MT_TA_RGNHEADER_BYTES];
+		u32 *rgn_dw = (u32 *)rgn_init;
 
-		memset(rgn_init, 0xFF, sizeof(rgn_init));
+		/* Per-dword integer 1 -- not all-bits 1 (r433 corrects r431). */
+		for (i = 0; i < MT_TA_RGNHEADER_BYTES / sizeof(u32); i++)
+			rgn_dw[i] = MT_TA_RGNHEADER_INIT_DWORD;
 		ret = mt_bo_create(&ctx->rgnheader_bo, d->buffers.ops, &d->buffers,
 				   rgn_alloc, PAGE_SIZE);
 		if (ret) {

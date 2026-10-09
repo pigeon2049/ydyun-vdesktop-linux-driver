@@ -381,3 +381,5 @@ r428-umd-env-ta-header-capture.md |
 | r432-rgnheader-live-still-timeout.md |
 | r433 | RgnHeader fill is 0x00000001 not 0xFFFFFFFF (offline disasm, CORRECTS r430/r431): InitRegionHeaderBuffer writes dword value 1 per dword [MEASURED]; r431 memset(0xFF) wrong, r434 must fix to dword-fill 1; +0x28/+0x30 chain fully traced (TA_state+0x1cc/+0x1ce <- RTDataSet+0x440/+0x448 <- local_5b0+0x68/+0x80), terminal [UNKNOWN] (Ghidra bounds), MLIST VA leading candidate; MLIST (0x4a000B, firmware-written) not in kick path; Mcg per-dword patching single-RT N/A; gate green |
 | r433-rgnheader-fill-is-one-plus28-30-chain.md |
+| r434 | RgnHeader fill corrected to per-dword 0x00000001 (offline, implements r433): MT_TA_RGNHEADER_INIT_DWORD 0xFFFFFFFFU->0x1U, memset(0xFF)->dword loop in mt_render_context_create (reuses u32 i), comments updated; C test_ta_rgnheader_init_pattern simulates dword-1 + asserts !=0xFFFFFFFF; Python test_rgnheader_init_all_ones updated (assertIn dword loop, assertNotIn memset 0xFF); reverse verify inject 0xFF->FAIL then green; gate 554+1491 green, kernel W=1 zero warnings |
+| r434-rgnheader-fill-dword-1.md |

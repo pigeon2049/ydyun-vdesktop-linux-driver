@@ -204,13 +204,21 @@ class TestRgnHeaderWiring(unittest.TestCase):
         )
 
     def test_rgnheader_init_all_ones(self):
-        """r431: create path must pre-fill RgnHeader with 0xFF
-        (InitRegionHeaderBuffer [MEASURED] r430)."""
+        """r434: create path must pre-fill RgnHeader per-dword with
+        0x00000001 (InitRegionHeaderBuffer writes integer 1 per dword,
+        [MEASURED] r433; corrects r431's memset-0xFF misread)."""
         src = self._bridge_src()
         self.assertIn(
+            "rgn_dw[i] = MT_TA_RGNHEADER_INIT_DWORD;",
+            src,
+            "r434 FAIL: RgnHeader BO must be filled per-dword with "
+            "0x00000001 (r433: integer 1, not 0xFF bytes)",
+        )
+        self.assertNotIn(
             "memset(rgn_init, 0xFF, sizeof(rgn_init));",
             src,
-            "r431 FAIL: RgnHeader BO must be pre-filled 0xFF",
+            "r434 FAIL: memset 0xFF is the r431 misread; per-dword "
+            "integer 1 is correct (r433)",
         )
 
     def test_no_pixel_bo_for_header(self):

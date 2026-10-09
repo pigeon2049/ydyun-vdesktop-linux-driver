@@ -268,3 +268,18 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
   全 1 初始化验证；Python layout 测试更新偏移。
 - 门禁 `check-offline` **550 Python + 1490 C 全绿**；`make kernel` W=1 **零警告**。
 - `+0x28`/`+0x30` 仍 [UNKNOWN]（置零）；活体验收延至 r432。零硬件触碰，纯离线。
+
+## r432 (2026-10-09): RgnHeader 活体——固件仍超时，RgnHeader 非充分条件（最高风险）
+
+- 核心结论：RgnHeader BO 正常创建绑定（va=0x7c000000 bytes=4096，0xFF 预填），
+  TA Header +0x10 正确指向 RgnHeader，但固件 5s 内仍无完成（-ETIMEDOUT）。
+  RgnHeader 是必要非充分条件；+0x28/+0x30 或 RgnHeader 内容语义仍有缺失。
+- 活体：双门控测试构建（W=1 零警告）；T1-T5 全过（554 Python + 1490 C）；
+  第 5 次冷重启后 trial 重建（connect=0 pinned=1）；0xFD 提交走通（fence 已分配）；
+  仅完成事件缺失。dmesg 零 WARN/BUG/Oops。
+- Teardown：pending fence 导致 bridge ref=1，safe_rmmod.sh 正确拒绝（未用 -f）；
+  待用户第 6 次冷重启。源码已 revert，默认门控重建零警告，工作区干净。
+- 对比表：r414 全零→219us（无工作快路径）；r425 +0x10=像素 BO→超时；
+  r432 +0x10=RgnHeader→仍超时。RgnHeader [INFERRED] 未升 [MEASURED]（证伪性证据）。
+- 下一步必须离线：+0x28/+0x30 语义与 RgnHeader per-dword 要求；
+  不再做无依据活体试探。零 rmmod -f、零自行重启。

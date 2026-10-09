@@ -79,7 +79,7 @@ typedef uint64_t u64;
 /* 64x64: 4 tiles * 0x40 = 0x100; round_up(0x100,64) = 0x100. */
 #define MT_TA_RGNHEADER_BYTES 0x100U
 #define MT_TA_RGNHEADER_BO_SLOT 12U /* VA slot 12: 0x7c000000 (13th BO) */
-#define MT_TA_RGNHEADER_INIT_DWORD 0xFFFFFFFFU /* InitRegionHeaderBuffer fills 1s */
+#define MT_TA_RGNHEADER_INIT_DWORD 0x1U /* InitRegionHeaderBuffer: each dword = integer 1 ([MEASURED] r433, corrects r430/r431) */
 
 /* RgnHeader size formula [MEASURED] (r430, RGXRenderTargetInitConfig).
  * Returns round_up(tilesX*tilesY*0x40, 64). */

@@ -679,20 +679,24 @@ static int test_ta_rgnheader_size(void)
 
 static int test_ta_rgnheader_init_pattern(void)
 {
-	/* r431: RgnHeader init = all 0xFFFFFFFF ([MEASURED] r430,
-	 * InitRegionHeaderBuffer fills every dword with 1).
+	/* r434: RgnHeader init = every dword 0x00000001 ([MEASURED] r433:
+	 * InitRegionHeaderBuffer writes integer 1 per dword;
+	 * corrects r431's all-0xFFFFFFFF misread).
 	 * Verify the pattern the kernel writes at create matches. */
 	u32 i;
 	u32 dwords = MT_TA_RGNHEADER_BYTES / 4U;
-	/* Simulate the kernel fill: memset 0xFF over MT_TA_RGNHEADER_BYTES. */
+	/* Simulate the kernel fill: per-dword integer 1. */
 	static unsigned char rgn[MT_TA_RGNHEADER_BYTES];
 	u32 *p;
 
-	memset(rgn, 0xFF, sizeof(rgn));
 	p = (u32 *)rgn;
 	for (i = 0; i < dwords; i++)
+		p[i] = 1U;
+	for (i = 0; i < dwords; i++)
 		CHECK(p[i] == MT_TA_RGNHEADER_INIT_DWORD);
-	CHECK(MT_TA_RGNHEADER_INIT_DWORD == 0xFFFFFFFFU);
+	CHECK(MT_TA_RGNHEADER_INIT_DWORD == 0x1U);
+	/* Boundary: must NOT be the r431 misread value. */
+	CHECK(MT_TA_RGNHEADER_INIT_DWORD != 0xFFFFFFFFU);
 	return 0;
 }
 

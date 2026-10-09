@@ -64,6 +64,22 @@ EXIT:0
 > r431 轮按 §4 清理：r429 节已移入归档。
 > r432 轮按 §4 清理：r430 节已移入归档。
 > r433 轮按 §4 清理：r431 节已移入归档。
+> r434 轮按 §4 清理：r432 节已移入归档。
+
+## r434 (2026-10-09): RgnHeader 填充修正为逐 dword 写 0x00000001（离线）
+
+- 落地 r433 纠正：`MT_TA_RGNHEADER_INIT_DWORD` 由 `0xFFFFFFFFU` → `0x1U`；
+  `mt_render_context_create` 删除 `memset(rgn_init, 0xFF, ...)`，
+  改为逐 dword 循环写 `1`（复用 `u32 i`，[MEASURED] r433）。
+- 测试同步：`test_ta_rgnheader_init_pattern` 模拟逐 dword 写 1，
+  断言 `== 0x1U` 且 `!= 0xFFFFFFFFU`（防 r431 重演）；
+  `test_rgnheader_init_all_ones` 更新为 assertIn dword 循环 +
+  assertNotIn memset 0xFF（首轮即精确拦截旧行为）。
+- 反向验证：注入 `memset 0xFF` → 精确 FAIL；还原后全绿。
+- 门禁 `check-offline` **554 Python + 1491 C 全绿**；
+  `make kernel` W=1 **零警告**。
+- 诚实边界：RgnHeader 语义仍 [INFERRED]；0x00000001 填充尚未活体验收
+  （r435+，待用户冷重启）。零硬件触碰，纯离线。
 
 ## r433 (2026-10-09): RgnHeader 填充是 0x00000001 非 0xFFFFFFFF;+0x28/+0x30 链条追踪（离线）
 
@@ -83,17 +99,3 @@ EXIT:0
 - 门禁 `check-offline` 全绿；`make kernel` 未跑（无代码变更）。
   零硬件触碰，纯离线。
 
-## r432 (2026-10-09): RgnHeader 活体——固件仍超时，RgnHeader 非充分条件（最高风险）
-
-- 核心结论：RgnHeader BO 正常创建绑定（va=0x7c000000 bytes=4096，0xFF 预填），
-  TA Header +0x10 正确指向 RgnHeader，但固件 5s 内仍无完成（-ETIMEDOUT）。
-  RgnHeader 是必要非充分条件；+0x28/+0x30 或 RgnHeader 内容语义仍有缺失。
-- 活体：双门控测试构建（W=1 零警告）；T1-T5 全过（554 Python + 1490 C）；
-  第 5 次冷重启后 trial 重建（connect=0 pinned=1）；0xFD 提交走通（fence 已分配）；
-  仅完成事件缺失。dmesg 零 WARN/BUG/Oops。
-- Teardown：pending fence 导致 bridge ref=1，safe_rmmod.sh 正确拒绝（未用 -f）；
-  待用户第 6 次冷重启。源码已 revert，默认门控重建零警告，工作区干净。
-- 对比表：r414 全零→219us（无工作快路径）；r425 +0x10=像素 BO→超时；
-  r432 +0x10=RgnHeader→仍超时。RgnHeader [INFERRED] 未升 [MEASURED]（证伪性证据）。
-- 下一步必须离线：+0x28/+0x30 语义与 RgnHeader per-dword 要求；
-  不再做无依据活体试探。零 rmmod -f、零自行重启。
