@@ -34,10 +34,7 @@ class KickTA3D5Observe(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.src = code()
-        m = re.search(r'case MT_PVR_BRIDGE_RGXTA3D:(.*?)case MT_PVR_BRIDGE_\w+:',
-                      cls.src, re.S)
-        assert m, 'RGXTA3D dispatch block not found'
-        cls.dispatch = m.group(1)
+        cls.dispatch = fn_body(cls.src, 'pvr_dispatch_rgxta3d')
         cls.body = fn_body(cls.src, 'pvr_cmd_kickta3d5_observe')
 
     def test_kickta3d5_routed(self):

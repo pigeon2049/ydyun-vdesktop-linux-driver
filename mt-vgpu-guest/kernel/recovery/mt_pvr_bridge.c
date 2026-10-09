@@ -5048,170 +5048,224 @@ static int pvr_stub_ok(struct mt_pvr_cmd *cmd)
 	return pvr_out(cmd, zeros, bytes);
 }
 
+
+/* r404: per-bridge-group dispatch helpers, split from pvr_bridge_dispatch.
+ * Each helper owns the inner function switch for one bridge group.
+ * Behavior is identical; this is a pure mechanical split for readability.
+ */
+static int pvr_dispatch_srvcore(struct mt_pvr_file *file, u32 function,
+			 struct mt_pvr_cmd *cmd)
+{
+	switch (function) {
+	case MT_PVR_FN_CONNECT:
+		return pvr_cmd_connect(file, cmd);
+	case MT_PVR_FN_DISCONNECT:			/* Disconnect */
+	case MT_PVR_FN_RELEASEINFOPAGE:			/* ReleaseInfoPage */
+		return pvr_stub_ok(cmd);
+	case MT_PVR_FN_ACQUIREGLOBALEVENTOBJECT:			/* AcquireGlobalEventObject */
+	case MT_PVR_FN_EVENTOBJECTOPEN:			/* EventObjectOpen */
+		return pvr_cmd_event_handle(file, cmd);
+	case MT_PVR_FN_RELEASEGLOBALEVENTOBJECT:			/* ReleaseGlobalEventObject */
+	case MT_PVR_FN_EVENTOBJECTWAIT:			/* EventObjectWait */
+	case MT_PVR_FN_EVENTOBJECTCLOSE:			/* EventObjectClose */
+	case MT_PVR_FN_ALIGNMENTCHECK:			/* AlignmentCheck */
+	case MT_PVR_FN_EVENTOBJECTWAITTIMEOUT:			/* EventObjectWaitTimeout */
+		return pvr_stub_ok(cmd);
+	case MT_PVR_FN_GETMULTICOREINFO:			/* GetMultiCoreInfo */
+		return pvr_cmd_multicore_info(cmd);
+	case MT_PVR_FN_ACQUIREINFOPAGE:			/* AcquireInfoPage */
+		return pvr_cmd_info_page(file, cmd);
+	default:
+		return -ENOTTY;
+}
+}
+
+static int pvr_dispatch_sync(struct mt_pvr_file *file, u32 function,
+			 struct mt_pvr_cmd *cmd)
+{
+	switch (function) {
+	case MT_PVR_FN_ALLOCSYNCPRIMITIVEBLOCK:
+		return pvr_cmd_sync_block(file, cmd);
+	case MT_PVR_FN_FREESYNCPRIMITIVEBLOCK:			/* FreeSyncPrimitiveBlock */
+		return pvr_stub_ok(cmd);
+	case MT_PVR_FN_SYNCPRIMSET:			/* SyncPrimSet (free-path clearer wrapper; stubbed) */
+	case MT_PVR_FN_SYNCALLOCEVENT:			/* SyncAllocEvent */
+	case MT_PVR_FN_SYNCFREEEVENT:			/* SyncFreeEvent (DDK2 destroy tail, r144) */
+		return pvr_stub_ok(cmd);
+	case MT_PVR_FN_SYNCPRIMCPUSIGNAL:			/* SyncPrimCpuSignal (real write, r222) */
+		return pvr_cmd_syncprim_set(file, cmd);
+	case MT_PVR_FN_SYNCPRIMIMPORTFD:	/* SyncPrimImportFD (r386) */
+		return pvr_cmd_syncprim_importfd(file, cmd);
+	default:
+		return -ENOTTY;
+}
+}
+
+static int pvr_dispatch_mm(struct mt_pvr_file *file, u32 function,
+			 struct mt_pvr_cmd *cmd)
+{
+	switch (function) {
+	case MT_PVR_FN_PMRMAKELOCALIMPORTHANDLE:			/* PmrMakeLocalImportHandle */
+		return pvr_cmd_pmr_make_import(file, cmd);
+	case MT_PVR_FN_PMRUNMAKELOCALIMPORTHANDLE:			/* PmrUnmakeLocalImportHandle */
+		return pvr_cmd_pmr_unmake_import(file, cmd);
+	case MT_PVR_FN_PMRLOCALIMPORTPMR:			/* PmrLocalImportPmr */
+		return pvr_cmd_pmr_import(file, cmd);
+	case MT_PVR_FN_PMRUNREFPMR:			/* PmrUnrefPmr */
+		return pvr_cmd_pmr_unref(file, cmd);
+	case MT_PVR_FN_DEVMEMINTCTXDESTROY:			/* DevmemIntCtxDestroy */
+		return pvr_cmd_ctx_destroy(file, cmd);
+	case MT_PVR_FN_DEVMEMINTHEAPDESTROY:			/* DevmemIntHeapDestroy */
+		return pvr_cmd_heap_destroy(file, cmd);
+	case MT_PVR_FN_PHYSMEMNEWRAMBACKEDPMR:			/* PhysMemNewRamBackedPmr */
+		return pvr_cmd_pmr_alloc(file, cmd);
+	case MT_PVR_FN_DEVMEMINTCTXCREATE:			/* DevmemIntCtxCreate */
+		return pvr_cmd_ctx_create(file, cmd);
+	case MT_PVR_FN_DEVMEMINTHEAPCREATE:			/* DevmemIntHeapCreate */
+		return pvr_cmd_heap_create(file, cmd);
+	case MT_PVR_FN_DEVMEMINTMAPPMR:			/* DevmemIntMapPmr */
+		return pvr_cmd_pmr_map(file, cmd);
+	case MT_PVR_FN_DEVMEMINTUNMAPPMR:			/* DevmemIntUnmapPMR */
+		return pvr_cmd_unmap_pmr(file, cmd);
+	case MT_PVR_FN_DEVMEMINTRESERVERANGE:			/* DevmemIntReserveRange */
+		return pvr_cmd_pmr_reserve(file, cmd);
+	case MT_PVR_FN_DEVMEMINTUNRESERVERANGE:			/* DevmemIntUnreserveRange */
+		return pvr_cmd_unreserve_range(file, cmd);
+	case MT_PVR_FN_HEAPCFGHEAPCOUNT:			/* HeapCfgHeapCount */
+		return pvr_cmd_heap_count(file, cmd);
+	case MT_PVR_FN_HEAPCFGHEAPDETAILS:			/* HeapCfgHeapDetails */
+		return pvr_cmd_heap_details(file, cmd);
+	case MT_PVR_FN_MTGPUUPDATEOOMSTATS:			/* MTGPUUpdateOOMStats */
+		return pvr_cmd_oom_stats(file, cmd);
+	default:
+		return -ENOTTY;
+}
+}
+
+static int pvr_dispatch_rgxcompute(struct mt_pvr_file *file, u32 function,
+			 struct mt_pvr_cmd *cmd)
+{
+	switch (function) {
+	case MT_PVR_FN_RGXCREATECOMPUTECONTEXT:			/* RGXCreateComputeContext */
+		return pvr_cmd_compute_create(file, cmd);
+	case MT_PVR_FN_RGXDESTROYCOMPUTECONTEXT:			/* RGXDestroyComputeContext */
+		return pvr_cmd_compute_destroy(file, cmd);
+	default:
+		/* 0x81:0x5 RGXKICKSYNC2 and friends submit real work;
+		 * refusing them is the S4 boundary, not a gap.
+		 */
+		return -ENOTTY;
+}
+}
+
+static int pvr_dispatch_rgxta3d(struct mt_pvr_file *file, u32 function,
+			 struct mt_pvr_cmd *cmd)
+{
+	switch (function) {
+	case MT_PVR_FN_RGXCREATEZSBUFFER:			/* RGXCreateZSBuffer */
+		return pvr_cmd_zs_create(file, cmd);
+	case MT_PVR_FN_RGXDESTROYZSBUFFER:			/* RGXDestroyZSBuffer */
+		return pvr_cmd_zs_destroy(file, cmd);
+	case MT_PVR_FN_RGXCREATERENDERCONTEXT:			/* RGXCreateRenderContext */
+		return pvr_cmd_handle_only(file, cmd,
+					    MT_PVR_KIND_CONTEXT);
+	case MT_PVR_FN_RGXDESTROYRENDERCONTEXT:			/* RGXDestroyRenderContext */
+		/* The UMD always tears the context down, even when
+		 * creation itself failed partway, so refusing this
+		 * with -ENOTTY leaves the teardown incomplete.
+		 */
+		return pvr_cmd_handle_release(file, cmd,
+					      MT_PVR_KIND_CONTEXT);
+	case MT_PVR_FN_MUSAKICKGFX2:	/* MUSAKickGFX2 (real TA dispatch, r367) */
+		return pvr_cmd_musakickgfx2(file, cmd);
+	case MT_PVR_FN_RGXCREATERENDERCONTEXT2:			/* BridgeRGXCreateRenderContext2 (DDK2) */
+		return pvr_cmd_render2_create(file, cmd);
+	case MT_PVR_FN_RGXDESTROYRENDERCONTEXT2:			/* BridgeRGXDestroyRenderContext2 (DDK2) */
+		return pvr_cmd_handle_release(file, cmd,
+					      MT_PVR_KIND_CONTEXT);
+	case MT_PVR_FN_RGXKICKTA3D5:			/* RGXKickTA3D5 (accept-and-log, r215) */
+		return pvr_cmd_kickta3d5_observe(file, cmd);
+	default:
+		return -ENOTTY;
+}
+}
+
+static int pvr_dispatch_rgxkicksync(struct mt_pvr_file *file, u32 function,
+			 struct mt_pvr_cmd *cmd)
+{
+	switch (function) {
+	case MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT:			/* RGXCreateKickSyncContext */
+		return pvr_cmd_kicksync_create(file, cmd);
+	case MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT:			/* RGXDestroyKickSyncContext */
+		return pvr_cmd_kicksync_destroy(file, cmd);
+	case MT_PVR_FN_RGXKICKSYNC2:			/* RGXKickSync2 */
+	case MT_PVR_FN_RGXSETKICKSYNCCONTEXTPROPERTY:			/* RGXSetKickSyncContextProperty */
+	case MT_PVR_FN_RGXKICKSYNC3:			/* RGXKickSync3 (TA submit) */
+		return pvr_cmd_kicksync_submit(file, cmd, function);
+	case MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT2:			/* BridgeRGXCreateKickSyncContext2 (DDK2) */
+		return pvr_cmd_kicksyncctx2_create(file, cmd);
+	case MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT2:			/* BridgeRGXDestroyKickSyncContext2 (DDK2) */
+		return pvr_cmd_kicksync_destroy(file, cmd);
+	default:
+		return -ENOTTY;
+}
+}
+
+static int pvr_dispatch_rgxhwperf(struct mt_pvr_file *file, u32 function,
+			 struct mt_pvr_cmd *cmd)
+{
+	switch (function) {
+	case MT_PVR_FN_RGXACQUIREHWPERFFSETTINGS:		/* MUSA:MUSAAcquireHWPerfSettings */
+		return pvr_cmd_hwperf(file, cmd);
+	case MT_PVR_FN_RGXRELEASEHWPERFFSETTINGS:		/* MUSA:MUSAReleaseHWPerfSettings */
+		return pvr_cmd_hwperf_release(file, cmd);
+	default:
+		return -ENOTTY;
+}
+}
+
+static int pvr_dispatch_rgxtdm(struct mt_pvr_file *file, u32 function,
+			 struct mt_pvr_cmd *cmd)
+{
+	switch (function) {
+	case MT_PVR_FN_RGXTDMCREATETRANSFERCONTEXT2: /* RGXTDMCreateTransferContext2 */
+		return pvr_cmd_tdm_context2_create(file, cmd);
+	case MT_PVR_FN_RGXTDMDESTROYTRANSFERCONTEXT2: /* RGXTDMDestroyTransferContext2 */
+		return pvr_cmd_tdm_context2_destroy(file, cmd);
+	case MT_PVR_FN_RGXTDMGETSHAREDMEMORY:		/* RGXTDMGetSharedMemory */
+		return pvr_cmd_tdm_shmem(file, cmd);
+	case MT_PVR_FN_RGXTDMRELEASESHAREDMEMORY:		/* RGXTDMReleaseSharedMemory */
+		return pvr_cmd_tdm_release(file, cmd);
+	case MT_PVR_FN_RGXTDMSUBMITTRANSFER3:		/* RGXTDMSubmitTransfer3 (accept-and-log, r174) */
+		return pvr_cmd_tdm_submit3_observe(file, cmd);
+	default:
+		return -ENOTTY;
+}
+}
+
 static int pvr_bridge_dispatch(struct mt_pvr_file *file, u32 bridge,
 			       u32 function, struct mt_pvr_cmd *cmd)
 {
 	if (!file->conn->srv_handle)
 		return -ENOTCONN;
+
 	switch (bridge) {
 	case MT_PVR_BRIDGE_SRVCORE:
-		switch (function) {
-		case MT_PVR_FN_CONNECT:
-			return pvr_cmd_connect(file, cmd);
-		case MT_PVR_FN_DISCONNECT:			/* Disconnect */
-		case MT_PVR_FN_RELEASEINFOPAGE:			/* ReleaseInfoPage */
-			return pvr_stub_ok(cmd);
-		case MT_PVR_FN_ACQUIREGLOBALEVENTOBJECT:			/* AcquireGlobalEventObject */
-		case MT_PVR_FN_EVENTOBJECTOPEN:			/* EventObjectOpen */
-			return pvr_cmd_event_handle(file, cmd);
-		case MT_PVR_FN_RELEASEGLOBALEVENTOBJECT:			/* ReleaseGlobalEventObject */
-		case MT_PVR_FN_EVENTOBJECTWAIT:			/* EventObjectWait */
-		case MT_PVR_FN_EVENTOBJECTCLOSE:			/* EventObjectClose */
-		case MT_PVR_FN_ALIGNMENTCHECK:			/* AlignmentCheck */
-		case MT_PVR_FN_EVENTOBJECTWAITTIMEOUT:			/* EventObjectWaitTimeout */
-			return pvr_stub_ok(cmd);
-		case MT_PVR_FN_GETMULTICOREINFO:			/* GetMultiCoreInfo */
-			return pvr_cmd_multicore_info(cmd);
-		case MT_PVR_FN_ACQUIREINFOPAGE:			/* AcquireInfoPage */
-			return pvr_cmd_info_page(file, cmd);
-		default:
-			return -ENOTTY;
-		}
+		return pvr_dispatch_srvcore(file, function, cmd);
 	case MT_PVR_BRIDGE_SYNC:
-		switch (function) {
-		case MT_PVR_FN_ALLOCSYNCPRIMITIVEBLOCK:
-			return pvr_cmd_sync_block(file, cmd);
-		case MT_PVR_FN_FREESYNCPRIMITIVEBLOCK:			/* FreeSyncPrimitiveBlock */
-			return pvr_stub_ok(cmd);
-		case MT_PVR_FN_SYNCPRIMSET:			/* SyncPrimSet (free-path clearer wrapper; stubbed) */
-		case MT_PVR_FN_SYNCALLOCEVENT:			/* SyncAllocEvent */
-		case MT_PVR_FN_SYNCFREEEVENT:			/* SyncFreeEvent (DDK2 destroy tail, r144) */
-			return pvr_stub_ok(cmd);
-		case MT_PVR_FN_SYNCPRIMCPUSIGNAL:			/* SyncPrimCpuSignal (real write, r222) */
-			return pvr_cmd_syncprim_set(file, cmd);
-		case MT_PVR_FN_SYNCPRIMIMPORTFD:	/* SyncPrimImportFD (r386) */
-			return pvr_cmd_syncprim_importfd(file, cmd);
-		default:
-			return -ENOTTY;
-		}
+		return pvr_dispatch_sync(file, function, cmd);
 	case MT_PVR_BRIDGE_MM:
-		switch (function) {
-		case MT_PVR_FN_PMRMAKELOCALIMPORTHANDLE:			/* PmrMakeLocalImportHandle */
-			return pvr_cmd_pmr_make_import(file, cmd);
-		case MT_PVR_FN_PMRUNMAKELOCALIMPORTHANDLE:			/* PmrUnmakeLocalImportHandle */
-			return pvr_cmd_pmr_unmake_import(file, cmd);
-		case MT_PVR_FN_PMRLOCALIMPORTPMR:			/* PmrLocalImportPmr */
-			return pvr_cmd_pmr_import(file, cmd);
-		case MT_PVR_FN_PMRUNREFPMR:			/* PmrUnrefPmr */
-			return pvr_cmd_pmr_unref(file, cmd);
-		case MT_PVR_FN_DEVMEMINTCTXDESTROY:			/* DevmemIntCtxDestroy */
-			return pvr_cmd_ctx_destroy(file, cmd);
-		case MT_PVR_FN_DEVMEMINTHEAPDESTROY:			/* DevmemIntHeapDestroy */
-			return pvr_cmd_heap_destroy(file, cmd);
-		case MT_PVR_FN_PHYSMEMNEWRAMBACKEDPMR:			/* PhysMemNewRamBackedPmr */
-			return pvr_cmd_pmr_alloc(file, cmd);
-		case MT_PVR_FN_DEVMEMINTCTXCREATE:			/* DevmemIntCtxCreate */
-			return pvr_cmd_ctx_create(file, cmd);
-		case MT_PVR_FN_DEVMEMINTHEAPCREATE:			/* DevmemIntHeapCreate */
-			return pvr_cmd_heap_create(file, cmd);
-		case MT_PVR_FN_DEVMEMINTMAPPMR:			/* DevmemIntMapPmr */
-			return pvr_cmd_pmr_map(file, cmd);
-		case MT_PVR_FN_DEVMEMINTUNMAPPMR:			/* DevmemIntUnmapPMR */
-			return pvr_cmd_unmap_pmr(file, cmd);
-		case MT_PVR_FN_DEVMEMINTRESERVERANGE:			/* DevmemIntReserveRange */
-			return pvr_cmd_pmr_reserve(file, cmd);
-		case MT_PVR_FN_DEVMEMINTUNRESERVERANGE:			/* DevmemIntUnreserveRange */
-			return pvr_cmd_unreserve_range(file, cmd);
-		case MT_PVR_FN_HEAPCFGHEAPCOUNT:			/* HeapCfgHeapCount */
-			return pvr_cmd_heap_count(file, cmd);
-		case MT_PVR_FN_HEAPCFGHEAPDETAILS:			/* HeapCfgHeapDetails */
-			return pvr_cmd_heap_details(file, cmd);
-		case MT_PVR_FN_MTGPUUPDATEOOMSTATS:			/* MTGPUUpdateOOMStats */
-			return pvr_cmd_oom_stats(file, cmd);
-		default:
-			return -ENOTTY;
-		}
+		return pvr_dispatch_mm(file, function, cmd);
 	case MT_PVR_BRIDGE_RGXCOMPUTE:
-		switch (function) {
-		case MT_PVR_FN_RGXCREATECOMPUTECONTEXT:			/* RGXCreateComputeContext */
-			return pvr_cmd_compute_create(file, cmd);
-		case MT_PVR_FN_RGXDESTROYCOMPUTECONTEXT:			/* RGXDestroyComputeContext */
-			return pvr_cmd_compute_destroy(file, cmd);
-		default:
-			/* 0x81:0x5 RGXKICKSYNC2 and friends submit real work;
-			 * refusing them is the S4 boundary, not a gap.
-			 */
-			return -ENOTTY;
-		}
+		return pvr_dispatch_rgxcompute(file, function, cmd);
 	case MT_PVR_BRIDGE_RGXTA3D:
-		switch (function) {
-		case MT_PVR_FN_RGXCREATEZSBUFFER:			/* RGXCreateZSBuffer */
-			return pvr_cmd_zs_create(file, cmd);
-		case MT_PVR_FN_RGXDESTROYZSBUFFER:			/* RGXDestroyZSBuffer */
-			return pvr_cmd_zs_destroy(file, cmd);
-		case MT_PVR_FN_RGXCREATERENDERCONTEXT:			/* RGXCreateRenderContext */
-			return pvr_cmd_handle_only(file, cmd,
-						    MT_PVR_KIND_CONTEXT);
-		case MT_PVR_FN_RGXDESTROYRENDERCONTEXT:			/* RGXDestroyRenderContext */
-			/* The UMD always tears the context down, even when
-			 * creation itself failed partway, so refusing this
-			 * with -ENOTTY leaves the teardown incomplete.
-			 */
-			return pvr_cmd_handle_release(file, cmd,
-						      MT_PVR_KIND_CONTEXT);
-		case MT_PVR_FN_MUSAKICKGFX2:	/* MUSAKickGFX2 (real TA dispatch, r367) */
-			return pvr_cmd_musakickgfx2(file, cmd);
-		case MT_PVR_FN_RGXCREATERENDERCONTEXT2:			/* BridgeRGXCreateRenderContext2 (DDK2) */
-			return pvr_cmd_render2_create(file, cmd);
-		case MT_PVR_FN_RGXDESTROYRENDERCONTEXT2:			/* BridgeRGXDestroyRenderContext2 (DDK2) */
-			return pvr_cmd_handle_release(file, cmd,
-						      MT_PVR_KIND_CONTEXT);
-		case MT_PVR_FN_RGXKICKTA3D5:			/* RGXKickTA3D5 (accept-and-log, r215) */
-			return pvr_cmd_kickta3d5_observe(file, cmd);
-		default:
-			return -ENOTTY;
-		}
+		return pvr_dispatch_rgxta3d(file, function, cmd);
 	case MT_PVR_BRIDGE_RGXKICKSYNC:
-		switch (function) {
-		case MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT:			/* RGXCreateKickSyncContext */
-			return pvr_cmd_kicksync_create(file, cmd);
-		case MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT:			/* RGXDestroyKickSyncContext */
-			return pvr_cmd_kicksync_destroy(file, cmd);
-		case MT_PVR_FN_RGXKICKSYNC2:			/* RGXKickSync2 */
-		case MT_PVR_FN_RGXSETKICKSYNCCONTEXTPROPERTY:			/* RGXSetKickSyncContextProperty */
-		case MT_PVR_FN_RGXKICKSYNC3:			/* RGXKickSync3 (TA submit) */
-			return pvr_cmd_kicksync_submit(file, cmd, function);
-		case MT_PVR_FN_RGXCREATEKICKSYNCCONTEXT2:			/* BridgeRGXCreateKickSyncContext2 (DDK2) */
-			return pvr_cmd_kicksyncctx2_create(file, cmd);
-		case MT_PVR_FN_RGXDESTROYKICKSYNCCONTEXT2:			/* BridgeRGXDestroyKickSyncContext2 (DDK2) */
-			return pvr_cmd_kicksync_destroy(file, cmd);
-		default:
-			return -ENOTTY;
-		}
+		return pvr_dispatch_rgxkicksync(file, function, cmd);
 	case MT_PVR_BRIDGE_RGXHWPERF:
-		switch (function) {
-		case MT_PVR_FN_RGXACQUIREHWPERFFSETTINGS:		/* MUSA:MUSAAcquireHWPerfSettings */
-			return pvr_cmd_hwperf(file, cmd);
-		case MT_PVR_FN_RGXRELEASEHWPERFFSETTINGS:		/* MUSA:MUSAReleaseHWPerfSettings */
-			return pvr_cmd_hwperf_release(file, cmd);
-		default:
-			return -ENOTTY;
-		}
+		return pvr_dispatch_rgxhwperf(file, function, cmd);
 	case MT_PVR_BRIDGE_RGXTDM:
-		switch (function) {
-		case MT_PVR_FN_RGXTDMCREATETRANSFERCONTEXT2: /* RGXTDMCreateTransferContext2 */
-			return pvr_cmd_tdm_context2_create(file, cmd);
-		case MT_PVR_FN_RGXTDMDESTROYTRANSFERCONTEXT2: /* RGXTDMDestroyTransferContext2 */
-			return pvr_cmd_tdm_context2_destroy(file, cmd);
-		case MT_PVR_FN_RGXTDMGETSHAREDMEMORY:		/* RGXTDMGetSharedMemory */
-			return pvr_cmd_tdm_shmem(file, cmd);
-		case MT_PVR_FN_RGXTDMRELEASESHAREDMEMORY:		/* RGXTDMReleaseSharedMemory */
-			return pvr_cmd_tdm_release(file, cmd);
-		case MT_PVR_FN_RGXTDMSUBMITTRANSFER3:		/* RGXTDMSubmitTransfer3 (accept-and-log, r174) */
-			return pvr_cmd_tdm_submit3_observe(file, cmd);
-		default:
-			return -ENOTTY;
-		}
+		return pvr_dispatch_rgxtdm(file, function, cmd);
 	default:
 		return -ENOTTY;
 	}

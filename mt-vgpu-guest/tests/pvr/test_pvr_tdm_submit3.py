@@ -33,10 +33,7 @@ class TdmSubmit3Observe(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.src = code()
-        m = re.search(r'case MT_PVR_BRIDGE_RGXTDM:(.*?)default:',
-                      cls.src, re.S)
-        assert m, 'RGXTDM dispatch block not found'
-        cls.dispatch = m.group(1)
+        cls.dispatch = fn_body(cls.src, 'pvr_dispatch_rgxtdm')
         cls.body = fn_body(cls.src, 'pvr_cmd_tdm_submit3_observe')
 
     def test_submit3_routed(self):

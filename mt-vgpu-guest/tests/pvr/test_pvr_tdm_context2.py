@@ -12,6 +12,14 @@ BRIDGE = ROOT / 'kernel' / 'recovery' / 'mt_pvr_bridge.c'
 WIRE = ROOT / 'kernel' / 'mt_pvr_wire.h'
 
 
+
+def fn_body(src, name):
+    import re
+    m = re.search(r'static (?:int|void) %s\([^;]*\)\s*\{(.*?)^}' % re.escape(name),
+                  src, re.S | re.M)
+    assert m, '%s definition not found' % name
+    return m.group(0)
+
 def compiled_sizes():
     source_text = r'''#include "mt_pvr_wire.h"
 #include <stddef.h>
@@ -82,8 +90,7 @@ class TdmContext2Lifecycle(unittest.TestCase):
         # "routed to observe", not "absent". See test_pvr_tdm_submit3.py
         # for the observer's bounds (bounded scan, ctx validated, nested
         # arrays untouched, no execution path).
-        tdm = self.source[self.source.index('case MT_PVR_BRIDGE_RGXTDM:'):]
-        tdm = tdm[:tdm.index('\n\t\tdefault:')]
+        tdm = fn_body(self.source, 'pvr_dispatch_rgxtdm')
         self.assertIn('case MT_PVR_FN_RGXTDMCREATETRANSFERCONTEXT2:', tdm)
         self.assertIn('case MT_PVR_FN_RGXTDMDESTROYTRANSFERCONTEXT2:', tdm)
         self.assertRegex(tdm, r'case MT_PVR_FN_RGXTDMSUBMITTRANSFER3:[\s\S]*?pvr_cmd_tdm_submit3_observe')

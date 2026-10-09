@@ -18,6 +18,14 @@ from tests.helpers import get_repo_root
 SOURCE = get_repo_root() / 'kernel/recovery/mt_pvr_bridge.c'
 
 
+
+def fn_body(src, name):
+    import re
+    m = re.search(r'static (?:int|void) %s\([^;]*\)\s*\{(.*?)^}' % re.escape(name),
+                  src, re.S | re.M)
+    assert m, '%s definition not found' % name
+    return m.group(0)
+
 def code():
     text = SOURCE.read_text()
     text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
@@ -25,10 +33,7 @@ def code():
 
 
 def kicksync_block(src):
-    m = re.search(r'case MT_PVR_BRIDGE_RGXKICKSYNC:(.*?)case MT_PVR_BRIDGE_\w+:',
-                  src, re.S)
-    assert m, 'RGXKICKSYNC dispatch block not found'
-    return m.group(1)
+    return fn_body(src, 'pvr_dispatch_rgxkicksync')
 
 
 class Ddk2KickSyncContext(unittest.TestCase):

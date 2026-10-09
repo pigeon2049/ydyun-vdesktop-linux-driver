@@ -18,6 +18,14 @@ from tests.helpers import get_repo_root
 SOURCE = get_repo_root() / 'kernel/recovery/mt_pvr_bridge.c'
 
 
+
+def fn_body(src, name):
+    import re
+    m = re.search(r'static (?:int|void) %s\([^;]*\)\s*\{(.*?)^}' % re.escape(name),
+                  src, re.S | re.M)
+    assert m, '%s definition not found' % name
+    return m.group(0)
+
 def code():
     text = SOURCE.read_text()
     text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
@@ -25,10 +33,7 @@ def code():
 
 
 def ta3d_block(src):
-    m = re.search(r'case MT_PVR_BRIDGE_RGXTA3D:(.*?)case MT_PVR_BRIDGE_\w+:',
-                  src, re.S)
-    assert m, 'RGXTA3D dispatch block not found'
-    return m.group(1)
+    return fn_body(src, 'pvr_dispatch_rgxta3d')
 
 
 class Ddk2RenderContext(unittest.TestCase):
@@ -49,19 +54,15 @@ class Ddk2RenderContext(unittest.TestCase):
         # the write to 0x2:0xa (live r221: the real setter, objdump),
         # leaving 0x2:0x2 stubbed as the free-path clearer wrapper.
         src = code()
-        m = re.search(r'case MT_PVR_BRIDGE_SYNC:(.*?)case MT_PVR_BRIDGE_\w+:',
-                      src, re.S)
-        self.assertIsNotNone(m, 'SYNC dispatch block not found')
-        self.assertRegex(m.group(1),
+        m = fn_body(src, 'pvr_dispatch_sync')
+        self.assertRegex(m,
                          r'case MT_PVR_FN_SYNCPRIMCPUSIGNAL:[\s\S]*?pvr_cmd_syncprim_set',
                          '0x2:0xa (SyncPrimCpuSignal) must reach the write handler')
 
     def test_sync_free_event_stubbed(self):
         src = code()
-        m = re.search(r'case MT_PVR_BRIDGE_SYNC:(.*?)case MT_PVR_BRIDGE_\w+:',
-                      src, re.S)
-        self.assertIsNotNone(m, 'SYNC dispatch block not found')
-        self.assertRegex(m.group(1),
+        m = fn_body(src, 'pvr_dispatch_sync')
+        self.assertRegex(m,
                          r'case MT_PVR_FN_SYNCFREEEVENT:[\s\S]*?pvr_stub_ok',
                          '0x2:0x8 (SyncFreeEvent, r144) must answer zeroed OUT; '
                          'the UMD ignores the value on the destroy path')

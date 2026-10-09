@@ -90,7 +90,8 @@ class FnIds(unittest.TestCase):
     def setUpClass(cls):
         cls.wire = WIRE.read_text()
         text = strip_comments(BRIDGE.read_text())
-        start = text.index('static int pvr_bridge_dispatch')
+        # r404: dispatch split into per-group helpers; check all of them
+        start = text.index('static int pvr_dispatch_srvcore')
         nxt = text.index('\nstatic int pvr_ioctl_bridge', start)
         cls.dispatch = text[start:nxt]
 

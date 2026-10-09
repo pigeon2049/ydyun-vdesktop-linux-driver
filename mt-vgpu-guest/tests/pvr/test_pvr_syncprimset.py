@@ -35,10 +35,7 @@ class SyncPrimSetWrite(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.src = code()
-        m = re.search(r'case MT_PVR_BRIDGE_SYNC:(.*?)case MT_PVR_BRIDGE_\w+:',
-                      cls.src, re.S)
-        assert m, 'SYNC dispatch block not found'
-        cls.dispatch = m.group(1)
+        cls.dispatch = fn_body(cls.src, 'pvr_dispatch_sync')
         cls.body = fn_body(cls.src, 'pvr_cmd_syncprim_set')
 
     def test_syncprimset_routed(self):
