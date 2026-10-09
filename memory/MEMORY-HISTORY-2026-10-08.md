@@ -848,3 +848,16 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 门禁：check-offline 全绿（纯调研无代码改动）。
 
 报告 reports/r393-tdm-no-server-state-needed.md，证据 reports/r393-evidence.txt。
+
+## r394 (2026-10-08): live 前安全测试落地——三类事故各有门禁拦截（离线）
+
+**背景**：用户要求"调试前增加更多测试，避免弱智错误导致冷重启"。今日三次冷重启：r375（手动拼装 mt_gpu_vm → oops）、r380（DM2 试探 0x66 → firmware 清 trial）、强制卸载 probe（ref=1 状态不一致 → 内核挂起）。
+
+**实现**：T1 `tests/test_vm_init_integrity.py`（VM 内部字段赋值禁区扫描，2 tests）；T2 `tests/test_opcode_whitelist.py`（`(dm,opcode)` PROVEN 白名单 + `(2,0x66)` 永禁，TA 钉死 DM3、3D 钉死 DM2，4 tests）；T3 `tests/test_pre_live_safety.py`（强制卸载仓库黑名单 + `scripts/safe_rmmod.sh` refcount 守卫 + T1/T2 齐套断言，3 tests）+ pre-live 检查清单（5 条）。
+
+**门禁**：472 Python + 299 C 全绿（+9 新测试）；反向验证 RV1（注入 `vm->ranges=`→T1 FAIL）、RV2（`MT_FW_DM_TA`→2U→T2 FAIL）、RV3（注入强制卸载命令→T3 FAIL）全部通过；本轮无内核代码改动故未跑 `make kernel`。
+
+**诚实边界**：静态扫描覆盖 in-tree 代码；一次性探针模块（gitignored）靠清单人工执行；`(1,100)` 经 `mt_live_marker` 参数可打 dm=2/3，静态无法钉死，live 简报须声明实际 dm。
+
+报告 `reports/r394-live-safety-tests.md`。
+

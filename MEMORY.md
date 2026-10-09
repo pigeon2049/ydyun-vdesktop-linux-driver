@@ -35,12 +35,23 @@
 > r393 轮按 §4 清理：r390 节已移入归档。
 > r394 轮按 §4 清理：r391、r392 节已移入归档。
 > r395 轮按 §4 清理：r393 节已移入归档。
+> r396 轮按 §4 清理：r394 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
 
+
+## r396 (2026-10-08): exec_ctx 接入 kick 路径设计——render_ctx 双执行上下文（离线）
+
+**背景**：r391 诚实边界——TA marker 的 work->context 仍是 kick 内 kzalloc 的一次性 dm 标签（仅 route.dm=3），render_ctx 的 exec_ctx（node_type=5→DM2）只贡献了 VM，未参与提交。
+
+**设计**：render_ctx 新增 exec_ctx_ta（node_type=2→DM3），与既有 exec_ctx_3d（改名）共享同一 process（同一 VM/11 BO）；TA kick 传真实 exec_ctx_ta 替代 throwaway（门禁 route.dm==3 通过，r394 T2 白名单天然一致）；3D kick（门控关闭）用 exec_ctx_3d。三阶段：加字段→替换（marker 行为中性，m->context 永不赋值）→真实 payload（远期，需 MT_TA_VM_READY）。TA 仍走 submit_ta_work（0x100 匹配器/sync 回写/D8 拒收皆在其中），完成双路径已处理 m->context。
+
+**待验证**：node_type=2 固件语义；in-flight destroy（-EBUSY 诚实失败 vs 排空）；CSW 的 TA/3D 共用。
+
+报告 reports/r396-exec-ctx-kick-design.md。
 
 ## r395 (2026-10-08): 安全网首个实战检验——pre-live 门禁全绿 + TA 回归双 kick 通过（活体）
 
@@ -55,16 +66,3 @@
 **诚实边界**：marker 级 TA 路径（零绘制）；两次 kick 均走 per-file 回退（ctx=0x0），per-context 路径已在 r391 V3 验证；probe ref=13 基线含 r389 旧泄漏，本轮 delta 为 0。
 
 报告 reports/r395-safety-net-first-live-test.md，证据 reports/r395-dmesg-ta-regression.txt。
-
-## r394 (2026-10-08): live 前安全测试落地——三类事故各有门禁拦截（离线）
-
-**背景**：用户要求"调试前增加更多测试，避免弱智错误导致冷重启"。今日三次冷重启：r375（手动拼装 mt_gpu_vm → oops）、r380（DM2 试探 0x66 → firmware 清 trial）、强制卸载 probe（ref=1 状态不一致 → 内核挂起）。
-
-**实现**：T1 `tests/test_vm_init_integrity.py`（VM 内部字段赋值禁区扫描，2 tests）；T2 `tests/test_opcode_whitelist.py`（`(dm,opcode)` PROVEN 白名单 + `(2,0x66)` 永禁，TA 钉死 DM3、3D 钉死 DM2，4 tests）；T3 `tests/test_pre_live_safety.py`（强制卸载仓库黑名单 + `scripts/safe_rmmod.sh` refcount 守卫 + T1/T2 齐套断言，3 tests）+ pre-live 检查清单（5 条）。
-
-**门禁**：472 Python + 299 C 全绿（+9 新测试）；反向验证 RV1（注入 `vm->ranges=`→T1 FAIL）、RV2（`MT_FW_DM_TA`→2U→T2 FAIL）、RV3（注入强制卸载命令→T3 FAIL）全部通过；本轮无内核代码改动故未跑 `make kernel`。
-
-**诚实边界**：静态扫描覆盖 in-tree 代码；一次性探针模块（gitignored）靠清单人工执行；`(1,100)` 经 `mt_live_marker` 参数可打 dm=2/3，静态无法钉死，live 简报须声明实际 dm。
-
-报告 `reports/r394-live-safety-tests.md`。
-
