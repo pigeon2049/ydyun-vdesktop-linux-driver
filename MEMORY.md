@@ -82,6 +82,24 @@
 > r457 轮按 §4 清理：r455 节已移入归档。
 > r459 轮按 §4 清理：r457 节已移入归档。
 > r460 轮按 §4 清理：r458 节已移入归档。
+> r461 轮按 §4 清理：r459 节已移入归档。
+
+## r461 (2026-10-09): 证据优先级审计——Linux 优先未导致字段错误，但遗漏 KMD 层盲点（离线）
+
+- **用户质疑**："是不是用同系列驱动优先级高过了 windows 驱动，导致部分实际上是错误的"
+- **审计结论**：r430–r459 的 360B Header 字段结论使用 Linux UMD 是正确的——
+  Windows mtdxum64.dll 根本没有 360B header/RgnHeader/psKickTA 概念
+  （RGX 0 引用 vs Linux 643；QuYuan 0 vs 15；RgnHeader 0 引用）。
+  **未发现字段级错误**。
+- **发现的遗漏型错误**：
+  - r453 "TA 命令流已排除"：未检查 Windows KMD 是否添加 TA 命令
+  - r457 "包格式对比"：未检查 KMD 是否填充 VM 信息
+- **最大代价**：KMD 层盲点直到 r460 才被识别（r430–r459 仅 r430 提及 Windows 一次）。
+  若 r430 即对比三层模型，可能更早质疑直接 bridge 充分性。
+- **需重新验证**：P0 反编译 mttkmd.sys（KMD kick 处理、RgnHeader 构造、VM 填充、
+  最终固件命令格式）；P1 D3DDDI 同步语义；P2 直接提交路径。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r461-evidence-priority-audit.md
 
 ## r460 (2026-10-09): Windows 驱动 TA 提交流程图/ER 图——D3D11 0x78B kick 路径基准（离线）
 

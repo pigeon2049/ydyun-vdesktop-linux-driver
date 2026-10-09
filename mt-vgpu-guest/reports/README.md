@@ -435,3 +435,5 @@ r435-cold-reboot-not-done-stop.md |
 | r459-vm-info-fix-still-timeout-falsified.md |
 | r460 | Windows TA flowchart/ER (offline): mtdxum64.dll D3D11 DDI via D3DDDI cbs, 0x78B kick array magic at [1]; Mermaid diagrams built |
 | r460-windows-ta-flowchart-er-diagram.md |
+| r461 | Evidence priority audit (offline): 360B field conclusions correctly used Linux UMD (Windows lacks these concepts), no field-level errors found; but r453/r457 missed KMD-layer checks, KMD blind spot unrecognized until r460; need mttkmd.sys decompilation |
+| r461-evidence-priority-audit.md |
