@@ -365,3 +365,5 @@ r423-header-only-t5-gate.md |
 r424-header-only-hardening-t5-plus.md |
 | r425 | Header-only 首次活体（最高风险轮）：双门控测试构建（事后 revert），pre-live T1-T5 全过；冷重启后 trial 重建成功；mt-ta-readback 全链路执行（n_entries=0 被接受，12th target BO 0x7b000000 绑定成功）；0xFD 提交（Header-only：buf+0x10=target_va，其余零）→ fence 分配 → 固件 5s 超时（ETIMEDOUT）；结论：Header-only 不充分——r422 污染是真实 bug 但非完整解释，r414 全零=无工作快路径；固件或要求 +0x10 指向 render-target 元数据结构及/或其他 Header 字段；pending fence 致 bridge ref=1，safe_rmmod.sh 正确拒绝，待用户第 5 次冷重启；dmesg 干净；门禁 550+1416 全绿，kernel 零警告 |
 r425-header-only-live-still-timeout.md |
+| r426 | +0x10 指向 render-target 元数据结构（离线反汇编）：FUN_00178800 完整写入清单——+0x10=*(render_ctx+idx*0xD0+0x38)（per-buffer 描述符数组，非原始像素 BO，[MEASURED]）；+0x28=*(render_ctx+0x440)、+0x30=*(render_ctx+0x448)；FUN_0017d890 的 psKickTA 构建含 magic 0x3089705f3089705f；r425 超时因 16KB BO 非有效元数据结构；真实 Header 大多数字段指向 UMD 上下文内部状态，无法从零构造；r427 前置：捕获真实 UMD 的 TA Header 回放（推荐）或逆向 render context 初始化；门禁待跑 |
+r426-plus0x10-render-target-metadata.md |
