@@ -389,3 +389,5 @@ r435-cold-reboot-not-done-stop.md |
 | r436-rgnheader-fill1-live-timeout.md |
 | r437 | +0x28/+0x30 单 RT 恒为 0 [MEASURED]：local_5b0+0x68/+0x80 == 栈局部 local_548/local_530，RGXAddRenderTarget:49349-49350 赋 0，全函数无其他赋值点；我方置零与 UMD 一致，超时与此无关；MLIST VA（local_558）分配后零读取，不进 kick 路径——r433 候选证伪；psKickTA[3]/[10]=0；r438 前置：+0x68 布尔、RGXPrepareTA 完整写入对照、RgnHeader 内容、DM 包 |
 | r437-plus28-30-are-zero-mlist-not-in-kick.md |
+| r438 | +0x68 布尔 + 单 RT 完整写入对照（离线反汇编）[MEASURED]：+0x68=(uint)((*psKickTA&3)==3)，flags 由 DDK 层设置、取值 UNKNOWN；单 RT 下 UMD 必写 +0x50/+0x58（FUN_00184220 tile 打包 ((psKickTA[3 or 4]+0x3f>>6)&0x3f)<<48）、+0x68、+0x120（flags 位打包）、+0x138-+0x160（feature 条件），+0x78 起多 RT 块跳过；我方 Header-only 仅写 +0x10，其余 0——+0x50/+0x58 为 P0 新嫌疑（0 tiles 或致固件挂起）；r439 前置：实现 tile 打包+T5 白名单同步 |
+| r438-plus68-tile-packing-suspects.md |
