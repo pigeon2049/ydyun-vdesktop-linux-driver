@@ -85,7 +85,10 @@ class TestTaRealProductization(unittest.TestCase):
         # r415: mt_ta_submit_real exists in bridge, gated.
         text = _read("recovery/mt_pvr_bridge.c")
         self.assertIn("mt_ta_submit_real", text)
-        idx = text.find("mt_ta_submit_real(struct mt_pvr_file *file,")
+        # r417: anchor on the definition (__maybe_unused); a forward
+        # declaration precedes the 0xFD handler.
+        idx = text.find("__maybe_unused static int "
+                        "mt_ta_submit_real(struct mt_pvr_file *file,")
         self.assertGreater(idx, 0)
         before = text[max(0, idx - 2000):idx]
         self.assertIn("#if MT_TA_REAL_PACKET", before)
@@ -93,7 +96,9 @@ class TestTaRealProductization(unittest.TestCase):
     def test_submit_real_no_hardcode(self):
         # r415: production function takes req params, no hardcoded 64x64.
         text = _read("recovery/mt_pvr_bridge.c")
-        idx = text.find("mt_ta_submit_real(struct mt_pvr_file *file,")
+        # r417: anchor on the definition, not the forward decl.
+        idx = text.find("__maybe_unused static int "
+                        "mt_ta_submit_real(struct mt_pvr_file *file,")
         # Find function body (next 3000 chars)
         body = text[idx:idx + 3000]
         self.assertIn("req->width", body)

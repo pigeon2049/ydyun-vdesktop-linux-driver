@@ -5198,6 +5198,10 @@ static int pvr_dispatch_rgxcompute(struct mt_pvr_file *file, u32 function,
 }
 
 #if MT_TA_READBACK_DEBUG && MT_TA_REAL_PACKET
+/* r417: forward decl (defined under MT_TA_REAL_PACKET below). */
+static int mt_ta_submit_real(struct mt_pvr_file *file,
+			     const struct mt_ta_real_request *req,
+			     struct dma_fence **out_fence);
 /* r416: T2 debug ioctl 0x82:0xFD — submit real TA, wait for fence,
  * read back the render target pixels. Debug-only (gated, never production).
  * Requires both MT_TA_READBACK_DEBUG and MT_TA_REAL_PACKET. */
@@ -5293,8 +5297,8 @@ static int pvr_dispatch_rgxta3d(struct mt_pvr_file *file, u32 function,
 					      MT_PVR_KIND_CONTEXT);
 	case MT_PVR_FN_RGXKICKTA3D5:			/* RGXKickTA3D5 (accept-and-log, r215) */
 		return pvr_cmd_kickta3d5_observe(file, cmd);
-#if MT_TA_READBACK_DEBUG
-	case MT_PVR_FN_DEBUGTAREADBACK:	/* DebugTAReadback (r416, gated) */
+#if MT_TA_READBACK_DEBUG && MT_TA_REAL_PACKET
+	case MT_PVR_FN_DEBUGTAREADBACK:	/* DebugTAReadback (r417, gated) */
 		return pvr_cmd_ta_readback(file, cmd);
 #endif
 	default:

@@ -16,6 +16,8 @@
 #include "../../kernel/mt_pvr_device.h"
 #include "../../kernel/mt_transfer_fill.h"
 #include "../../kernel/mt_tqx_fill.h"
+#include "../../kernel/mt_ta_real.h"
+#include "../../userspace/ta_readback_analyze.h"
 
 static int checks;
 
@@ -536,6 +538,155 @@ static int test_ccb_find_dst_va_roundtrip(void)
 	return 0;
 }
 
+/* r417: behavioral C tests for TA real-packet builders and the T2
+ * readback pixel analysis. Appended to tests/c/pvr_bridge_core_test.c
+ * before main() by the r417 patch script; registered in main(). */
+
+static int test_ta_entry_simple_build_validation(void)
+{
+	/* r417: mt_ta_entry_simple_build rejects bad input. The 0xFD
+	 * ioctl forwards width/height unchecked and relies on this. */
+	struct mt_ta_entry_simple e;
+
+	CHECK(mt_ta_entry_simple_build(NULL, 64, 64) == -EINVAL);
+	CHECK(mt_ta_entry_simple_build(&e, 0, 64) == -EINVAL);
+	CHECK(mt_ta_entry_simple_build(&e, 64, 0) == -EINVAL);
+	CHECK(mt_ta_entry_simple_build(&e, 0x8001, 64) == -EINVAL);
+	CHECK(mt_ta_entry_simple_build(&e, 64, 0x8001) == -EINVAL);
+	CHECK(mt_ta_entry_simple_build(&e, 0x8000, 0x8000) == 0);
+
+	/* Q2 packing [MEASURED] (r410 FUN_00169240:44304). */
+	CHECK(mt_ta_entry_simple_build(&e, 64, 64) == 0);
+	CHECK(e.q2_dims == (((u64)63 << 0x29) | ((u64)63 << 0x1a)));
+	CHECK(e.q4 == (u64)(64 * 64 - 1));
+	CHECK(e.q0_addr_flags == 0 && e.q1 == 0 && e.q3 == 0);
+	return 0;
+}
+
+static int test_ta_entry_q0_flag_or(void)
+{
+	/* r417: Q0 = va | 0x48000000000 ([INFERRED] flag bits, r410/r416).
+	 * The OR preserves address bits and is idempotent on the flags. */
+	struct mt_ta_entry_simple e;
+
+	/* NULL entry: no crash. */
+	mt_ta_entry_simple_set_target(NULL, 0x7a001000ULL);
+
+	CHECK(mt_ta_entry_simple_build(&e, 64, 64) == 0);
+	mt_ta_entry_simple_set_target(&e, 0);
+	CHECK(e.q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
+
+	mt_ta_entry_simple_set_target(&e, 0x7a001000ULL);
+	CHECK(e.q0_addr_flags == (0x7a001000ULL | MT_TA_ENTRY_Q0_FLAG_BITS));
+	/* Low 32 address bits survive the OR untouched. */
+	CHECK((e.q0_addr_flags & 0xffffffffULL) == 0x7a001000ULL);
+
+	/* Flag bits already set: idempotent. */
+	mt_ta_entry_simple_set_target(&e, MT_TA_ENTRY_Q0_FLAG_BITS);
+	CHECK(e.q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
+
+	/* The constant touches only bits 39 and 42: it cannot pollute
+	 * low address bits. */
+	CHECK((MT_TA_ENTRY_Q0_FLAG_BITS & 0xffffffffULL) == 0);
+	CHECK(MT_TA_ENTRY_Q0_FLAG_BITS == ((1ULL << 42) | (1ULL << 39)));
+	return 0;
+}
+
+static int test_ta_real_buffer_build_target(void)
+{
+	/* r417: target_va forwarding. 0 keeps the legacy zero Q0
+	 * (pre-r416 compatibility); nonzero ORs va|flag into every
+	 * entry; the buffer tail stays zeroed. */
+	static unsigned char buf[MT_TA_CMD_BUFFER_BYTES];
+	struct mt_ta_entry_simple *e0, *e1;
+	unsigned int i;
+
+	CHECK(mt_ta_real_buffer_build(NULL, 64, 64, 1, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 0, 64, 1, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 0, 1, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 0, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 10, 0) == -EINVAL);
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64,
+				      MT_TA_REAL_MAX_ENTRIES, 0) == 0);
+
+	/* target_va = 0: Q0 stays zero. */
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 1, 0) == 0);
+	e0 = (struct mt_ta_entry_simple *)buf;
+	CHECK(e0->q0_addr_flags == 0);
+	CHECK(e0->q2_dims == (((u64)63 << 0x29) | ((u64)63 << 0x1a)));
+
+	/* target_va set: va|flag on every entry; tail zeroed. */
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 2, 0x7a001000ULL) == 0);
+	e0 = (struct mt_ta_entry_simple *)(buf + 0);
+	e1 = (struct mt_ta_entry_simple *)(buf + MT_TA_ENTRY_SIMPLE_BYTES);
+	CHECK(e0->q0_addr_flags == (0x7a001000ULL | MT_TA_ENTRY_Q0_FLAG_BITS));
+	CHECK(e1->q0_addr_flags == (0x7a001000ULL | MT_TA_ENTRY_Q0_FLAG_BITS));
+	for (i = 2 * MT_TA_ENTRY_SIMPLE_BYTES; i < MT_TA_CMD_BUFFER_BYTES; i++)
+		CHECK(buf[i] == 0);
+
+	/* 9 entries exactly fill the 360B buffer. */
+	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 9, 0x1000ULL) == 0);
+	e0 = (struct mt_ta_entry_simple *)(buf + 8 * MT_TA_ENTRY_SIMPLE_BYTES);
+	CHECK(e0->q0_addr_flags == (0x1000ULL | MT_TA_ENTRY_Q0_FLAG_BITS));
+	return 0;
+}
+
+static int test_ta_readback_analyze(void)
+{
+	/* r417: pixel analysis unit tests. Behavior locked to the r416
+	 * tool: black counts as a distinct color (but not nonzero);
+	 * distinct colors cap at 16; alpha is ignored. */
+	struct ta_readback_stats st;
+	static const uint8_t zeros[16] = { 0 };
+	uint8_t red4[16];
+	uint8_t mixed[16];
+	uint8_t many[21 * 4];
+	unsigned int i;
+
+	/* All zero: nonzero=0, one distinct color (black quirk). */
+	ta_readback_analyze(zeros, 4, &st);
+	CHECK(st.nonzero == 0);
+	CHECK(st.n_distinct == 1);
+	CHECK(st.distinct[0] == 0);
+
+	/* One color, varying alpha: alpha ignored. */
+	for (i = 0; i < 4; i++) {
+		red4[i * 4 + 0] = 0xff;
+		red4[i * 4 + 1] = 0x00;
+		red4[i * 4 + 2] = 0x00;
+		red4[i * 4 + 3] = (uint8_t)(i * 40);
+	}
+	ta_readback_analyze(red4, 4, &st);
+	CHECK(st.nonzero == 4);
+	CHECK(st.n_distinct == 1);
+	CHECK(st.distinct[0] == 0xff0000);
+
+	/* red, green, blue, black. */
+	mixed[0] = 0xff; mixed[1] = 0x00; mixed[2] = 0x00; mixed[3] = 0xff;
+	mixed[4] = 0x00; mixed[5] = 0xff; mixed[6] = 0x00; mixed[7] = 0xff;
+	mixed[8] = 0x00; mixed[9] = 0x00; mixed[10] = 0xff; mixed[11] = 0xff;
+	mixed[12] = 0x00; mixed[13] = 0x00; mixed[14] = 0x00; mixed[15] = 0xff;
+	ta_readback_analyze(mixed, 4, &st);
+	CHECK(st.nonzero == 3);
+	CHECK(st.n_distinct == 4);
+
+	/* 21 distinct colors: capped at 16, nonzero still exact. */
+	for (i = 0; i < 21; i++) {
+		many[i * 4 + 0] = (uint8_t)(i + 1);
+		many[i * 4 + 1] = 0x00;
+		many[i * 4 + 2] = 0x00;
+		many[i * 4 + 3] = 0xff;
+	}
+	ta_readback_analyze(many, 21, &st);
+	CHECK(st.nonzero == 21);
+	CHECK(st.n_distinct == TA_READBACK_MAX_DISTINCT);
+
+	/* Empty input: no crash, zero stats. */
+	ta_readback_analyze(NULL, 0, &st);
+	CHECK(st.nonzero == 0 && st.n_distinct == 0);
+	return 0;
+}
+
 int main(void)
 {
 	CHECK(test_wire_offsets() == 0);
@@ -551,6 +702,10 @@ int main(void)
 	CHECK(test_transfer_fill_parse() == 0);
 	CHECK(test_tqx_fill_build_deterministic() == 0);
 	CHECK(test_ccb_find_dst_va_roundtrip() == 0);
+	CHECK(test_ta_entry_simple_build_validation() == 0);
+	CHECK(test_ta_entry_q0_flag_or() == 0);
+	CHECK(test_ta_real_buffer_build_target() == 0);
+	CHECK(test_ta_readback_analyze() == 0);
 	printf("pvr_bridge_core_test OK (%d checks)\n", checks);
 	return 0;
 }

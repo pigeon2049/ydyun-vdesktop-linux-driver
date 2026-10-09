@@ -3,7 +3,8 @@
 /* r416: T2 readback verification tool.
  *
  * Submits a real TA via the 0x82:0xFD debug ioctl (requires a bridge build
- * with MT_TA_READBACK_DEBUG=1; the default build returns -ENOTTY), reads
+ * with MT_TA_READBACK_DEBUG=1 and MT_TA_REAL_PACKET=1; the default build
+ * returns -ENOTTY), reads
  * back the 64x64 RGBA8 render target, writes a PPM (P6) file, and verifies
  * pixel content (non-zero pixels => firmware actually rendered).
  *
@@ -23,6 +24,8 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+
+#include "ta_readback_analyze.h"
 
 #define REQUIRE(x) do { \
 		if (!(x)) { \
@@ -112,9 +115,8 @@ int main(int argc, char **argv)
 	struct readback_in rbin;
 	struct readback_out *rbout;
 	FILE *f;
-	unsigned int i, nonzero = 0;
-	uint32_t distinct[16];
-	unsigned int n_distinct = 0;
+	unsigned int i;
+	struct ta_readback_stats st;
 
 	REQUIRE(argc == 3);
 	fd = open(argv[1], O_RDWR | O_CLOEXEC);
@@ -137,7 +139,8 @@ int main(int argc, char **argv)
 	REQUIRE(crout.error == 0 && crout.handle != 0);
 	printf("[*] render context handle=%#" PRIx64 "\n", crout.handle);
 
-	/* DebugTAReadback (0x82:0xFD). Requires MT_TA_READBACK_DEBUG=1 build. */
+	/* DebugTAReadback (0x82:0xFD). Requires MT_TA_READBACK_DEBUG=1
+	 * and MT_TA_REAL_PACKET=1. */
 	rbin.h_render_context = crout.handle;
 	rbin.width = T2_WIDTH;
 	rbin.height = T2_HEIGHT;
@@ -150,7 +153,7 @@ int main(int argc, char **argv)
 		if (errno == ENOTTY) {
 			fprintf(stderr,
 				"0x82:0xFD not implemented: rebuild bridge "
-				"with MT_TA_READBACK_DEBUG=1 (r416)\n");
+				"with MT_TA_READBACK_DEBUG=1 and MT_TA_REAL_PACKET=1\n");
 			free(rbout);
 			close(fd);
 			return 2;
@@ -173,29 +176,17 @@ int main(int argc, char **argv)
 			rbout->pixels[i * 4 + 1],
 			rbout->pixels[i * 4 + 2],
 		};
-		uint32_t px;
-		unsigned int j;
-		int seen = 0;
 		REQUIRE(fwrite(rgb, 1, 3, f) == 3);
-		px = ((uint32_t)rgb[0] << 16) |
-		     ((uint32_t)rgb[1] << 8) | rgb[2];
-		if (px)
-			nonzero++;
-		for (j = 0; j < n_distinct; j++)
-			if (distinct[j] == px) {
-				seen = 1;
-				break;
-			}
-		if (!seen && n_distinct < 16)
-			distinct[n_distinct++] = px;
 	}
 	REQUIRE(fclose(f) == 0);
+	/* r417: pixel analysis extracted for unit testing. */
+	ta_readback_analyze(rbout->pixels, T2_WIDTH * T2_HEIGHT, &st);
 	printf("[*] wrote %s: nonzero_pixels=%u distinct_colors=%u\n",
-	       argv[2], nonzero, n_distinct);
-	if (nonzero == 0)
+	       argv[2], st.nonzero, st.n_distinct);
+	if (st.nonzero == 0)
 		printf("[!] all pixels zero: firmware completed but "
 		       "drew nothing (expected for dummy TA entries)\n");
 	free(rbout);
 	close(fd);
-	return nonzero ? 0 : 1;
+	return st.nonzero ? 0 : 1;
 }

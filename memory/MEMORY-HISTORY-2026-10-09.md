@@ -151,3 +151,13 @@ wire=10 精确匹配；V3：destroy 后 probe ref 13->25->13，delta 归零无�
 - **活体阻塞**：`pvr_session_acquire` 要求 `trial.pinned && trial.connected`；当前 trial 未建立。原版桥同样失败（`git stash` 验证），非本轮所致。r407 观察器不需要 trial 故当时未暴露。
 - 编译零警告；pre-live T1/T2/T3 全过；无 oops/WARN/hang；测试修改已 revert（未提交）。
 - 下一步 P0：诊断 trial 重建（probe 流程；可能需用户冷重启）。
+---
+
+## r414 (2026-10-09): 真实 TA 首次活体执行成功——固件 0x100 完成
+
+- 补加 `case 0xFE:` 分发（r413 卡点：r404 后空白字符 `\tcase…:\t\t\t` exact-match 解决）+ `pvr_cmd_ta_real_test` 钩子（r412 hook.c 原样，169 行）于 `pvr_dispatch_rgxta3d` 之前；`make kernel` W=1 零警告。
+- Pre-live T1/T2/T3 全过（10 tests）；一次桥加载→单发→`safe_rmmod.sh` 卸载（ref=0）；`mt_guest_probe` 未动。
+- 活体：`INIT(2)→Connect→Create(0x12, handle=0x1000)→Test(0xFE)` → `status=0`，dmesg `COMPLETED (0x100) wire=1`，提交到完成 **219µs**（真实执行）。
+- DM 布局验证：VA @+0x28/size @+0x30 由 r411 [INFERRED] 转 **[MEASURED]**；40B 简单条目（64×64 dummy）被固件接受。
+- 无 oops/WARN/hang；测试钩子未提交（工作区 UNCOMMITTED）；门禁 480+299 全绿。
+- 诚实边界：dummy 构造语义未深挖；T2 回读仍缺；生产路径仍 marker。

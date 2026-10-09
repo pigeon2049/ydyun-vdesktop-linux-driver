@@ -347,3 +347,5 @@ r414-real-ta-first-live-success.md |
 r416-t2-readback-verification.md |
 | r415 | 真实 TA 路径产品化（离线）：DM 布局 VA @+0x28/size @+0x30 由 [INFERRED] 转 [MEASURED]（r414）；新 `mt_ta_submit_real()` 生产函数（`mt_pvr_bridge.c`，`#if` 门控内，参数化 `mt_ta_real_request`，异步返 fence）；`mt_ta_real_buffer_build()` 纯函数；BO[10]@4096 复用评估采用（VM 已 seal）；门控开启流程文档化（含回滚）；`0x82:0xFE` 钩子确认不在生产代码；tests/ta/test_ta_real.py +8（共 14）；门禁 488+299 全绿，kernel 零警告，反向验证通过 |
 r415-ta-real-path-productized.md |
+| r417 | 回读路径测试加固（离线）：tests/ta/test_ta_readback.py +19（12th BO 生命周期 6、0xFD 参数校验 6、target_va 4、像素分析 3）、tests/c/pvr_bridge_core_test.c +4 函数（+326 checks）；发现并修复两处 latent build break——0xFD dispatch case 门控补 `&& MT_TA_REAL_PACKET`（(1,0) 曾报 implicit declaration）、补 `mt_ta_submit_real` 前向声明（(1,1) 组合历史从未编译成功）；新建 userspace/ta_readback_analyze.h（像素校验可单元测试，行为锁定 r416）；tests/ta/test_ta_real.py 2 测试改锚定定义；门禁 522+625 全绿，kernel 零警告，反向验证 4 项通过 |
+r417-readback-test-hardening.md |
