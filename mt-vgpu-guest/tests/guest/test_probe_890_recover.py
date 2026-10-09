@@ -12,6 +12,9 @@ by mistake. This test locks in the rejection.
 
 Reverse validation: reverting kernel/mt_guest_probe.c to the r445 version
 must fail these tests.
+
+r448: the 4th location (mt_probe_channels:644) was missed by r446; this
+file now also covers it.
 """
 import re
 import unittest
@@ -68,6 +71,54 @@ class TestRecoverChannels890Acceptance(unittest.TestCase):
             self.src,
             r"!\(trial_connect && !recover_channels && reg890 == 2\)",
             "old trial_connect-only exception must be replaced",
+        )
+
+
+class TestProbeChannels890Acceptance(unittest.TestCase):
+    """r448: mt_probe_channels (the 4th location) must accept 0x890==2.
+
+    r447 found that r446 fixed 3/4 locations but missed mt_probe_channels,
+    whose recover_channels branch returned -EBUSY unless 0x890==1. The fix
+    extends the reg890==2 exception here as well.
+    """
+
+    def setUp(self):
+        self.src = PROBE_C.read_text()
+
+    def _probe_channels_body(self):
+        m = re.search(
+            r"static int mt_probe_channels.*?\n\{(.*?)\n\}\n",
+            self.src,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(m, "mt_probe_channels function not found")
+        return m.group(1)
+
+    def test_probe_channels_accepts_890_eq_2(self):
+        """mt_probe_channels: (reg890 != 1 && reg890 != 2) in recover path."""
+        body = self._probe_channels_body()
+        self.assertRegex(
+            body,
+            r"\(reg890 != 1 && reg890 != 2\)",
+            "mt_probe_channels must accept 0x890==2 on recover_channels path",
+        )
+
+    def test_probe_channels_comment_mentions_890_eq_2(self):
+        """mt_probe_channels comment documents the 0x890==2 exception."""
+        body = self._probe_channels_body()
+        self.assertRegex(
+            body,
+            r"0x890==2 accepted",
+            "mt_probe_channels comment must document the 0x890==2 exception",
+        )
+
+    def test_probe_channels_old_strict_check_gone(self):
+        """The old strict 0x890==1 check must not remain in mt_probe_channels."""
+        body = self._probe_channels_body()
+        self.assertNotRegex(
+            body,
+            r"readl\(g->regs \+ 0x890\) != 1 \|\|",
+            "old strict 0x890==1 check must be replaced in mt_probe_channels",
         )
 
 

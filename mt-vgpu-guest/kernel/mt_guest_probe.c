@@ -629,6 +629,7 @@ static int mt_probe_channels(struct pci_dev *pdev, struct mt_guest *g)
 	int i, ret = -ENOMEM;
 	u64 response;
 	u8 package[32];
+	u32 reg890;
 
 	BUILD_BUG_ON(sizeof(struct mt_rpc_record) != 32);
 	/* Allocate all pages before handing any address to the Host. */
@@ -641,7 +642,10 @@ static int mt_probe_channels(struct pci_dev *pdev, struct mt_guest *g)
 	if (ret)
 		goto release;
 	if (recover_channels) {
-		if (readl(g->regs + 0x890) != 1 || readl(g->regs + 0x898) != 1) {
+		/* 0x890==2 accepted (see mt_probe): firmware may boot with the
+		 * session indicator set; cold boot does not clear it. */
+		reg890 = readl(g->regs + 0x890);
+		if ((reg890 != 1 && reg890 != 2) || readl(g->regs + 0x898) != 1) {
 			ret = -EBUSY;
 			goto release;
 		}

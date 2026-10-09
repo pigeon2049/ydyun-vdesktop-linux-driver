@@ -409,4 +409,6 @@ r435-cold-reboot-not-done-stop.md |
 | r446-fix-reg890-recover-channels.md |
 | r447 | r446 修复不完整：mt_probe_channels:644（第 4 处）同样拒绝 reg890==2，recover_channels=1 在通道注册前返 -EBUSY（registered=0）转 -EPROTO；mt_probe 等 3 处修复已生效；未执行活体，未改代码；门禁 566+781 全绿，kernel 零警告；r448 P0 补修复该处 |
 | r447-probe-channels-4th-location-missed.md |
+| r448 | 补修复 mt_probe_channels:644 第 4 处（离线）：recover_channels 分支接受 reg890==2（r446 模式）；全面扫描确认无第 5 处；新增 3 测试（TestProbeChannels890Acceptance）；反向验证 3/3 在旧代码 FAIL；门禁 569+781 全绿，kernel 零警告；零硬件触碰 |
+| r448-probe-channels-4th-fixed.md |
 

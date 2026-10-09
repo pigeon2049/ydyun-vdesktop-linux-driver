@@ -74,6 +74,20 @@ EXIT:0
 > r441 轮按 §4 清理：r439 节已移入归档。
 > r443 轮按 §4 清理：r441 节已移入归档。
 > r444 轮按 §4 清理：r442 节已移入归档。
+> r448 轮按 §4 清理：r446 节已移入归档。
+
+## r448 (2026-10-09): 补修复 mt_probe_channels 第 4 处 reg890==2（离线）
+
+- 修复 r447 发现的遗漏：`kernel/mt_guest_probe.c` `mt_probe_channels:644` 的
+  `recover_channels` 分支同样拒绝 `reg890==2`；现接受 `(reg890 != 1 && reg890 != 2)`，
+  仿照 r446 模式；`reg890==1` 正常路径不受影响。
+- 全面扫描所有 `0x890`/`0x898` 读取点与 `-EBUSY` 返回点：recover_channels probe
+  路径 4 处已全部修复，无第 5 处；测试辅助函数（`==0` 安全期望）与实验性 sysfs
+  路径保留原逻辑（见报告）。
+- 新增 `TestProbeChannels890Acceptance`（3 tests）；反向验证：3/3 在旧代码精确 FAIL。
+- 门禁：`check-offline` 569 Python + 781 C 全绿；`make kernel` W=1 零警告。
+- 纯离线轮，零硬件触碰。待用户确认 → r449 trial 重建。
+- 报告：mt-vgpu-guest/reports/r448-probe-channels-4th-fixed.md
 
 ## r447 (2026-10-09): r446 修复不完整——mt_probe_channels 第 4 处遗漏，trial 仍阻塞
 
@@ -83,17 +97,3 @@ EXIT:0
 - 未执行活体，未改代码（纯验证）。失败 probe 已 safe_rmmod。门禁 566+781 全绿，kernel 零警告。
 - 报告：mt-vgpu-guest/reports/r447-probe-channels-4th-location-missed.md
 - 下一步（r448 P0）：修复 `mt_probe_channels:644` 接受 `reg890==2` + 测试 + 反向验证。
-
-## r446 (2026-10-09): 修复 reg890 状态机缺陷——recover_channels 路径接受 reg890==2（离线）
-
-- 修复 r445 缺陷 2：`kernel/mt_guest_probe.c` 三处 `reg890` 检查（`mt_probe`、
-  `mt_read_device_info`、`mt_snapshot_memory`）现在接受 `recover_channels=1` +
-  `reg890==2`（与 `trial_connect` 路径一致）；注释同步更新。
-- 缺陷 1（测试程序错误）：`scripts/fresh-trial.py` 已正确，无需修改；新增门禁
-  锁定 `recover_channels` + `reserve_memory`/`trial_connect` 非法组合的 `-EINVAL` 拒绝。
-- 新增 `tests/guest/test_probe_890_recover.py`（7 tests）；反向验证：5/7 在 r445
-  代码上精确 FAIL，恢复后全绿。
-- 门禁：`check-offline` 566 Python + 781 C 全绿；`make kernel` W=1 零警告。
-- 纯离线轮，零硬件触碰。用户确认后重启 → r447 活体。
-- 报告：mt-vgpu-guest/reports/r446-fix-reg890-recover-channels.md
-
