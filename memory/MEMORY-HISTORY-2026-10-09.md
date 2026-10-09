@@ -226,3 +226,14 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - r429 工作包：mtdxum64.dll 以 0x168 定位 TA Header builder → 对比 `RGXPrepareTA` → `RGXAddRenderTargetDDK2` 全量 → mtkm64.sys KMD 侧逻辑。
 - 零硬件触碰，纯离线；无代码改动。
 
+
+## r429 (2026-10-09): Windows 驱动 TA 提交结构提取——D3D11 UMD 用 0x78 字节 kick，非 360B Header（离线反汇编）
+
+- mtdxum64.dll（DX10/11 UMD）构建 0x78 字节 kick 条目（FUN_180224220 @392802、FUN_1802411e0 @412745），magic 0x3089705f3089705f 在 **[1]**（Linux UMD psKickTA[4]），经 D3DDDIEscapeCb 提交；调用者在 FUN_18021cf50（0x78 步长数组，清零 15 qword 后逐条填充）。
+- kick 字段表 [MEASURED]：[0]=VA、[2]=0x100000000、[3]=2、[8]=像素格式映射、[9]=维度打包 ((h-1)<<16|(w-1))、[10]=VA&~0xf、[0xb]=VA>>4。
+- 0x168 的 151 次命中去噪：~140 vtable 偏移 + ~8 C++ 对象大小均为噪声；**Windows 侧无 360B TA Header 分配**——D3D11 抽象层不同。
+- MTT 特有 delta：kick 布局与 Linux 不同，但 render-target 元数据仍为固件私有（r427 结论不受影响）。
+- 结论：**360B TA Header 为 Linux UMD 特有**；同一固件接受 D3D11 kick 与 Linux TA Header——提交格式由 UMD/KMD 协商。
+- r430 前置：Linux 侧 RGXAddRenderTargetDDK2 的 MLIST/RgnHeader 布局（render-target 元数据最佳线索）。
+- 零硬件触碰，纯离线；无代码改动。
+

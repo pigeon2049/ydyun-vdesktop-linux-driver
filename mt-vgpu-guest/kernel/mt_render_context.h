@@ -41,10 +41,17 @@ struct mt_pvr_render_context {
 	u64 vm_base_va;
 	/* r416: T2 render target (12th BO, RGBA8 64x64). Created+bound at
 	 * create (before exec process; VM refuses binds once active_uses>0),
-	 * released at destroy. target_va feeds TA entry Q0. */
+	 * released at destroy. target_va feeds pixel readback (0x82:0xFD OUT). */
 	struct mt_bo target_bo;
 	u64 target_va;
 	bool target_ready;
+	/* r431: RgnHeader (13th BO). TA Header +0x10 = RgnHeader device VA
+	 * ([MEASURED] r430, 3-hop chain). 64x64: 0x100B, pre-filled
+	 * 0xFFFFFFFF (InitRegionHeaderBuffer). Created+bound at create,
+	 * released at destroy. rgnheader_va feeds TA Header+0x10. */
+	struct mt_bo rgnheader_bo;
+	u64 rgnheader_va;
+	bool rgnheader_ready;
 	/* Page-table BO for the VM (d->buffers-backed, r389). Must outlive vm. */
 	struct mt_bo pt_bo;
 

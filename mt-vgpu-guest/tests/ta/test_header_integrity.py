@@ -177,3 +177,56 @@ class TestHeaderIntegrity(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+class TestRgnHeaderWiring(unittest.TestCase):
+    """r431: TA Header +0x10 must come from the RgnHeader BO, not the
+    pixel BO. r425 fed the raw 16KB pixel BO -> firmware parsed pixels
+    as region headers -> 5s timeout. This pins the wiring."""
+
+    def _bridge_src(self):
+        return (KERNEL / "recovery" / "mt_pvr_bridge.c").read_text()
+
+    def test_readback_uses_rgnheader_va(self):
+        src = self._bridge_src()
+        # pvr_cmd_ta_readback must feed rgnheader_va to the TA request.
+        self.assertIn(
+            "req.target_va = rctx->rgnheader_va;",
+            src,
+            "r431 FAIL: 0x82:0xFD must use rgnheader_va for TA Header+0x10 "
+            "(r425: pixel BO hangs firmware)",
+        )
+
+    def test_readback_requires_rgnheader_ready(self):
+        src = self._bridge_src()
+        self.assertIn(
+            "rgnheader_ready",
+            src,
+            "r431 FAIL: readback path must gate on rgnheader_ready",
+        )
+
+    def test_rgnheader_init_all_ones(self):
+        """r431: create path must pre-fill RgnHeader with 0xFF
+        (InitRegionHeaderBuffer [MEASURED] r430)."""
+        src = self._bridge_src()
+        self.assertIn(
+            "memset(rgn_init, 0xFF, sizeof(rgn_init));",
+            src,
+            "r431 FAIL: RgnHeader BO must be pre-filled 0xFF",
+        )
+
+    def test_no_pixel_bo_for_header(self):
+        """r431: the TA request must NOT take the pixel BO VA."""
+        src = self._bridge_src()
+        # Find pvr_cmd_ta_readback body and ensure it does not assign
+        # req.target_va from rctx->target_va (the pixel BO).
+        m = re.search(
+            r"static int pvr_cmd_ta_readback.*?^}",
+            src,
+            re.M | re.S,
+        )
+        assert m, "pvr_cmd_ta_readback not found"
+        body = m.group(0)
+        self.assertNotIn(
+            "req.target_va = rctx->target_va;",
+            body,
+            "r431 FAIL: TA Header+0x10 must not be the pixel BO VA (r425)",
+        )

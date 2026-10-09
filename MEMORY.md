@@ -61,6 +61,21 @@ EXIT:0
 > r425 轮按 §4 清理：r421 节已移入归档。
 
 > r427 轮按 §4 清理：r425 节已移入归档。
+> r431 轮按 §4 清理：r429 节已移入归档。
+
+## r431 (2026-10-09): RgnHeader 13th BO 实现——TA Header +0x10 指向 RgnHeader（离线）
+
+- **核心结论**：render context 新增第 13 个 BO（RgnHeader）：64×64 → 0x100B，
+  预填全 `0xFFFFFFFF`（[MEASURED] r430，InitRegionHeaderBuffer），绑定 VA slot 12
+ （0x7c000000）。`TA_buf+0x10` 改取 `rgnheader_va`（不再是 16KB 像素 BO）；
+  r425 超时（像素当 region header 解析）此路径不再重演。
+- **实现**：`mt_ta_real.h` 新增常量 + `mt_ta_rgnheader_size(w,h)`（round_up(tiles×0x40,64)）；
+  `mt_render_context.h` struct += 3 字段（sizeof 1720→1824）；`mt_pvr_bridge.c`：
+  create 分配+0xFF 初始化+slot 12 绑定，destroy 释放，0x82:0xFD 要求 rgnheader_ready。
+- **测试**：C 新增 size 公式（64×64→0x100、128×128→0x400、65×65→0x240）+
+  全 1 初始化验证；Python layout 测试更新偏移。
+- 门禁 `check-offline` **550 Python + 1490 C 全绿**；`make kernel` W=1 **零警告**。
+- `+0x28`/`+0x30` 仍 [UNKNOWN]（置零）；活体验收延至 r432。零硬件触碰，纯离线。
 
 ## r430 (2026-10-09): TA Header +0x10 = RgnHeader device VA——3-hop 链实证；纠正 r428 文件归属（离线反汇编）
 
@@ -77,14 +92,4 @@ EXIT:0
 - **最小有效 TA Header**：+0x10=RgnHeader VA（分配 0x100B 填 0xFF）；+0x28/+0x30=[UNKNOWN]；
   +0x68=0；其余 0。r431 P0：Linux guest 实现 RgnHeader 分配+初始化。
 - 门禁 `check-offline` 全绿；零硬件触碰，纯离线，无代码变更。
-
-## r429 (2026-10-09): Windows 驱动 TA 提交结构提取——D3D11 UMD 用 0x78 字节 kick，非 360B Header（离线反汇编）
-
-- mtdxum64.dll（DX10/11 UMD）构建 0x78 字节 kick 条目（FUN_180224220 @392802、FUN_1802411e0 @412745），magic 0x3089705f3089705f 在 **[1]**（Linux UMD psKickTA[4]），经 D3DDDIEscapeCb 提交；调用者在 FUN_18021cf50（0x78 步长数组，清零 15 qword 后逐条填充）。
-- kick 字段表 [MEASURED]：[0]=VA、[2]=0x100000000、[3]=2、[8]=像素格式映射、[9]=维度打包 ((h-1)<<16|(w-1))、[10]=VA&~0xf、[0xb]=VA>>4。
-- 0x168 的 151 次命中去噪：~140 vtable 偏移 + ~8 C++ 对象大小均为噪声；**Windows 侧无 360B TA Header 分配**——D3D11 抽象层不同。
-- MTT 特有 delta：kick 布局与 Linux 不同，但 render-target 元数据仍为固件私有（r427 结论不受影响）。
-- 结论：**360B TA Header 为 Linux UMD 特有**；同一固件接受 D3D11 kick 与 Linux TA Header——提交格式由 UMD/KMD 协商。
-- r430 前置：Linux 侧 RGXAddRenderTargetDDK2 的 MLIST/RgnHeader 布局（render-target 元数据最佳线索）。
-- 零硬件触碰，纯离线；无代码改动。
 

@@ -61,6 +61,37 @@ typedef uint64_t u64;
  */
 #define MT_TA_BUF_HDR_TARGET_VA 0x10U /* Header+0x10 -> psKickTA[1] render target VA */
 
+/* [MEASURED] (r430, RGXAddRenderTarget:49312, SetupRTDataSet:48867,
+ * RGXPrepareTA:52144 -- linux-legacy-umd-5.2.0/decompiled.c, 3-hop chain):
+ * TA Header +0x10 = RgnHeader device VA (NOT a raw pixel BO).
+ * RgnHeader: per-tile 64B region headers; UMD pre-fills every dword with 1
+ * via InitRegionHeaderBuffer (maps host view, loops *p = 1).
+ * Size = round_up(tilesX*tilesY*0x40, 64);
+ *   tilesX = (w+0x1f)>>5, tilesY = (h+0x1f)>>5 (RGXRenderTargetInitConfig).
+ * 64x64: 2x2=4 tiles * 0x40 = 0x100 bytes.
+ * Firmware parses RgnHeader to learn tile layout before running TA;
+ * r425 fed a raw pixel BO here -> firmware parsed pixels as region
+ * headers -> garbage -> 5s timeout. */
+#define MT_TA_RGNHEADER_TILE_BYTES 0x40U
+#define MT_TA_RGNHEADER_ALIGN 64U
+#define MT_TA_RGNHEADER_WIDTH 64U
+#define MT_TA_RGNHEADER_HEIGHT 64U
+/* 64x64: 4 tiles * 0x40 = 0x100; round_up(0x100,64) = 0x100. */
+#define MT_TA_RGNHEADER_BYTES 0x100U
+#define MT_TA_RGNHEADER_BO_SLOT 12U /* VA slot 12: 0x7c000000 (13th BO) */
+#define MT_TA_RGNHEADER_INIT_DWORD 0xFFFFFFFFU /* InitRegionHeaderBuffer fills 1s */
+
+/* RgnHeader size formula [MEASURED] (r430, RGXRenderTargetInitConfig).
+ * Returns round_up(tilesX*tilesY*0x40, 64). */
+static inline u32 mt_ta_rgnheader_size(u32 w, u32 h)
+{
+	u32 tiles_x = (w + 0x1fU) >> 5;
+	u32 tiles_y = (h + 0x1fU) >> 5;
+	u32 bytes = tiles_x * tiles_y * MT_TA_RGNHEADER_TILE_BYTES;
+	return (bytes + MT_TA_RGNHEADER_ALIGN - 1U) &
+	       ~(MT_TA_RGNHEADER_ALIGN - 1U);
+}
+
 /* [MEASURED] (r414): Complete 80B TA DM packet layout (MT_FW_COMMAND_BYTES).
  * +0x0c: opcode = 0x66 (r365)
  * +0x28: TA buffer VA, low 32 bits (little-endian)
@@ -166,7 +197,9 @@ struct mt_ta_real_request {
 	u32 width;		/* TA entry render-target width (1..0x8000) */
 	u32 height;		/* TA entry render-target height (1..0x8000) */
 	u32 n_entries;		/* number of 40B entries, 1..MT_TA_REAL_MAX_ENTRIES */
-	u64 target_va;		/* r416: render target GPU VA for Q0, 0 = none */
+	u64 target_va;	/* r431: RgnHeader GPU VA for TA Header+0x10
+			 * ([MEASURED] r430); r416 pixel-BO semantic retired.
+			 * 0 = none. */
 };
 
 /* Build a 360B TA command buffer, Header-only (r423).
@@ -175,8 +208,11 @@ struct mt_ta_real_request {
  * Header fields at 0x10/0x18/0x20 and hangs firmware (r421).
  *
  * Header-only: zero the buffer, set TA_buf+0x10 = target_va
- * (-> psKickTA[1] render target VA, [MEASURED] r422). All other Header
- * fields stay zero; r414 proved all-zero Header completes ("no work").
+ * (-> psKickTA[1] = RgnHeader device VA, [MEASURED] r430 3-hop chain).
+ * target_va MUST be a RgnHeader VA (13th BO, pre-filled 0xFFFFFFFF);
+ * r425 proved a raw pixel BO here hangs firmware (parses pixels as
+ * region headers). All other Header fields stay zero; r414 proved
+ * all-zero Header completes ("no work").
  *
  * n_entries must be 0 (Header-only). Non-zero is rejected: the Entries
  * container is unknown (r422), and T5 forbids Entry writes in buf+0x00-0x68.

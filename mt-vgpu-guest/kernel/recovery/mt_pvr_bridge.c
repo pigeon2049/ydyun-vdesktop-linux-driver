@@ -4125,6 +4125,13 @@ static void mt_render_context_destroy(struct mt_pvr_render_context *ctx)
 		ctx->target_va = 0;
 	}
 
+	/* r431: RgnHeader (13th BO). */
+	if (ctx->rgnheader_ready) {
+		mt_bo_put(&ctx->rgnheader_bo);
+		ctx->rgnheader_ready = false;
+		ctx->rgnheader_va = 0;
+	}
+
 	/* 3. Per-context VM (fini tears down bindings, puts tables BO). */
 	if (ctx->vm) {
 		mt_render_context_vm_destroy(ctx->vm);
@@ -4241,6 +4248,52 @@ static int mt_render_context_create(struct mt_pvr_file *file,
 		ctx->target_ready = true;
 		pr_info("mt_pvr_bridge: r416: target BO bound va=%#llx bytes=%u\n",
 			(unsigned long long)tva, MT_T2_TARGET_BYTES);
+	}
+
+	/* r431: RgnHeader (13th BO). TA Header +0x10 = RgnHeader device VA
+	 * ([MEASURED] r430, 3-hop chain). Bound here -- before exec process
+	 * creation, while the VM still accepts binds (active_uses==0).
+	 * Pre-filled with 0xFFFFFFFF (InitRegionHeaderBuffer, [MEASURED] r430). */
+	{
+		u64 rva = ctx->vm_base_va +
+			(u64)MT_TA_RGNHEADER_BO_SLOT * MT_RENDER_CONTEXT_VA_STRIDE;
+		struct mt_vm_binding rbinding;
+		u32 rgn_alloc = PAGE_ALIGN(MT_TA_RGNHEADER_BYTES);
+		/* Stack init pattern: 0x100B all-ones (InitRegionHeaderBuffer). */
+		u8 rgn_init[MT_TA_RGNHEADER_BYTES];
+
+		memset(rgn_init, 0xFF, sizeof(rgn_init));
+		ret = mt_bo_create(&ctx->rgnheader_bo, d->buffers.ops, &d->buffers,
+				   rgn_alloc, PAGE_SIZE);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r431: rgnheader BO create failed: %d\n",
+			       ret);
+			goto out_rollback;
+		}
+		ret = pvr_translator_bo_write(d, &ctx->rgnheader_bo, 0,
+					      rgn_init, MT_TA_RGNHEADER_BYTES);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r431: rgnheader BO write failed: %d\n",
+			       ret);
+			mt_bo_put(&ctx->rgnheader_bo);
+			goto out_rollback;
+		}
+		rbinding.bo = &ctx->rgnheader_bo;
+		rbinding.va = rva;
+		rbinding.offset = 0;
+		rbinding.bytes = rgn_alloc;
+		rbinding.flags = MT_GPU_MAP_DEFAULT;
+		ret = mt_gpu_vm_bind_many(&tvm->vm, &rbinding, 1);
+		if (ret) {
+			pr_err("mt_pvr_bridge: r431: rgnheader BO bind failed: %d\n",
+			       ret);
+			mt_bo_put(&ctx->rgnheader_bo);
+			goto out_rollback;
+		}
+		ctx->rgnheader_va = rva;
+		ctx->rgnheader_ready = true;
+		pr_info("mt_pvr_bridge: r431: rgnheader BO bound va=%#llx bytes=%u\n",
+			(unsigned long long)rva, rgn_alloc);
 	}
 
 	/* 5. Build CSW from bound VAs. */
@@ -5235,11 +5288,17 @@ static int pvr_cmd_ta_readback(struct mt_pvr_file *file, struct mt_pvr_cmd *cmd)
 		ret = -ENODEV;
 		goto out_free;
 	}
+	/* r431: TA Header +0x10 = RgnHeader VA ([MEASURED] r430); the 12th BO
+	 * (pixel buffer) is only for post-completion readback. */
+	if (!rctx->rgnheader_ready) {
+		ret = -ENODEV;
+		goto out_free;
+	}
 	req.h_render_context = in.h_render_context;
 	req.width = in.width;
 	req.height = in.height;
 	req.n_entries = in.n_entries;
-	req.target_va = rctx->target_va;
+	req.target_va = rctx->rgnheader_va;
 	ret = mt_ta_submit_real(file, &req, &fence);
 	if (ret)
 		goto out_free;

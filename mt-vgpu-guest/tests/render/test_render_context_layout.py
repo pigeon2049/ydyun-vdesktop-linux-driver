@@ -57,6 +57,12 @@ int main(void)
            __builtin_offsetof(struct mt_pvr_render_context, target_va));
     printf("off_target_ready=%zu\n",
            __builtin_offsetof(struct mt_pvr_render_context, target_ready));
+    printf("off_rgnheader_bo=%zu\n",
+           __builtin_offsetof(struct mt_pvr_render_context, rgnheader_bo));
+    printf("off_rgnheader_va=%zu\n",
+           __builtin_offsetof(struct mt_pvr_render_context, rgnheader_va));
+    printf("off_rgnheader_ready=%zu\n",
+           __builtin_offsetof(struct mt_pvr_render_context, rgnheader_ready));
     printf("off_pt_bo=%zu\n",
            __builtin_offsetof(struct mt_pvr_render_context, pt_bo));
     printf("off_resources_ready=%zu\n",
@@ -76,8 +82,10 @@ int main(void)
 #   pt_bo=88 @1448 (r389); resources_ready @1536; total 1544 (8-aligned).
 # r416: + target_bo(88)@1520 + target_va(8)@1608 + target_ready(1)@1616;
 # pt_bo moves to 1624, resources_ready to 1712, sizeof to 1720.
+# r431: + rgnheader_bo(88)@1624 + rgnheader_va(8)@1712 + rgnheader_ready(1)@1720;
+# pt_bo moves to 1728, resources_ready to 1816, sizeof to 1824.
 EXPECTED = {
-    "sizeof_ctx": 1720,
+    "sizeof_ctx": 1824,
     "off_bos": 0,
     "off_vas": 968,
     "off_bos_ready": 1056,
@@ -92,8 +100,11 @@ EXPECTED = {
     "off_target_bo": 1520,
     "off_target_va": 1608,
     "off_target_ready": 1616,
-    "off_pt_bo": 1624,
-    "off_resources_ready": 1712,
+    "off_rgnheader_bo": 1624,
+    "off_rgnheader_va": 1712,
+    "off_rgnheader_ready": 1720,
+    "off_pt_bo": 1728,
+    "off_resources_ready": 1816,
     "stride": 16 << 20,
     "bo_count": 11,
     "csw_bytes": 248,

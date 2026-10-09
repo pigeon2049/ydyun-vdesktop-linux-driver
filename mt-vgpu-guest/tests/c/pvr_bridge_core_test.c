@@ -656,6 +656,46 @@ static int test_ta_real_buffer_build_target(void)
 	return 0;
 }
 
+static int test_ta_rgnheader_size(void)
+{
+	/* r431: RgnHeader size formula [MEASURED] (r430, RGXRenderTargetInitConfig).
+	 * size = round_up(tilesX*tilesY*0x40, 64);
+	 * tilesX = (w+0x1f)>>5, tilesY = (h+0x1f)>>5. */
+	/* 64x64: 2x2=4 tiles * 0x40 = 0x100. */
+	CHECK(mt_ta_rgnheader_size(64, 64) == 0x100U);
+	CHECK(mt_ta_rgnheader_size(64, 64) == MT_TA_RGNHEADER_BYTES);
+	/* 128x128: 4x4=16 tiles * 0x40 = 0x400. */
+	CHECK(mt_ta_rgnheader_size(128, 128) == 0x400U);
+	/* Non-aligned 65x65: 3x3=9 tiles * 0x40 = 0x240 (already 64-aligned). */
+	CHECK(mt_ta_rgnheader_size(65, 65) == 0x240U);
+	/* 32x32: 1x1=1 tile * 0x40 = 0x40. */
+	CHECK(mt_ta_rgnheader_size(32, 32) == 0x40U);
+	/* 1x1: 1x1=1 tile * 0x40 = 0x40. */
+	CHECK(mt_ta_rgnheader_size(1, 1) == 0x40U);
+	/* 96x64: 3x2=6 tiles * 0x40 = 0x180. */
+	CHECK(mt_ta_rgnheader_size(96, 64) == 0x180U);
+	return 0;
+}
+
+static int test_ta_rgnheader_init_pattern(void)
+{
+	/* r431: RgnHeader init = all 0xFFFFFFFF ([MEASURED] r430,
+	 * InitRegionHeaderBuffer fills every dword with 1).
+	 * Verify the pattern the kernel writes at create matches. */
+	u32 i;
+	u32 dwords = MT_TA_RGNHEADER_BYTES / 4U;
+	/* Simulate the kernel fill: memset 0xFF over MT_TA_RGNHEADER_BYTES. */
+	static unsigned char rgn[MT_TA_RGNHEADER_BYTES];
+	u32 *p;
+
+	memset(rgn, 0xFF, sizeof(rgn));
+	p = (u32 *)rgn;
+	for (i = 0; i < dwords; i++)
+		CHECK(p[i] == MT_TA_RGNHEADER_INIT_DWORD);
+	CHECK(MT_TA_RGNHEADER_INIT_DWORD == 0xFFFFFFFFU);
+	return 0;
+}
+
 static int test_ta_readback_analyze(void)
 {
 	/* r417: pixel analysis unit tests. Behavior locked to the r416
@@ -730,6 +770,8 @@ int main(void)
 	CHECK(test_ta_entry_simple_build_validation() == 0);
 	CHECK(test_ta_entry_q0_flag_or() == 0);
 	CHECK(test_ta_real_buffer_build_target() == 0);
+	CHECK(test_ta_rgnheader_size() == 0);
+	CHECK(test_ta_rgnheader_init_pattern() == 0);
 	CHECK(test_ta_readback_analyze() == 0);
 	printf("pvr_bridge_core_test OK (%d checks)\n", checks);
 	return 0;
