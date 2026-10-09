@@ -5596,6 +5596,128 @@ int mt_bridge_submit_ta_work(struct mt_marker_store *s, struct mt_ta_work *work,
 	return mt_marker_submit_ta_work(s, work, out);
 }
 EXPORT_SYMBOL_GPL(mt_bridge_submit_ta_work);
+#if MT_TA_REAL_PACKET
+/* r415: Production real-TA submit with bridge-constructed command buffer.
+ *
+ * Builds a 360B TA command buffer from req->width/height/n_entries,
+ * stages it in firmware-visible memory
+ * (BO[MT_TA_REAL_STAGING_BO_INDEX]@MT_TA_REAL_STAGING_BO_OFFSET),
+ * and submits via the real TA path (mt_bridge_submit_ta_work).
+ *
+ * Unlike the UMD-driven 0x82:0xC path (where the client provides
+ * ta_cmd_va via IN), this constructs the buffer bridge-side for
+ * validation without a UMD (r407/r408: no DDK2 UMD on Linux;
+ * r414 validated the layout live, 0x100 in 219us).
+ *
+ * Async: returns 0 with *out_fence on success. The caller owns the
+ * fence reference and must wait (pvr_ta_wait_complete) or abandon it;
+ * the fence signals on firmware completion (0x100).
+ *
+ * Staging [MEASURED] (r414): per-context VM is sealed after creation
+ * (bind -> -EBUSY), so BO[10]@4096 is reused. See
+ * MT_TA_REAL_STAGING_* in kernel/mt_ta_real.h.
+ *
+ * Gated by MT_TA_REAL_PACKET (default 0): when off, this function
+ * does not exist (zero code, zero risk).
+ */
+/* __maybe_unused: no in-tree caller yet; the API is for future
+ * validation ioctls. Remove when the first caller lands. */
+__maybe_unused static int mt_ta_submit_real(struct mt_pvr_file *file,
+			     const struct mt_ta_real_request *req,
+			     struct dma_fence **out_fence)
+{
+	struct mt_pvr_object *robj;
+	struct mt_pvr_render_context *rctx;
+	struct mt_guest *g;
+	struct mt_guest_device *d;
+	struct mt_marker_store *s;
+	struct mt_ta_work work;
+	struct module *owner = NULL;
+	unsigned char *ta_buf;
+	u64 ta_va;
+	int ret;
+
+	if (!file || !req || !out_fence)
+		return -EINVAL;
+	if (req->n_entries == 0 ||
+	    req->n_entries > MT_TA_REAL_MAX_ENTRIES)
+		return -EINVAL;
+	/* width/height range checked by mt_ta_real_buffer_build. */
+	*out_fence = NULL;
+
+	robj = pvr_object_find(file, req->h_render_context,
+				MT_PVR_KIND_CONTEXT);
+	if (!robj || !robj->render_ctx)
+		return -EINVAL;
+	rctx = robj->render_ctx;
+	if (!rctx->resources_ready || !rctx->vm || !rctx->exec_ta_ready)
+		return -ENODEV;
+	if (!rctx->bos_ready[MT_TA_REAL_STAGING_BO_INDEX])
+		return -ENODEV;
+
+	ta_buf = kzalloc(MT_TA_CMD_BUFFER_BYTES, GFP_KERNEL);
+	if (!ta_buf)
+		return -ENOMEM;
+	ret = mt_ta_real_buffer_build(ta_buf, req->width, req->height,
+				      req->n_entries);
+	if (ret)
+		goto out_free;
+
+	g = pvr_session_acquire(&owner);
+	if (!g) {
+		ret = -ENODEV;
+		goto out_free;
+	}
+	d = container_of(g, struct mt_guest_device, state);
+	s = &d->markers;
+
+	ta_va = rctx->vas[MT_TA_REAL_STAGING_BO_INDEX] +
+		MT_TA_REAL_STAGING_BO_OFFSET;
+	ret = pvr_translator_bo_write(d,
+				      &rctx->bos[MT_TA_REAL_STAGING_BO_INDEX],
+				      MT_TA_REAL_STAGING_BO_OFFSET,
+				      ta_buf,
+				      MT_TA_CMD_BUFFER_BYTES);
+	if (ret)
+		goto out_session;
+
+	memset(&work, 0, sizeof(work));
+	work.job.state = MT_JOB_HELD;
+	work.context = &rctx->exec_ctx_ta;
+	work.params.ta_cmd_va = ta_va;
+	work.params.ta_cmd_size = MT_TA_CMD_BUFFER_BYTES;
+	/* kick_flags/ta_upd_count/ta_fence_count stay 0: pass validation. */
+
+	mutex_lock(&g->trial_lock);
+	if (!s->can_submit) {
+		mutex_unlock(&g->trial_lock);
+		ret = -EHOSTDOWN;
+		goto out_session;
+	}
+	if (s->ready) {
+		mutex_unlock(&g->trial_lock);
+		ret = -EBUSY;
+		goto out_session;
+	}
+	s->ready = true;
+	mutex_unlock(&g->trial_lock);
+
+	ret = mt_bridge_submit_ta_work(s, &work, out_fence);
+
+	mutex_lock(&g->trial_lock);
+	s->ready = false;
+	mutex_unlock(&g->trial_lock);
+	if (ret)
+		*out_fence = NULL;
+
+out_session:
+	if (owner)
+		module_put(owner);
+out_free:
+	kfree(ta_buf);
+	return ret;
+}
+#endif /* MT_TA_REAL_PACKET */
 /* Bridge-exported 3D submit entry (r382, R3). Mirrors
  * mt_bridge_submit_ta_work; gated by MT_3D_SUBMIT_GATE (default 0). */
 int mt_bridge_submit_3d_work(struct mt_marker_store *s, struct mt_3d_work *work,

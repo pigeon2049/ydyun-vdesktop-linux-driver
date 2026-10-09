@@ -143,3 +143,11 @@ wire=10 精确匹配；V3：destroy 后 probe ref 13->25->13，delta 归零无�
 - 360B DMA/VA 映射未实现（需生产路径改动，独立前置）。
 - 门禁 480+299 全绿，`make kernel` W=1 零警告（门控开/关双验证）；反向验证通过（门控篡改→FAIL）。
 - 纯离线，零硬件触碰；门控关闭零行为变更。本地提交未 push。
+
+## r412 (2026-10-09): 真实 TA 活体——实现完成，trial 阻塞
+
+- 测试钩子 `pvr_cmd_ta_real_test`（桥 0x82:0xFE，未提交）：360B→BO[10]@4096（VM 已 seal，复用已映射 BO）→`mt_bridge_submit_ta_work` 真实路径（`MT_TA_REAL_PACKET=1` 测试构建）→等固件完成（0x100/超时/FAULT）。
+- 用户态 `ta_real_test3`：INIT(2)→Connect→Create(0x12)→Test(0xFE)。
+- **活体阻塞**：`pvr_session_acquire` 要求 `trial.pinned && trial.connected`；当前 trial 未建立。原版桥同样失败（`git stash` 验证），非本轮所致。r407 观察器不需要 trial 故当时未暴露。
+- 编译零警告；pre-live T1/T2/T3 全过；无 oops/WARN/hang；测试修改已 revert（未提交）。
+- 下一步 P0：诊断 trial 重建（probe 流程；可能需用户冷重启）。

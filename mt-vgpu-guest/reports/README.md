@@ -343,3 +343,5 @@ r411-ta-real-packet-infra.md |
 
 | r414 | 真实 TA 首次活体执行成功（最高风险轮）：补加 `case 0xFE` 分发（r404 后空白字符 exact-match）+ `pvr_cmd_ta_real_test` 钩子（r412 hook.c 原样）；`make kernel` W=1 零警告；pre-live T1/T2/T3 全过；活体单发 `status=0`——固件 `COMPLETED (0x100)`，提交到完成 219µs；DM 布局验证：VA @+0x28/size @+0x30 由 [INFERRED] 转 [MEASURED]；40B 条目（64×64 dummy）被固件接受；`safe_rmmod.sh` 干净卸载，无 oops/WARN/hang；测试钩子未提交 |
 r414-real-ta-first-live-success.md |
+| r415 | 真实 TA 路径产品化（离线）：DM 布局 VA @+0x28/size @+0x30 由 [INFERRED] 转 [MEASURED]（r414）；新 `mt_ta_submit_real()` 生产函数（`mt_pvr_bridge.c`，`#if` 门控内，参数化 `mt_ta_real_request`，异步返 fence）；`mt_ta_real_buffer_build()` 纯函数；BO[10]@4096 复用评估采用（VM 已 seal）；门控开启流程文档化（含回滚）；`0x82:0xFE` 钩子确认不在生产代码；tests/ta/test_ta_real.py +8（共 14）；门禁 488+299 全绿，kernel 零警告，反向验证通过 |
+r415-ta-real-path-productized.md |

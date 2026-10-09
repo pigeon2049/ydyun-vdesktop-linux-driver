@@ -51,5 +51,70 @@ class TestTaRealPacketGate(unittest.TestCase):
         self.assertIn("mt_fw_ta_marker_command(packet, wire_id, pid)", text)
 
 
+class TestTaRealProductization(unittest.TestCase):
+    """r415: production real-TA path (DM layout [MEASURED], mt_ta_submit_real)."""
+
+    def test_dm_offsets_measured(self):
+        # r415: VA@+0x28/size@+0x30 promoted [INFERRED] -> [MEASURED] (r414).
+        text = _read("mt_ta_real.h")
+        self.assertIn("[MEASURED] (r414 live)", text)
+        self.assertEqual(_define_value("mt_ta_real.h", "MT_TA_DM_PKT_TA_VA_LO"), 0x28)
+        self.assertEqual(_define_value("mt_ta_real.h", "MT_TA_DM_PKT_TA_SIZE"), 0x30)
+
+    def test_staging_constants(self):
+        # r415: BO[10]@4096 staging location, [MEASURED] (r414).
+        self.assertEqual(_define_value("mt_ta_real.h", "MT_TA_REAL_STAGING_BO_INDEX"), 10)
+        self.assertEqual(_define_value("mt_ta_real.h", "MT_TA_REAL_STAGING_BO_OFFSET"), 4096)
+        self.assertEqual(_define_value("mt_ta_real.h", "MT_TA_REAL_MAX_ENTRIES"), 9)
+
+    def test_buffer_builder_exists(self):
+        # r415: pure buffer builder (parameterized, unit-testable).
+        text = _read("mt_ta_real.h")
+        self.assertIn("mt_ta_real_buffer_build", text)
+        self.assertIn("n_entries", text)
+
+    def test_request_struct_parameterized(self):
+        # r415: request struct has width/height/n_entries (no hardcode).
+        text = _read("mt_ta_real.h")
+        self.assertIn("struct mt_ta_real_request", text)
+        self.assertIn("u32 width;", text)
+        self.assertIn("u32 height;", text)
+        self.assertIn("u32 n_entries;", text)
+
+    def test_submit_real_in_bridge(self):
+        # r415: mt_ta_submit_real exists in bridge, gated.
+        text = _read("recovery/mt_pvr_bridge.c")
+        self.assertIn("mt_ta_submit_real", text)
+        idx = text.find("mt_ta_submit_real(struct mt_pvr_file *file,")
+        self.assertGreater(idx, 0)
+        before = text[max(0, idx - 2000):idx]
+        self.assertIn("#if MT_TA_REAL_PACKET", before)
+
+    def test_submit_real_no_hardcode(self):
+        # r415: production function takes req params, no hardcoded 64x64.
+        text = _read("recovery/mt_pvr_bridge.c")
+        idx = text.find("mt_ta_submit_real(struct mt_pvr_file *file,")
+        # Find function body (next 3000 chars)
+        body = text[idx:idx + 3000]
+        self.assertIn("req->width", body)
+        self.assertIn("req->height", body)
+        self.assertIn("req->n_entries", body)
+        # No hardcoded 64, 64 from the test hook
+        self.assertNotIn("mt_ta_entry_simple_build((struct mt_ta_entry_simple *)ta_buf,\n\t\t\t\t\t       64, 64)", body)
+
+    def test_fe_hook_gone(self):
+        # r415: 0xFE test hook must NOT be in production bridge.
+        text = _read("recovery/mt_pvr_bridge.c")
+        self.assertNotIn("case 0xFE:", text)
+        self.assertNotIn("pvr_cmd_ta_real_test", text)
+
+    def test_gate_process_documented(self):
+        # r415: gate opening process documented in header.
+        text = _read("mt_ta_real.h")
+        self.assertIn("gate opening process", text.lower())
+        self.assertIn("Rollback", text)
+
+
+
 if __name__ == "__main__":
     unittest.main()
