@@ -66,3 +66,13 @@ wire=10 精确匹配；V3：destroy 后 probe ref 13->25->13，delta 归零无�
 报告 mt-vgpu-guest/reports/r405-real-usability-gap-analysis.md。
 
 
+
+## r406 (2026-10-09): 3D 包活体提交——固件无响应（忽略签名）
+
+**活体单发**：pre-live T1/T2/T3 全过， 白名单确认；桥侧测试钩子直接调用 （绕过 ，门控保持 0）；3D 包（opcode 0x68 @+0x0c，VA @+0x28，size @+0x30，wire_id @+0x48）提交成功，fence 已分配；**固件 5s 内无完成事件**（ 返回 0，），签名 submitted-but-ignored。
+
+**结论**：3D 基础设施（包格式/提交路径/fence）工作正常；固件需要真实 3D 负载，非 marker 包。与 r380（DM2 忽略空 marker）、r405 G1 一致。
+
+**状态**：测试桥仍在载（ref=1，pending 3D fence 持有，无法卸载）；源码已恢复 r404（钩子未提交）；系统稳定，无 oops；待用户冷重启清除。
+
+报告 mt-vgpu-guest/reports/r406-3d-live-ignored.md。

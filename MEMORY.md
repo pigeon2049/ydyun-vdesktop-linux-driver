@@ -42,7 +42,20 @@
 > r404 轮按 \u00a74 清理：r402、r401 节已移入归档。
 > r405 轮按 §4 清理：无（仅 r404、r405 两节，保留）。
 > r407 轮按 §4 清理：r405 节已移入归档。
+> r408 轮按 §4 清理：r406 节已移入归档。
 
+
+## r408 (2026-10-09): RGXSubmitTA 不构造 TA 缓冲（离线反汇编）
+
+**反汇编**（MUSA DDK 5.2.0 UMD，零硬件）：调用链 RGXKickTA(0x17afd0)→RGXPrepareTA(FUN_00178800,218行)→RGXSubmitTA(FUN_001796b0,709行)→BridgeRGXKickTA3D3(FUN_00137180)→SubmitTADataEnQueue；SubmitTA内0x168=360为立即数尺寸参数、VA取自psKickTA[0]，全函数无缓冲写入/模板填充；PrepareTA只做指针搬运(psKickTA[0..2]=render_ctx+0xb6/b8/ba)+0x1c8-0x1d4状态回填；psKickTA无UMD侧构造函数(r193 corroborate)。
+
+**结论**：360B TA缓冲内容(TA指令流)由客户端3D状态机在调用前生成，RGXSubmitTA只透传VA；r409的最小真实TA包不能从本反汇编直接得到。
+
+**r409方案**(按推荐序)：真实应用trace(用r407 hook捕获真实360B，前置：有3D应用能走到RGXKickTA) > KMD/固件文档找TA命令格式 > 盲探(不推荐，r380教训)。
+
+**诚实边界**：已确认=调用链/VA透传/PrepareTA回填；推断=psKickTA+0x08/+0x10语义、DM包@+0x28为TA VA；未知=360B TA ISA编码、544B缓冲内容、固件真实负载最低条件。
+
+报告 mt-vgpu-guest/reports/r408-tasubmitta-no-construction.md。
 
 ## r407 (2026-10-09): TA 命令缓冲捕获机制验证（活体观察）
 
@@ -54,12 +67,3 @@
 
 **下一步**：r408 TA 包解析（离线，反汇编分析）。
 
-## r406 (2026-10-09): 3D 包活体提交——固件无响应（忽略签名）
-
-**活体单发**：pre-live T1/T2/T3 全过， 白名单确认；桥侧测试钩子直接调用 （绕过 ，门控保持 0）；3D 包（opcode 0x68 @+0x0c，VA @+0x28，size @+0x30，wire_id @+0x48）提交成功，fence 已分配；**固件 5s 内无完成事件**（ 返回 0，），签名 submitted-but-ignored。
-
-**结论**：3D 基础设施（包格式/提交路径/fence）工作正常；固件需要真实 3D 负载，非 marker 包。与 r380（DM2 忽略空 marker）、r405 G1 一致。
-
-**状态**：测试桥仍在载（ref=1，pending 3D fence 持有，无法卸载）；源码已恢复 r404（钩子未提交）；系统稳定，无 oops；待用户冷重启清除。
-
-报告 mt-vgpu-guest/reports/r406-3d-live-ignored.md。
