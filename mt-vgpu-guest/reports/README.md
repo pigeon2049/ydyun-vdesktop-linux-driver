@@ -383,3 +383,5 @@ r428-umd-env-ta-header-capture.md |
 | r433-rgnheader-fill-is-one-plus28-30-chain.md |
 | r434 | RgnHeader fill corrected to per-dword 0x00000001 (offline, implements r433): MT_TA_RGNHEADER_INIT_DWORD 0xFFFFFFFFU->0x1U, memset(0xFF)->dword loop in mt_render_context_create (reuses u32 i), comments updated; C test_ta_rgnheader_init_pattern simulates dword-1 + asserts !=0xFFFFFFFF; Python test_rgnheader_init_all_ones updated (assertIn dword loop, assertNotIn memset 0xFF); reverse verify inject 0xFF->FAIL then green; gate 554+1491 green, kernel W=1 zero warnings |
 | r434-rgnheader-fill-dword-1.md |
+| r435 | 第 6 次冷重启未发生（bridge ref=1，r432 残留会话），停止活体：启动 ~16:20:46（dmesg -T 反推），r432 活体 17:45:43 在启动之后，无重启；bridge ref=1（r432 pending fence）；残留 render context（11 BOs+12th+13th rgnheader，READY）未 teardown；未构建双门控/未重载/未跑 readback；门禁 554+1491 全绿，kernel W=1 零警告；零硬件触碰 |
+r435-cold-reboot-not-done-stop.md |

@@ -283,3 +283,21 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
   r432 +0x10=RgnHeader→仍超时。RgnHeader [INFERRED] 未升 [MEASURED]（证伪性证据）。
 - 下一步必须离线：+0x28/+0x30 语义与 RgnHeader per-dword 要求；
   不再做无依据活体试探。零 rmmod -f、零自行重启。
+
+## r433 (2026-10-09): RgnHeader 填充是 0x00000001 非 0xFFFFFFFF;+0x28/+0x30 链条追踪（离线）
+
+- **核心纠正**：`InitRegionHeaderBuffer` 逐 dword 写整数 `1` (`*local_690[0] = 1`,
+  `undefined4*` [MEASURED])，**不是** `0xFFFFFFFF`。r430/r431 的 "0xFFFFFFFF"
+  结论错误；r431 `MT_TA_RGNHEADER_INIT_DWORD 0xFFFFFFFFU` + `memset(0xFF)` 与 UMD
+  行为不符。**r434 P0: 改为逐 dword 写 `0x00000001`。**
+- **+0x28/+0x30 链条** [MEASURED, 终端 UNKNOWN]：
+  `TA_buf+0x28/+0x30` ← `TA_state+0x1cc/+0x1ce` ← `RTDataSet+0x440/+0x448`
+  ← `*(local_5b0+0x68)`/`*(local_5b0+0x80)` (RGXAddRenderTarget)。
+  终端值因 Ghidra 数组定界 [UNKNOWN]；MLIST VA 为首要候选 [INFERRED]。
+- **MLIST** [MEASURED]：0x4a000B (64x64)，firmware-written，UMD 不预填；
+  VA (`local_558`) 分配后未见引用；未出现在 TA Header/psKickTA 中。
+  TA kick 可能不需要 MLIST VA，或经 +0x28/+0x30 传递。
+- **Mcg patching**：多 RT 时填充后 patch `[2]/[3]` (VA 低/高 32 位，stride 0x40 dwords)；
+  单 RT (我方) 无 patching，仅 fill。
+- 门禁 `check-offline` 全绿；`make kernel` 未跑（无代码变更）。
+  零硬件触碰，纯离线。
