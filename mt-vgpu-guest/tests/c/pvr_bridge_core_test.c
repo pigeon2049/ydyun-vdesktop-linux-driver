@@ -746,11 +746,13 @@ static int test_ta_rgnheader_init_pattern(void)
 	/* r434: RgnHeader init = every dword 0x00000001 ([MEASURED] r433:
 	 * InitRegionHeaderBuffer writes integer 1 per dword;
 	 * corrects r431's all-0xFFFFFFFF misread).
+	 * r455: quantity doubled to MT_TA_RGNHEADER_INIT_BYTES ([MEASURED]
+	 * r454: UMD double-loop init, 2 x local_700 dwords).
 	 * Verify the pattern the kernel writes at create matches. */
 	u32 i;
-	u32 dwords = MT_TA_RGNHEADER_BYTES / 4U;
+	u32 dwords = MT_TA_RGNHEADER_INIT_BYTES / 4U;
 	/* Simulate the kernel fill: per-dword integer 1. */
-	static unsigned char rgn[MT_TA_RGNHEADER_BYTES];
+	static unsigned char rgn[MT_TA_RGNHEADER_INIT_BYTES];
 	u32 *p;
 
 	p = (u32 *)rgn;
@@ -761,6 +763,22 @@ static int test_ta_rgnheader_init_pattern(void)
 	CHECK(MT_TA_RGNHEADER_INIT_DWORD == 0x1U);
 	/* Boundary: must NOT be the r431 misread value. */
 	CHECK(MT_TA_RGNHEADER_INIT_DWORD != 0xFFFFFFFFU);
+	return 0;
+}
+
+static int test_ta_rgnheader_init_bytes(void)
+{
+	/* r455: UMD-faithful double-loop init quantity ([MEASURED] r454).
+	 * InitRegionHeaderBuffer writes 2 x local_700 dwords; local_700 ~=
+	 * MT_TA_RGNHEADER_BYTES/4 for 64x64, so total init = 2x logical. */
+	CHECK(MT_TA_RGNHEADER_INIT_BYTES == 0x200U);
+	CHECK(MT_TA_RGNHEADER_INIT_BYTES == 2U * MT_TA_RGNHEADER_BYTES);
+	/* Logical size unchanged: the size formula still yields 0x100. */
+	CHECK(mt_ta_rgnheader_size(64, 64) == MT_TA_RGNHEADER_BYTES);
+	CHECK(mt_ta_rgnheader_size(64, 64) == 0x100U);
+	/* Init covers exactly twice the logical dwords. */
+	CHECK(MT_TA_RGNHEADER_INIT_BYTES / 4U ==
+	      2U * (MT_TA_RGNHEADER_BYTES / 4U));
 	return 0;
 }
 
@@ -840,6 +858,7 @@ int main(void)
 	CHECK(test_ta_real_buffer_build_target() == 0);
 	CHECK(test_ta_rgnheader_size() == 0);
 	CHECK(test_ta_rgnheader_init_pattern() == 0);
+	CHECK(test_ta_rgnheader_init_bytes() == 0);
 	CHECK(test_ta_tile_pack() == 0);
 	CHECK(test_ta_readback_analyze() == 0);
 	printf("pvr_bridge_core_test OK (%d checks)\n", checks);

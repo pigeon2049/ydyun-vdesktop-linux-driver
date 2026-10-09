@@ -107,6 +107,8 @@ static inline u64 mt_ta_tile_pack(u32 x)
  * TA Header +0x10 = RgnHeader device VA (NOT a raw pixel BO).
  * RgnHeader: per-tile 64B region headers; UMD pre-fills every dword with 1
  * via InitRegionHeaderBuffer (maps host view, loops *p = 1).
+ * Init writes TWICE the logical size (2 x local_700 dwords, [MEASURED] r454);
+ * see MT_TA_RGNHEADER_INIT_BYTES.
  * Size = round_up(tilesX*tilesY*0x40, 64);
  *   tilesX = (w+0x1f)>>5, tilesY = (h+0x1f)>>5 (RGXRenderTargetInitConfig).
  * 64x64: 2x2=4 tiles * 0x40 = 0x100 bytes.
@@ -119,6 +121,14 @@ static inline u64 mt_ta_tile_pack(u32 x)
 #define MT_TA_RGNHEADER_HEIGHT 64U
 /* 64x64: 4 tiles * 0x40 = 0x100; round_up(0x100,64) = 0x100. */
 #define MT_TA_RGNHEADER_BYTES 0x100U
+/* [MEASURED] (r454, InitRegionHeaderBuffer inline, decompiled.c):
+ * UMD writes the init pattern TWICE -- two consecutive loops, each writing
+ * `local_700` dwords of integer 1 to the same advancing pointer (total
+ * 2 x local_700 dwords, contiguous). local_700 ~= 64 dwords for 64x64, so
+ * total init = 512 bytes = 2x the logical RgnHeader size. r453's "unfilled
+ * real data" hypothesis is falsified: 1s ARE the complete init; r431-r454
+ * wrote only half. The kernel init/BO write below uses this quantity. */
+#define MT_TA_RGNHEADER_INIT_BYTES (2U * MT_TA_RGNHEADER_BYTES) /* 0x200U */
 #define MT_TA_RGNHEADER_BO_SLOT 12U /* VA slot 12: 0x7c000000 (13th BO) */
 #define MT_TA_RGNHEADER_INIT_DWORD 0x1U /* InitRegionHeaderBuffer: each dword = integer 1 ([MEASURED] r433, corrects r430/r431) */
 

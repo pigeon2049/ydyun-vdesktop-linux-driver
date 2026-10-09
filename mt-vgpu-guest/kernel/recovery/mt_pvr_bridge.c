@@ -4254,20 +4254,28 @@ static int mt_render_context_create(struct mt_pvr_file *file,
 	 * ([MEASURED] r430, 3-hop chain). Bound here -- before exec process
 	 * creation, while the VM still accepts binds (active_uses==0).
 	 * Pre-filled per-dword with 0x00000001 (InitRegionHeaderBuffer writes
-	 * integer 1 per dword, [MEASURED] r433, corrects r430/r431). */
+	 * integer 1 per dword, [MEASURED] r433, corrects r430/r431).
+	 * r455: init quantity doubled to MT_TA_RGNHEADER_INIT_BYTES (0x200):
+	 * UMD writes the pattern TWICE (2 x local_700 dwords, [MEASURED] r454);
+	 * r431-r454 wrote only half. */
 	{
 		u64 rva = ctx->vm_base_va +
 			(u64)MT_TA_RGNHEADER_BO_SLOT * MT_RENDER_CONTEXT_VA_STRIDE;
 		struct mt_vm_binding rbinding;
-		u32 rgn_alloc = PAGE_ALIGN(MT_TA_RGNHEADER_BYTES);
-		/* Stack init pattern: 0x100B, each dword = 0x00000001
+		u32 rgn_alloc = PAGE_ALIGN(MT_TA_RGNHEADER_INIT_BYTES);
+		/* Stack init pattern: 0x200 bytes (r455: doubled from 0x100;
+		 * also fixed the stray trailing-B typo in the old size),
+		 * each dword = 0x00000001
 		 * (InitRegionHeaderBuffer writes integer 1 per dword,
-		 * [MEASURED] r433, corrects r431). */
-		u8 rgn_init[MT_TA_RGNHEADER_BYTES];
+		 * [MEASURED] r433, corrects r431; double-loop quantity
+		 * [MEASURED] r454). */
+		u8 rgn_init[MT_TA_RGNHEADER_INIT_BYTES];
 		u32 *rgn_dw = (u32 *)rgn_init;
 
-		/* Per-dword integer 1 -- not all-bits 1 (r433 corrects r431). */
-		for (i = 0; i < MT_TA_RGNHEADER_BYTES / sizeof(u32); i++)
+		/* Per-dword integer 1 -- not all-bits 1 (r433 corrects r431).
+		 * Single loop over 128 dwords == UMD's two contiguous loops
+		 * (same advancing pointer, [MEASURED] r454). */
+		for (i = 0; i < MT_TA_RGNHEADER_INIT_BYTES / sizeof(u32); i++)
 			rgn_dw[i] = MT_TA_RGNHEADER_INIT_DWORD;
 		ret = mt_bo_create(&ctx->rgnheader_bo, d->buffers.ops, &d->buffers,
 				   rgn_alloc, PAGE_SIZE);
@@ -4277,7 +4285,7 @@ static int mt_render_context_create(struct mt_pvr_file *file,
 			goto out_rollback;
 		}
 		ret = pvr_translator_bo_write(d, &ctx->rgnheader_bo, 0,
-					      rgn_init, MT_TA_RGNHEADER_BYTES);
+					      rgn_init, MT_TA_RGNHEADER_INIT_BYTES);
 		if (ret) {
 			pr_err("mt_pvr_bridge: r431: rgnheader BO write failed: %d\n",
 			       ret);

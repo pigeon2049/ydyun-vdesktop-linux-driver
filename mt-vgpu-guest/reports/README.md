@@ -423,3 +423,5 @@ r435-cold-reboot-not-done-stop.md |
 | r453-ta-cmd-bridge-params-rgnheader-root-cause.md |
 | r454 | UMD RgnHeader 双循环初始化（离线）：UMD 做两次循环写 1s（2xlocal_700 dwords），我方只做一次（64 dwords），初始化量仅 UMD 一半 [MEASURED]；r453"未填真实数据"假说被证伪——1s 即完整初始化；0x100B 系 r430 笔误，0x100 定义正确 |
 | r454-rgnheader-double-init-half-filled.md |
+| r455 | RgnHeader 双循环初始化实现（离线）：新增 MT_TA_RGNHEADER_INIT_BYTES=2xBYTES(0x200U)（选项A精炼版，逻辑尺寸0x100U不变）；bridge 四处改用 INIT_BYTES（alloc/栈缓冲/循环/写，64→128 dwords）；C 新增1测试+更新1测试，Python 新增9测试；反向验证8/9精确FAIL；门禁598+851全绿，W=1零警告 |
+| r455-rgnheader-double-init-implemented.md |

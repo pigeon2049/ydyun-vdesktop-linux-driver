@@ -1,5 +1,3 @@
-EXIT:0
-EXIT:0
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
 > **本文件只保留最新过程记录。**
@@ -81,6 +79,23 @@ EXIT:0
 > r451 轮按 §4 清理：r448 节已移入归档。
 > r453 轮按 §4 清理：r449 节已移入归档。
 
+## r455 (2026-10-09): RgnHeader 双循环初始化已实现——128 dwords 对齐 UMD（离线）
+
+- **选项决策**：采用"选项 A 精炼版"——保留 `MT_TA_RGNHEADER_BYTES=0x100U`（逻辑尺寸，
+  `mt_ta_rgnheader_size(64,64)==MT_TA_RGNHEADER_BYTES` 不变量不受影响），新增
+  `MT_TA_RGNHEADER_INIT_BYTES=(2U*MT_TA_RGNHEADER_BYTES)`（0x200U）。UMD 两次循环写向
+  同一 advancing pointer（连续内存），单循环写 128 dwords 功能等价。
+- **实现**：`kernel/mt_ta_real.h` 新增 INIT_BYTES define（附 r454 注释）；
+  `kernel/recovery/mt_pvr_bridge.c` 四处改用 INIT_BYTES（alloc/栈缓冲/填充循环/BO 写，
+  64→128 dwords）；附带修复 `"0x100B"` 注释笔误。
+- **测试**：C 新增 `test_ta_rgnheader_init_bytes` + 更新 `test_ta_rgnheader_init_pattern`；
+  Python 新增 `tests/guest/test_rgnheader_double_init.py`（9 tests：define 关系/bridge 四处/旧模式清除）。
+- **反向验证**：回退 kernel 后 8/9 精确 FAIL（第 9 个验证逻辑尺寸不变，旧代码本就通过）；
+  恢复后 9/9 通过。
+- **门禁**：`check-offline` 598 Python + C 全绿（851 checks）；`make kernel` W=1 零警告。
+- 纯离线轮，零硬件触碰。下一步 r456（待第 15 次冷重启）：trial + 128-dword RgnHeader 活体。
+- 报告：mt-vgpu-guest/reports/r455-rgnheader-double-init-implemented.md
+
 ## r454 (2026-10-09): UMD RgnHeader 双循环初始化——我方只写了一半（离线）
 
 - **UMD 初始化 [MEASURED]**：`InitRegionHeaderBuffer` 做**两次**循环，每次写 `local_700` 个 dword 的 `1`，
@@ -98,30 +113,3 @@ EXIT:0
 - 纯离线轮，零硬件触碰，无生产代码变更。
 - 报告：mt-vgpu-guest/reports/r454-rgnheader-double-init-half-filled.md
 
-## r453 (2026-10-09): TA 命令流与 Bridge 参数检查——最可能根因是未填充的 RgnHeader（离线）
-
-- **TA 命令流 [MEASURED]**：UMD 的 TA 命令就是 360B header 本体，无追加命令
-  (`-(uint)(lVar23 != 0) & 0x168`，RGXSubmitTA)；我方 header-only 与 UMD 一致，TA 命令流不是问题。
-- **Bridge 参数**：我方 `mt_ta_submit_real` 仅设最小集（ta_cmd_va/size, kick_flags=0,
-  upd/fence count=0）；真实 UMD kick 含大量同步原语与 RT dataset，但系刻意最小化测试，
-  非 hang 主因 [INFERRED 中置信]。
-- **固件包 opcode [MEASURED]**：我方 0x66 来自 work-queue 命名空间（mt_work_opcode），
-  真实 KCCB KICK = `0x2ABC0065` (101|magic)，数据为 `RGXFWIF_KCCB_CMD_KICK_DATA`（含 psContext）；
-  我方 0x66 = 102 = MMUCACHE 命令号（无 magic）。"MEASURED" 的包布局 (VA@+0x28/size@+0x30)
-  其证据 r414 已被 r425 证伪（"无工作"快路径），从未在真实 TA 下验证。
-- **最可能根因 [INFERRED 高置信]**：固件在读 header（零=快路径完成，非零=尝试执行→hang）；
-  我们的 header 声明"有 TA 工作"但 RgnHeader (0x7c000000) 只是 dword 1s 初始化值、
-  从未填入有效 region 数据（UMD `InitRegionHeaderBuffer` 后会填真实数据）；
-  固件解析垃圾 region header 时 hang。
-- 下一步 P0：研究 UMD 在初始化后填入 RgnHeader 的真实内容，最小有效 region header 格式。
-- 纯离线轮，零硬件触碰，无生产代码变更。
-- 报告：mt-vgpu-guest/reports/r453-ta-cmd-bridge-params-rgnheader-root-cause.md
-
-## r452 (2026-10-09): DDK psKickTA flags 深度分析——+0x68 语义与 +0x120 逐位含义（离线）
-
-- **+0x68 = ((flags & 3) == 3)** [MEASURED]：bit0 与 bit1 全置才写 1；DDK 位定义 [UNKNOWN]（专有 DDK）；单 RT 纯 TA 下真实值很可能为 0 [INFERRED 低置信]，不建议盲试。
-- **+0x120 11-bit 完整语义表**：DDK 源 bit 位置 [MEASURED]；bit0=1 [INFERRED 高置信]；其余十位 DDK 取值 [UNKNOWN]；`0x1` 充分性 [UNCONFIRMED]。
-- **Early-out bit4+bit5** [MEASURED]：全置时跳过 Header 写入；语义 [INFERRED 中置信] 为"无 TA 工作"。
-- **超时根因仍未知**：r451 已证实 13 BO 绑定、context READY 但固件无响应；可能需检查 TA 命令流或 Bridge 参数。
-- 纯离线轮，零硬件触碰，无生产代码变更。
-- 报告：mt-vgpu-guest/reports/r452-pskickta-flags-plus68-plus120.md
