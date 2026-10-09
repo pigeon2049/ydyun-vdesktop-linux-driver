@@ -45,7 +45,16 @@
 > r408 轮按 §4 清理：r406 节已移入归档。
 > r409 轮按 §4 清理：r407 节已移入归档。
 > r410 轮按 §4 清理：r408 节已移入归档。
+> r412 轮按 §4 清理：r410 节已移入归档。
 
+
+## r412 (2026-10-09): 真实 TA 活体——实现完成，trial 阻塞
+
+- 测试钩子 `pvr_cmd_ta_real_test`（桥 0x82:0xFE，未提交）：360B→BO[10]@4096（VM 已 seal，复用已映射 BO）→`mt_bridge_submit_ta_work` 真实路径（`MT_TA_REAL_PACKET=1` 测试构建）→等固件完成（0x100/超时/FAULT）。
+- 用户态 `ta_real_test3`：INIT(2)→Connect→Create(0x12)→Test(0xFE)。
+- **活体阻塞**：`pvr_session_acquire` 要求 `trial.pinned && trial.connected`；当前 trial 未建立。原版桥同样失败（`git stash` 验证），非本轮所致。r407 观察器不需要 trial 故当时未暴露。
+- 编译零警告；pre-live T1/T2/T3 全过；无 oops/WARN/hang；测试修改已 revert（未提交）。
+- 下一步 P0：诊断 trial 重建（probe 流程；可能需用户冷重启）。
 
 ## r411 (2026-10-09): 真实 TA 包构造基础设施（离线）
 
@@ -55,24 +64,4 @@
 - 360B DMA/VA 映射未实现（需生产路径改动，独立前置）。
 - 门禁 480+299 全绿，`make kernel` W=1 零警告（门控开/关双验证）；反向验证通过（门控篡改→FAIL）。
 - 纯离线，零硬件触碰；门控关闭零行为变更。本地提交未 push。
-
-## r410 (2026-10-09): Windows 驱动挖掘——TA ISA 字段语义（离线）
-
-**Windows 驱动**：/opt/MTT-driver-only/ 为纯二进制（24 DLL/SYS，无头文件/文档）；TA ISA 语义来自 Linux UMD 反汇编。
-
-**TA 缓冲字段语义**（FUN_00169240，decompiled.c:43159）：40B（5 qwords）简单条目 / 72B（9 qwords）复杂条目；render_ctx+0xb6 指针推进。
-- Q0 (local_90)：地址/标志，uVar16 位打包；或 0x48000000000 标志
-- Q1 (uStack_88)：*(param_1+0x10)；byte7 标志位
-- Q2 (local_80)：打包维度 ((w-1)&0x7fff)<<0x29 | ((h-1)&0x7fff)<<0x1a
-- Q3 (uStack_78)：*(lVar29+8)；byte6 标志位
-- Q4 (local_70)：维度乘积或打包维度
-- Q5-Q8（复杂）：scissor/viewport 坐标打包
-
-**RGXPrepareTA 回读验证**：psKickTA 字段从缓冲偏移 0x10/0x18/0x20/0x28/0x30/0x38/0x40/0x48/0x60 读取，确认布局。
-
-**Linux 桥差异**：当前仅发 80B marker；缺 360B VA/size/DMA 映射/条目构造/psKickTA 结构。
-
-**前置条件**：P1 确认固件包布局 + DMA 映射；P2 最小条目构造；P3 回读验证（可选）。
-
-报告 mt-vgpu-guest/reports/r410-windows-ta-isa.md。
 
