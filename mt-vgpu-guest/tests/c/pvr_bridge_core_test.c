@@ -565,8 +565,10 @@ static int test_ta_entry_simple_build_validation(void)
 
 static int test_ta_entry_q0_flag_or(void)
 {
-	/* r417: Q0 = va | 0x48000000000 ([INFERRED] flag bits, r410/r416).
-	 * The OR preserves address bits and is idempotent on the flags. */
+	/* r419 corrected (r417 was wrong): Q0 is flags-only
+	 * (FUN_00169240:44213/44317); the 48-bit target VA goes in Q1
+	 * (uStack_88._0_6_=*(param_1+0x10), decompiled.c:44300).
+	 * r418 OR-ed VA into Q0 and firmware timed out. */
 	struct mt_ta_entry_simple e;
 
 	/* NULL entry: no crash. */
@@ -575,18 +577,19 @@ static int test_ta_entry_q0_flag_or(void)
 	CHECK(mt_ta_entry_simple_build(&e, 64, 64) == 0);
 	mt_ta_entry_simple_set_target(&e, 0);
 	CHECK(e.q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
+	CHECK(e.q1 == 0);
 
 	mt_ta_entry_simple_set_target(&e, 0x7a001000ULL);
-	CHECK(e.q0_addr_flags == (0x7a001000ULL | MT_TA_ENTRY_Q0_FLAG_BITS));
-	/* Low 32 address bits survive the OR untouched. */
-	CHECK((e.q0_addr_flags & 0xffffffffULL) == 0x7a001000ULL);
-
-	/* Flag bits already set: idempotent. */
-	mt_ta_entry_simple_set_target(&e, MT_TA_ENTRY_Q0_FLAG_BITS);
 	CHECK(e.q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
+	CHECK(e.q1 == (0x7a001000ULL & 0xFFFFFFFFFFFFULL));
+	/* Q0 carries no address bits. */
+	CHECK((e.q0_addr_flags & 0xffffffffULL) == 0);
 
-	/* The constant touches only bits 39 and 42: it cannot pollute
-	 * low address bits. */
+	/* 48-bit masking: bits above 48 are dropped. */
+	mt_ta_entry_simple_set_target(&e, 0x1AB007a001000ULL);
+	CHECK(e.q1 == 0xAB007a001000ULL);
+
+	/* The constant touches only bits 39 and 42. */
 	CHECK((MT_TA_ENTRY_Q0_FLAG_BITS & 0xffffffffULL) == 0);
 	CHECK(MT_TA_ENTRY_Q0_FLAG_BITS == ((1ULL << 42) | (1ULL << 39)));
 	return 0;
@@ -615,19 +618,22 @@ static int test_ta_real_buffer_build_target(void)
 	CHECK(e0->q0_addr_flags == 0);
 	CHECK(e0->q2_dims == (((u64)63 << 0x29) | ((u64)63 << 0x1a)));
 
-	/* target_va set: va|flag on every entry; tail zeroed. */
+	/* r419: target_va set: Q0=flags-only, Q1=va on every entry; tail zeroed. */
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 2, 0x7a001000ULL) == 0);
 	e0 = (struct mt_ta_entry_simple *)(buf + 0);
 	e1 = (struct mt_ta_entry_simple *)(buf + MT_TA_ENTRY_SIMPLE_BYTES);
-	CHECK(e0->q0_addr_flags == (0x7a001000ULL | MT_TA_ENTRY_Q0_FLAG_BITS));
-	CHECK(e1->q0_addr_flags == (0x7a001000ULL | MT_TA_ENTRY_Q0_FLAG_BITS));
+	CHECK(e0->q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
+	CHECK(e0->q1 == 0x7a001000ULL);
+	CHECK(e1->q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
+	CHECK(e1->q1 == 0x7a001000ULL);
 	for (i = 2 * MT_TA_ENTRY_SIMPLE_BYTES; i < MT_TA_CMD_BUFFER_BYTES; i++)
 		CHECK(buf[i] == 0);
 
 	/* 9 entries exactly fill the 360B buffer. */
 	CHECK(mt_ta_real_buffer_build(buf, 64, 64, 9, 0x1000ULL) == 0);
 	e0 = (struct mt_ta_entry_simple *)(buf + 8 * MT_TA_ENTRY_SIMPLE_BYTES);
-	CHECK(e0->q0_addr_flags == (0x1000ULL | MT_TA_ENTRY_Q0_FLAG_BITS));
+	CHECK(e0->q0_addr_flags == MT_TA_ENTRY_Q0_FLAG_BITS);
+	CHECK(e0->q1 == 0x1000ULL);
 	return 0;
 }
 

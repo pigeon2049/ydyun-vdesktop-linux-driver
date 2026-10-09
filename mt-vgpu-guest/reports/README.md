@@ -351,3 +351,5 @@ r415-ta-real-path-productized.md |
 r417-readback-test-hardening.md |
 | r418 | 双门控回读活体（最高风险轮）：`mt-ta-readback` 真机单发——路径机械打通但暴露真实 ABI bug（`mt_pvr_ta_readback_in` 内核侧未 packed，24B vs userspace 20B，`pvr_in` 报 EINVAL；r416/r417 离线测试未捕获）；修复 1 行后 0xFD 全路径执行，`mt_ta_submit_real` 成功、fence 分配，但固件 5s 超时（ETIMEDOUT，submitted-but-ignored）；r414 同结构 TA（Q0=0）219µs 完成，本轮 Q0=`va\|0x48000000000`（[INFERRED]）后超时，Q0 编码很可能不对，不做盲探；12th target BO 活体绑定确认（0x7b000000）；pending TA fence 致 bridge ref=1，`safe_rmmod.sh` 正确拒绝，未强卸，待用户冷重启；门禁 522+625 全绿，kernel 零警告 |
 r418-ta-readback-live.md |
+| r419 | Q0 是纯 flags、地址在 Q1（离线反汇编）：FUN_00169240:44213 初始构造 `(sVar10<<4)<<48|(1<<61)` 无地址位；:44317 Path B `uVar15|(prev&mask)|0x48000000000` 纯 flags carry；Q1 低 48 位=`*(param_1+0x10)` 才是目标地址（:44300/44321）；r418 把 VA OR 进 Q0 污染 flags 致固件超时，r414 Q0=0 则 219us 成功；修正 `mt_ta_entry_simple_set_target()`：Q0=flags only、Q1=va&0xFFFFFFFFFFFF；r417 的 C 测试 2 处断言同步修正；门禁全绿，kernel 零警告 |
+r419-q0-is-flags-address-in-q1.md |

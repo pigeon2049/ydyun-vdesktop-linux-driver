@@ -116,19 +116,23 @@ static inline int mt_ta_entry_simple_build(struct mt_ta_entry_simple *e,
 /* Maximum 40B entries that fit in the 360B buffer (9*40=360). */
 #define MT_TA_REAL_MAX_ENTRIES 9U
 
-/* [INFERRED] (r410, FUN_00169240:44293): Q0 flag bits ORed with the target
- * address: `uVar15 | uVar17 & 0xfff8001f9fffffff | 0x48000000000`.
- * The constant 0x48000000000 is the stable flag component.
- * TO-VALIDATE on live hardware (r416 T2). */
+/* r419 corrected (r410 was wrong): Q0 is flags-only. The OR expression
+ * carries forward prev-entry flags; it never ORs in an address.
+ * The 48-bit target VA lives in Q1 (decompiled.c:44300).
+ * Constant 0x48000000000 = bits 39,42. [MEASURED] */
 #define MT_TA_ENTRY_Q0_FLAG_BITS 0x48000000000ULL
 
-/* Set TA entry Q0 to render target VA + flag bits (r416 T2).
- * [INFERRED]: address masking unknown; simple OR. TO-VALIDATE. */
+/* r419: set TA entry target. Q0 is flags-only (FUN_00169240:44213/44317);
+ * the 48-bit target VA goes in Q1 (uStack_88._0_6_=*(param_1+0x10),
+ * decompiled.c:44300). r418 OR-ed VA into Q0 and firmware timed out. */
 static inline void mt_ta_entry_simple_set_target(struct mt_ta_entry_simple *e,
 						 u64 target_va)
 {
-	if (e)
-		e->q0_addr_flags = target_va | MT_TA_ENTRY_Q0_FLAG_BITS;
+	if (e) {
+		/* r419: Q0 flags-only; addr in Q1 (decompiled.c:44300). */
+		e->q0_addr_flags = MT_TA_ENTRY_Q0_FLAG_BITS;
+		e->q1 = target_va & 0xFFFFFFFFFFFFULL;
+	}
 }
 
 /* r416: T2 render target (12th BO, outside the 11-BO spec array).
