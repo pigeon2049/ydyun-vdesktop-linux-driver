@@ -357,3 +357,5 @@ r419-q0-is-flags-address-in-q1.md |
 r420-q0-q1-test-hardening-t4-gate.md |
 | r421 | Q0 修正后活体（最高风险轮）：双门控测试构建（事后 revert），pre-live T1-T4 全过；冷重启后 trial 重建成功；mt-ta-readback 全链路执行，12th target BO（0x7b000000）绑定成功；0xFD 提交（Q0=0x48000000000 flags-only [MEASURED]，Q1=0x7b000000 [INFERRED]）→ fence 分配 → 固件 5s 超时（ETIMEDOUT，submitted-but-ignored）；对比 r414（Q0=0/Q1=0，219us 完成）：Q0 污染不是唯一超时原因，Q1=target_va 未能提升为 [MEASURED]；pending fence 致 bridge ref=1，safe_rmmod.sh 正确拒绝，待用户冷重启；dmesg 干净；门禁 543+630 全绿，kernel 零警告 |
 r421-q0-corrected-still-timeout.md |
+| r422 | TA 缓冲 Header+Entries 双区结构定位 r421 超时根因（离线反汇编）：RGXSubmitTA 从 TA_buf+0x10/0x18/0x20/0x28/0x30/0x38/0x40/0x48/0x60 回读 9 qword 到 psKickTA（decompiled.c:54365 [MEASURED]）；RGXPrepareTA 写 Header 覆盖 0x00-0x160；我方代码把 40B Entry 写在 buf+0x00，Q2/Q3/Q4 恰好覆盖 Header 的 0x10/0x18/0x20，导致固件解析垃圾 Header 挂起；r414 全零=空工作故成功；Q1=target_va 未被证伪但 Entry 位置错误是更直接原因；r423 前置：确定 Entries 真实容器（544B 缓冲？）或 Header-only 测试方案 |
+r422-ta-buffer-header-vs-entries.md |
