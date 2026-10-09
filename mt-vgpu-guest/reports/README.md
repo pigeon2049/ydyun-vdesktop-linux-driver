@@ -425,3 +425,5 @@ r435-cold-reboot-not-done-stop.md |
 | r454-rgnheader-double-init-half-filled.md |
 | r455 | RgnHeader 双循环初始化实现（离线）：新增 MT_TA_RGNHEADER_INIT_BYTES=2xBYTES(0x200U)（选项A精炼版，逻辑尺寸0x100U不变）；bridge 四处改用 INIT_BYTES（alloc/栈缓冲/循环/写，64→128 dwords）；C 新增1测试+更新1测试，Python 新增9测试；反向验证8/9精确FAIL；门禁598+851全绿，W=1零警告 |
 | r455-rgnheader-double-init-implemented.md |
+| r456 | 128dwords RgnHeader live still 5s timeout: r455 double-loop init aligned to UMD, trial OK, 13 BOs bound, context READY, firmware unresponsive; r454 quantity hypothesis falsified by live; RgnHeader direction exhausted; bridge ref=1 pending reboot |
+| r456-128dwords-still-timeout-falsified.md |

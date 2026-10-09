@@ -78,6 +78,18 @@
 
 > r451 轮按 §4 清理：r448 节已移入归档。
 > r453 轮按 §4 清理：r449 节已移入归档。
+> r456 轮按 §4 清理：r454 节已移入归档。
+
+## r456 (2026-10-09): 128 dwords RgnHeader 活体仍 5s 超时——r454"量不足"假说被证伪（第 15 次冷重启）
+
+- **系统**：第 15 次冷重启（uptime 0 min），模块干净，HEAD `c1ca88b`（r455）。
+- **Trial**：`fresh-trial.py --run --runtime-context` 成功（result=0, pinned=1, runtime_context_published=true）。
+- **双门控**：`MT_TA_REAL_PACKET=1` + `MT_TA_READBACK_DEBUG=1`（static_assert 临时中和），userspace n_entries 1→0；`make kernel` W=1 零警告；门禁 596/598 通过（2 个 gate_default_off 预期失败）；构建后已 revert。
+- **活体**：`mt-ta-readback /dev/dri/card1` → `check failed line 161: 0 errno=110`（ETIMEDOUT）；13 BO 绑定（RgnHeader at 0x7c000000），render context READY，固件无响应。
+- **证伪**：r454"初始化量不足"假说被活体证伪。r453–r456 假说链：r453"未填真实数据"→r454 证伪；r454"量不足一半"→r456 证伪。**RgnHeader 方向已穷尽**。
+- **安全**：bridge ref=1（pending TA fence，r440/r451 同模式），按协议停止未卸载；dmesg 零 WARN/BUG/Oops；未用 `rmmod -f`；未自行重启。
+- 下一步：P0 用户第 16 次冷重启；P1 候选方向为 0x50B 包 opcode（0x66 vs 0x2ABC0065）[TO-VALIDATE] 或 Bridge 参数缺失；不建议继续 RgnHeader。
+- 报告：mt-vgpu-guest/reports/r456-128dwords-still-timeout-falsified.md
 
 ## r455 (2026-10-09): RgnHeader 双循环初始化已实现——128 dwords 对齐 UMD（离线）
 
@@ -95,21 +107,4 @@
 - **门禁**：`check-offline` 598 Python + C 全绿（851 checks）；`make kernel` W=1 零警告。
 - 纯离线轮，零硬件触碰。下一步 r456（待第 15 次冷重启）：trial + 128-dword RgnHeader 活体。
 - 报告：mt-vgpu-guest/reports/r455-rgnheader-double-init-implemented.md
-
-## r454 (2026-10-09): UMD RgnHeader 双循环初始化——我方只写了一半（离线）
-
-- **UMD 初始化 [MEASURED]**：`InitRegionHeaderBuffer` 做**两次**循环，每次写 `local_700` 个 dword 的 `1`，
-  总计 2xlocal_700 dwords（反汇编 decompiled.c:49330-49338、49560-49568）。
-- **我方初始化 [MEASURED]**：`mt_pvr_bridge.c:4271-4272` 只做一次循环，写 64 dwords。
-- **差异**：我方初始化量仅为 UMD 的 **50%**。
-- **r453 假说被证伪**：`InitRegionHeaderBuffer` 的两个 1s 循环后直接 unmap，
-  **没有任何额外的数据写入**——1s 就是完整的初始化，不存在"未填充的真实数据"。
-  修正后根因：**初始化量不足**，不是"未填充"。
-- **0x100B 澄清**：r430 的 "0x100B" 系笔误；`mt_ta_real.h:120` 注释 "4 tiles * 0x40 = 0x100"
-  数学正确，`MT_TA_RGNHEADER_BYTES = 0x100U` 定义正确。
-- **双循环用途 [UNKNOWN]**：可能是双缓冲（ping-pong）或单个大 buffer，需进一步确认，
-  但"量不足"结论不受影响。
-- 下一步 r455 P0：将填充量从 64 dwords 增加到 128 dwords。
-- 纯离线轮，零硬件触碰，无生产代码变更。
-- 报告：mt-vgpu-guest/reports/r454-rgnheader-double-init-half-filled.md
 
