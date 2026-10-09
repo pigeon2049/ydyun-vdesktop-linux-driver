@@ -36,12 +36,34 @@
 > r394 轮按 §4 清理：r391、r392 节已移入归档。
 > r395 轮按 §4 清理：r393 节已移入归档。
 > r396 轮按 §4 清理：r394 节已移入归档。
+> r398 轮按 §4 清理：r395 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 
 
 
 
 
+
+## r398 (2026-10-09): R5 Phase 2 完成——per-file VM 回退删除（离线）
+
+**删除**：`file->ta_vm_ctx` 字段、前向声明、`pvr_file_release` 销毁块、r376
+注释+defines、`mt_bridge_ta_vm_create/destroy`（synthetic BO）、`mt_ta_vm.h`
+引入与头文件、两死亡测试。保留 `struct mt_bridge_ta_vm`（per-context 载体）。
+
+**Kick 变更**：无有效 render_ctx（`resources_ready`+`vm`）时直接 `-EINVAL`
+（`pvr_session_acquire` 之前，无锁）；有则对 `&rctx->vm->vm` 做 V2 空绑定。
+删除 throwaway `kzalloc` 分支与 `use_real_ctx`；`ctx=&rctx->exec_ctx_ta`
+恒为借用，删除两处条件 `kfree`。
+
+**测试**：`test_kick_render_ctx`（fallback→`test_rejects_without_live_render_ctx`
+断言 `-EINVAL`）、`test_probe_ta_vm`（Phase 2 语义）、`test_ta_kick_ctx_release`
+（语义反转：借用 ctx 不得 kfree）、`test_ta_completion_path`（锚点改
+`dma_fence_put`）。删除两死亡测试文件。
+
+**门禁**：474+299 全绿；`make kernel` W=1 零警告；反向验证（注入旧引用→FAIL，
+还原→全绿）。零硬件触碰；运行中 bridge 仍为 r397 构建，下次重载生效。
+
+报告 reports/r398-per-file-vm-removed.md。
 
 ## r397 (2026-10-09): render_ctx 双执行上下文落地，kick 传真实 ctx（活体验证）
 
@@ -74,17 +96,3 @@ node_type=2 固件语义、in-flight destroy 待验证。
 **待验证**：node_type=2 固件语义；in-flight destroy（-EBUSY 诚实失败 vs 排空）；CSW 的 TA/3D 共用。
 
 报告 reports/r396-exec-ctx-kick-design.md。
-
-## r395 (2026-10-08): 安全网首个实战检验——pre-live 门禁全绿 + TA 回归双 kick 通过（活体）
-
-**背景**：r394 落地的 T1/T2/T3 安全测试首次作为 pre-live 门禁执行。用户要求真机调试前必须跑安全门禁。
-
-**门禁**：check-offline 472+299 全绿（含 9 个新安全测试）；scripts/safe_rmmod.sh 存在且可执行（0755，refcount 守卫）；T1（VM 完整性）/T2（opcode 白名单，(3,0x66) 钉死 DM3）/T3（卸载安全）全部通过；pre-live 清单 5 条逐项核对。
-
-**活体**：两次真实 0x82:0xC TA-only kick（r377 既证 harness：INIT module=2 + bridge 0xc0206440，IN kick_ta=1@188）。ioctl 均返回 0，OUT.error=0，OUT.update_fence=4/5 与 dmesg submitted wire=4/5 精确匹配；零 "completion timeout"（0x100 完成事件到达，走 mt_marker_complete_ta 正常退休）；dmesg 零 WARN/BUG/Oops；refs 不变（bridge 0 / probe 13 基线）。
-
-**安全合规**：本轮零模块操作（未重载、未卸载、未重启）；rmmod -f 零出现；timeout 未使用；两次 kick 串行。
-
-**诚实边界**：marker 级 TA 路径（零绘制）；两次 kick 均走 per-file 回退（ctx=0x0），per-context 路径已在 r391 V3 验证；probe ref=13 基线含 r389 旧泄漏，本轮 delta 为 0。
-
-报告 reports/r395-safety-net-first-live-test.md，证据 reports/r395-dmesg-ta-regression.txt。

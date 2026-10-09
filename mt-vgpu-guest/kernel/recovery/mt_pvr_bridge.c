@@ -44,7 +44,6 @@
 #include "../mt_gfx_context_data.h"
 #include "../mt_mmu.h"
 #include "../mt_guest_device.h"
-#include "../mt_ta_vm.h"
 #include "../mt_render_context.h"
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
@@ -351,9 +350,6 @@ struct mt_pvr_file {
 	struct mt_bo gpu_tables;
 	void *gpu_vm_storage;
 	bool gpu_vm_ready;
-	/* Per-file TA VM context (R5, r375). NULL until first TA submit;
-	 * destroyed on file close. Gate MT_TA_VM_READY stays closed in r375. */
-	struct mt_bridge_ta_vm *ta_vm_ctx;
 	/* Per-file PMR backing arena (r55 answer to byte-tight PMRs). PMR
 	 * bytes live at arena_base + arena_offset so VA-neighbor ranges can
 	 * share physical pages once the plan binds per-page cover sets.
@@ -890,8 +886,6 @@ static void pvr_pmr_dma_release(struct mt_pvr_pmr *pmr)
 
 
 struct mt_bridge_ta_vm;
-static struct mt_bridge_ta_vm *mt_bridge_ta_vm_create(void);
-static void mt_bridge_ta_vm_destroy(struct mt_bridge_ta_vm *tvm);
 
 /* r390: forward decl for R6-3 destroy (defined after mt_render_context_vm_destroy). */
 static void mt_render_context_destroy(struct mt_pvr_render_context *ctx);
@@ -903,13 +897,6 @@ static void pvr_file_release(struct kref *kref)
 	struct mt_pvr_object *obj, *otmp;
 	struct mt_pvr_binding *binding, *btmp;
 	int ret;
-
-	/* R5: destroy per-file TA VM context (r375). In-flight markers must
-	 * have completed (abandon path) before file close. */
-	if (file->ta_vm_ctx) {
-		mt_bridge_ta_vm_destroy(file->ta_vm_ctx);
-		file->ta_vm_ctx = NULL;
-	}
 
 	/* Drop the list's reference rather than freeing outright, so the
 	 * refcount path stays uniform. Nothing can be holding another reference
@@ -3999,14 +3986,6 @@ static void pvr_ta_abandon(struct mt_guest *g, struct mt_marker_store *s,
  * (the op manages s->lock internally and the caller must not hold it).
  * Never touches mt_guest_probe (session acquired read-only via
  * pvr_session_acquire). */
-/* r376: Bridge-side TA VM with proper mt_gpu_vm_init().
- * Uses synthetic page-table BO (NOT borrowed), following the proven
- * 3D pattern (pvr_gpu_vm_ensure at mt_pvr_bridge.c:451).
- */
-
-#define MT_BRIDGE_TA_VM_PT_PAGES  4
-#define MT_BRIDGE_TA_VM_PT_BYTES  (MT_BRIDGE_TA_VM_PT_PAGES * 4096)
-
 struct mt_bridge_ta_vm {
 	struct mt_gpu_vm vm;
 	struct mt_bo tables;	/* Synthetic; page_pa==NULL per init. */
@@ -4015,75 +3994,11 @@ struct mt_bridge_ta_vm {
 	void *scratch;
 };
 
-static struct mt_bridge_ta_vm *mt_bridge_ta_vm_create(void)
-{
-	struct mt_bridge_ta_vm *tvm;
-	u64 pt_pa;
-	int ret;
-
-	tvm = kzalloc(sizeof(*tvm), GFP_KERNEL);
-	if (!tvm)
-		return NULL;
-
-	tvm->pt_pages = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO,
-						 get_order(MT_BRIDGE_TA_VM_PT_BYTES));
-	if (!tvm->pt_pages)
-		goto fail_tvm;
-	pt_pa = page_to_phys(virt_to_page(tvm->pt_pages));
-
-	tvm->image = kvzalloc(MT_BRIDGE_TA_VM_PT_BYTES, GFP_KERNEL);
-	if (!tvm->image)
-		goto fail_pages;
-	tvm->scratch = kvzalloc(MT_BRIDGE_TA_VM_PT_BYTES, GFP_KERNEL);
-	if (!tvm->scratch)
-		goto fail_image;
-
-	/* Synthetic BO: gpu_pa set, page_pa==NULL. Satisfies init. */
-	tvm->tables = (struct mt_bo){
-		.backing = {.gpu_pa = pt_pa, .bytes = MT_BRIDGE_TA_VM_PT_BYTES},
-		.ops = &pvr_gpu_plan_bo_ops,
-		.requested_bytes = MT_BRIDGE_TA_VM_PT_BYTES,
-		.refs = 1,
-	};
-
-	/* PROPER init (not manual assembly). */
-	ret = mt_gpu_vm_init(&tvm->vm, &tvm->tables, tvm->image, tvm->scratch,
-			     MT_BRIDGE_TA_VM_PT_BYTES);
-	if (ret)
-		goto fail_scratch;
-
-	mt_bo_put(&tvm->tables); /* VM holds reference. */
-	return tvm;
-
-fail_scratch:
-	kvfree(tvm->scratch);
-fail_image:
-	kvfree(tvm->image);
-fail_pages:
-	free_pages((unsigned long)tvm->pt_pages,
-		   get_order(MT_BRIDGE_TA_VM_PT_BYTES));
-fail_tvm:
-	kfree(tvm);
-	return NULL;
-}
-
-static void mt_bridge_ta_vm_destroy(struct mt_bridge_ta_vm *tvm)
-{
-	if (!tvm)
-		return;
-	mt_gpu_vm_fini(&tvm->vm);
-	kvfree(tvm->scratch);
-	kvfree(tvm->image);
-	free_pages((unsigned long)tvm->pt_pages,
-		   get_order(MT_BRIDGE_TA_VM_PT_BYTES));
-	kfree(tvm);
-}
-
 /* r389: Per-context VM with d->buffers-backed page tables (R6 Route A).
- * Unlike mt_bridge_ta_vm_create() (synthetic tables BO with pvr_gpu_plan_bo_ops),
- * this allocates the page-table BO from d->buffers so that mt_gpu_vm_bind_many()
+ * The page-table BO is allocated from d->buffers so that mt_gpu_vm_bind_many()
  * accepts real BOs (store+ops must match: bo->store == vm->tables->store).
  * The caller must keep pt_bo alive (stored in ctx) until VM destroy.
+ * (r398: the R5 per-file VM helper was removed; this is the only VM creator.)
  */
 /* 64KB page tables: comfortably holds 11 BO ranges + headroom (r389 V1). */
 #define MT_RENDER_CTX_PT_BYTES (64U * 1024U)
@@ -4368,7 +4283,6 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	struct mt_ta_work work;
 	struct mt_execution_context *ctx;
 	struct mt_pvr_render_context *rctx = NULL;
-	bool use_real_ctx = false;
 	struct dma_fence *fence = NULL;
 	struct mt_guest *g;
 	struct mt_guest_device *d;
@@ -4401,50 +4315,34 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 		return -EOPNOTSUPP;
 	}
 
-	/* r391 R6-4: resolve render context for kick. If h_render_context
-	 * names a live MT_PVR_KIND_CONTEXT object whose render_ctx is
-	 * resources_ready, the kick uses the per-context VM (V3 isolation);
-	 * otherwise it falls back to the per-file VM (Phase 1, protects the
-	 * marker path). The TA marker op requires route.dm == MT_FW_DM_TA,
-	 * while render_ctx->exec_ctx_3d is node_type 5 (DM 3D); real TA exec_ctx
-	 * submission uses exec_ctx_ta (r397 Phase 2). */
+	/* r398 Phase 2: per-file VM removed. The kick requires a live
+	 * MT_PVR_KIND_CONTEXT object whose render_ctx is resources_ready;
+	 * otherwise it is rejected (-EINVAL). The TA marker op requires
+	 * route.dm == MT_FW_DM_TA; submission uses rctx->exec_ctx_ta
+	 * (r397 Phase 2). */
 	{
 		struct mt_pvr_object *robj;
-		struct mt_bridge_ta_vm *kick_vm = NULL;
 
 		robj = pvr_object_find(file, in.h_render_context,
 					 MT_PVR_KIND_CONTEXT);
 		if (robj)
 			rctx = robj->render_ctx;
-		if (rctx && rctx->resources_ready && rctx->vm) {
-			pr_info("mt_pvr_bridge: r391: kick with render_ctx "
-				"vm_base_va=%#llx\n",
-				(unsigned long long)rctx->vm_base_va);
-			kick_vm = rctx->vm;
-		} else {
-			/* r376 V1: per-file TA VM via proper mt_gpu_vm_init()
-			 * (bridge-side). Fallback when no live render context. */
-			if (!file->ta_vm_ctx) {
-				file->ta_vm_ctx = mt_bridge_ta_vm_create();
-				if (file->ta_vm_ctx)
-					pr_info("mt_pvr_bridge: R5 V1: TA VM context created\n");
-				else
-					pr_info("mt_pvr_bridge: R5 V1: ctx create failed (non-fatal)\n");
-			}
-			kick_vm = file->ta_vm_ctx;
+		if (!(rctx && rctx->resources_ready && rctx->vm)) {
+			pr_info("mt_pvr_bridge: musakickgfx2: no live render_ctx "
+				"(r398 Phase 2, per-file VM removed) -> -EINVAL\n");
+			return -EINVAL;
 		}
-		/* r376 V2 / r391: bind validation on the selected VM.
-		 * Gate closed; marker continues. Tests bind with empty binding
-		 * (validates VM state, no oops). Real userspace mapping is
-		 * future work. */
-		if (kick_vm) {
-			ret = mt_gpu_vm_bind_many(&kick_vm->vm, NULL, 0);
-			/* bind_many with count=0 returns -EINVAL (expected);
-			 * oops would be BUG. */
-			pr_info("mt_pvr_bridge: r391 V2: bind empty ret=%d (expect -EINVAL, no oops)\n",
-				ret);
-			ret = 0;
-		}
+		pr_info("mt_pvr_bridge: r391: kick with render_ctx "
+			"vm_base_va=%#llx\n",
+			(unsigned long long)rctx->vm_base_va);
+		/* r391 V2: bind validation on the per-context VM.
+		 * Tests bind with empty binding (validates VM state, no oops). */
+		ret = mt_gpu_vm_bind_many(&rctx->vm->vm, NULL, 0);
+		/* bind_many with count=0 returns -EINVAL (expected);
+		 * oops would be BUG. */
+		pr_info("mt_pvr_bridge: r391 V2: bind empty ret=%d (expect -EINVAL, no oops)\n",
+			ret);
+		ret = 0;
 	}
 
 	g = pvr_session_acquire(&owner);
@@ -4459,24 +4357,13 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 		ret = -EBUSY;
 		goto out_unlock;
 	}
-	/* r397 Phase 2: with a live render context, submit under the
-	 * real TA execution context (node_type=2, route.dm==3). The
-	 * marker op takes no ownership (r368), so the kick borrows
-	 * the pointer; no kfree. Without a context, keep the
-	 * throwaway (r391 fallback). */
-	use_real_ctx = (rctx && rctx->resources_ready);
-	if (use_real_ctx) {
-		ctx = &rctx->exec_ctx_ta;
-		pr_info("mt_pvr_bridge: r397: kick with real exec_ctx_ta (dm=%u)\n",
-			ctx->route.dm);
-	} else {
-		ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
-		if (!ctx) {
-			ret = -ENOMEM;
-			goto out_unlock;
-		}
-		ctx->route.dm = MT_FW_DM_TA;
-	}
+	/* r397 Phase 2 (r398: rctx is guaranteed live, checked above):
+	 * submit under the real TA execution context (node_type=2,
+	 * route.dm==3). The marker op takes no ownership (r368), so the
+	 * kick borrows the pointer; no kfree. */
+	ctx = &rctx->exec_ctx_ta;
+	pr_info("mt_pvr_bridge: r397: kick with real exec_ctx_ta (dm=%u)\n",
+		ctx->route.dm);
 	memset(&work, 0, sizeof(work));
 	work.job.state = MT_JOB_HELD;
 	work.context = ctx;
@@ -4498,8 +4385,6 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	if (ret) {
 		pr_info("mt_pvr_bridge: musakickgfx2: submit_ta_work -> %d\n",
 			ret);
-		if (!use_real_ctx)
-			kfree(ctx);
 		return ret;
 	}
 
@@ -4509,10 +4394,8 @@ static int pvr_cmd_musakickgfx2(struct mt_pvr_file *file,
 	/* Marker-level: the op takes no context ownership (it clears
 	 * work->context and never assigns m->context -- r368 falsified the
 	 * r367 UAF claim). The dispatch-allocated ctx is therefore
-	 * unreferenced after the op returns; freeing it here is a clean
-	 * release, not a use-after-free. */
-	if (!use_real_ctx)
-		kfree(ctx);
+	 * unreferenced after the op returns. r398: ctx is borrowed from
+	 * the live render_ctx (no allocation), so nothing to free here. */
 
 	/* r370: production TA completion path (R2b). The frozen probe's
 	 * event drain rejects 0x100, so without this poll the marker hangs

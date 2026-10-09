@@ -76,9 +76,10 @@ class TestTaCompletionPath(unittest.TestCase):
                       'abandon must signal the fence')
 
     def test_dispatch_waits_for_completion(self):
-        # Success path: after kfree(ctx), before out.error = 0,
+        # Success path: after dma_fence_put(fence), before out.error = 0,
         # the dispatch must wait for TA completion (r370).
-        m = re.search(r'kfree\(ctx\);\s*(.*?)\s*out\.error\s*=\s*0;',
+        # (r398: kfree(ctx) removed; ctx is borrowed from render_ctx.)
+        m = re.search(r'dma_fence_put\(fence\);\s*(.*?)\s*out\.error\s*=\s*0;',
                       self.dispatch, re.S)
         self.assertIsNotNone(m, 'dispatch success path region not found')
         self.assertIn('pvr_ta_wait_complete', m.group(1),
@@ -86,7 +87,8 @@ class TestTaCompletionPath(unittest.TestCase):
                       '(else the marker hangs like r368 wire 6)')
 
     def test_dispatch_handles_timeout(self):
-        m = re.search(r'kfree\(ctx\);\s*(.*?)\s*out\.error\s*=\s*0;',
+        # (r398: kfree(ctx) removed; ctx is borrowed from render_ctx.)
+        m = re.search(r'dma_fence_put\(fence\);\s*(.*?)\s*out\.error\s*=\s*0;',
                       self.dispatch, re.S)
         self.assertIsNotNone(m, 'dispatch success path region not found')
         self.assertIn('pvr_ta_abandon', m.group(1),

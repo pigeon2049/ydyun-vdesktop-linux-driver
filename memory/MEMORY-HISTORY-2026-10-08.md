@@ -861,3 +861,16 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 
 报告 `reports/r394-live-safety-tests.md`。
 
+## r395 (2026-10-08): 安全网首个实战检验——pre-live 门禁全绿 + TA 回归双 kick 通过（活体）
+
+**背景**：r394 落地的 T1/T2/T3 安全测试首次作为 pre-live 门禁执行。用户要求真机调试前必须跑安全门禁。
+
+**门禁**：check-offline 472+299 全绿（含 9 个新安全测试）；scripts/safe_rmmod.sh 存在且可执行（0755，refcount 守卫）；T1（VM 完整性）/T2（opcode 白名单，(3,0x66) 钉死 DM3）/T3（卸载安全）全部通过；pre-live 清单 5 条逐项核对。
+
+**活体**：两次真实 0x82:0xC TA-only kick（r377 既证 harness：INIT module=2 + bridge 0xc0206440，IN kick_ta=1@188）。ioctl 均返回 0，OUT.error=0，OUT.update_fence=4/5 与 dmesg submitted wire=4/5 精确匹配；零 "completion timeout"（0x100 完成事件到达，走 mt_marker_complete_ta 正常退休）；dmesg 零 WARN/BUG/Oops；refs 不变（bridge 0 / probe 13 基线）。
+
+**安全合规**：本轮零模块操作（未重载、未卸载、未重启）；rmmod -f 零出现；timeout 未使用；两次 kick 串行。
+
+**诚实边界**：marker 级 TA 路径（零绘制）；两次 kick 均走 per-file 回退（ctx=0x0），per-context 路径已在 r391 V3 验证；probe ref=13 基线含 r389 旧泄漏，本轮 delta 为 0。
+
+报告 reports/r395-safety-net-first-live-test.md，证据 reports/r395-dmesg-ta-regression.txt。

@@ -11,9 +11,15 @@ def read(path):
 
 class TestR376(unittest.TestCase):
     def test_bridge_proper_init(self):
+        # r398 Phase 2: the R5 per-file synthetic VM is gone. The only
+        # VM creator left is the per-context one (r389), which still uses
+        # proper mt_gpu_vm_init().
         c = read(BRIDGE)
         self.assertRegex(c, r'mt_gpu_vm_init\(&tvm->vm')
-        self.assertIn('Synthetic BO', c)
+        self.assertNotIn('mt_bridge_ta_vm_create()', c,
+                         'R5 per-file VM creator remains')
+        self.assertNotIn('Synthetic BO', c,
+                         'R5 synthetic BO remains')
         self.assertNotIn('mt_ta_vm_impl', c)
 
     def test_no_probe_api_calls(self):

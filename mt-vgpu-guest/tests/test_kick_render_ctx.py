@@ -4,7 +4,8 @@
 Verifies via source inspection that pvr_cmd_musakickgfx2:
 1. Resolves h_render_context via pvr_object_find(..., MT_PVR_KIND_CONTEXT).
 2. Uses the per-context VM when render_ctx is resources_ready.
-3. Falls back to the per-file VM otherwise (Phase 1 marker protection).
+3. r398 Phase 2: rejects (-EINVAL) when no live render_ctx; the R5
+   per-file VM fallback is removed.
 4. Logs which VM path was taken (r391 marker).
 
 Reverse validation: removing the pvr_object_find call must fail.
@@ -44,25 +45,32 @@ class TestKickRenderCtx(unittest.TestCase):
         self.assertIsNotNone(body, "musakickgfx2 body not found")
         self.assertIn("rctx->resources_ready", body,
                       "resources_ready gate missing")
-        self.assertIn("kick_vm = rctx->vm", body,
+        # r398 Phase 2: binds rctx->vm directly; no kick_vm intermediate,
+        # no per-file fallback.
+        self.assertIn("mt_gpu_vm_bind_many(&rctx->vm->vm, NULL, 0)", body,
                       "per-context VM not selected")
         self.assertIn("r391: kick with render_ctx", body,
                       "r391 path log marker missing")
 
-    def test_falls_back_to_per_file(self):
+    def test_rejects_without_live_render_ctx(self):
+        # r398 Phase 2: per-file VM fallback removed. No live render_ctx
+        # (or not resources_ready / no vm) -> -EINVAL, no fallback.
         body = kick_body(read_bridge())
         self.assertIsNotNone(body, "musakickgfx2 body not found")
-        self.assertIn("kick_vm = file->ta_vm_ctx", body,
-                      "per-file fallback missing")
-        # Fallback still creates the per-file VM on demand (r376 V1).
-        self.assertIn("mt_bridge_ta_vm_create()", body,
-                      "per-file VM creation missing from fallback")
+        self.assertNotIn("file->ta_vm_ctx", body,
+                         "per-file VM reference remains (Phase 2 incomplete)")
+        self.assertNotIn("mt_bridge_ta_vm_create()", body,
+                         "per-file VM creation remains (Phase 2 incomplete)")
+        self.assertIn("return -EINVAL", body,
+                      "no-render_ctx -EINVAL rejection missing")
+        self.assertIn("r398 Phase 2", body,
+                      "r398 Phase 2 marker missing")
 
-    def test_bind_validation_on_selected_vm(self):
+    def test_bind_validation_on_per_context_vm(self):
         body = kick_body(read_bridge())
         self.assertIsNotNone(body, "musakickgfx2 body not found")
-        self.assertIn("mt_gpu_vm_bind_many(&kick_vm->vm, NULL, 0)", body,
-                      "V2 bind validation not run on selected VM")
+        self.assertIn("mt_gpu_vm_bind_many(&rctx->vm->vm, NULL, 0)", body,
+                      "V2 bind validation not run on per-context VM")
         self.assertIn("r391 V2: bind empty", body,
                       "r391 V2 log marker missing")
 
@@ -70,7 +78,7 @@ class TestKickRenderCtx(unittest.TestCase):
         # The test itself documents the reverse check: deleting the
         # pvr_object_find line breaks test_resolves_render_context.
         src = read_bridge()
-        self.assertIn("r391 R6-4", src, "r391 marker comment missing")
+        self.assertIn("r398 Phase 2", src, "r398 Phase 2 marker missing")
 
 
 if __name__ == "__main__":
