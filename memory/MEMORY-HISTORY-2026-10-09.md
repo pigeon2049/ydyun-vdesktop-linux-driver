@@ -1,5 +1,14 @@
 # MEMORY-HISTORY-2026-10-09（只读归档；原样移入，不回改）
 
+## r451 (2026-10-09): +0x120=0x1 活体仍 5s 超时——flags 最小值非根因
+
+- **Trial 重建成功** ✅：第 13 次冷重启后直接跑 fresh-trial.py；修复审计 JSON 过期（更新 module SHA，ABI 无漂移）+ preflight 接受 (2,1)（0x890=2 持久化）；--run 和 --run --runtime-context 均成功（pinned=1 registered=15）。
+- **活体 5s 超时** ❌：双门控构建零警告，T1-T5 通过；mt-ta-readback ETIMEDOUT（errno 110）；13 BO 全部绑定，render context READY，但固件无响应。
+- **+0x120=0x1 非根因**：[INFERRED] 保持未证实；+0x68 仍为主要 UNKNOWN。
+- **安全**：bridge ref=1 pending，按协议停止；双门控已 revert；零 WARN/BUG/Oops；需第 14 次冷重启。
+- 报告：mt-vgpu-guest/reports/r451-plus120-live-still-timeout.md
+- 证据：mt-vgpu-guest/build/traces/r451/dmesg-r451.txt（0600）
+
 ## r400 (2026-10-09): 代码目录重构完成（离线）
 
 **重构**：Phase A 清理 kernel/ 三目录构建产物（gitignored）；Phase B tests 重组为 c/pvr/ta/guest/render/misc 子包（130 文件 git mv，修复 parents/include/Makefile 路径）；Phase C（80 头文件）评估暂缓；Phase D 更新 README 目录表。

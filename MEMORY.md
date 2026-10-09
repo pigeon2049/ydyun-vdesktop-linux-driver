@@ -1,4 +1,5 @@
 EXIT:0
+EXIT:0
 # MEMORY — 摩尔线程 vGPU 驱动适配
 
 > **本文件只保留最新过程记录。**
@@ -79,14 +80,14 @@ EXIT:0
 
 > r451 轮按 §4 清理：r448 节已移入归档。
 
-## r451 (2026-10-09): +0x120=0x1 活体仍 5s 超时——flags 最小值非根因
+## r452 (2026-10-09): DDK psKickTA flags 深度分析——+0x68 语义与 +0x120 逐位含义（离线）
 
-- **Trial 重建成功** ✅：第 13 次冷重启后直接跑 fresh-trial.py；修复审计 JSON 过期（更新 module SHA，ABI 无漂移）+ preflight 接受 (2,1)（0x890=2 持久化）；--run 和 --run --runtime-context 均成功（pinned=1 registered=15）。
-- **活体 5s 超时** ❌：双门控构建零警告，T1-T5 通过；mt-ta-readback ETIMEDOUT（errno 110）；13 BO 全部绑定，render context READY，但固件无响应。
-- **+0x120=0x1 非根因**：[INFERRED] 保持未证实；+0x68 仍为主要 UNKNOWN。
-- **安全**：bridge ref=1 pending，按协议停止；双门控已 revert；零 WARN/BUG/Oops；需第 14 次冷重启。
-- 报告：mt-vgpu-guest/reports/r451-plus120-live-still-timeout.md
-- 证据：mt-vgpu-guest/build/traces/r451/dmesg-r451.txt（0600）
+- **+0x68 = ((flags & 3) == 3)** [MEASURED]：bit0 与 bit1 全置才写 1；DDK 位定义 [UNKNOWN]（专有 DDK）；单 RT 纯 TA 下真实值很可能为 0 [INFERRED 低置信]，不建议盲试。
+- **+0x120 11-bit 完整语义表**：DDK 源 bit 位置 [MEASURED]；bit0=1 [INFERRED 高置信]；其余十位 DDK 取值 [UNKNOWN]；`0x1` 充分性 [UNCONFIRMED]。
+- **Early-out bit4+bit5** [MEASURED]：全置时跳过 Header 写入；语义 [INFERRED 中置信] 为"无 TA 工作"。
+- **超时根因仍未知**：r451 已证实 13 BO 绑定、context READY 但固件无响应；可能需检查 TA 命令流或 Bridge 参数。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r452-pskickta-flags-plus68-plus120.md
 
 ## r449 (2026-10-09): reg890/0x898 状态机完整矩阵 + 参数验证全覆盖（离线）
 

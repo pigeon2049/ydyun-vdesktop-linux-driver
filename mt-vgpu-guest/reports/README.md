@@ -417,5 +417,7 @@ r435-cold-reboot-not-done-stop.md |
 | r450-4th-fix-verified-state-polluted.md |
 | r451 | +0x120=0x1 活体仍 5s 超时（活体）：第 13 次冷重启后直接跑 fresh-trial.py 成功（修复审计 JSON 过期 + preflight 接受 (2,1)）；双门控构建零警告，T1-T5 通过；mt-ta-readback ETIMEDOUT；+0x120 最小值非根因，[INFERRED] 未证实；bridge ref=1 pending，需第 14 次冷重启；零 WARN/BUG/Oops |
 | r451-plus120-live-still-timeout.md |
+| r452 | DDK psKickTA flags 深度分析（离线）：+0x68=((flags&3)==3) [MEASURED]，DDK 位定义 [UNKNOWN]；单 RT 纯 TA 下真实值很可能为 0，不建议盲试；+0x120 11-bit 完整语义表，DDK 源 bit [MEASURED]，取值 [UNKNOWN]；early-out bit4+bit5 [MEASURED]；超时根因仍未知 |
+| r452-pskickta-flags-plus68-plus120.md |
 
 
