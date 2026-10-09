@@ -79,6 +79,26 @@ EXIT:0
 > r450 轮按 §4 清理：r447 节已移入归档。
 
 > r451 轮按 §4 清理：r448 节已移入归档。
+> r453 轮按 §4 清理：r449 节已移入归档。
+
+## r453 (2026-10-09): TA 命令流与 Bridge 参数检查——最可能根因是未填充的 RgnHeader（离线）
+
+- **TA 命令流 [MEASURED]**：UMD 的 TA 命令就是 360B header 本体，无追加命令
+  (`-(uint)(lVar23 != 0) & 0x168`，RGXSubmitTA)；我方 header-only 与 UMD 一致，TA 命令流不是问题。
+- **Bridge 参数**：我方 `mt_ta_submit_real` 仅设最小集（ta_cmd_va/size, kick_flags=0,
+  upd/fence count=0）；真实 UMD kick 含大量同步原语与 RT dataset，但系刻意最小化测试，
+  非 hang 主因 [INFERRED 中置信]。
+- **固件包 opcode [MEASURED]**：我方 0x66 来自 work-queue 命名空间（mt_work_opcode），
+  真实 KCCB KICK = `0x2ABC0065` (101|magic)，数据为 `RGXFWIF_KCCB_CMD_KICK_DATA`（含 psContext）；
+  我方 0x66 = 102 = MMUCACHE 命令号（无 magic）。"MEASURED" 的包布局 (VA@+0x28/size@+0x30)
+  其证据 r414 已被 r425 证伪（"无工作"快路径），从未在真实 TA 下验证。
+- **最可能根因 [INFERRED 高置信]**：固件在读 header（零=快路径完成，非零=尝试执行→hang）；
+  我们的 header 声明"有 TA 工作"但 RgnHeader (0x7c000000) 只是 dword 1s 初始化值、
+  从未填入有效 region 数据（UMD `InitRegionHeaderBuffer` 后会填真实数据）；
+  固件解析垃圾 region header 时 hang。
+- 下一步 P0：研究 UMD 在初始化后填入 RgnHeader 的真实内容，最小有效 region header 格式。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r453-ta-cmd-bridge-params-rgnheader-root-cause.md
 
 ## r452 (2026-10-09): DDK psKickTA flags 深度分析——+0x68 语义与 +0x120 逐位含义（离线）
 
@@ -88,20 +108,3 @@ EXIT:0
 - **超时根因仍未知**：r451 已证实 13 BO 绑定、context READY 但固件无响应；可能需检查 TA 命令流或 Bridge 参数。
 - 纯离线轮，零硬件触碰，无生产代码变更。
 - 报告：mt-vgpu-guest/reports/r452-pskickta-flags-plus68-plus120.md
-
-## r449 (2026-10-09): reg890/0x898 状态机完整矩阵 + 参数验证全覆盖（离线）
-
-- 新增 `mt-vgpu-guest/tests/guest/test_probe_890_matrix.py`（20 tests，4 类）：
-  - `TestReg890StateMatrix`（8）：文档化 0x890 在全部 probe 路径的接受矩阵
-    （{0,1,2,other} x recover x trial）；测试辅助保持 `==0` 严格、retained-kick
-    保持 `==1` 严格（均为刻意保留）；全文件仅允许 1 处裸 `!= 1`。
-  - `TestParamValidationComplete`（6）：锁定全部 6 条 -EINVAL 参数验证规则
-    （r446/r448 仅覆盖 2 个 recover 子条件）。
-  - `TestChannelReady0898`（3）：5 个位置保持 `0x898==1` 严格；无 `==2` 式例外；
-    **[TO-VALIDATE]** 0x898 跨冷重启持久性未知已记录。
-  - `TestNormalPathRegression`（3）：正常路径（1+recover、0+no-recover）回归。
-- 反向验证：r445 代码上 6/20 精确 FAIL（均为 reg890 接受性）；恢复后 20/20。
-- 门禁：`check-offline` 589 Python + 781 C 全绿；`make kernel` W=1 零警告。
-- 纯离线轮，零硬件触碰，无生产代码变更。
-- 报告：mt-vgpu-guest/reports/r449-reg890-matrix-param-validation.md
-

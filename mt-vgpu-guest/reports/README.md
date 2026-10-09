@@ -419,5 +419,7 @@ r435-cold-reboot-not-done-stop.md |
 | r451-plus120-live-still-timeout.md |
 | r452 | DDK psKickTA flags 深度分析（离线）：+0x68=((flags&3)==3) [MEASURED]，DDK 位定义 [UNKNOWN]；单 RT 纯 TA 下真实值很可能为 0，不建议盲试；+0x120 11-bit 完整语义表，DDK 源 bit [MEASURED]，取值 [UNKNOWN]；early-out bit4+bit5 [MEASURED]；超时根因仍未知 |
 | r452-pskickta-flags-plus68-plus120.md |
+| r453 | TA 命令流与 Bridge 参数检查（离线）：UMD TA 命令即 360B 本体、无追加命令 [MEASURED]，我方 header-only 与 UMD 一致；真实 KCCB KICK=0x2ABC0065，我方 0x66 来自 work-queue 命名空间 [MEASURED]；"MEASURED" 包布局证据 r414 已被证伪；最可能根因 [INFERRED 高置信]：RgnHeader 仅 dword 1s 初始化、从未填有效 region 数据，固件解析垃圾 hang |
+| r453-ta-cmd-bridge-params-rgnheader-root-cause.md |
 
 

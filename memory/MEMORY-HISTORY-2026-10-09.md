@@ -548,3 +548,19 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 报告：mt-vgpu-guest/reports/r450-4th-fix-verified-state-polluted.md
 - 证据：mt-vgpu-guest/build/traces/r450/dmesg-r450.txt（0600）
 
+
+## r449 (2026-10-09): reg890/0x898 状态机完整矩阵 + 参数验证全覆盖（离线）
+
+- 新增 `mt-vgpu-guest/tests/guest/test_probe_890_matrix.py`（20 tests，4 类）：
+  - `TestReg890StateMatrix`（8）：文档化 0x890 在全部 probe 路径的接受矩阵
+    （{0,1,2,other} x recover x trial）；测试辅助保持 `==0` 严格、retained-kick
+    保持 `==1` 严格（均为刻意保留）；全文件仅允许 1 处裸 `!= 1`。
+  - `TestParamValidationComplete`（6）：锁定全部 6 条 -EINVAL 参数验证规则
+    （r446/r448 仅覆盖 2 个 recover 子条件）。
+  - `TestChannelReady0898`（3）：5 个位置保持 `0x898==1` 严格；无 `==2` 式例外；
+    **[TO-VALIDATE]** 0x898 跨冷重启持久性未知已记录。
+  - `TestNormalPathRegression`（3）：正常路径（1+recover、0+no-recover）回归。
+- 反向验证：r445 代码上 6/20 精确 FAIL（均为 reg890 接受性）；恢复后 20/20。
+- 门禁：`check-offline` 589 Python + 781 C 全绿；`make kernel` W=1 零警告。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r449-reg890-matrix-param-validation.md
