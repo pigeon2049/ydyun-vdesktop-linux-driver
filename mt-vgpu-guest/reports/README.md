@@ -371,3 +371,5 @@ r426-plus0x10-render-target-metadata.md |
 r427-rendertarget-metadata-reverse.md |
 | r428 | 无可运行 Linux vguest UMD（全 deb/src 取证：mtgpu=固件+dkms 源码、mtml 仅 libmtml.so）；mtdxum64.dll 实证为 DX10/11 UMD（导出 OpenAdapter/OpenAdapter10_2/MtDxExtGetInterfaceImpl）；Wine/VM 活体捕获不可行；选项 A 落点为静态提取：0x168 在 mtdxum64.dll 出现 151 次（行为锚点），RGXAddRenderTargetDDK2 分配 MLIST/RgnHeader 固件可见结构；r429 工作包：定位 TA Header builder + 对比 RGXPrepareTA + KMD 侧逻辑 |
 r428-umd-env-ta-header-capture.md |
+| r429 | Windows TA kick extract (offline disasm): mtdxum64.dll (DX10/11 UMD) builds 0x78B kick entries via FUN_180224220/FUN_1802411e0, magic 0x3089705f3089705f at [1] (Linux UMD at [4]), via D3DDDIEscapeCb; 0x168 151 hits are vtable/object-size noise, no Windows TA Header alloc; 360B Header is Linux-UMD-specific; firmware accepts multiple formats; r430: Linux RGXAddRenderTargetDDK2 MLIST/RgnHeader layout |
+| r429-windows-kick-vs-linux-header.md |

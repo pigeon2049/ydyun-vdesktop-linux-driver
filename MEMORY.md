@@ -39,6 +39,7 @@ EXIT:0
 > r396 轮按 §4 清理：r394 节已移入归档。
 > r398 轮按 §4 清理：r395 节已移入归档。
 > r428 轮按 §4 清理：r426 节已移入归档。
+> r429 轮按 §4 清理：r427 节已移入归档。
 > r402 轮按 §4 清理：r400、r399 节已移入归档。
 > 状态冲突时裁决顺序：`STATUS.md` → 快照 → 本文件。
 > r404 轮按 \u00a74 清理：r402、r401 节已移入归档。
@@ -60,6 +61,16 @@ EXIT:0
 
 > r427 轮按 §4 清理：r425 节已移入归档。
 
+## r429 (2026-10-09): Windows 驱动 TA 提交结构提取——D3D11 UMD 用 0x78 字节 kick，非 360B Header（离线反汇编）
+
+- mtdxum64.dll（DX10/11 UMD）构建 0x78 字节 kick 条目（FUN_180224220 @392802、FUN_1802411e0 @412745），magic 0x3089705f3089705f 在 **[1]**（Linux UMD psKickTA[4]），经 D3DDDIEscapeCb 提交；调用者在 FUN_18021cf50（0x78 步长数组，清零 15 qword 后逐条填充）。
+- kick 字段表 [MEASURED]：[0]=VA、[2]=0x100000000、[3]=2、[8]=像素格式映射、[9]=维度打包 ((h-1)<<16|(w-1))、[10]=VA&~0xf、[0xb]=VA>>4。
+- 0x168 的 151 次命中去噪：~140 vtable 偏移 + ~8 C++ 对象大小均为噪声；**Windows 侧无 360B TA Header 分配**——D3D11 抽象层不同。
+- MTT 特有 delta：kick 布局与 Linux 不同，但 render-target 元数据仍为固件私有（r427 结论不受影响）。
+- 结论：**360B TA Header 为 Linux UMD 特有**；同一固件接受 D3D11 kick 与 Linux TA Header——提交格式由 UMD/KMD 协商。
+- r430 前置：Linux 侧 RGXAddRenderTargetDDK2 的 MLIST/RgnHeader 布局（render-target 元数据最佳线索）。
+- 零硬件触碰，纯离线；无代码改动。
+
 ## r428 (2026-10-09): UMD 环境取证——无可运行 Linux vguest，真实 TA Header 走 Windows 驱动静态提取（离线调查）
 
 - 用户澄清：Linux 端没有 vguest；`/opt/MTT-driver-only/` 为真实可工作的 Windows guest 驱动。全 deb/src 取证：mtgpu-1.0.0=固件+dkms 源码、mtml-1.8.2 仅 `libmtml.so`、dkms 包无 .so——**无 Linux 图形 UMD .so**（[MEASURED]）。
@@ -69,14 +80,4 @@ EXIT:0
 - 弹药：`0x168` 在 mtdxum64.dll 出现 151 次（行为锚点）；`RGXAddRenderTargetDDK2`（decompiled.c:50202）分配 `"MLIST"`/`"RgnHeader"` 固件可见结构；修正 r427"UMD 只透传"为过于绝对。
 - r429 工作包：mtdxum64.dll 以 0x168 定位 TA Header builder → 对比 `RGXPrepareTA` → `RGXAddRenderTargetDDK2` 全量 → mtkm64.sys KMD 侧逻辑。
 - 零硬件触碰，纯离线；无代码改动。
-
-## r427 (2026-10-09): Render Target 元数据结构逆向——psKickTA 全布局已测，结构本体为固件私有（离线反汇编）
-
-- psKickTA 完整 18-qword 布局 [MEASURED]（FUN_0017d890，decompiled.c:54347）：[0]=RTData entry+0x08、[1]=TA_buf+0x10=RTData entry+0x00（render target VA）、[2]=*(ctx+0x3d8+idx*8)、[3]=TA_buf+0x28=*(ctx+0x440)、[4]=magic 0x3089705f3089705f（UMD 写入）、[5]=*(ctx+0x10)、[10]=TA_buf+0x30=*(ctx+0x448)、[12]=0x10 常量。
-- RTData 条目 0xD0 字节字段表 [MEASURED]：+0x00→psKickTA[1]、+0x08→psKickTA[0]、+0x48/+0x50 sync、+0xC8 缓存、+0x118/+0x120 sync；数组基址=lVar3+0x38，条目=lVar3+0x38+idx*0xD0。
-- Render context state 关键偏移 [MEASURED]：+0x24 buffer 索引、+0x440→TA_buf+0x28、+0x448→TA_buf+0x30。
-- RGXAddRenderTarget 创建流程：RGX_RT_ALLOCS、parameter memory、MLIST、VHEAP；RTDataSet 分配者在 UMD 之外（未找到）。
-- 结论：psKickTA[1] 指向的结构本体为固件私有——UMD 只透传 VA，布局无法从 UMD 反汇编确定；方案 B 已达边界。r428 前置：选项 A（捕获真实 UMD Header）或选项 C（3D 路径验证 T2）；P0 完成前不得活体。
-- 纯离线零硬件；门禁 550+1416 全绿；无代码变更。
-
 

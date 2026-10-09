@@ -206,3 +206,12 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - r425 超时根因：16KB 像素 BO 非有效元数据结构，固件按结构布局解析垃圾→挂起。r414 全零=psKickTA[1]==0→"无工作"快路径。
 - 真实 Header 大多数字段指向 UMD 上下文内部状态，无法从零构造。r427 前置：捕获真实 UMD TA Header 回放（推荐）或逆向 render context 初始化；P0 完成前不得活体。
 - 纯离线零硬件；门禁待跑（无代码变更）。
+
+## r427 (2026-10-09): Render Target 元数据结构逆向——psKickTA 全布局已测，结构本体为固件私有（离线反汇编）
+
+- psKickTA 完整 18-qword 布局 [MEASURED]（FUN_0017d890，decompiled.c:54347）：[0]=RTData entry+0x08、[1]=TA_buf+0x10=RTData entry+0x00（render target VA）、[2]=*(ctx+0x3d8+idx*8)、[3]=TA_buf+0x28=*(ctx+0x440)、[4]=magic 0x3089705f3089705f（UMD 写入）、[5]=*(ctx+0x10)、[10]=TA_buf+0x30=*(ctx+0x448)、[12]=0x10 常量。
+- RTData 条目 0xD0 字节字段表 [MEASURED]：+0x00→psKickTA[1]、+0x08→psKickTA[0]、+0x48/+0x50 sync、+0xC8 缓存、+0x118/+0x120 sync；数组基址=lVar3+0x38，条目=lVar3+0x38+idx*0xD0。
+- Render context state 关键偏移 [MEASURED]：+0x24 buffer 索引、+0x440→TA_buf+0x28、+0x448→TA_buf+0x30。
+- RGXAddRenderTarget 创建流程：RGX_RT_ALLOCS、parameter memory、MLIST、VHEAP；RTDataSet 分配者在 UMD 之外（未找到）。
+- 结论：psKickTA[1] 指向的结构本体为固件私有——UMD 只透传 VA，布局无法从 UMD 反汇编确定；方案 B 已达边界。r428 前置：选项 A（捕获真实 UMD Header）或选项 C（3D 路径验证 T2）；P0 完成前不得活体。
+- 纯离线零硬件；门禁 550+1416 全绿；无代码变更。
