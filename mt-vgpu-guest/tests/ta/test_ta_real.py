@@ -123,3 +123,48 @@ class TestTaRealProductization(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTaDmLayoutUsage(unittest.TestCase):
+    """r420: DM layout [MEASURED] regression - constants must be USED."""
+
+    def test_va_lo_used_in_real_command(self):
+        # r414 [MEASURED]: mt_fw_ta_real_command must write VA via
+        # MT_TA_DM_PKT_TA_VA_LO (0x28), not a hardcoded literal.
+        text = _read("mt_marker_fence.h")
+        self.assertIn("MT_TA_DM_PKT_TA_VA_LO", text)
+        # The constant must appear inside mt_fw_ta_real_command.
+        idx = text.find("mt_fw_ta_real_command(void *command")
+        self.assertGreater(idx, 0)
+        body = text[idx:idx + 800]
+        self.assertIn("MT_TA_DM_PKT_TA_VA_LO", body)
+        self.assertIn("MT_TA_DM_PKT_TA_VA_HI", body)
+        self.assertIn("MT_TA_DM_PKT_TA_SIZE", body)
+
+    def test_no_hardcoded_0x28_in_ta_real(self):
+        # r420: the TA real command builder must not hardcode 0x28/0x30;
+        # it must use the named constants (so a layout change is caught).
+        text = _read("mt_marker_fence.h")
+        idx = text.find("mt_fw_ta_real_command(void *command")
+        self.assertGreater(idx, 0)
+        body = text[idx:idx + 800]
+        # No raw 0x28/0x2c/0x30 offsets in the TA real builder.
+        import re
+        for m in re.finditer(r"mt_fw_put32\(command,\s*(0x[0-9a-fA-F]+)", body):
+            off = m.group(1)
+            self.assertNotIn(
+                off, ("0x28", "0x2c", "0x30"),
+                "hardcoded DM offset %s in mt_fw_ta_real_command; "
+                "use MT_TA_DM_PKT_* constants" % off,
+            )
+
+    def test_fence_comment_measured(self):
+        # r420: the stale [INFERRED] comment in mt_marker_fence.h must
+        # reflect r414's live validation.
+        text = _read("mt_marker_fence.h")
+        # Find the Real TA command packet comment block.
+        idx = text.find("Real TA command packet (r411)")
+        self.assertGreater(idx, 0)
+        block = text[max(0, idx - 200):idx + 400]
+        self.assertNotIn("[INFERRED]: TA buffer VA", block)
+        self.assertIn("[MEASURED]", block)

@@ -326,8 +326,9 @@ static inline void mt_fw_ta_marker_command(void *command, u32 fence, u32 pid)
 
 /* Real TA command packet (r411).
  * [MEASURED]: opcode 0x66 @+0x0c, wire_id @+0x48, pid @+0x4c (r365).
- * [INFERRED]: TA buffer VA @+0x28/+0x2c, size @+0x30, by 3D analogy
- *             (mt_fw_3d_command, r381). TO-VALIDATE on live hardware.
+ * [MEASURED]: TA buffer VA @+0x28/+0x2c, size @+0x30 (r414 live:
+ *             firmware 0x100 COMPLETED, 219us). Was [INFERRED] by 3D
+ *             analogy (r381); promoted r415.
  * Gated by MT_TA_REAL_PACKET (default 0 = disabled). */
 #if MT_TA_REAL_PACKET
 static inline void mt_fw_ta_real_command(void *command, u32 fence, u32 pid,

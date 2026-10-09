@@ -50,6 +50,17 @@
 > r415 轮按 §4 清理：r412 节已移入归档。
 > r417 轮按 §4 清理：r414 节已移入归档。
 > r418 轮按 §4 清理：r415 节已移入归档。
+> r419 轮按 §4 清理：r419 节补入（前轮遗漏）。
+> r420 轮按 §4 清理：r418、r417 节已移入归档。
+
+## r420 (2026-10-09): Q0/Q1 修正测试加固 + T4 纯净性门禁（离线）
+
+r420（离线，零硬件）：用户指示"继续 加更多测试和门禁"。新增 21 Python 测试：`tests/ta/test_q0_purity.py`（T4 门禁，3 tests：Q0 禁止 OR/address 源码扫描、常量仅 bits 39/42、Q1 必须接 VA）、`tests/ta/test_q0_q1_bitfields.py`（15 tests：Q0 flag 位独立、低 32 位禁区、Q1 48 位 mask 边界、三态历史 r414/r418/r419）、`tests/ta/test_ta_real.py::TestTaDmLayoutUsage`（3 tests：常量被使用、禁硬编码 0x28/0x30、注释 [MEASURED]）。修复 1 处 stale 文档：`mt_marker_fence.h` 的 [INFERRED] 注释更新为 [MEASURED]（r414）。T4 反向验证：注入 r418 污染 → FAIL（定位行号）；还原 → 绿。门禁 543+299 全绿（Python，1 skipped）、630 C 全绿；`make kernel` W=1 零警告。本地提交未 push。诚实边界：Q0 flag 语义（除 29/30/39/42）仍未知；Q1=target 待活体验。
+
+## r419 (2026-10-09): Q0 是纯 flags、地址在 Q1（离线反汇编）
+
+r419（离线反汇编，零硬件）：r418 活体 Q0=`va|0x48000000000` 致固件超时，r414 Q0=0 曾 219us 成功。深挖 FUN_00169240：Q0 初始构造 `(sVar10<<4)<<48|(1<<61)` 无地址位（:44213）；Path B `uVar15|(prev&mask)|0x48000000000` 纯 flags carry-forward（:44317）；Q1 低 48 位=`*(param_1+0x10)` 才是目标地址（:44300/44321）。**核心结论：Q0 是纯 flags/control 字，零地址位；48 位目标地址在 Q1。** r418 把 VA OR 进 Q0 污染 flags。修正 `mt_ta_entry_simple_set_target()`：Q0=`0x48000000000`（flags only），Q1=`va & 0xFFFFFFFFFFFF`。位域：bits 39/42（0x48000000000，纠正 r410 的 43/46 笔误）、29/30 条件位、43-50 local_c4。门禁全绿，kernel 零警告。诚实边界：Q1=render target 为推断，待活体验。
+
 
 
 ## r418 (2026-10-09): 双门控回读活体——路径通、ABI bug 修复、固件超时

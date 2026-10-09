@@ -353,3 +353,5 @@ r417-readback-test-hardening.md |
 r418-ta-readback-live.md |
 | r419 | Q0 是纯 flags、地址在 Q1（离线反汇编）：FUN_00169240:44213 初始构造 `(sVar10<<4)<<48|(1<<61)` 无地址位；:44317 Path B `uVar15|(prev&mask)|0x48000000000` 纯 flags carry；Q1 低 48 位=`*(param_1+0x10)` 才是目标地址（:44300/44321）；r418 把 VA OR 进 Q0 污染 flags 致固件超时，r414 Q0=0 则 219us 成功；修正 `mt_ta_entry_simple_set_target()`：Q0=flags only、Q1=va&0xFFFFFFFFFFFF；r417 的 C 测试 2 处断言同步修正；门禁全绿，kernel 零警告 |
 r419-q0-is-flags-address-in-q1.md |
+| r420 | Q0/Q1 修正测试加固 + T4 纯净性门禁（离线）：新增 21 Python 测试（test_q0_purity.py T4 门禁 3：Q0 禁 OR/address 源码扫描；test_q0_q1_bitfields.py 15：flag 位独立/低 32 位禁区/Q1 48 位 mask/三态历史；test_ta_real.py DM 布局回归 3）；修复 mt_marker_fence.h stale [INFERRED]→[MEASURED]；T4 反向验证注入污染→FAIL；门禁 543+299 全绿，kernel 零警告 |
+r420-q0-q1-test-hardening-t4-gate.md |
