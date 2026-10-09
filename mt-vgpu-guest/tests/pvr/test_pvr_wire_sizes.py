@@ -15,8 +15,11 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = get_repo_root()
 HEADER = ROOT / "kernel" / "mt_pvr_wire.h"
 TABLE = ROOT / "reports" / "stage-b-bridge-requirements.json"
 

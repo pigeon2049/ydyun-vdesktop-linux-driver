@@ -14,8 +14,11 @@ These checks pin the field selection to the measured behaviour instead.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-GUEST = Path(__file__).resolve().parents[2]
+GUEST = get_repo_root()
 SOURCE = GUEST / 'kernel/recovery/mt_pvr_bridge.c'
 QUEUE = GUEST / 'kernel/mt_pvr_queue.h'
 PROBE = GUEST / 'probe/pvr_node_probe.c'

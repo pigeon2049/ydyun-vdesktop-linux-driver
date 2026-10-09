@@ -4,10 +4,13 @@ import struct
 import subprocess
 import tempfile
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 import unittest
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = get_repo_root()
 SOURCE = ROOT / "patches/mtgpu_vgpu_info_compat.c"
 ADDR_WRAPPER = ROOT / "patches/mtgpu_vgpu_addr_compat.c"
 ADDR_STUB = ROOT / "tests/c/vgpu_addr_v1_stub.c"

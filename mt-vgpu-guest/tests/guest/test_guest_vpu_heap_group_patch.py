@@ -1,9 +1,12 @@
 import importlib.util
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
 
-SCRIPT = Path(__file__).parents[2] / "scripts" / "patch-guest-vpu-heap-group.py"
+SCRIPT = get_repo_root() / "scripts" / "patch-guest-vpu-heap-group.py"
 SPEC = importlib.util.spec_from_file_location("guest_vpu_heap_group_patch", SCRIPT)
 PATCH = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PATCH)

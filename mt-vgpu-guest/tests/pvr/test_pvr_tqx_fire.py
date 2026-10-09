@@ -10,8 +10,11 @@ fence reuse.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-SOURCE = Path(__file__).resolve().parents[2] / 'kernel/recovery/mt_pvr_bridge.c'
+SOURCE = get_repo_root() / 'kernel/recovery/mt_pvr_bridge.c'
 
 
 def code():
@@ -97,7 +100,7 @@ class TqxFirePath(unittest.TestCase):
     def test_space_fits_table_budget(self):
         # r268: the scratch needs 2048 pages over the original 64;
         # vm_vram_create refuses anything over MT_BOOT_MAX_TABLE_PAGES.
-        table = Path(__file__).resolve().parents[2] / 'kernel' / 'mt_mmu_bootstrap.h'
+        table = get_repo_root() / 'kernel' / 'mt_mmu_bootstrap.h'
         text = table.read_text()
         m = re.search(r'#define\s+MT_BOOT_MAX_TABLE_PAGES\s+(\d+)U', text)
         self.assertIsNotNone(m)

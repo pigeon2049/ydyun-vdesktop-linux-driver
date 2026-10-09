@@ -1,8 +1,11 @@
 import importlib.util
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = get_repo_root()
 SPEC = importlib.util.spec_from_file_location(
     "pvz_call_path", ROOT / "scripts/verify-pvz-call-path.py")
 pvz_call_path = importlib.util.module_from_spec(SPEC)

@@ -9,8 +9,11 @@ must come from the wire structs, never literals.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-TOOL = Path(__file__).resolve().parents[2] / 'probe' / 'pvr_observe_ping.c'
+TOOL = get_repo_root() / 'probe' / 'pvr_observe_ping.c'
 
 
 class ObservePingTool(unittest.TestCase):

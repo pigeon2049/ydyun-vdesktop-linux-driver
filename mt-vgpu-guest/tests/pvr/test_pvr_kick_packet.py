@@ -13,8 +13,11 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = get_repo_root()
 HEADER = ROOT / 'kernel' / 'mt_pvr_wire.h'
 
 # Two independent runs of the same synthetic kick. Stable fields must agree;
@@ -173,7 +176,7 @@ class KickInspect(unittest.TestCase):
     a failure: the fence + OUT path below is unconditional, so the wire
     result is identical whether inspection succeeds or degrades.
     """
-    BRIDGE = (Path(__file__).resolve().parents[2] / 'kernel' / 'recovery' /
+    BRIDGE = (get_repo_root() / 'kernel' / 'recovery' /
               'mt_pvr_bridge.c')
 
     @classmethod

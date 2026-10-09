@@ -10,8 +10,11 @@ must tear the kick context down afterwards.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-TOOL = Path(__file__).resolve().parents[2] / 'probe' / 'pvr_update_writeback.c'
+TOOL = get_repo_root() / 'probe' / 'pvr_update_writeback.c'
 
 
 class UpdateWritebackTool(unittest.TestCase):

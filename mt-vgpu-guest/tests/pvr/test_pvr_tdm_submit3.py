@@ -9,8 +9,11 @@ firmware/DMA/translator path reachable.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-SOURCE = Path(__file__).resolve().parents[2] / 'kernel/recovery/mt_pvr_bridge.c'
+SOURCE = get_repo_root() / 'kernel/recovery/mt_pvr_bridge.c'
 
 
 def code():
@@ -92,7 +95,7 @@ class TdmSubmit3Observe(unittest.TestCase):
     def test_fill_destination_zero_initialized(self):
         # r181: stack-uninitialized destination block made builds depend on
         # frame garbage (live only survived on fresh zero stacks).
-        fill_h = Path(__file__).resolve().parents[2] / 'kernel/mt_tqx_fill.h'
+        fill_h = get_repo_root() / 'kernel/mt_tqx_fill.h'
         src = re.sub(r'/\*.*?\*/', '', fill_h.read_text(), flags=re.S)
         m = re.search(r'struct mt_tqx_destination_input dest(.*?);',
                       src, re.S)

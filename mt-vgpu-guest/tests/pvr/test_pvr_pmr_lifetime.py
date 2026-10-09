@@ -21,8 +21,11 @@ Rules enforced:
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-SOURCE = Path(__file__).resolve().parents[2] / 'kernel/recovery/mt_pvr_bridge.c'
+SOURCE = get_repo_root() / 'kernel/recovery/mt_pvr_bridge.c'
 
 
 def strip_comments(text):
@@ -631,7 +634,7 @@ class MemAllocFlags(unittest.TestCase):
     header refresh that renumbers bits fails here instead of silently
     reclassifying memory.
     """
-    HEADER = (Path(__file__).resolve().parents[2] / 'src' / 'mtgpu-2.7.1-6.12'
+    HEADER = (get_repo_root() / 'src' / 'mtgpu-2.7.1-6.12'
               / 'inc' / 'pvr' / 'include' / 'pvrsrv_memallocflags.h')
 
     @classmethod

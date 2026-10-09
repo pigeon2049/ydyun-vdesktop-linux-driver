@@ -13,8 +13,11 @@ compile; the new one passes.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_kernel_dir
 
-KERNEL = Path(__file__).resolve().parents[2] / 'kernel'
+KERNEL = get_kernel_dir()
 BOOTSTRAP = KERNEL / 'mt_mmu_bootstrap.h'
 GPU_VM = KERNEL / 'mt_gpu_vm.h'
 WRAPPER = Path(__file__).resolve().parent.parent / 'c' / 'mmu_bootstrap_wrapper.c'

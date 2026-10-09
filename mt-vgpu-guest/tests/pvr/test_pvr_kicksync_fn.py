@@ -3,8 +3,11 @@
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = get_repo_root()
 WIRE = ROOT / 'kernel' / 'mt_pvr_wire.h'
 BRIDGE = ROOT / 'kernel' / 'recovery' / 'mt_pvr_bridge.c'
 

@@ -32,8 +32,11 @@ import re
 import subprocess
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = get_repo_root()
 
 # The UMD's window, from the disassembly quoted above.
 ACCEPT_LO = 0x80

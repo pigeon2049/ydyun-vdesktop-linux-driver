@@ -17,8 +17,11 @@ test_no_manual_vm_field_assignment must FAIL.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_kernel_dir
 
-KERNEL = Path(__file__).resolve().parents[2] / "kernel"
+KERNEL = get_kernel_dir()
 VM_IMPL = KERNEL / "mt_gpu_vm.h"
 
 # Internal fields of struct mt_gpu_vm. Only mt_gpu_vm.h (init/grow/fini)

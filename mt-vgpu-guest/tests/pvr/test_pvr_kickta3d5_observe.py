@@ -10,8 +10,11 @@ translator path reachable. Mirrors the 0x89:0xa observer (r174).
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-SOURCE = Path(__file__).resolve().parents[2] / 'kernel/recovery/mt_pvr_bridge.c'
+SOURCE = get_repo_root() / 'kernel/recovery/mt_pvr_bridge.c'
 
 
 def code():

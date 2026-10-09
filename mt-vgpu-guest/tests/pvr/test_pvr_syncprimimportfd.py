@@ -15,9 +15,12 @@ current u32 value at the offset. No fence, no submission, no wakeup.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-SOURCE = Path(__file__).resolve().parents[2] / 'kernel/recovery/mt_pvr_bridge.c'
-WIRE = Path(__file__).resolve().parents[2] / 'kernel/mt_pvr_wire.h'
+SOURCE = get_repo_root() / 'kernel/recovery/mt_pvr_bridge.c'
+WIRE = get_repo_root() / 'kernel/mt_pvr_wire.h'
 
 
 def code():

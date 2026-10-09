@@ -17,8 +17,11 @@ physical plan. These checks parse the table the bridge actually initializes.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-GUEST = Path(__file__).resolve().parents[2]
+GUEST = get_repo_root()
 WINDOWS_DECOMP = GUEST / 'decompiled/mtkm64.sys/decompiled.c'
 QUEUE_H = GUEST / 'kernel/mt_pvr_queue.h'
 BRIDGE_C = GUEST / 'kernel/recovery/mt_pvr_bridge.c'

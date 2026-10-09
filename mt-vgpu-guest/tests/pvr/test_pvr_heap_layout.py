@@ -2,13 +2,16 @@
 import ctypes
 import importlib.util
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 import struct
 import subprocess
 import sys
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = get_repo_root()
 sys.path.insert(0, str(ROOT / 'scripts'))
 from reference_oracle import ReferenceOracle
 

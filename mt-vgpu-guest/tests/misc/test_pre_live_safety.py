@@ -41,8 +41,11 @@ import re
 import stat
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = get_repo_root()
 TESTS = Path(__file__).resolve().parent
 
 FORCE_RE = re.compile(r"\brmmod\s+(?:-[a-z]*f|--force)\b")

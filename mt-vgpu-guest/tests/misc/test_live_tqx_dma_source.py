@@ -2,8 +2,11 @@
 """Guard the opt-in system-DMA source path in the retained TQX experiment."""
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = get_repo_root()
 SOURCE = ROOT / 'kernel/recovery/mt_live_tqx.c'
 
 

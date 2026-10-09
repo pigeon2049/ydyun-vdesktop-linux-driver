@@ -1,10 +1,13 @@
 import importlib.util
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 import struct
 import sys
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = get_repo_root()
 sys.path.insert(0, str(ROOT / "scripts"))
 spec = importlib.util.spec_from_file_location("firmware", ROOT / "scripts/extract-firmware.py")
 firmware = importlib.util.module_from_spec(spec)

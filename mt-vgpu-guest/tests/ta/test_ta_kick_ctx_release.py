@@ -16,8 +16,11 @@ Reverse validation: re-adding kzalloc/kfree for ctx must turn this red.
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = get_repo_root()
 BRIDGE = ROOT / "kernel" / "recovery" / "mt_pvr_bridge.c"
 
 

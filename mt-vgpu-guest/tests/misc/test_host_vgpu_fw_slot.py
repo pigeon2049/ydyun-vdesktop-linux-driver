@@ -1,9 +1,12 @@
 import importlib.util
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_repo_root
 import re
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = get_repo_root()
 spec = importlib.util.spec_from_file_location(
     "host_vgpu_fw_slot", ROOT / "scripts/verify-host-vgpu-fw-slot.py")
 host_vgpu_fw_slot = importlib.util.module_from_spec(spec)

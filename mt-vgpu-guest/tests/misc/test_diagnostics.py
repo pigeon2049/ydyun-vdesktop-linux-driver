@@ -1,10 +1,13 @@
 import importlib.util
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.helpers import get_scripts_dir
 import struct
 import tempfile
 import unittest
 
-SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
+SCRIPTS = get_scripts_dir()
 
 
 def load(name):
