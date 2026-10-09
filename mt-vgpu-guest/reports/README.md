@@ -411,4 +411,6 @@ r435-cold-reboot-not-done-stop.md |
 | r447-probe-channels-4th-location-missed.md |
 | r448 | 补修复 mt_probe_channels:644 第 4 处（离线）：recover_channels 分支接受 reg890==2（r446 模式）；全面扫描确认无第 5 处；新增 3 测试（TestProbeChannels890Acceptance）；反向验证 3/3 在旧代码 FAIL；门禁 569+781 全绿，kernel 零警告；零硬件触碰 |
 | r448-probe-channels-4th-fixed.md |
+| r449 | reg890/0x898 状态机完整矩阵 + 参数验证全覆盖（离线）：新增 20 测试（8 状态矩阵 + 6 参数验证 + 3 0x898 + 3 回归）；反向验证 r445 上 6/20 精确 FAIL；[TO-VALIDATE] 0x898 持久性未知已记录；门禁 589+781 全绿，kernel 零警告；零硬件触碰 |
+| r449-reg890-matrix-param-validation.md |
 

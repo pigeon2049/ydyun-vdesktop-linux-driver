@@ -505,3 +505,17 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
 - 门禁：`check-offline` 566 Python + 781 C 全绿；`make kernel` W=1 零警告。
 - 纯离线轮，零硬件触碰。用户确认后重启 → r447 活体。
 - 报告：mt-vgpu-guest/reports/r446-fix-reg890-recover-channels.md
+
+## r448 (2026-10-09): 补修复 mt_probe_channels 第 4 处 reg890==2（离线）
+
+- 修复 r447 发现的遗漏：`kernel/mt_guest_probe.c` `mt_probe_channels:644` 的
+  `recover_channels` 分支同样拒绝 `reg890==2`；现接受 `(reg890 != 1 && reg890 != 2)`，
+  仿照 r446 模式；`reg890==1` 正常路径不受影响。
+- 全面扫描所有 `0x890`/`0x898` 读取点与 `-EBUSY` 返回点：recover_channels probe
+  路径 4 处已全部修复，无第 5 处；测试辅助函数（`==0` 安全期望）与实验性 sysfs
+  路径保留原逻辑（见报告）。
+- 新增 `TestProbeChannels890Acceptance`（3 tests）；反向验证：3/3 在旧代码精确 FAIL。
+- 门禁：`check-offline` 569 Python + 781 C 全绿；`make kernel` W=1 零警告。
+- 纯离线轮，零硬件触碰。待用户确认 → r449 trial 重建。
+- 报告：mt-vgpu-guest/reports/r448-probe-channels-4th-fixed.md
+

@@ -76,18 +76,21 @@ EXIT:0
 > r444 轮按 §4 清理：r442 节已移入归档。
 > r448 轮按 §4 清理：r446 节已移入归档。
 
-## r448 (2026-10-09): 补修复 mt_probe_channels 第 4 处 reg890==2（离线）
+## r449 (2026-10-09): reg890/0x898 状态机完整矩阵 + 参数验证全覆盖（离线）
 
-- 修复 r447 发现的遗漏：`kernel/mt_guest_probe.c` `mt_probe_channels:644` 的
-  `recover_channels` 分支同样拒绝 `reg890==2`；现接受 `(reg890 != 1 && reg890 != 2)`，
-  仿照 r446 模式；`reg890==1` 正常路径不受影响。
-- 全面扫描所有 `0x890`/`0x898` 读取点与 `-EBUSY` 返回点：recover_channels probe
-  路径 4 处已全部修复，无第 5 处；测试辅助函数（`==0` 安全期望）与实验性 sysfs
-  路径保留原逻辑（见报告）。
-- 新增 `TestProbeChannels890Acceptance`（3 tests）；反向验证：3/3 在旧代码精确 FAIL。
-- 门禁：`check-offline` 569 Python + 781 C 全绿；`make kernel` W=1 零警告。
-- 纯离线轮，零硬件触碰。待用户确认 → r449 trial 重建。
-- 报告：mt-vgpu-guest/reports/r448-probe-channels-4th-fixed.md
+- 新增 `mt-vgpu-guest/tests/guest/test_probe_890_matrix.py`（20 tests，4 类）：
+  - `TestReg890StateMatrix`（8）：文档化 0x890 在全部 probe 路径的接受矩阵
+    （{0,1,2,other} x recover x trial）；测试辅助保持 `==0` 严格、retained-kick
+    保持 `==1` 严格（均为刻意保留）；全文件仅允许 1 处裸 `!= 1`。
+  - `TestParamValidationComplete`（6）：锁定全部 6 条 -EINVAL 参数验证规则
+    （r446/r448 仅覆盖 2 个 recover 子条件）。
+  - `TestChannelReady0898`（3）：5 个位置保持 `0x898==1` 严格；无 `==2` 式例外；
+    **[TO-VALIDATE]** 0x898 跨冷重启持久性未知已记录。
+  - `TestNormalPathRegression`（3）：正常路径（1+recover、0+no-recover）回归。
+- 反向验证：r445 代码上 6/20 精确 FAIL（均为 reg890 接受性）；恢复后 20/20。
+- 门禁：`check-offline` 589 Python + 781 C 全绿；`make kernel` W=1 零警告。
+- 纯离线轮，零硬件触碰，无生产代码变更。
+- 报告：mt-vgpu-guest/reports/r449-reg890-matrix-param-validation.md
 
 ## r447 (2026-10-09): r446 修复不完整——mt_probe_channels 第 4 处遗漏，trial 仍阻塞
 
