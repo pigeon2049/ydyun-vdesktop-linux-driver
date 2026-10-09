@@ -66,6 +66,28 @@ EXIT:0
 > r433 轮按 §4 清理：r431 节已移入归档。
 > r434 轮按 §4 清理：r432 节已移入归档。
 > r435 轮按 §4 清理：r433 节已移入归档。
+> r436 轮按 §4 清理：r434 节已移入归档。
+
+## r436 (2026-10-09): RgnHeader fill-1 live -- firmware still 5s timeout (highest-risk)
+
+- 6th cold reboot live: dual-gate build (W=1 zero warnings), T1-T5 pass
+  (554 Python + 1491 C).
+- Trial rebuild lesson: runtime_context=0 clean trial (pinned=0) caused bridge
+  0x82:0x12 -ENODEV -- pvr_session_acquire() requires trial.pinned AND
+  trial.connected; reloaded probe with runtime_context=1 ->
+  pinned=1 connected=1 (Guest/FW 2/2, matches r432 session state).
+- Full chain: connect -> ctx 0x1000 -> 13th RgnHeader BO (va=0x7c000000,
+  per-dword fill 1, dmesg confirms binding) -> 0xFD submit (buf+0x10=0x7c000000)
+  -> fence allocated -> 5s timeout (errno=110).
+- r433/r434 fill correction FALSIFIED as root cause by live evidence
+  (0xFF -> 1 did not change behavior).
+- Compare: r414 (all-zero, 219us no-work) / r425 (pixel BO, timeout) /
+  r432 (RgnHeader fill 0xFF, timeout) / r436 (RgnHeader fill 1, timeout).
+- Teardown: pending fence -> bridge ref=1, safe_rmmod.sh correctly refused;
+  dmesg zero WARN/BUG/Oops; awaiting user 7th cold reboot.
+- Source reverted, default rebuild W=1 zero warnings, tree clean.
+- Honest boundary: RgnHeader still INFERRED; next MUST be offline on
+  +0x28/+0x30 (MLIST VA candidate). No more live probing without basis.
 
 ## r435 (2026-10-09): 第 6 次冷重启未发生，停止活体（只读检查）
 
@@ -81,18 +103,3 @@ EXIT:0
 - 下一步：用户执行第 6 次冷重启后重验（uptime/lsmod/dmesg），方可 r436 活体。
 - 诚实边界：启动时间反推 ±2s；残留会话归属 r432 为 [INFERRED] 高置信；
   零硬件触碰；生产代码零变更。
-
-## r434 (2026-10-09): RgnHeader 填充修正为逐 dword 写 0x00000001（离线）
-
-- 落地 r433 纠正：`MT_TA_RGNHEADER_INIT_DWORD` 由 `0xFFFFFFFFU` → `0x1U`；
-  `mt_render_context_create` 删除 `memset(rgn_init, 0xFF, ...)`，
-  改为逐 dword 循环写 `1`（复用 `u32 i`，[MEASURED] r433）。
-- 测试同步：`test_ta_rgnheader_init_pattern` 模拟逐 dword 写 1，
-  断言 `== 0x1U` 且 `!= 0xFFFFFFFFU`（防 r431 重演）；
-  `test_rgnheader_init_all_ones` 更新为 assertIn dword 循环 +
-  assertNotIn memset 0xFF（首轮即精确拦截旧行为）。
-- 反向验证：注入 `memset 0xFF` → 精确 FAIL；还原后全绿。
-- 门禁 `check-offline` **554 Python + 1491 C 全绿**；
-  `make kernel` W=1 **零警告**。
-- 诚实边界：RgnHeader 语义仍 [INFERRED]；0x00000001 填充尚未活体验收
-  （r435+，待用户冷重启）。零硬件触碰，纯离线。

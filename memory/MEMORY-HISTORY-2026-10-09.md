@@ -301,3 +301,18 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
   单 RT (我方) 无 patching，仅 fill。
 - 门禁 `check-offline` 全绿；`make kernel` 未跑（无代码变更）。
   零硬件触碰，纯离线。
+
+## r434 (2026-10-09): RgnHeader 填充修正为逐 dword 写 0x00000001（离线）
+
+- 落地 r433 纠正：`MT_TA_RGNHEADER_INIT_DWORD` 由 `0xFFFFFFFFU` → `0x1U`；
+  `mt_render_context_create` 删除 `memset(rgn_init, 0xFF, ...)`，
+  改为逐 dword 循环写 `1`（复用 `u32 i`，[MEASURED] r433）。
+- 测试同步：`test_ta_rgnheader_init_pattern` 模拟逐 dword 写 1，
+  断言 `== 0x1U` 且 `!= 0xFFFFFFFFU`（防 r431 重演）；
+  `test_rgnheader_init_all_ones` 更新为 assertIn dword 循环 +
+  assertNotIn memset 0xFF（首轮即精确拦截旧行为）。
+- 反向验证：注入 `memset 0xFF` → 精确 FAIL；还原后全绿。
+- 门禁 `check-offline` **554 Python + 1491 C 全绿**；
+  `make kernel` W=1 **零警告**。
+- 诚实边界：RgnHeader 语义仍 [INFERRED]；0x00000001 填充尚未活体验收
+  （r435+，待用户冷重启）。零硬件触碰，纯离线。

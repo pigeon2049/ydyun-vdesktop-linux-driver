@@ -385,3 +385,5 @@ r428-umd-env-ta-header-capture.md |
 | r434-rgnheader-fill-dword-1.md |
 | r435 | 第 6 次冷重启未发生（bridge ref=1，r432 残留会话），停止活体：启动 ~16:20:46（dmesg -T 反推），r432 活体 17:45:43 在启动之后，无重启；bridge ref=1（r432 pending fence）；残留 render context（11 BOs+12th+13th rgnheader，READY）未 teardown；未构建双门控/未重载/未跑 readback；门禁 554+1491 全绿，kernel W=1 零警告；零硬件触碰 |
 r435-cold-reboot-not-done-stop.md |
+| r436 | RgnHeader fill-1 live (highest-risk, 6th cold reboot): dual-gate build, T1-T5 pass; trial rebuild needed runtime_context=1 (clean trial pinned=0 fails pvr_session_acquire which requires pinned+connected; reloaded probe, pinned=1 connected=1 Guest/FW 2/2); 13th RgnHeader BO bound va=0x7c000000 (per-dword fill 1, r434), TA Header +0x10=RgnHeader VA, n_entries=0; firmware 5s timeout (-ETIMEDOUT, errno=110) -- fill correction (0xFF->1) falsified as root cause; +0x28/+0x30 still [UNKNOWN]; safe_rmmod correctly refused (ref=1); dmesg clean; gate 554+1491 green; awaiting 7th cold reboot |
+| r436-rgnheader-fill1-live-timeout.md |
