@@ -874,3 +874,13 @@ DM2/opcode 0x68 (RGXCompute)，完成码标准 0。门控 MT_3D_SUBMIT_GATE=0 �
 **诚实边界**：marker 级 TA 路径（零绘制）；两次 kick 均走 per-file 回退（ctx=0x0），per-context 路径已在 r391 V3 验证；probe ref=13 基线含 r389 旧泄漏，本轮 delta 为 0。
 
 报告 reports/r395-safety-net-first-live-test.md，证据 reports/r395-dmesg-ta-regression.txt。
+
+## r396 (2026-10-08): exec_ctx 接入 kick 路径设计——render_ctx 双执行上下文（离线）
+
+**背景**：r391 诚实边界——TA marker 的 work->context 仍是 kick 内 kzalloc 的一次性 dm 标签（仅 route.dm=3），render_ctx 的 exec_ctx（node_type=5→DM2）只贡献了 VM，未参与提交。
+
+**设计**：render_ctx 新增 exec_ctx_ta（node_type=2→DM3），与既有 exec_ctx_3d（改名）共享同一 process（同一 VM/11 BO）；TA kick 传真实 exec_ctx_ta 替代 throwaway（门禁 route.dm==3 通过，r394 T2 白名单天然一致）；3D kick（门控关闭）用 exec_ctx_3d。三阶段：加字段→替换（marker 行为中性，m->context 永不赋值）→真实 payload（远期，需 MT_TA_VM_READY）。TA 仍走 submit_ta_work（0x100 匹配器/sync 回写/D8 拒收皆在其中），完成双路径已处理 m->context。
+
+**待验证**：node_type=2 固件语义；in-flight destroy（-EBUSY 诚实失败 vs 排空）；CSW 的 TA/3D 共用。
+
+报告 reports/r396-exec-ctx-kick-design.md。

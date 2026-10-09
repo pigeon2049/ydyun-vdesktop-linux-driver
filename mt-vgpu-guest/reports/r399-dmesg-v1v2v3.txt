@@ -1,0 +1,8 @@
+[ 5533.438373] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[ 5533.446073] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[15324.669602] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[15358.024851] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[15358.029742] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[16612.523748] mt_pvr_bridge: musakickgfx2: no live render_ctx (r398 Phase 2, per-file VM removed) -> -EINVAL
+[16612.524667] mt_pvr_bridge: r389: render ctx VM created, base_va=0x70000000
+[16612.528924] mt_pvr_bridge: musakickgfx2: submitted wire=10

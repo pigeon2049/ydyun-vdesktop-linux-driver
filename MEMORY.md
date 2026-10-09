@@ -44,6 +44,19 @@
 
 
 
+## r399 (2026-10-09): R5 Phase 2 活体验证--无 ctx kick 返回 -EINVAL（活体）
+
+**验证**：pre-live 门禁 T1/T2/T3 全绿后，bridge 重载到 r398 构建
+（safe_rmmod.sh，probe 不动）。V1：无 ctx 的 0x82:0xC kick 返回 -EINVAL
+（errno 22，dmesg 有 r398 Phase 2 标记）；V2：0x82:0x12 create
+（handle=0x1000）后带 ctx kick 成功，OUT.update_fence=10 对应 dmesg
+wire=10 精确匹配；V3：destroy 后 probe ref 13->25->13，delta 归零无泄漏。
+
+**门禁**：474+299 全绿；make kernel W=1 零警告；dmesg 零 WARN/BUG/Oops。
+本轮无代码改动（纯活体验证）。
+
+报告 reports/r399-perfile-removed-live-verified.md。
+
 ## r398 (2026-10-09): R5 Phase 2 完成——per-file VM 回退删除（离线）
 
 **删除**：`file->ta_vm_ctx` 字段、前向声明、`pvr_file_release` 销毁块、r376
@@ -87,12 +100,3 @@ node_type=2 固件语义、in-flight destroy 待验证。
 
 报告 reports/r397-dual-exec-ctx-live-verified.md。
 
-## r396 (2026-10-08): exec_ctx 接入 kick 路径设计——render_ctx 双执行上下文（离线）
-
-**背景**：r391 诚实边界——TA marker 的 work->context 仍是 kick 内 kzalloc 的一次性 dm 标签（仅 route.dm=3），render_ctx 的 exec_ctx（node_type=5→DM2）只贡献了 VM，未参与提交。
-
-**设计**：render_ctx 新增 exec_ctx_ta（node_type=2→DM3），与既有 exec_ctx_3d（改名）共享同一 process（同一 VM/11 BO）；TA kick 传真实 exec_ctx_ta 替代 throwaway（门禁 route.dm==3 通过，r394 T2 白名单天然一致）；3D kick（门控关闭）用 exec_ctx_3d。三阶段：加字段→替换（marker 行为中性，m->context 永不赋值）→真实 payload（远期，需 MT_TA_VM_READY）。TA 仍走 submit_ta_work（0x100 匹配器/sync 回写/D8 拒收皆在其中），完成双路径已处理 m->context。
-
-**待验证**：node_type=2 固件语义；in-flight destroy（-EBUSY 诚实失败 vs 排空）；CSW 的 TA/3D 共用。
-
-报告 reports/r396-exec-ctx-kick-design.md。
