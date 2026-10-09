@@ -503,9 +503,15 @@ static int mt_snapshot_memory(struct pci_dev *pdev, struct mt_guest *g)
 	    !IS_ALIGNED(g->firmware_bar_offset, PAGE_SIZE) ||
 	    !IS_ALIGNED(g->shared_bar_offset, PAGE_SIZE))
 		return -ERANGE;
-	if (readl(g->regs + 0x890) != (recover_channels ? 1 : 0) ||
-	    readl(g->regs + 0x898) != 1)
-		return -EBUSY;
+	/* 0x890==2 accepted (see entry check; firmware may boot with session
+	 * indicator set). recover_channels==0 here (the recover_channels +
+	 * reserve_memory combo is rejected in mt_probe). */
+	{
+		u32 reg890_snap = readl(g->regs + 0x890);
+		if ((reg890_snap != (recover_channels ? 1 : 0) && reg890_snap != 2) ||
+		    readl(g->regs + 0x898) != 1)
+			return -EBUSY;
+	}
 	g->memory_snapshot = vzalloc(MT_MEMORY_SNAPSHOT_SIZE);
 	if (!g->memory_snapshot)
 		return -ENOMEM;
@@ -1212,10 +1218,10 @@ static int mt_read_device_info(struct pci_dev *pdev, struct mt_guest *g)
 {
 	if (!g->info)
 		return -EINVAL;
-	/* 0x890==2 accepted when trial_connect (see mt_probe). */
+	/* 0x890==2 accepted when trial_connect or recover_channels (see mt_probe). */
 	u32 reg890 = readl(g->regs + 0x890);
 	if ((reg890 != (recover_channels ? 1 : 0) &&
-	     !(trial_connect && !recover_channels && reg890 == 2)) ||
+	     !(reg890 == 2 && (trial_connect || recover_channels))) ||
 	    readl(g->regs + 0x898) != 1)
 		return -EBUSY;
 	memset((void *)g->info, 0, PAGE_SIZE);
@@ -1328,11 +1334,11 @@ static int mt_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	if (query_info) {
 		/* Recovery is restricted to the orphaned Guest=1/FW=1 session.
 		 * 0x890==2 (trial session active, per mt_runtime_can_submit) is also
-		 * accepted when trial_connect: firmware may boot with the session
-		 * indicator set (cold boot does not clear it). */
+		 * accepted when trial_connect or recover_channels: firmware may boot
+		 * with the session indicator set (cold boot does not clear it). */
 		u32 reg890 = readl(g->regs + 0x890);
 		if ((reg890 != (recover_channels ? 1 : 0) &&
-		     !(trial_connect && !recover_channels && reg890 == 2)) ||
+		     !(reg890 == 2 && (trial_connect || recover_channels))) ||
 		    readl(g->regs + 0x898) != 1) {
 			ret = -EBUSY;
 			goto unmap;

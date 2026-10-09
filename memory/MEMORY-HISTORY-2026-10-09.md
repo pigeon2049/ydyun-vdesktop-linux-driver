@@ -469,3 +469,15 @@ r425（最高风险活体）：r423 Header-only 方案首次活体验证。双�
   证据 `build/traces/r443/dmesg-r443.txt`（0600）。
 - 下一步：用户确认完整冷重启（或第 9 次）后重开 trial 重建。
 
+## r444 (2026-10-09): Trial 在第 9 次冷重启后仍被阻塞（reserve_memory -EINVAL 持续 + 新 -EBUSY）
+
+- 第 9 次冷重启确认（uptime 1 min，模块未加载）；`check-offline` 559+781 全绿；
+  `make kernel` W=1 零警告；无代码变更（本轮纯阻塞确认）。
+- **阻塞**：`mt_guest_probe` 在 `reserve_memory=1` 时仍 probe 失败 `-EINVAL`（-22），
+  r443 阻塞点持续；**新退化**：无 `reserve_memory` 的 probe 也持续报 `-16`（EBUSY，
+  r443 时曾成功）——3 条 -16 dmesg 记录，rmmod（refcount 0）重试后仍持续。
+- PCI 设备可见 [1ed5:0222]，BAR 0/1/2 正常，vgaarb `owns=io+mem`，无驱动绑定。
+- 安全：未执行任何 live 操作；失败 probe 模块已 `rmmod`（refcount 0），系统干净；
+  dmesg 零 WARN/BUG/Oops；证据 `build/traces/r444/dmesg-r444.txt`（0600）。
+- 下一步：用户确认第 9 次为断电级完整冷重启；否则需真正断电重启；
+  P1：离线深挖 `mt_reserve_memory()`（`kernel/mt_guest_probe.c:390`）-EINVAL 路径与 -16 来源。

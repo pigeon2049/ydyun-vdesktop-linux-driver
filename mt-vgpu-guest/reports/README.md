@@ -405,4 +405,6 @@ r435-cold-reboot-not-done-stop.md |
 | r444-trial-still-blocked-9th-reboot.md |
 | r445 | 断电级冷重启后仍阻塞，确认为代码问题：缺陷1（recover_channels+reserve_memory 互斥，r443/r444 测试程序错误）+ 缺陷2（recover_channels 路径不接受持久化 reg890==2，代码注释承认冷重启不清除）；未执行活体，未修改代码；门禁 559+781 全绿，kernel 零警告 |
 | r445-poweroff-reboot-still-blocked-code-issue.md |
+| r446 | 修复 r445 两个缺陷（离线）：mt_guest_probe.c 三处 reg890 检查接受 recover_channels=1 + reg890==2（与 trial_connect 一致）；新增 7 测试（5 缺陷2 + 2 非法组合 -EINVAL）；反向验证 5/7 在旧代码 FAIL；门禁 566+781 全绿，kernel 零警告；零硬件触碰 |
+| r446-fix-reg890-recover-channels.md |
 

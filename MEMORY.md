@@ -75,6 +75,19 @@ EXIT:0
 > r443 轮按 §4 清理：r441 节已移入归档。
 > r444 轮按 §4 清理：r442 节已移入归档。
 
+## r446 (2026-10-09): 修复 reg890 状态机缺陷——recover_channels 路径接受 reg890==2（离线）
+
+- 修复 r445 缺陷 2：`kernel/mt_guest_probe.c` 三处 `reg890` 检查（`mt_probe`、
+  `mt_read_device_info`、`mt_snapshot_memory`）现在接受 `recover_channels=1` +
+  `reg890==2`（与 `trial_connect` 路径一致）；注释同步更新。
+- 缺陷 1（测试程序错误）：`scripts/fresh-trial.py` 已正确，无需修改；新增门禁
+  锁定 `recover_channels` + `reserve_memory`/`trial_connect` 非法组合的 `-EINVAL` 拒绝。
+- 新增 `tests/guest/test_probe_890_recover.py`（7 tests）；反向验证：5/7 在 r445
+  代码上精确 FAIL，恢复后全绿。
+- 门禁：`check-offline` 566 Python + 781 C 全绿；`make kernel` W=1 零警告。
+- 纯离线轮，零硬件触碰。用户确认后重启 → r447 活体。
+- 报告：mt-vgpu-guest/reports/r446-fix-reg890-recover-channels.md
+
 ## r445 (2026-10-09): 断电级冷重启后仍阻塞——确认为代码问题（参数组合非法 + reg890 状态机缺陷）
 
 - 第 10 次断电级冷重启（关机几分钟后开机，uptime 0 min）后，recover_channels=1 的 probe 仍报 -16（EBUSY）。
@@ -84,16 +97,4 @@ EXIT:0
 - 报告：reports/r445-poweroff-reboot-still-blocked-code-issue.md
 - 下一步（P0）：修复缺陷 2（recover_channels 接受 reg890==2）；修正测试程序（reserve_memory 不带 recover_channels）。
 
-## r444 (2026-10-09): Trial 在第 9 次冷重启后仍被阻塞（reserve_memory -EINVAL 持续 + 新 -EBUSY）
-
-- 第 9 次冷重启确认（uptime 1 min，模块未加载）；`check-offline` 559+781 全绿；
-  `make kernel` W=1 零警告；无代码变更（本轮纯阻塞确认）。
-- **阻塞**：`mt_guest_probe` 在 `reserve_memory=1` 时仍 probe 失败 `-EINVAL`（-22），
-  r443 阻塞点持续；**新退化**：无 `reserve_memory` 的 probe 也持续报 `-16`（EBUSY，
-  r443 时曾成功）——3 条 -16 dmesg 记录，rmmod（refcount 0）重试后仍持续。
-- PCI 设备可见 [1ed5:0222]，BAR 0/1/2 正常，vgaarb `owns=io+mem`，无驱动绑定。
-- 安全：未执行任何 live 操作；失败 probe 模块已 `rmmod`（refcount 0），系统干净；
-  dmesg 零 WARN/BUG/Oops；证据 `build/traces/r444/dmesg-r444.txt`（0600）。
-- 下一步：用户确认第 9 次为断电级完整冷重启；否则需真正断电重启；
-  P1：离线深挖 `mt_reserve_memory()`（`kernel/mt_guest_probe.c:390`）-EINVAL 路径与 -16 来源。
 
